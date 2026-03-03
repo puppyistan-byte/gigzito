@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play } from "lucide-react";
+import { ExternalLink, Clock, Play, Zap } from "lucide-react";
 import type { ListingWithProvider } from "@shared/schema";
 
 interface VideoCardProps {
@@ -67,7 +67,7 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
         />
 
         {/* Info overlay at bottom (inside the 9:16 frame for TikTok feel) */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 pb-8 space-y-2 z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 pb-12 space-y-2 z-10">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${VERTICAL_COLORS[listing.vertical]}`}>
               {VERTICAL_LABELS[listing.vertical]}
@@ -120,6 +120,12 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Gigzito Watermark */}
+        <div className="absolute bottom-4 right-4 opacity-10 pointer-events-none select-none z-20 flex items-center gap-1.5 text-white" aria-hidden="true">
+          <Zap className="h-4 w-4" />
+          <span className="font-bold text-sm tracking-tight">Gigzito</span>
         </div>
       </div>
     </div>

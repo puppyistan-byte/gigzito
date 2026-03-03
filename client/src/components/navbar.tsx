@@ -32,17 +32,16 @@ export function Navbar() {
           {user ? (
             <>
               <Link href="/provider/new">
-                <Button size="sm" data-testid="button-post-video">
-                  <PlusCircle className="h-4 w-4 mr-1" />
+                <Button size="sm" variant="ghost" data-testid="button-post-video" className="h-8 text-xs font-semibold">
                   Post Video
                 </Button>
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button data-testid="button-user-menu" className="rounded-full outline-none ring-2 ring-transparent focus:ring-primary transition-all">
-                    <Avatar className="h-8 w-8">
+                  <button data-testid="button-user-menu" className="rounded-full outline-none focus:ring-1 focus:ring-primary transition-all">
+                    <Avatar className="h-8 w-8 border border-border">
                       <AvatarImage src={user.profile?.avatarUrl ?? ""} alt={user.profile?.displayName ?? ""} />
-                      <AvatarFallback className="text-xs bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                      <AvatarFallback className="text-xs bg-muted text-muted-foreground">{initials}</AvatarFallback>
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
@@ -72,8 +71,7 @@ export function Navbar() {
             </>
           ) : (
             <Link href="/auth">
-              <Button size="sm" variant="outline" data-testid="button-login">
-                <User className="h-4 w-4 mr-1" />
+              <Button size="sm" variant="ghost" data-testid="button-login" className="h-8 text-xs font-semibold">
                 Sign in
               </Button>
             </Link>
