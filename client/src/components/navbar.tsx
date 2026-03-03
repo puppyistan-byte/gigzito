@@ -24,8 +24,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto flex h-12 items-center justify-between px-4">
         <Link href="/">
-          <a data-testid="link-logo" className="flex items-center gap-2 font-bold text-lg text-foreground">
-            <img src={logoImg} alt="Gigzito" className="h-6 w-auto" />
+          <a data-testid="link-logo" className="flex items-center gap-2">
+            <img src={logoImg} alt="Gigzito" className="h-8 w-auto" />
           </a>
         </Link>
 

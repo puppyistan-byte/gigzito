@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { VideoCard } from "@/components/video-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,8 @@ const VERTICALS = [
   { key: "COACHING", label: "Coaching" },
   { key: "COURSES", label: "Courses" },
 ];
+
+import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
 
 export default function HomePage() {
   const [activeVertical, setActiveVertical] = useState("ALL");
@@ -59,9 +62,11 @@ export default function HomePage() {
     <div className="flex flex-col h-screen bg-black">
       <div className="bg-black/95 backdrop-blur-sm sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-2xl mx-auto flex h-12 items-center justify-between px-4">
-          <span className="font-bold text-lg text-white flex items-center gap-1.5">
-            <span className="text-primary">⚡</span> Gigzito
-          </span>
+          <Link href="/">
+            <a className="flex items-center mr-4">
+              <img src={logoImg} alt="Gigzito" className="h-8 w-auto" />
+            </a>
+          </Link>
           <div className="flex gap-1">
             {VERTICALS.map((v) => (
               <button
