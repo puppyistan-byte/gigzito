@@ -284,11 +284,33 @@
     z-index: 9999;
   }
 
-  .brand-logo-text {
-    font-family: 'Dancing Script', cursive;
-    color: #FFFFFF;
-    font-size: 2.5rem;
-    line-height: 1;
+  .brand-header-fixed img {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  /* Splash Screen */
+  .splash-screen {
+    position: fixed;
+    inset: 0;
+    background-color: #FF0000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    transition: opacity 0.5s ease-out;
+  }
+
+  .splash-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .splash-logo {
+    width: 80%;
+    max-width: 600px;
+    height: auto;
   }
 
   .feed-wrap {

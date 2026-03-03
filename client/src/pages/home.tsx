@@ -8,13 +8,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
-import logoImg from "@assets/file_00000000e17471fdb85cd1f020d6f5a2_1772562759116.png";
+import logoImg from "@assets/gigzito_1772574609697.jpg";
 
 export default function HomePage() {
   const [activeVertical, setActiveVertical] = useState("ALL");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showSplash, setShowSplash] = useState(true);
+  const [fadeSplash, setFadeSplash] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFadeSplash(true);
+      setTimeout(() => setShowSplash(false), 500);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { data: listings = [], isLoading } = useQuery<ListingWithProvider[]>({
     queryKey: ["/api/listings", activeVertical],
@@ -54,8 +64,14 @@ export default function HomePage() {
 
   return (
     <div className="app-shell flex flex-col h-screen bg-black overflow-hidden relative">
+      {showSplash && (
+        <div className={`splash-screen ${fadeSplash ? 'fade-out' : ''}`}>
+          <img src={logoImg} alt="Gigzito" className="splash-logo" />
+        </div>
+      )}
+
       <div className="brand-header-fixed">
-        <span className="brand-logo-text">Gigzito</span>
+        <img src={logoImg} alt="Gigzito" />
       </div>
 
       {/* Feed */}
