@@ -104,12 +104,10 @@ export default function HomePage() {
             <div
               key={listing.id}
               ref={(el) => { itemRefs.current[idx] = el; }}
-              className="feed-item w-full"
-              style={{ height: "calc(100vh - 48px)" }}
+              className="feed-item w-full h-screen overflow-hidden"
+              data-testid={`listing-item-${idx}`}
             >
-              <div className="max-w-2xl mx-auto h-full">
-                <VideoCard listing={listing} className="h-full" />
-              </div>
+              <VideoCard listing={listing} className="h-full w-full" />
             </div>
           ))
         )}

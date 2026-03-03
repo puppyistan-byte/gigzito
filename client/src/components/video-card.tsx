@@ -53,74 +53,74 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
   return (
     <div
       data-testid={`card-listing-${listing.id}`}
-      className={`feed-item flex flex-col w-full h-full bg-black ${className}`}
+      className={`feed-item relative w-full h-full bg-black overflow-hidden flex items-center justify-center ${className}`}
     >
-      {/* Video embed */}
-      <div className="relative flex-1 bg-black">
+      {/* Video Container (Inner) enforced 9:16 */}
+      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto bg-black flex items-center justify-center">
         <iframe
           src={embedUrl}
           title={listing.title}
-          className="w-full h-full"
+          className="absolute inset-0 w-full h-full border-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           loading="lazy"
         />
-      </div>
 
-      {/* Info overlay at bottom */}
-      <div className="bg-gradient-to-t from-black/90 to-transparent p-4 space-y-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-sm ${VERTICAL_COLORS[listing.vertical]}`}>
-            {VERTICAL_LABELS[listing.vertical]}
-          </span>
-          <span className="text-xs text-white/60 flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {listing.durationSeconds}s
-          </span>
-        </div>
+        {/* Info overlay at bottom (inside the 9:16 frame for TikTok feel) */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 pb-8 space-y-2 z-10">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${VERTICAL_COLORS[listing.vertical]}`}>
+              {VERTICAL_LABELS[listing.vertical]}
+            </span>
+            <span className="text-[10px] text-white/60 flex items-center gap-1 font-medium">
+              <Clock className="h-3 w-3" />
+              {listing.durationSeconds}s
+            </span>
+          </div>
 
-        <h3 className="text-white font-semibold text-sm leading-tight line-clamp-2">{listing.title}</h3>
+          <h3 className="text-white font-bold text-sm leading-tight line-clamp-2 drop-shadow-md">{listing.title}</h3>
 
-        {listing.description && (
-          <p className="text-white/70 text-xs line-clamp-2">{listing.description}</p>
-        )}
+          {listing.description && (
+            <p className="text-white/80 text-xs line-clamp-2 drop-shadow-sm">{listing.description}</p>
+          )}
 
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <Link href={`/listing/${listing.id}`}>
-            <a data-testid={`link-provider-${listing.id}`} className="flex items-center gap-2 min-w-0">
-              <Avatar className="h-7 w-7 shrink-0">
-                <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
-                <AvatarFallback className="text-xs bg-primary text-primary-foreground">{initials}</AvatarFallback>
-              </Avatar>
-              <span className="text-white/90 text-xs font-medium truncate">{provider.displayName || "Provider"}</span>
-            </a>
-          </Link>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {listing.ctaUrl && (
-              <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer" data-testid={`link-cta-${listing.id}`}>
-                <Button size="sm" variant="default" className="h-7 text-xs px-2">
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Learn more
-                </Button>
-              </a>
-            )}
+          <div className="flex items-center justify-between gap-2 pt-1">
             <Link href={`/listing/${listing.id}`}>
-              <Button size="sm" variant="outline" className="h-7 text-xs px-2 border-white/20 text-white" data-testid={`link-detail-${listing.id}`}>
-                <Play className="h-3 w-3 mr-1" />
-                Detail
-              </Button>
+              <a data-testid={`link-provider-${listing.id}`} className="flex items-center gap-2 min-w-0 group">
+                <Avatar className="h-8 w-8 shrink-0 ring-1 ring-white/20 group-hover:ring-primary transition-all">
+                  <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
+                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">{initials}</AvatarFallback>
+                </Avatar>
+                <span className="text-white text-xs font-semibold truncate drop-shadow-sm">{provider.displayName || "Provider"}</span>
+              </a>
             </Link>
-          </div>
-        </div>
 
-        {listing.tags && listing.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-0.5">
-            {listing.tags.slice(0, 4).map((tag) => (
-              <span key={tag} className="text-xs text-white/50">#{tag}</span>
-            ))}
+            <div className="flex items-center gap-2 shrink-0">
+              {listing.ctaUrl && (
+                <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer" data-testid={`link-cta-${listing.id}`}>
+                  <Button size="sm" variant="default" className="h-8 text-xs px-3 font-bold shadow-lg">
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                    Visit
+                  </Button>
+                </a>
+              )}
+              <Link href={`/listing/${listing.id}`}>
+                <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-white/30 text-white bg-white/10 backdrop-blur-sm hover:bg-white/20 font-bold" data-testid={`link-detail-${listing.id}`}>
+                  <Play className="h-3.5 w-3.5 mr-1" />
+                  Details
+                </Button>
+              </Link>
+            </div>
           </div>
-        )}
+
+          {listing.tags && listing.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {listing.tags.slice(0, 3).map((tag) => (
+                <span key={tag} className="text-[10px] text-white/40 font-medium">#{tag}</span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
