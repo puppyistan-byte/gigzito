@@ -21,8 +21,8 @@ export function Navbar() {
     : user?.user?.email?.[0]?.toUpperCase() ?? "U";
 
   return (
-    <header className="brand-header border-b border-white/10">
-      <div className="flex items-center justify-between w-full max-w-2xl mx-auto px-4">
+    <header className="brand-header">
+      <div className="flex items-center justify-between w-full max-w-2xl mx-auto pr-4">
         <Link href="/">
           <a data-testid="link-logo" className="flex items-center">
             <img src={logoImg} alt="Gigzito" className="brand-logo" />
