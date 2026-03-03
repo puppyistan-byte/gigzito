@@ -15,7 +15,7 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 safe-area-bottom bottom-nav">
       <div className="max-w-2xl mx-auto flex justify-around items-center h-16 px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -35,7 +35,7 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
                 }
               }}
               className={`flex flex-col items-center justify-center gap-1 flex-1 transition-colors ${
-                isActive ? "text-primary" : "text-white/40 hover:text-white/60"
+                isActive ? "active" : "text-white/40 hover:text-white/60"
               }`}
             >
               <Icon className="h-5 w-5" />
