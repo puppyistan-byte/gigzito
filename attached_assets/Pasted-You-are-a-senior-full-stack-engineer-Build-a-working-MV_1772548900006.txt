@@ -1,0 +1,51 @@
+You are a senior full-stack engineer. Build a working MVP from scratch.
+
+PROJECT: Gigzito (mobile-first scrolling video directory)
+
+GOAL:
+A TikTok-style vertical scrolling feed where providers pay $3 to list a short promo video (via link). Three verticals: Marketing, Coaching, Courses. Max 100 paid video listings per day across the whole platform. Video length cap is 20 seconds.
+
+STACK (REQUIRED):
+- Frontend: Next.js (App Router) + TypeScript + Tailwind
+- Backend: Next.js Route Handlers (API) + Prisma
+- DB: PostgreSQL (use docker-compose for local dev)
+- Auth: NextAuth (email/password or email magic link)
+- Payments: Stripe Checkout ($3 per listing)
+
+CORE RULES:
+1) Daily platform cap: 100 video listings per calendar day (local server date). If cap reached, block new submissions.
+2) Each listing costs $3. Only create listing after payment success.
+3) Video length cap: 20 seconds. In V1, enforce by requiring “DurationSeconds” field in form (must be <= 20) and show warning that false info may be removed.
+4) Provider must have profile completed (bio + avatar + thumb + at least one contact method) before listing submission.
+
+PAGES / UX:
+- "/" Home Feed: full-screen vertical scroll feed (like TikTok). Filter pills: All | Marketing | Coaching | Courses.
+- "/listing/[id]" Listing detail: title, vertical, video embed/player (from link), provider card, CTA.
+- "/provider/me" Provider dashboard: profile status + my listings + “Post video” button.
+- "/provider/profile" Edit profile: display name, bio, avatarUrl, thumbUrl, contactEmail/Phone/Telegram/Website.
+- "/provider/new" Submit listing form: vertical, title, videoUrl, durationSeconds (<=20), optional description, tags, ctaUrl.
+- "/admin" Minimal admin: today’s count, revenue estimate, list of listings with remove/unpublish.
+
+DATA MODEL (Prisma):
+- User: id, email, role (VISITOR/PROVIDER/ADMIN), createdAt
+- ProviderProfile: id, userId, displayName, bio, avatarUrl, thumbUrl, contactEmail, contactPhone, contactTelegram, websiteUrl
+- VideoListing: id, providerId, vertical (enum), title, videoUrl, durationSeconds, description, tags (String[]), ctaUrl, status (PENDING/ACTIVE/PAUSED/REMOVED), dropDate (Date only), pricePaidCents (300), stripeSessionId, createdAt, updatedAt
+
+SEED DATA:
+Create seed script with:
+- 6 sample providers
+- 18 sample listings across all verticals
+
+DELIVERABLES:
+- Working app that runs locally
+- README with exact commands
+- .env.example
+
+IMPORTANT: Use mobile-first styling. Keep UI minimal and clean.
+
+NOW, BEFORE YOU WRITE ANY CODE, YOU MUST REPLY IN THIS EXACT FORMAT:
+
+1) Architecture Summary (5 bullets max)
+2) Routes List (frontend pages + API routes)
+3) Prisma Schema (full)
+4) Implementation Plan (8–12 steps, in order
