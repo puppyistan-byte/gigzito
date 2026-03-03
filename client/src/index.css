@@ -261,13 +261,45 @@
     display: none;
   }
 
-  .brand-logo-overlay {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 50;
+  .app-shell {
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    --brand-offset: 64px;
+    --bottom-nav-height: 64px;
+  }
+
+  .brand-logo-fixed {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 12px;
+    z-index: 9999;
     pointer-events: none;
-    user-select: none;
+    width: 220px;
+    height: 56px;
+    overflow: hidden;
+  }
+
+  .brand-logo-fixed img {
+    width: 220px;
+    height: 56px;
+    object-fit: cover;
+    object-position: left center;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(255, 0, 0, 0.35));
+  }
+
+  .feed-wrap {
+    height: 100%;
+    width: 100%;
+    padding-top: calc(var(--brand-offset) + env(safe-area-inset-top, 0px));
+    box-sizing: border-box;
+  }
+
+  .brand-logo-overlay {
+    display: none;
   }
 
   .brand-logo-text {
@@ -282,5 +314,14 @@
     height: 144px;
     object-fit: contain;
     filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.9));
+  }
+
+  .feed-item {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    height: calc(100vh - var(--brand-offset) - var(--bottom-nav-height));
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
 }

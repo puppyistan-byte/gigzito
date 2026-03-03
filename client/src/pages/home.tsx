@@ -17,12 +17,10 @@ export default function HomePage() {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    const logo = document.querySelector(".brand-logo-fixed");
     const root = document.querySelector(".app-shell");
-    if (!logo || !root) return;
-
-    const height = (logo as HTMLElement).getBoundingClientRect().height;
-    (root as HTMLElement).style.setProperty("--brand-offset", `${height + 16}px`);
+    if (!root) return;
+    // FIXED OFFSET so we do NOT reserve the PNG’s big empty canvas
+    (root as HTMLElement).style.setProperty("--brand-offset", `64px`);
   }, []);
 
   const { data: listings = [], isLoading } = useQuery<ListingWithProvider[]>({
