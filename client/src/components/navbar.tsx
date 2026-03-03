@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Settings, LogOut, Shield, LayoutDashboard, PlusCircle } from "lucide-react";
 
-import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
+import logoImg from "@assets/file_00000000e17471fdb85cd1f020d6f5a2_1772560922928.png";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -24,13 +24,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/95 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto flex h-14 items-center justify-between px-4">
         <Link href="/">
-          <a data-testid="link-logo" className="flex flex-col items-start justify-center">
-            <span style={{ fontFamily: "'Dancing Script', cursive" }} className="text-[#FF2A2A] text-2xl leading-none">
-              Gigzito
-            </span>
-            <span className="text-white/50 text-[10px] tracking-widest uppercase mt-0.5 font-medium">
-              Getcho Gig On...
-            </span>
+          <a data-testid="link-logo" className="flex items-center">
+            <img src={logoImg} alt="Gigzito" className="h-10 w-auto" />
           </a>
         </Link>
 

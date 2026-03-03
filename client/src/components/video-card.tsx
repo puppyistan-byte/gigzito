@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Clock, Play, Zap } from "lucide-react";
 import type { ListingWithProvider } from "@shared/schema";
 
-import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
+import logoImg from "@assets/file_00000000e17471fdb85cd1f020d6f5a2_1772560922928.png";
 
 interface VideoCardProps {
   listing: ListingWithProvider;
@@ -73,12 +73,7 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
           className="absolute bottom-6 right-6 opacity-40 pointer-events-none select-none z-30 flex flex-col items-end filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" 
           aria-hidden="true"
         >
-          <span style={{ fontFamily: "'Dancing Script', cursive" }} className="text-[#FF2A2A] text-xl leading-none">
-            Gigzito
-          </span>
-          <span className="text-white/40 text-[8px] tracking-widest uppercase font-medium">
-            Getcho Gig On...
-          </span>
+          <img src={logoImg} alt="" className="h-10 w-auto" />
         </div>
 
         {/* Info overlay at bottom (inside the 9:16 frame for TikTok feel) */}
