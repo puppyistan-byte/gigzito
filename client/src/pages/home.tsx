@@ -8,13 +8,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
-import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
+import logoImg from "@assets/file_00000000e17471fdb85cd1f020d6f5a2_1772562759116.png";
 
 export default function HomePage() {
   const [activeVertical, setActiveVertical] = useState("ALL");
   const [currentIndex, setCurrentIndex] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const logo = document.querySelector(".brand-logo-fixed");
+    const root = document.querySelector(".app-shell");
+    if (!logo || !root) return;
+
+    const height = (logo as HTMLElement).getBoundingClientRect().height;
+    (root as HTMLElement).style.setProperty("--brand-offset", `${height + 16}px`);
+  }, []);
 
   const { data: listings = [], isLoading } = useQuery<ListingWithProvider[]>({
     queryKey: ["/api/listings", activeVertical],
@@ -53,15 +62,19 @@ export default function HomePage() {
   }, [activeVertical]);
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden relative">
-      <div className="brand-logo-overlay">
-        <span className="brand-logo-text">Gigzito</span>
+    <div className="app-shell flex flex-col h-screen bg-black overflow-hidden relative">
+      <div className="brand-logo-fixed">
+        <img
+          src={logoImg}
+          alt="Gigzito"
+          draggable="false"
+        />
       </div>
 
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-container flex-1 bg-black pb-16 pt-0 h-screen"
+        className="feed-wrap feed-container flex-1 bg-black pb-16 pt-0 h-screen"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
