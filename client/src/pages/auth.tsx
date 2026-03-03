@@ -1,0 +1,169 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { Zap, Loader2 } from "lucide-react";
+import { Link } from "wouter";
+
+export default function AuthPage() {
+  const [, navigate] = useLocation();
+  const { user, refetch } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  if (user) {
+    navigate("/provider/me");
+    return null;
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Login failed", description: data.message, variant: "destructive" });
+      } else {
+        queryClient.setQueryData(["/api/auth/me"], data);
+        refetch();
+        navigate("/provider/me");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: regEmail, password: regPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Registration failed", description: data.message, variant: "destructive" });
+      } else {
+        queryClient.setQueryData(["/api/auth/me"], data);
+        refetch();
+        navigate("/provider/profile");
+        toast({ title: "Welcome to Gigzito!", description: "Complete your profile to start posting videos." });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
+      <Link href="/">
+        <a className="flex items-center gap-2 font-bold text-2xl mb-8 text-foreground">
+          <Zap className="h-7 w-7 text-primary" />
+          Gigzito
+        </a>
+      </Link>
+
+      <Card className="w-full max-w-sm p-6">
+        <Tabs defaultValue="login">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="login" className="flex-1" data-testid="tab-login">Log in</TabsTrigger>
+            <TabsTrigger value="register" className="flex-1" data-testid="tab-register">Sign up</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  required
+                  data-testid="input-login-email"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="login-password">Password</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                  data-testid="input-login-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-login-submit">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Log in
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Demo: alex@gigzito.com / password123
+              </p>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="register">
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="reg-email">Email</Label>
+                <Input
+                  id="reg-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  required
+                  data-testid="input-reg-email"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="reg-password">Password</Label>
+                <Input
+                  id="reg-password"
+                  type="password"
+                  placeholder="Choose a password"
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  data-testid="input-reg-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-register-submit">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Create account
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </Card>
+
+      <p className="text-xs text-muted-foreground mt-4">
+        By signing up you agree to post only content you own.
+      </p>
+    </div>
+  );
+}
