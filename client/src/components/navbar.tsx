@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Zap, User, Settings, LogOut, Shield, PlusCircle, LayoutDashboard } from "lucide-react";
 
+import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
+
 export function Navbar() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
@@ -22,9 +24,8 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto flex h-12 items-center justify-between px-4">
         <Link href="/">
-          <a data-testid="link-logo" className="flex items-center gap-1.5 font-bold text-lg text-foreground">
-            <Zap className="h-5 w-5 text-primary" />
-            <span>Gigzito</span>
+          <a data-testid="link-logo" className="flex items-center gap-2 font-bold text-lg text-foreground">
+            <img src={logoImg} alt="Gigzito" className="h-6 w-auto" />
           </a>
         </Link>
 

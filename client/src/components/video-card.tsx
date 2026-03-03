@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Clock, Play, Zap } from "lucide-react";
 import type { ListingWithProvider } from "@shared/schema";
 
+import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
+
 interface VideoCardProps {
   listing: ListingWithProvider;
   className?: string;
@@ -123,9 +125,8 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
         </div>
 
         {/* Gigzito Watermark */}
-        <div className="absolute bottom-4 right-4 opacity-10 pointer-events-none select-none z-20 flex items-center gap-1.5 text-white" aria-hidden="true">
-          <Zap className="h-4 w-4" />
-          <span className="font-bold text-sm tracking-tight">Gigzito</span>
+        <div className="absolute bottom-4 right-4 opacity-10 pointer-events-none select-none z-20 flex items-center gap-1.5" aria-hidden="true">
+          <img src={logoImg} alt="" className="h-5 w-auto brightness-0 invert" />
         </div>
       </div>
     </div>
