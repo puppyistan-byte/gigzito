@@ -71,7 +71,7 @@ export default function HomePage() {
       )}
 
       <div className="brand-logo">
-        <img src="/gigzito-logo.png" alt="Gigzito" />
+        <img src="/gigzito-red-wordmark.png" alt="Gigzito" />
       </div>
 
       {/* Feed */}
