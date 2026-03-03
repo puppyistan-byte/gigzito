@@ -46,6 +46,11 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    document.body.classList.add("feed-active");
+    return () => document.body.classList.remove("feed-active");
+  }, []);
+
+  useEffect(() => {
     setCurrentIndex(0);
     if (feedRef.current) feedRef.current.scrollTop = 0;
   }, [activeVertical]);
@@ -80,7 +85,7 @@ export default function HomePage() {
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-container flex-1"
+        className="feed-container flex-1 bg-black"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
@@ -104,7 +109,7 @@ export default function HomePage() {
             <div
               key={listing.id}
               ref={(el) => { itemRefs.current[idx] = el; }}
-              className="feed-item w-full h-screen overflow-hidden"
+              className="feed-item"
               data-testid={`listing-item-${idx}`}
             >
               <VideoCard listing={listing} className="h-full w-full" />
