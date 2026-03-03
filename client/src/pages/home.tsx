@@ -53,13 +53,15 @@ export default function HomePage() {
   }, [activeVertical]);
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden">
-      <Navbar />
+    <div className="flex flex-col h-screen bg-black overflow-hidden relative">
+      <div className="brand-logo-overlay">
+        <span className="brand-logo-text">Gigzito</span>
+      </div>
 
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-container flex-1 bg-black pb-16 pt-[165px] h-[calc(100vh-165px)]"
+        className="feed-container flex-1 bg-black pb-16 pt-0 h-screen"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
