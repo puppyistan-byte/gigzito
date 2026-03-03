@@ -234,7 +234,7 @@
   .feed-item {
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    height: 100vh;
+    height: calc(100vh - 165px);
     width: 100%;
     margin: 0;
     padding: 0;
