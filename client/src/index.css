@@ -319,6 +319,8 @@ html, body, #root {
     height: calc(100vh - 140px);
     scroll-snap-align: start;
     flex: 0 0 auto;
+    border-radius: 18px;
+    overflow: hidden;
   }
 
   .brand-header-fixed,
