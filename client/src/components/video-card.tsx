@@ -55,10 +55,10 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
   return (
     <div
       data-testid={`card-listing-${listing.id}`}
-      className={`feed-item relative w-full h-full bg-black overflow-hidden flex items-center justify-center ${className}`}
+      className={`video-card relative w-full h-full bg-black overflow-hidden flex items-center justify-center ${className}`}
     >
       {/* Video Container (Inner) enforced 9:16 */}
-      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto bg-black flex items-center justify-center">
+      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto bg-black flex items-center justify-center rounded-[14px] overflow-hidden">
         <iframe
           src={embedUrl}
           title={listing.title}

@@ -322,25 +322,28 @@ html, body, #root {
     flex: 0 0 auto;
     border-radius: 22px;
     overflow: hidden;
+    padding: 12px;
     background: rgba(200, 200, 200, 0.25);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+  }
+
+  .video-card iframe,
+  .video-card video,
+  .feed-item iframe,
+  .feed-item video,
+  .card iframe,
+  .card video {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    display: block;
+    object-fit: cover;
   }
 
   .video-card::before,
   .feed-item::before,
   .card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 16px;
-    background: rgba(220, 220, 220, 0.35);
-    backdrop-filter: blur(12px);
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    z-index: 5;
-    pointer-events: none;
+    display: none;
   }
 
   .bottom-nav,

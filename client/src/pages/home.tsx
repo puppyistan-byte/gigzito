@@ -103,10 +103,10 @@ export default function HomePage() {
             <div
               key={listing.id}
               ref={(el) => { itemRefs.current[idx] = el; }}
-              className="feed-item h-full"
+              className="feed-item"
               data-testid={`listing-item-${idx}`}
             >
-              <VideoCard listing={listing} className="h-full w-full" />
+              <VideoCard listing={listing} className="w-full h-full" />
             </div>
           ))
         )}
