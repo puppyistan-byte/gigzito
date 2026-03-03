@@ -24,8 +24,13 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/95 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto flex h-14 items-center justify-between px-4">
         <Link href="/">
-          <a data-testid="link-logo" className="flex items-center">
-            <img src={logoImg} alt="Gigzito" className="h-8 w-auto" />
+          <a data-testid="link-logo" className="flex flex-col items-start justify-center">
+            <span style={{ fontFamily: "'Dancing Script', cursive" }} className="text-[#FF2A2A] text-2xl leading-none">
+              Gigzito
+            </span>
+            <span className="text-white/50 text-[10px] tracking-widest uppercase mt-0.5 font-medium">
+              Getcho Gig On...
+            </span>
           </a>
         </Link>
 

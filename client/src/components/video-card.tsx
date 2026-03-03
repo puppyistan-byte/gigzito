@@ -70,10 +70,15 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
 
         {/* Gigzito Watermark - High Z-index to appear over iframe */}
         <div 
-          className="absolute bottom-6 right-6 opacity-30 pointer-events-none select-none z-30 flex items-center gap-1.5 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" 
+          className="absolute bottom-6 right-6 opacity-40 pointer-events-none select-none z-30 flex flex-col items-end filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" 
           aria-hidden="true"
         >
-          <img src={logoImg} alt="" className="h-6 w-auto brightness-0 invert" />
+          <span style={{ fontFamily: "'Dancing Script', cursive" }} className="text-[#FF2A2A] text-xl leading-none">
+            Gigzito
+          </span>
+          <span className="text-white/40 text-[8px] tracking-widest uppercase font-medium">
+            Getcho Gig On...
+          </span>
         </div>
 
         {/* Info overlay at bottom (inside the 9:16 frame for TikTok feel) */}
