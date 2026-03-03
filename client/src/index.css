@@ -281,10 +281,11 @@ html, body, #root {
   }
 
   .brand-logo {
-    position: absolute;
+    position: fixed;
     top: 14px;
     left: 20px;
-    z-index: 100;
+    z-index: 50;
+    pointer-events: none;
   }
 
   .brand-logo img {
