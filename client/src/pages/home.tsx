@@ -70,14 +70,14 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="brand-header-fixed">
-        <img src={logoImg} alt="Gigzito" />
+      <div className="branding-zone">
+        <span className="branding-text">Gigzito</span>
       </div>
 
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-wrap feed-container flex-1 bg-black h-screen"
+        className="feed-wrap feed-container flex-1 bg-black"
         onScroll={handleScroll}
         data-testid="feed-container"
       >

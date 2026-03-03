@@ -267,79 +267,52 @@
     position: relative;
     overflow: hidden;
     background: #000;
-    --header-height: 70px;
+    --branding-height: 70px;
+    --branding-spacing: 16px;
     --bottom-nav-height: 64px;
   }
 
-  .brand-header-fixed {
-    position: fixed;
-    top: 0;
-    left: 0;
+  .branding-zone {
     width: 100%;
-    height: var(--header-height);
-    background-color: #8B0000;
+    height: var(--branding-height);
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
   }
 
-  .brand-header-fixed img {
-    height: 50px;
-    width: auto;
-    object-fit: contain;
-  }
-
-  /* Splash Screen */
-  .splash-screen {
-    position: fixed;
-    inset: 0;
-    background-color: #FF0000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    transition: opacity 0.5s ease-out;
-  }
-
-  .splash-screen.fade-out {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .splash-logo {
-    width: 80%;
-    max-width: 600px;
-    height: auto;
+  .branding-text {
+    color: #fff;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 2.5rem;
+    line-height: 1;
   }
 
   .feed-wrap {
     height: 100%;
     width: 100%;
-    padding-top: var(--header-height);
+    padding-top: var(--branding-spacing);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    background: #000;
   }
 
   .feed-item {
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    height: calc(100vh - var(--header-height) - var(--bottom-nav-height));
+    height: calc(100vh - var(--branding-height) - var(--branding-spacing) - var(--bottom-nav-height));
     width: 100%;
     margin: 0;
     padding: 0;
     flex-shrink: 0;
+    background: #000;
   }
 
-  .brand-logo-fixed {
-    display: none;
-  }
-
-  .brand-logo-overlay {
-    display: none;
-  }
-
+  .brand-header-fixed,
+  .brand-logo-fixed,
+  .brand-logo-overlay,
   .brand-logo {
     display: none;
   }
