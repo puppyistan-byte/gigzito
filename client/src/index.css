@@ -267,15 +267,13 @@
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
-    padding: 0;
+    padding-left: 20px;
     z-index: 9999;
   }
 
   .brand-logo {
-    height: 160px;
+    height: 144px;
     object-fit: contain;
     filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.9));
-    margin: 0;
-    display: block;
   }
 }

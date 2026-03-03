@@ -22,9 +22,9 @@ export function Navbar() {
 
   return (
     <header className="brand-header">
-      <div className="flex items-center justify-between w-full max-w-[420px] mx-auto pr-4">
+      <div className="flex items-center justify-between w-full max-w-2xl mx-auto pr-4">
         <Link href="/">
-          <a data-testid="link-logo" className="flex items-center p-0 m-0">
+          <a data-testid="link-logo" className="flex items-center">
             <img src={logoImg} alt="Gigzito" className="brand-logo" />
           </a>
         </Link>
