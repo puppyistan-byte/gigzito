@@ -63,7 +63,7 @@ export default function HomePage() {
   }, [activeVertical]);
 
   return (
-    <div className="app-shell flex flex-col h-screen bg-black overflow-hidden relative">
+    <div className="app-shell flex flex-col h-screen bg-white overflow-hidden relative">
       {showSplash && (
         <div className={`splash-screen ${fadeSplash ? 'fade-out' : ''}`}>
           <img src={logoImg} alt="Gigzito" className="splash-logo" />
@@ -79,7 +79,7 @@ export default function HomePage() {
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-wrap feed-container flex-1 bg-black"
+        className="feed-wrap feed-container flex-1 bg-white"
         onScroll={handleScroll}
         data-testid="feed-container"
       >

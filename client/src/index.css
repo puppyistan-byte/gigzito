@@ -134,6 +134,14 @@
   --shadow-2xl: 0px 24px 48px 0px rgba(0,0,0,0.6);
 }
 
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #ffffff;
+  color: #000000;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -266,7 +274,7 @@
     width: 100vw;
     position: relative;
     overflow: hidden;
-    background: #000;
+    background: #ffffff;
     --branding-height: 70px;
     --branding-spacing: 16px;
     --bottom-nav-height: 64px;
