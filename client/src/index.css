@@ -290,9 +290,13 @@
   }
 
   .feed-wrap {
-    margin-top: 16px; /* moves video frame down ~1/4 inch */
+    height: 100%;
+    width: 100%;
+    padding-top: var(--branding-spacing);
+    box-sizing: border-box;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    background: #000;
   }
 
   .feed-item {
