@@ -16,13 +16,6 @@ export default function HomePage() {
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  useEffect(() => {
-    const root = document.querySelector(".app-shell");
-    if (!root) return;
-    // FIXED OFFSET so we do NOT reserve the PNG’s big empty canvas
-    (root as HTMLElement).style.setProperty("--brand-offset", `64px`);
-  }, []);
-
   const { data: listings = [], isLoading } = useQuery<ListingWithProvider[]>({
     queryKey: ["/api/listings", activeVertical],
     queryFn: async () => {
@@ -72,7 +65,7 @@ export default function HomePage() {
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-wrap feed-container flex-1 bg-black pb-16 pt-0 h-screen"
+        className="feed-wrap feed-container flex-1 bg-black h-screen"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
