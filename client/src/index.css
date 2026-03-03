@@ -290,9 +290,14 @@
   }
 
   .feed-wrap {
+    position: relative;
     margin-top: 16px;
+    width: 100%;
+    height: calc(100vh - 140px);
     display: flex;
+    align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
 
   .feed-item {
