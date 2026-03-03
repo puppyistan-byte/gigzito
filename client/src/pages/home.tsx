@@ -2,18 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Navbar } from "@/components/navbar";
+import { BottomNav } from "@/components/bottom-nav";
 import { VideoCard } from "@/components/video-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
-
-const VERTICALS = [
-  { key: "ALL", label: "All" },
-  { key: "MARKETING", label: "Marketing" },
-  { key: "COACHING", label: "Coaching" },
-  { key: "COURSES", label: "Courses" },
-];
 
 import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
 
@@ -44,6 +37,7 @@ export default function HomePage() {
     if (!feedRef.current) return;
     const scrollTop = feedRef.current.scrollTop;
     const height = feedRef.current.clientHeight;
+    if (height === 0) return;
     const idx = Math.round(scrollTop / height);
     setCurrentIndex(Math.max(0, Math.min(idx, listings.length - 1)));
   };
@@ -59,38 +53,13 @@ export default function HomePage() {
   }, [activeVertical]);
 
   return (
-    <div className="flex flex-col h-screen bg-black">
-      <div className="bg-black/95 backdrop-blur-sm sticky top-0 z-50 border-b border-white/10">
-        <div className="max-w-2xl mx-auto flex h-12 items-center justify-between px-4">
-          <Link href="/">
-            <a className="flex items-center mr-4">
-              <img src={logoImg} alt="Gigzito" className="h-8 w-auto" />
-            </a>
-          </Link>
-          <div className="flex gap-1">
-            {VERTICALS.map((v) => (
-              <button
-                key={v.key}
-                data-testid={`filter-${v.key.toLowerCase()}`}
-                onClick={() => setActiveVertical(v.key)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                  activeVertical === v.key
-                    ? "bg-primary text-white"
-                    : "text-white/60 hover:text-white"
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-          <a href="/auth" className="text-white/60 hover:text-white text-xs">Sign in</a>
-        </div>
-      </div>
+    <div className="flex flex-col h-screen bg-black overflow-hidden">
+      <Navbar />
 
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-container flex-1 bg-black"
+        className="feed-container flex-1 bg-black pb-16"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
@@ -105,7 +74,7 @@ export default function HomePage() {
         ) : listings.length === 0 ? (
           <div className="h-full flex items-center justify-center text-center px-6">
             <div className="text-white/50 space-y-2">
-              <p className="text-2xl">No listings yet</p>
+              <p className="text-2xl font-bold">No listings yet</p>
               <p className="text-sm">Be the first to post a video in {activeVertical === "ALL" ? "any vertical" : activeVertical.toLowerCase()}!</p>
             </div>
           </div>
@@ -114,7 +83,7 @@ export default function HomePage() {
             <div
               key={listing.id}
               ref={(el) => { itemRefs.current[idx] = el; }}
-              className="feed-item"
+              className="feed-item h-full"
               data-testid={`listing-item-${idx}`}
             >
               <VideoCard listing={listing} className="h-full w-full" />
@@ -123,9 +92,11 @@ export default function HomePage() {
         )}
       </div>
 
+      <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
+
       {/* Nav arrows (desktop helper) */}
       {listings.length > 1 && (
-        <div className="fixed right-4 bottom-20 flex flex-col gap-2 z-40">
+        <div className="fixed right-4 bottom-24 flex flex-col gap-2 z-40">
           <button
             data-testid="button-scroll-up"
             onClick={() => scrollToIndex(Math.max(0, currentIndex - 1))}
@@ -147,7 +118,7 @@ export default function HomePage() {
 
       {/* Counter */}
       {listings.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur text-white/70 text-xs px-3 py-1 rounded-full z-40" data-testid="text-counter">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur text-white/70 text-[10px] px-3 py-0.5 rounded-full z-40 border border-white/10" data-testid="text-counter">
           {currentIndex + 1} / {listings.length}
         </div>
       )}

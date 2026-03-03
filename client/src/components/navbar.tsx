@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Zap, User, Settings, LogOut, Shield, PlusCircle, LayoutDashboard } from "lucide-react";
+import { MoreVertical, Settings, LogOut, Shield, LayoutDashboard, PlusCircle } from "lucide-react";
 
 import logoImg from "@assets/-4983491643960921006_121_911912317239584_1772551793308.jpg";
 
@@ -21,60 +21,53 @@ export function Navbar() {
     : user?.user?.email?.[0]?.toUpperCase() ?? "U";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
-      <div className="max-w-2xl mx-auto flex h-12 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/95 backdrop-blur-sm">
+      <div className="max-w-2xl mx-auto flex h-14 items-center justify-between px-4">
         <Link href="/">
-          <a data-testid="link-logo" className="flex items-center gap-2">
+          <a data-testid="link-logo" className="flex items-center">
             <img src={logoImg} alt="Gigzito" className="h-8 w-auto" />
           </a>
         </Link>
 
         <div className="flex items-center gap-2">
           {user ? (
-            <>
-              <Link href="/provider/new">
-                <Button size="sm" variant="ghost" data-testid="button-post-video" className="h-8 text-xs font-semibold">
-                  Post Video
-                </Button>
-              </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button data-testid="button-user-menu" className="rounded-full outline-none focus:ring-1 focus:ring-primary transition-all">
-                    <Avatar className="h-8 w-8 border border-border">
-                      <AvatarImage src={user.profile?.avatarUrl ?? ""} alt={user.profile?.displayName ?? ""} />
-                      <AvatarFallback className="text-xs bg-muted text-muted-foreground">{initials}</AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button data-testid="button-user-menu" className="p-2 text-white/60 hover:text-white outline-none">
+                  <MoreVertical className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-black border-white/10 text-white">
+                <DropdownMenuItem asChild>
+                  <Link href="/provider/new"><a className="flex items-center gap-2 w-full cursor-pointer"><PlusCircle className="h-4 w-4" />Post Video</a></Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/provider/me"><a className="flex items-center gap-2 w-full cursor-pointer"><LayoutDashboard className="h-4 w-4" />Dashboard</a></Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/provider/profile"><a className="flex items-center gap-2 w-full cursor-pointer"><Settings className="h-4 w-4" />Edit Profile</a></Link>
+                </DropdownMenuItem>
+                {user.user?.role === "ADMIN" && (
                   <DropdownMenuItem asChild>
-                    <Link href="/provider/me"><a data-testid="link-dashboard" className="flex items-center gap-2 w-full cursor-pointer"><LayoutDashboard className="h-4 w-4" />Dashboard</a></Link>
+                    <Link href="/admin"><a className="flex items-center gap-2 w-full cursor-pointer"><Shield className="h-4 w-4" />Admin</a></Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/provider/profile"><a data-testid="link-profile" className="flex items-center gap-2 w-full cursor-pointer"><Settings className="h-4 w-4" />Edit Profile</a></Link>
-                  </DropdownMenuItem>
-                  {user.user?.role === "ADMIN" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin"><a data-testid="link-admin" className="flex items-center gap-2 w-full cursor-pointer"><Shield className="h-4 w-4" />Admin</a></Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    data-testid="button-logout"
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 text-destructive cursor-pointer"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+                )}
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem
+                  data-testid="button-logout"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-destructive cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link href="/auth">
-              <Button size="sm" variant="ghost" data-testid="button-login" className="h-8 text-xs font-semibold">
-                Sign in
-              </Button>
+              <button className="p-2 text-white/60 hover:text-white">
+                <MoreVertical className="h-5 w-5" />
+              </button>
             </Link>
           )}
         </div>
