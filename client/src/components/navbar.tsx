@@ -21,7 +21,7 @@ export function Navbar() {
     : user?.user?.email?.[0]?.toUpperCase() ?? "U";
 
   return (
-    <header className="brand-header">
+    <header className="brand-header h-[140px]">
       <div className="flex items-center justify-between w-full max-w-2xl mx-auto pr-4">
         <Link href="/">
           <a data-testid="link-logo" className="flex items-center">

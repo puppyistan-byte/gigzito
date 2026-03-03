@@ -59,7 +59,7 @@ export default function HomePage() {
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-container flex-1 bg-black pb-16"
+        className="feed-container flex-1 bg-black pb-16 pt-[140px]"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
