@@ -62,14 +62,22 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
         <iframe
           src={embedUrl}
           title={listing.title}
-          className="absolute inset-0 w-full h-full border-0"
+          className="absolute inset-0 w-full h-full border-0 z-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           loading="lazy"
         />
 
+        {/* Gigzito Watermark - High Z-index to appear over iframe */}
+        <div 
+          className="absolute bottom-6 right-6 opacity-30 pointer-events-none select-none z-30 flex items-center gap-1.5 filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" 
+          aria-hidden="true"
+        >
+          <img src={logoImg} alt="" className="h-6 w-auto brightness-0 invert" />
+        </div>
+
         {/* Info overlay at bottom (inside the 9:16 frame for TikTok feel) */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 pb-12 space-y-2 z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 pb-12 space-y-2 z-20">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${VERTICAL_COLORS[listing.vertical]}`}>
               {VERTICAL_LABELS[listing.vertical]}
@@ -122,11 +130,6 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Gigzito Watermark */}
-        <div className="absolute bottom-4 right-4 opacity-10 pointer-events-none select-none z-20 flex items-center gap-1.5" aria-hidden="true">
-          <img src={logoImg} alt="" className="h-5 w-auto brightness-0 invert" />
         </div>
       </div>
     </div>
