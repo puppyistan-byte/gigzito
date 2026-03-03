@@ -290,13 +290,9 @@
   }
 
   .feed-wrap {
-    height: 100%;
-    width: 100%;
-    padding-top: var(--branding-spacing);
-    box-sizing: border-box;
+    margin-top: 16px;
     display: flex;
-    flex-direction: column;
-    background: #000;
+    justify-content: center;
   }
 
   .feed-item {
