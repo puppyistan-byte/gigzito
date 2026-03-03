@@ -281,16 +281,18 @@ html, body, #root {
   }
 
   .brand-logo {
-    position: absolute;
+    position: fixed;
     top: 14px;
     left: 20px;
-    z-index: 100;
+    z-index: 9999;
+    pointer-events: none;
   }
 
   .brand-logo img {
-    height: 40px;
+    height: 44px;
     width: auto;
     display: block;
+    opacity: 1;
   }
 
   .branding-zone {
