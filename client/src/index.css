@@ -281,15 +281,14 @@ html, body, #root {
   }
 
   .brand-logo {
-    position: fixed;
+    position: absolute;
     top: 14px;
     left: 20px;
-    z-index: 50;
-    pointer-events: none;
+    z-index: 100;
   }
 
   .brand-logo img {
-    height: 42px;
+    height: 40px;
     width: auto;
     display: block;
   }
