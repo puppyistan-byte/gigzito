@@ -54,12 +54,8 @@ export default function HomePage() {
 
   return (
     <div className="app-shell flex flex-col h-screen bg-black overflow-hidden relative">
-      <div className="brand-logo-fixed">
-        <img
-          src={logoImg}
-          alt="Gigzito"
-          draggable="false"
-        />
+      <div className="brand-header-fixed">
+        <span className="brand-logo-text">Gigzito</span>
       </div>
 
       {/* Feed */}
