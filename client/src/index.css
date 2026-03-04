@@ -290,17 +290,23 @@ html, body, #root {
 
   .gigzito-logo {
     position: fixed;
-    top: 14px;
-    left: 20px;
+    top: 24px;
+    left: 24px;
     z-index: 9999;
     pointer-events: none;
+    padding: 6px 10px;
+    overflow: visible;
   }
 
   .gigzito-logo img {
-    width: 180px;
+    width: 190px;
     height: auto;
     object-fit: contain;
     display: block;
+  }
+
+  .gigzito-logo svg path {
+    fill: #d10f0f;
   }
 
   .branding-zone, .brand-logo {
