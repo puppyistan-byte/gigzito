@@ -462,37 +462,42 @@ html, body, #root {
 
   .orbit-tab {
     position: fixed;
-    right: 18px;
+    right: 22px;
     top: 50%;
     transform: translateY(-50%);
-    width: 90px;
-    height: 90px;
+    width: 95px;
+    height: 95px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
-    color: #c41414;
+    color: white;
     text-align: center;
-    background: rgba(255, 255, 255, 0.20);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.45);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.20);
+    background: linear-gradient(145deg, #ff2a2a, #c41414);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow:
+      0 10px 25px rgba(0, 0, 0, 0.25),
+      inset 0 3px 8px rgba(255, 255, 255, 0.25),
+      inset 0 -6px 10px rgba(0, 0, 0, 0.25);
     cursor: pointer;
     z-index: 9500;
-    transition: transform 180ms ease, box-shadow 180ms ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .orbit-tab:hover {
-    transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.25);
+    transform: translateY(-50%) scale(1.06);
+    box-shadow:
+      0 14px 35px rgba(0, 0, 0, 0.35),
+      inset 0 3px 8px rgba(255, 255, 255, 0.35),
+      inset 0 -6px 10px rgba(0, 0, 0, 0.30);
   }
   .orbit-tab.open {
-    outline: 2px solid rgba(196, 20, 20, 0.20);
+    outline: 2px solid rgba(196, 20, 20, 0.30);
   }
   .orbit-tab span {
-    line-height: 1.1;
+    color: white;
+    line-height: 1.2;
   }
   .orbit-tab-dot {
     display: none;
@@ -648,12 +653,12 @@ html, body, #root {
       top: auto;
       bottom: 110px;
       transform: none;
-      width: 76px;
-      height: 76px;
+      width: 78px;
+      height: 78px;
       font-size: 12px;
     }
     .orbit-tab:hover {
-      transform: scale(1.05);
+      transform: scale(1.06);
     }
     .orbit-drawer {
       left: 14px;
