@@ -70,7 +70,9 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="gigzito-logo"></div>
+      <div className="gigzito-logo">
+        <img src="/gigzito-logo-v2.jpg" alt="Gigzito" />
+      </div>
 
       {/* Feed */}
       <div

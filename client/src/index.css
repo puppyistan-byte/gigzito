@@ -286,19 +286,12 @@ html, body, #root {
     left: 20px;
     z-index: 9999;
     pointer-events: none;
-    width: 220px;
-    height: 70px;
-    background: #ff0000;
-    -webkit-mask-image: url("/gigzito-red-wordmark.png");
-    -webkit-mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-image: url("/gigzito-red-wordmark.png");
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    background-color: #ff0000;
-    background-blend-mode: normal;
+  }
+
+  .gigzito-logo img {
+    width: 660px; /* 3 times the previous 220px */
+    height: auto;
+    display: block;
   }
 
   .branding-zone, .brand-logo {
