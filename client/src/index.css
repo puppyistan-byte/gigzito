@@ -309,6 +309,7 @@ html, body, #root {
     align-items: center;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
+    gap: 72px;
   }
 
   .video-card,
@@ -325,6 +326,7 @@ html, body, #root {
     padding: 12px;
     background: rgba(200, 200, 200, 0.25);
     backdrop-filter: blur(12px);
+    margin-bottom: 72px;
   }
 
   .video-card iframe,
