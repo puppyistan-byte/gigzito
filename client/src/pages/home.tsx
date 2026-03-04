@@ -123,6 +123,15 @@ export default function HomePage() {
         <span>Upload</span>
       </button>
 
+      {/* Crypto Button (below Upload) */}
+      <button
+        className="crypto-tab"
+        onClick={() => window.location.href = "/"}
+        data-testid="button-crypto-tab"
+      >
+        <span>Crypto</span>
+      </button>
+
       {/* Nav arrows (desktop helper) */}
       {listings.length > 1 && (
         <div className="fixed right-4 bottom-24 flex flex-col gap-2 z-40">

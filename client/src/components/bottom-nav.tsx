@@ -1,7 +1,7 @@
 import { type ElementType } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { Home, Zap, User, MessageSquare } from "lucide-react";
+import { Home, Zap, User, MessageSquare, BookOpen } from "lucide-react";
 
 export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical: string, onVerticalChange: (v: string) => void }) {
   const { user } = useAuth();
@@ -14,6 +14,7 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
 
   const rightTabs = [
     { key: "COACHING", label: "Coaching", icon: MessageSquare },
+    { key: "COURSES", label: "Courses", icon: BookOpen },
     { key: "PROFILE", label: "Profile", icon: User },
   ];
 
