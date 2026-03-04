@@ -347,25 +347,36 @@ html, body, #root {
     display: none;
   }
 
-  .bottom-nav,
-  .nav-bar,
-  .menu-bar {
-    background: rgba(200, 200, 200, 0.25);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(200, 200, 200, 0.35);
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: rgba(255, 255, 255, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.45);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: var(--bottom-nav-height);
+    z-index: 100;
   }
 
+  .bottom-nav .nav-item,
   .bottom-nav svg,
-  .bottom-nav i,
-  .bottom-nav img {
-    color: rgba(255, 0, 0, 0.65) !important;
-    fill: rgba(255, 0, 0, 0.65) !important;
+  .bottom-nav i {
+    color: #c41414 !important;
+    fill: none !important;
   }
 
-  .bottom-nav .active,
-  .bottom-nav .active svg {
-    color: rgba(255, 0, 0, 0.9) !important;
-    fill: rgba(255, 0, 0, 0.9) !important;
+  .bottom-nav .nav-item.active,
+  .bottom-nav .nav-item.active svg {
+    color: #c41414 !important;
+    fill: rgba(196, 20, 20, 0.2) !important;
+  }
+
+  .bottom-nav .nav-item:hover {
+    color: #c41414 !important;
   }
 
   .brand-header-fixed,
