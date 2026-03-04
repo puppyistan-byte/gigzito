@@ -290,19 +290,35 @@ html, body, #root {
 
   .gigzito-logo {
     position: fixed;
-    top: 24px;
-    left: 24px;
+    top: 28px;
+    left: 28px;
     z-index: 9999;
     pointer-events: none;
-    padding: 6px 10px;
+    padding: 12px 18px;
     overflow: visible;
   }
 
+  .gigzito-logo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      rgba(255, 255, 255, 0.12) 30%,
+      rgba(255, 255, 255, 0) 60%
+    );
+    pointer-events: none;
+  }
+
   .gigzito-logo img {
-    width: 190px;
+    width: 220px;
     height: auto;
-    object-fit: contain;
     display: block;
+    filter:
+      drop-shadow(0 6px 12px rgba(0, 0, 0, 0.18))
+      drop-shadow(0 0 6px rgba(220, 0, 0, 0.25));
   }
 
   .gigzito-logo svg path {
