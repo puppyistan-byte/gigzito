@@ -289,7 +289,7 @@ html, body, #root {
   }
 
   .gigzito-logo img {
-    width: 660px; /* 3 times the previous 220px */
+    width: 330px; /* 50% of 660px */
     height: auto;
     display: block;
   }
