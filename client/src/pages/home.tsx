@@ -114,6 +114,15 @@ export default function HomePage() {
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
       <OrbitDrawer />
 
+      {/* Upload Button (left side) */}
+      <button
+        className="upload-tab"
+        onClick={() => window.location.href = "/provider/new"}
+        data-testid="button-upload-tab"
+      >
+        <span>Upload</span>
+      </button>
+
       {/* Nav arrows (desktop helper) */}
       {listings.length > 1 && (
         <div className="fixed right-4 bottom-24 flex flex-col gap-2 z-40">
