@@ -291,8 +291,9 @@ html, body, #root {
   }
 
   .gigzito-logo img {
-    width: 330px;
+    width: 180px;
     height: auto;
+    object-fit: contain;
     display: block;
   }
 
