@@ -288,12 +288,22 @@ html, body, #root {
     left: 20px;
     z-index: 9999;
     pointer-events: none;
+    filter: drop-shadow(0 4px 10px rgba(196, 20, 20, 0.35));
   }
 
   .gigzito-logo img {
-    width: 330px; /* 50% of 660px */
+    width: 330px;
     height: auto;
     display: block;
+    filter:
+      brightness(0)
+      saturate(100%)
+      invert(17%)
+      sepia(92%)
+      saturate(6415%)
+      hue-rotate(357deg)
+      brightness(96%)
+      contrast(104%);
   }
 
   .branding-zone, .brand-logo {
