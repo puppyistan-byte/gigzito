@@ -2,10 +2,8 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Youtube } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2 } from "lucide-react";
 import type { ListingWithProvider } from "@shared/schema";
-
-import logoImg from "@assets/file_00000000e17471fdb85cd1f020d6f5a2_1772560922928.png";
 
 interface VideoCardProps {
   listing: ListingWithProvider;
@@ -14,8 +12,8 @@ interface VideoCardProps {
 
 const VERTICAL_COLORS: Record<string, string> = {
   MARKETING: "bg-orange-500 text-white",
-  COACHING: "bg-orange-500 text-white",
-  COURSES: "bg-orange-500 text-white",
+  COACHING: "bg-violet-600 text-white",
+  COURSES: "bg-emerald-500 text-white",
 };
 
 const VERTICAL_LABELS: Record<string, string> = {
@@ -44,6 +42,15 @@ function getVideoEmbedUrl(url: string): string {
   }
 }
 
+function handleShare(listing: ListingWithProvider) {
+  const text = `${listing.title} by ${listing.provider.displayName}`;
+  if (navigator.share) {
+    navigator.share({ title: text, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(window.location.href);
+  }
+}
+
 export function VideoCard({ listing, className = "" }: VideoCardProps) {
   const provider = listing.provider;
   const initials = provider.displayName
@@ -51,14 +58,16 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
     : "P";
 
   const embedUrl = getVideoEmbedUrl(listing.videoUrl);
+  const verticalColor = VERTICAL_COLORS[listing.vertical] ?? "bg-gray-500 text-white";
 
   return (
     <div
       data-testid={`card-listing-${listing.id}`}
-      className={`video-card relative w-full h-full bg-black overflow-hidden flex items-center justify-center ${className}`}
+      className={`video-card relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
     >
-      {/* Video Container (Inner) enforced 9:16 */}
-      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto bg-black flex items-center justify-center rounded-[22px] overflow-hidden group">
+      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden group">
+
+        {/* Video */}
         <iframe
           src={embedUrl}
           title={listing.title}
@@ -68,99 +77,103 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
           loading="lazy"
         />
 
-        {/* Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10" />
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/30 z-10 pointer-events-none" />
 
-        {/* Top Info */}
-        <div className="absolute top-5 left-5 right-5 z-20 flex items-center gap-3">
-          <Avatar className="h-10 w-10 ring-2 ring-white/20">
-            <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
-            <AvatarFallback className="bg-primary text-white">{initials}</AvatarFallback>
+        {/* ── TOP: Avatar + Provider name + Duration ── */}
+        <div className="absolute top-4 left-4 right-4 z-20 flex items-center gap-3">
+          <Avatar className="h-10 w-10 ring-2 ring-white/30 flex-shrink-0">
+            <AvatarImage src={provider.avatarUrl ?? ""} alt={provider.displayName} />
+            <AvatarFallback className="bg-primary text-white text-sm font-bold">{initials}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
-            <h3 className="text-white font-bold text-sm truncate drop-shadow-md">
-              {provider.displayName} - {listing.title}
-            </h3>
-            <p className="text-white/80 text-xs truncate drop-shadow-sm">{provider.displayName}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-white font-bold text-sm leading-tight drop-shadow truncate">
+              {provider.displayName}
+            </p>
+            {provider.bio && (
+              <p className="text-white/65 text-[11px] leading-tight truncate">
+                {provider.bio}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 flex-shrink-0">
+            <Clock className="w-3 h-3 text-white/80" />
+            <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
           </div>
         </div>
 
-        {/* Center Play Button (Visual only) */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-110">
+        {/* ── CENTER: Hover play button ── */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none">
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30">
             <Play className="w-8 h-8 fill-white text-white ml-1" />
           </div>
         </div>
 
-        {/* Bottom Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-5 space-y-4 z-20">
-          <div className="flex items-center gap-3">
-            <Badge className="bg-orange-500 hover:bg-orange-600 text-[10px] px-2 py-0 uppercase font-bold border-0 text-white">
+        {/* ── BOTTOM: All info & CTAs ── */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pt-12 z-20 space-y-3">
+
+          {/* Vertical badge */}
+          <div>
+            <Badge className={`${verticalColor} text-[10px] px-2.5 py-0.5 uppercase font-bold border-0 tracking-wide`}>
               {VERTICAL_LABELS[listing.vertical]}
             </Badge>
-            <div className="flex items-center gap-1 text-[10px] text-white/90 font-medium">
-              <Clock className="w-3 h-3" />
-              {listing.durationSeconds}s
-            </div>
           </div>
 
+          {/* Title + Description */}
           <div>
-            <h4 className="font-bold text-lg leading-tight mb-1 text-white drop-shadow-md">
+            <h4 className="font-bold text-base leading-snug text-white drop-shadow-md">
               {listing.title}
             </h4>
             {listing.description && (
-              <p className="text-sm text-white/90 line-clamp-2 leading-relaxed drop-shadow-sm">
+              <p className="text-[12px] text-white/80 line-clamp-2 leading-relaxed mt-0.5 drop-shadow-sm">
                 {listing.description}
               </p>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 ring-1 ring-white/20">
-              <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
-              <AvatarFallback className="bg-primary text-white text-[10px]">{initials}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs font-semibold text-white truncate drop-shadow-sm">{provider.displayName}</span>
-
-            <div className="flex gap-2 ml-auto">
-              {listing.ctaUrl && (
-                <Button size="sm" className="bg-[#6366f1] hover:bg-[#4f46e5] text-white border-0 h-9 px-4 rounded-lg font-bold gap-2" asChild>
-                  <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4" />
-                    Visit
-                  </a>
-                </Button>
-              )}
-              <Link href={`/listing/${listing.id}`}>
-                <Button size="sm" variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-0 h-9 px-4 rounded-lg font-bold gap-2 backdrop-blur-sm">
-                  <Play className="w-4 h-4 fill-white" />
-                  Details
-                </Button>
-              </Link>
-            </div>
+          {/* CTA Buttons */}
+          <div className="flex items-center gap-2">
+            {listing.ctaUrl && (
+              <Button
+                size="sm"
+                className="bg-[#c41414] hover:bg-[#a51010] text-white border-0 h-8 px-4 rounded-full font-bold gap-1.5 text-xs flex-1"
+                asChild
+                data-testid={`button-cta-${listing.id}`}
+              >
+                <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Visit
+                </a>
+              </Button>
+            )}
+            <Link href={`/listing/${listing.id}`}>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="bg-white/15 hover:bg-white/25 text-white border border-white/20 h-8 px-4 rounded-full font-bold gap-1.5 text-xs backdrop-blur-sm"
+                data-testid={`button-details-${listing.id}`}
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                Details
+              </Button>
+            </Link>
+            <button
+              onClick={() => handleShare(listing)}
+              className="h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 transition-colors"
+              data-testid={`button-share-${listing.id}`}
+            >
+              <Share2 className="w-3.5 h-3.5 text-white" />
+            </button>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-white/10">
-            <div className="flex gap-3 text-xs text-white/60">
-              {listing.tags?.slice(0, 3).map(tag => (
+          {/* Tags */}
+          {listing.tags && listing.tags.length > 0 && (
+            <div className="flex gap-2 text-[11px] text-white/50 flex-wrap">
+              {listing.tags.slice(0, 3).map(tag => (
                 <span key={tag}>#{tag}</span>
               ))}
-              {(!listing.tags || listing.tags.length === 0) && (
-                <>
-                  <span>#gigzito</span>
-                  <span>#provider</span>
-                  <span>#featured</span>
-                </>
-              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-white/60 cursor-pointer hover:text-white" />
-              <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer">
-                <span className="text-[10px] font-bold text-white">Watch on</span>
-                <Youtube className="w-4 h-4 text-white" />
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

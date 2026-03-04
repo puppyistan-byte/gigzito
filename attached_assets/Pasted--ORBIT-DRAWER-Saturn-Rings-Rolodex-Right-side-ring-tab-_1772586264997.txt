@@ -1,0 +1,345 @@
+/* =========================
+   ORBIT DRAWER (Saturn Rings Rolodex)
+   - Right-side ring tab
+   - Frosted glass drawer on open
+   - Rolodex list (avatars + name + niche + CTA)
+   ========================= */
+
+import React, { useMemo, useState } from "react";
+
+export function OrbitDrawer() {
+  const [open, setOpen] = useState(false);
+
+  const marketers = useMemo(
+    () => [
+      {
+        name: "James Okafor",
+        niche: "YouTube Growth",
+        price: "$20/mo",
+        avatar: "https://i.pravatar.cc/80?img=12",
+        url: "#",
+      },
+      {
+        name: "Sierra Lane",
+        niche: "Brand + Ads",
+        price: "$49/mo",
+        avatar: "https://i.pravatar.cc/80?img=44",
+        url: "#",
+      },
+      {
+        name: "Marco V",
+        niche: "Funnels + Copy",
+        price: "$35/mo",
+        avatar: "https://i.pravatar.cc/80?img=22",
+        url: "#",
+      },
+      {
+        name: "Kira Bloom",
+        niche: "IG Reels",
+        price: "$25/mo",
+        avatar: "https://i.pravatar.cc/80?img=31",
+        url: "#",
+      },
+      {
+        name: "Dante M",
+        niche: "Email Automation",
+        price: "$29/mo",
+        avatar: "https://i.pravatar.cc/80?img=6",
+        url: "#",
+      },
+      {
+        name: "Nora Chen",
+        niche: "SEO + Local",
+        price: "$19/mo",
+        avatar: "https://i.pravatar.cc/80?img=50",
+        url: "#",
+      },
+    ],
+    []
+  );
+
+  return (
+    <>
+      {/* CLICK-OUT OVERLAY */}
+      <div
+        className={`orbit-overlay ${open ? "show" : ""}`}
+        onClick={() => setOpen(false)}
+      />
+
+      {/* RIGHT EDGE RING TAB (always visible) */}
+      <button
+        className={`orbit-tab ${open ? "open" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Open Orbit Rolodex"
+      >
+        <span className="orbit-tab-dot" />
+        <span className="orbit-tab-dot" />
+        <span className="orbit-tab-dot" />
+      </button>
+
+      {/* DRAWER */}
+      <aside className={`orbit-drawer ${open ? "open" : ""}`}>
+        <div className="orbit-header">
+          <div>
+            <div className="orbit-title">Orbit</div>
+            <div className="orbit-subtitle">Featured Marketers</div>
+          </div>
+          <button className="orbit-close" onClick={() => setOpen(false)}>
+            ✕
+          </button>
+        </div>
+
+        {/* SATURN RING VISUAL */}
+        <div className="orbit-ring-wrap" aria-hidden="true">
+          <div className="orbit-ring orbit-ring-a" />
+          <div className="orbit-ring orbit-ring-b" />
+          <div className="orbit-ring orbit-ring-c" />
+        </div>
+
+        {/* ROLODEX LIST */}
+        <div className="orbit-list">
+          {marketers.map((m) => (
+            <a className="orbit-card" href={m.url} key={m.name}>
+              <img className="orbit-avatar" src={m.avatar} alt={m.name} />
+              <div className="orbit-meta">
+                <div className="orbit-name">{m.name}</div>
+                <div className="orbit-niche">{m.niche}</div>
+              </div>
+              <div className="orbit-cta">
+                <span className="orbit-price">{m.price}</span>
+                <span className="orbit-btn">View</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </aside>
+
+      <style>{`
+        :root{
+          --gigzito-red:#c41414;
+          --glass: rgba(255,255,255,0.16);
+          --glass-strong: rgba(255,255,255,0.22);
+          --stroke: rgba(255,255,255,0.38);
+          --shadow: rgba(0,0,0,0.22);
+        }
+
+        /* Overlay so it feels like an app */
+        .orbit-overlay{
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.22);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 220ms ease;
+          z-index: 9000;
+        }
+        .orbit-overlay.show{
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* The Saturn-ring tab on right edge */
+        .orbit-tab{
+          position: fixed;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 44px;
+          height: 86px;
+          border-radius: 28px;
+          border: 1px solid var(--stroke);
+          background: var(--glass);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          box-shadow: 0 12px 30px var(--shadow);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+          z-index: 9500;
+        }
+        .orbit-tab.open{
+          outline: 2px solid rgba(196,20,20,0.20);
+        }
+        .orbit-tab-dot{
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: var(--gigzito-red);
+          box-shadow: 0 0 8px rgba(196,20,20,0.25);
+        }
+
+        /* Drawer */
+        .orbit-drawer{
+          position: fixed;
+          top: 18px;
+          right: 18px;
+          bottom: 18px;
+          width: 340px;
+          border-radius: 26px;
+          border: 1px solid var(--stroke);
+          background: var(--glass-strong);
+          backdrop-filter: blur(22px) saturate(130%);
+          -webkit-backdrop-filter: blur(22px) saturate(130%);
+          box-shadow: 0 22px 55px rgba(0,0,0,0.25);
+          transform: translateX(380px);
+          transition: transform 260ms ease;
+          z-index: 9800;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .orbit-drawer.open{
+          transform: translateX(0);
+        }
+
+        /* Header */
+        .orbit-header{
+          padding: 16px 16px 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid rgba(255,255,255,0.22);
+        }
+        .orbit-title{
+          font-weight: 800;
+          font-size: 18px;
+          letter-spacing: 0.2px;
+        }
+        .orbit-subtitle{
+          font-size: 12px;
+          opacity: 0.8;
+          margin-top: 2px;
+        }
+        .orbit-close{
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.30);
+          background: rgba(255,255,255,0.12);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          cursor: pointer;
+        }
+
+        /* Saturn rings visual */
+        .orbit-ring-wrap{
+          position: relative;
+          height: 86px;
+          margin: 8px 12px 0 12px;
+          overflow: hidden;
+        }
+        .orbit-ring{
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%,-50%);
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.28);
+          box-shadow: inset 0 0 30px rgba(255,255,255,0.06);
+        }
+        .orbit-ring-a{ width: 280px; height: 110px; opacity: 0.55; }
+        .orbit-ring-b{ width: 240px; height: 92px; opacity: 0.45; }
+        .orbit-ring-c{ width: 200px; height: 76px; opacity: 0.35; }
+
+        /* List */
+        .orbit-list{
+          padding: 12px;
+          overflow: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .orbit-card{
+          display: grid;
+          grid-template-columns: 46px 1fr auto;
+          align-items: center;
+          gap: 10px;
+          padding: 10px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.20);
+          background: rgba(255,255,255,0.10);
+          text-decoration: none;
+          color: inherit;
+          transition: transform 140ms ease, background 140ms ease, border 140ms ease;
+        }
+        .orbit-card:hover{
+          transform: translateY(-1px);
+          background: rgba(255,255,255,0.14);
+          border: 1px solid rgba(255,255,255,0.30);
+        }
+
+        .orbit-avatar{
+          width: 46px;
+          height: 46px;
+          border-radius: 999px;
+          object-fit: cover;
+          border: 2px solid rgba(196,20,20,0.25);
+        }
+
+        .orbit-name{
+          font-weight: 800;
+          font-size: 14px;
+          line-height: 16px;
+        }
+        .orbit-niche{
+          font-size: 12px;
+          opacity: 0.85;
+          margin-top: 2px;
+        }
+
+        .orbit-cta{
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 6px;
+        }
+        .orbit-price{
+          font-size: 12px;
+          opacity: 0.9;
+        }
+        .orbit-btn{
+          font-size: 12px;
+          font-weight: 800;
+          padding: 6px 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(196,20,20,0.35);
+          background: rgba(196,20,20,0.12);
+          color: var(--gigzito-red);
+          white-space: nowrap;
+        }
+
+        /* Mobile behavior: drawer becomes bottom sheet */
+        @media (max-width: 640px){
+          .orbit-tab{
+            right: 8px;
+            top: auto;
+            bottom: 110px;
+            transform: none;
+          }
+          .orbit-drawer{
+            left: 14px;
+            right: 14px;
+            bottom: 100px;
+            top: auto;
+            width: auto;
+            height: 62vh;
+            transform: translateY(80vh);
+          }
+          .orbit-drawer.open{
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </>
+  );
+}
+
+/* -------------------------
+   HOW TO USE:
+   In your App.jsx / App.tsx, render it once:
+   <OrbitDrawer />
+   ------------------------- */

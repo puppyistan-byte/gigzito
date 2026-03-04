@@ -391,6 +391,11 @@ html, body, #root {
     fill: none !important;
   }
 
+  .bottom-nav .nav-item.post-btn svg {
+    color: #ffffff !important;
+    fill: none !important;
+  }
+
   .bottom-nav .nav-label {
     display: block !important;
     font-size: 12px;
