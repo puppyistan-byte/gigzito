@@ -420,9 +420,11 @@ html, body, #root {
   .counter,
   .count,
   .index-badge,
-  .badge-count {
+  .badge-count,
+  .feed-pagination {
     display: none !important;
     opacity: 0 !important;
+    visibility: hidden !important;
     pointer-events: none !important;
   }
 

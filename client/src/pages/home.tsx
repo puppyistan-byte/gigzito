@@ -134,12 +134,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Counter */}
-      {listings.length > 0 && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur text-white/70 text-[10px] px-3 py-0.5 rounded-full z-40 border border-white/10" data-testid="text-counter">
-          {currentIndex + 1} / {listings.length}
-        </div>
-      )}
     </div>
   );
 }
