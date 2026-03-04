@@ -1,0 +1,224 @@
+<!-- RIGHT EDGE DOCK -->
+<div class="edgeDock" id="edgeDock">
+  <div class="edgeHandle" title="Quick Actions">
+    <span>Actions</span>
+  </div>
+
+  <div class="edgePanel">
+    <div class="edgeHeader">
+      <div class="edgeTitle">Quick Actions</div>
+      <button class="edgeClose" id="edgeClose">✕</button>
+    </div>
+
+    <div class="edgeCarousel" id="edgeCarousel">
+      <!-- SLIDE 1: UPLOAD -->
+      <div class="edgeSlide">
+        <div class="edgeCard">
+          <div class="edgeCardTitle">Upload</div>
+          <div class="edgeCardDesc">Buy a $3 spot for 24 hours.</div>
+          <button class="redOrb" onclick="window.location.href='/upload'">
+            Upload
+          </button>
+        </div>
+      </div>
+
+      <!-- SLIDE 2: MARKETERS -->
+      <div class="edgeSlide">
+        <div class="edgeCard">
+          <div class="edgeCardTitle">Marketers</div>
+          <div class="edgeCardDesc">Browse featured marketers.</div>
+          <button class="redOrb" onclick="window.location.href='/marketers'">
+            Marketers
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="edgeDots">
+      <span class="dot active"></span>
+      <span class="dot"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const dock = document.getElementById("edgeDock");
+  const closeBtn = document.getElementById("edgeClose");
+  const carousel = document.getElementById("edgeCarousel");
+  const dots = Array.from(document.querySelectorAll(".edgeDots .dot"));
+
+  // open on hover (desktop)
+  dock.addEventListener("mouseenter", () => dock.classList.add("open"));
+  dock.addEventListener("mouseleave", () => dock.classList.remove("open"));
+
+  // close button (works for touch devices too)
+  closeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dock.classList.remove("open");
+  });
+
+  // dot syncing
+  carousel.addEventListener("scroll", () => {
+    const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+    dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+  });
+</script>
+
+<style>
+  :root{
+    --gigzito-red:#c41414;
+    --glass: rgba(255,255,255,0.18);
+    --stroke: rgba(255,255,255,0.45);
+    --shadow: rgba(0,0,0,0.22);
+  }
+
+  /* DOCK WRAPPER */
+  .edgeDock{
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 9900;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+  }
+
+  /* HANDLE (always visible at far border) */
+  .edgeHandle{
+    width: 34px;
+    height: 130px;
+    border-radius: 18px 0 0 18px;
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    border-right: none;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 14px 35px var(--shadow);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor: pointer;
+  }
+  .edgeHandle span{
+    transform: rotate(-90deg);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gigzito-red);
+    letter-spacing: .3px;
+    user-select: none;
+  }
+
+  /* PANEL (slides in/out) */
+  .edgePanel{
+    width: 260px;
+    height: 230px;
+    border-radius: 22px;
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 18px 45px rgba(0,0,0,0.18);
+    overflow: hidden;
+
+    transform: translateX(280px);
+    transition: transform 220ms ease;
+  }
+
+  .edgeDock.open .edgePanel{
+    transform: translateX(0);
+  }
+
+  .edgeHeader{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 12px 12px 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.35);
+  }
+  .edgeTitle{
+    font-weight: 800;
+    font-size: 13px;
+    color: #111;
+  }
+  .edgeClose{
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.18);
+    cursor: pointer;
+  }
+
+  /* CAROUSEL */
+  .edgeCarousel{
+    height: 170px;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .edgeCarousel::-webkit-scrollbar{ display:none; }
+
+  .edgeSlide{
+    min-width: 260px;
+    scroll-snap-align: start;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .edgeCard{
+    height: 100%;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.28);
+    padding: 12px;
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .edgeCardTitle{
+    font-size: 14px;
+    font-weight: 900;
+  }
+  .edgeCardDesc{
+    font-size: 12px;
+    opacity: .85;
+    margin-top: 6px;
+    line-height: 1.25;
+  }
+
+  /* RED 3D ORB BUTTON (same vibe as your current) */
+  .redOrb{
+    width: 120px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    font-weight: 800;
+    cursor: pointer;
+
+    background: linear-gradient(145deg,#ff2a2a,#c41414);
+    box-shadow:
+      0 10px 22px rgba(0,0,0,0.22),
+      inset 0 3px 8px rgba(255,255,255,0.25),
+      inset 0 -6px 10px rgba(0,0,0,0.25);
+  }
+
+  .edgeDots{
+    display:flex;
+    justify-content:center;
+    gap: 6px;
+    padding: 0 0 10px 0;
+  }
+  .dot{
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.18);
+  }
+  .dot.active{
+    background: var(--gigzito-red);
+  }
+</style>
