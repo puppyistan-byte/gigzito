@@ -32,7 +32,9 @@ export default function HomePage() {
     queryFn: async () => {
       const url = activeVertical === "ALL" ? "/api/listings" : `/api/listings?vertical=${activeVertical}`;
       const res = await fetch(url);
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 

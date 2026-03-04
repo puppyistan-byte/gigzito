@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // === ENUMS ===
 export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "ADMIN"]);
-export const verticalEnum = pgEnum("vertical", ["MARKETING", "COACHING", "COURSES"]);
+export const verticalEnum = pgEnum("vertical", ["MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO"]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED"]);
 
 // === TABLES ===
@@ -106,7 +106,7 @@ export type ProfileCompletionStatus = {
 
 // Listing submission
 export type CreateListingRequest = {
-  vertical: "MARKETING" | "COACHING" | "COURSES";
+  vertical: "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO";
   title: string;
   videoUrl: string;
   durationSeconds: number;
@@ -134,5 +134,5 @@ export type UpdateListingStatusRequest = { status: "ACTIVE" | "PAUSED" | "REMOVE
 
 // Filters
 export type ListingsFilter = {
-  vertical?: "MARKETING" | "COACHING" | "COURSES" | "ALL";
+  vertical?: "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO" | "ALL";
 };
