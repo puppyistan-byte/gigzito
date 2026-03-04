@@ -467,7 +467,7 @@ html, body, #root {
   .upload-tab {
     position: fixed;
     left: calc(50% - 360px);
-    top: 45%;
+    top: 50%;
     transform: translateY(-50%);
     width: 95px;
     height: 95px;
@@ -501,8 +501,9 @@ html, body, #root {
     line-height: 1.2;
   }
 
-  /* ========================= CRYPTO TAB ========================= */
+  /* ========================= CRYPTO TAB (hidden) ========================= */
   .crypto-tab {
+    display: none !important;
     position: fixed;
     left: calc(50% - 360px);
     top: calc(45% + 110px);
@@ -581,9 +582,9 @@ html, body, #root {
 
   .orbit-tab {
     position: fixed;
-    right: calc(50% - 320px);
+    right: calc(50% - 360px);
     top: 50%;
-    transform: translate(60px, -50%);
+    transform: translateY(-50%);
     width: 95px;
     height: 95px;
     border-radius: 50%;
@@ -605,7 +606,7 @@ html, body, #root {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   .orbit-tab:hover {
-    transform: translate(60px, -50%) scale(1.06);
+    transform: translateY(-50%) scale(1.06);
     box-shadow:
       0 14px 35px rgba(0, 0, 0, 0.35),
       inset 0 3px 8px rgba(255, 255, 255, 0.35),
