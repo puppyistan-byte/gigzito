@@ -53,31 +53,11 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
       {/* Center Crypto Button */}
       <button
         onClick={() => window.location.href = user ? "/provider/new" : "/auth"}
-        className="nav-item post-btn relative flex flex-col items-center justify-center"
+        className="nav-item post-btn"
         data-testid="nav-crypto"
-        style={{ marginTop: "-18px" }}
       >
-        <div
-          className="post-icon"
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 16,
-            background: "#c41414",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 20px rgba(196,20,20,0.5)",
-            border: "3px solid rgba(255,255,255,0.35)",
-            fontSize: 24,
-            color: "#fff",
-            fontWeight: 700,
-            lineHeight: 1,
-          }}
-        >
-          ₿
-        </div>
-        <span className="nav-label mt-1">Crypto</span>
+        <span className="post-icon" style={{ fontSize: 22, color: "#c41414", background: "none", lineHeight: 1 }}>₿</span>
+        <span className="nav-label">Crypto</span>
       </button>
 
       {rightTabs.map(renderTab)}
