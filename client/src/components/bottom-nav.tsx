@@ -1,7 +1,7 @@
 import { type ElementType } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { Home, Zap, User, MessageSquare, Plus } from "lucide-react";
+import { Home, Zap, User, MessageSquare } from "lucide-react";
 
 export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical: string, onVerticalChange: (v: string) => void }) {
   const { user } = useAuth();
@@ -50,14 +50,15 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
     <nav className="bottom-nav">
       {leftTabs.map(renderTab)}
 
-      {/* Center Post Button */}
+      {/* Center Crypto Button */}
       <button
         onClick={() => window.location.href = user ? "/provider/new" : "/auth"}
         className="nav-item post-btn relative flex flex-col items-center justify-center"
-        data-testid="nav-post"
+        data-testid="nav-crypto"
         style={{ marginTop: "-18px" }}
       >
         <div
+          className="post-icon"
           style={{
             width: 48,
             height: 48,
@@ -68,11 +69,15 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
             justifyContent: "center",
             boxShadow: "0 4px 20px rgba(196,20,20,0.5)",
             border: "3px solid rgba(255,255,255,0.35)",
+            fontSize: 24,
+            color: "#fff",
+            fontWeight: 700,
+            lineHeight: 1,
           }}
         >
-          <Plus style={{ width: 26, height: 26, strokeWidth: 3 }} />
+          ₿
         </div>
-        <span className="nav-label mt-1">Post</span>
+        <span className="nav-label mt-1">Crypto</span>
       </button>
 
       {rightTabs.map(renderTab)}
