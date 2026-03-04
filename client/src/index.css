@@ -322,13 +322,14 @@ html, body, #root {
     height: calc(100vh - 140px);
     scroll-snap-align: start;
     flex: 0 0 auto;
-    border-radius: 22px;
+    border-radius: 26px;
     overflow: hidden;
-    padding: 12px;
-    background: rgba(200, 200, 200, 0.25);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    background: rgba(255, 255, 255, 0.20);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
     margin-bottom: 72px;
   }
 
@@ -340,7 +341,7 @@ html, body, #root {
   .card video {
     width: 100%;
     height: 100%;
-    border-radius: 14px;
+    border-radius: 20px;
     display: block;
     object-fit: cover;
   }
@@ -353,37 +354,40 @@ html, body, #root {
 
   .bottom-nav {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    height: 84px;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 420px;
+    height: 70px;
     display: flex;
-    align-items: center;
     justify-content: space-around;
-    background: rgba(200, 200, 200, 0.25);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    align-items: center;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 30px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
   }
 
   .bottom-nav .nav-item {
-    width: 20%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     text-decoration: none;
     user-select: none;
+    color: #c41414 !important;
   }
 
   .bottom-nav .nav-item svg,
   .bottom-nav .nav-item i {
-    width: 26px;
-    height: 26px;
-    font-size: 26px;
-    color: var(--gigzito-red) !important;
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    color: #c41414 !important;
     fill: none !important;
   }
 
@@ -392,7 +396,7 @@ html, body, #root {
     font-size: 12px;
     line-height: 12px;
     font-weight: 600;
-    color: var(--gigzito-red);
+    color: #c41414;
   }
 
   .bottom-nav .nav-item.active svg,
