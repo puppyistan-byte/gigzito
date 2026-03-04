@@ -1,0 +1,110 @@
+/* =========================
+   GIGZITO – FROSTED GLASS UI
+   (1) Frosted frame around video
+   (2) Frosted full-width bottom menu bar (extended)
+   ========================= */
+
+:root{
+  --gigzito-red:#c41414;
+}
+
+/* Give page breathing room so the fixed nav doesn't cover content */
+body{
+  padding-bottom: 110px;
+}
+
+/* ---------- VIDEO: frosted glass frame ---------- */
+/* Apply to the outer card/container that wraps the video */
+.video-frame,
+.video-card,
+.feed-card,
+.video-shell {
+  border-radius: 28px;
+  overflow: hidden;
+
+  background: rgba(255,255,255,0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+
+  padding: 8px;
+}
+
+/* Ensure the actual media keeps rounded corners inside */
+.video-frame video,
+.video-frame iframe,
+.video-card video,
+.video-card iframe,
+.feed-card video,
+.feed-card iframe,
+.video-shell video,
+.video-shell iframe {
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---------- MENU: frosted glass bar (extended full width) ---------- */
+.bottom-nav{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+
+  background: rgba(255,255,255,0.24);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border-top: 1px solid rgba(255,255,255,0.55);
+  box-shadow: 0 -10px 28px rgba(0,0,0,0.12);
+}
+
+/* Make each tab a proper “button” with label underneath */
+.bottom-nav .nav-item{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  text-decoration: none;
+  user-select: none;
+  padding: 10px 0;
+}
+
+/* Icon sizing + brand color */
+.bottom-nav .nav-item svg,
+.bottom-nav .nav-item i{
+  width: 26px;
+  height: 26px;
+  font-size: 26px;
+  color: var(--gigzito-red);
+}
+
+/* Label text under the icon */
+.bottom-nav .nav-label{
+  display: block !important;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: 700;
+  color: var(--gigzito-red);
+}
+
+/* Active tab emphasis */
+.bottom-nav .nav-item.active svg,
+.bottom-nav .nav-item.active i,
+.bottom-nav .nav-item.active .nav-label{
+  filter: drop-shadow(0 0 7px rgba(196,20,20,0.35));
+  transform: translateY(-1px);
+}
