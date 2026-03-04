@@ -114,6 +114,9 @@ export default function AuthPage() {
                   data-testid="input-login-password"
                 />
               </div>
+              <div className="auth-row">
+                <button type="button" className="link-red" data-testid="button-forgot-password">Forgot password?</button>
+              </div>
               <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-login-submit">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Log in
