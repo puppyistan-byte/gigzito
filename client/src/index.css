@@ -462,34 +462,40 @@ html, body, #root {
 
   .orbit-tab {
     position: fixed;
-    right: 10px;
+    right: 18px;
     top: 50%;
     transform: translateY(-50%);
-    width: 44px;
-    height: 86px;
-    border-radius: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.38);
-    background: rgba(255, 255, 255, 0.16);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #c41414;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.20);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.20);
     cursor: pointer;
     z-index: 9500;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+  .orbit-tab:hover {
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.25);
   }
   .orbit-tab.open {
     outline: 2px solid rgba(196, 20, 20, 0.20);
   }
+  .orbit-tab span {
+    line-height: 1.1;
+  }
   .orbit-tab-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: #c41414;
-    box-shadow: 0 0 8px rgba(196, 20, 20, 0.25);
+    display: none;
   }
 
   .orbit-drawer {
@@ -642,6 +648,12 @@ html, body, #root {
       top: auto;
       bottom: 110px;
       transform: none;
+      width: 76px;
+      height: 76px;
+      font-size: 12px;
+    }
+    .orbit-tab:hover {
+      transform: scale(1.05);
     }
     .orbit-drawer {
       left: 14px;

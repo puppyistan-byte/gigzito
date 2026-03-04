@@ -66,9 +66,7 @@ export function OrbitDrawer() {
         aria-label="Open Orbit Rolodex"
         data-testid="button-orbit-tab"
       >
-        <span className="orbit-tab-dot" />
-        <span className="orbit-tab-dot" />
-        <span className="orbit-tab-dot" />
+        <span>Marketers</span>
       </button>
 
       {/* DRAWER */}
