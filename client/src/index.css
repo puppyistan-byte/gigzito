@@ -493,8 +493,69 @@ html, body, #root {
     display: none;
   }
 
-  /* ========================= UPLOAD TAB ========================= */
+  /* ========================= RIGHT TABS ========================= */
+  .right-tabs {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 9800;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .right-tab {
+    width: 44px;
+    height: 140px;
+    border-radius: 18px 0 0 18px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-right: none;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+
+  .right-tab span {
+    transform: rotate(-90deg);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: var(--gigzito-red);
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .right-tab:hover {
+    transform: translateX(-6px);
+    background: rgba(255, 255, 255, 0.30);
+  }
+
+  .right-tab:active {
+    transform: translateX(-10px);
+  }
+
+  @media (max-width: 640px) {
+    .right-tabs {
+      top: auto;
+      bottom: 110px;
+      transform: none;
+    }
+    .right-tab {
+      height: 100px;
+      width: 38px;
+    }
+  }
+
+  /* ========================= UPLOAD TAB (hidden) ========================= */
   .upload-tab {
+    display: none !important;
     position: fixed;
     left: calc(50% - 360px);
     top: 50%;
