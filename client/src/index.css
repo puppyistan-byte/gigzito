@@ -565,6 +565,25 @@ html, body, #root {
     }
   }
 
+  /* ========================= CATEGORY BACKGROUND ========================= */
+  .category-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(40px);
+    opacity: 0.18;
+    transition: background 0.5s ease, opacity 0.5s ease;
+    pointer-events: none;
+  }
+  .cat-bg-all      { background: radial-gradient(ellipse at 50% 60%, #d0d0d0, #f0f0f0); }
+  .cat-bg-marketing{ background: radial-gradient(ellipse at 40% 55%, #e11d48, #ff6b35, #f4f4f4); }
+  .cat-bg-music    { background: radial-gradient(ellipse at 50% 60%, #7c3aed, #a855f7, #f4f4f4); }
+  .cat-bg-crypto   { background: radial-gradient(ellipse at 50% 55%, #f5b700, #fde68a, #f4f4f4); }
+  .cat-bg-coaching { background: radial-gradient(ellipse at 45% 60%, #2563eb, #60a5fa, #f4f4f4); }
+  .cat-bg-courses  { background: radial-gradient(ellipse at 50% 60%, #10b981, #6ee7b7, #f4f4f4); }
+
   /* ========================= CATEGORY BADGES ========================= */
   .category-badge {
     position: absolute;

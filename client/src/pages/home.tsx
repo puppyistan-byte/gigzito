@@ -63,8 +63,20 @@ export default function HomePage() {
     if (feedRef.current) feedRef.current.scrollTop = 0;
   }, [activeVertical]);
 
+  const categoryBgClass = {
+    ALL:       "cat-bg-all",
+    MARKETING: "cat-bg-marketing",
+    MUSIC:     "cat-bg-music",
+    CRYPTO:    "cat-bg-crypto",
+    COACHING:  "cat-bg-coaching",
+    COURSES:   "cat-bg-courses",
+  }[activeVertical] ?? "cat-bg-all";
+
   return (
     <div className="app-shell flex flex-col h-screen bg-white overflow-hidden relative">
+      {/* Dynamic blurred category background */}
+      <div className={`category-bg ${categoryBgClass}`} aria-hidden="true" />
+
       {showSplash && (
         <div className={`splash-screen ${fadeSplash ? 'fade-out' : ''}`}>
           <img src={logoImg} alt="Gigzito" className="splash-logo" />
