@@ -12,14 +12,34 @@ interface VideoCardProps {
 
 const VERTICAL_COLORS: Record<string, string> = {
   MARKETING: "bg-orange-500 text-white",
-  COACHING: "bg-violet-600 text-white",
-  COURSES: "bg-emerald-500 text-white",
+  COACHING:  "bg-violet-600 text-white",
+  COURSES:   "bg-emerald-500 text-white",
+  MUSIC:     "bg-purple-600 text-white",
+  CRYPTO:    "bg-yellow-500 text-white",
 };
 
 const VERTICAL_LABELS: Record<string, string> = {
   MARKETING: "Marketing",
-  COACHING: "Coaching",
-  COURSES: "Courses",
+  COACHING:  "Coaching",
+  COURSES:   "Courses",
+  MUSIC:     "Music",
+  CRYPTO:    "Crypto",
+};
+
+const VERTICAL_CSS: Record<string, string> = {
+  MARKETING: "video-marketing",
+  COACHING:  "video-coaching",
+  COURSES:   "video-courses",
+  MUSIC:     "video-music",
+  CRYPTO:    "video-crypto",
+};
+
+const BADGE_CSS: Record<string, string> = {
+  MARKETING: "cat-marketing",
+  COACHING:  "cat-coaching",
+  COURSES:   "cat-courses",
+  MUSIC:     "cat-music",
+  CRYPTO:    "cat-crypto",
 };
 
 function getVideoEmbedUrl(url: string): string {
@@ -59,13 +79,22 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
 
   const embedUrl = getVideoEmbedUrl(listing.videoUrl);
   const verticalColor = VERTICAL_COLORS[listing.vertical] ?? "bg-gray-500 text-white";
+  const verticalCss  = VERTICAL_CSS[listing.vertical]  ?? "";
+  const badgeCss     = BADGE_CSS[listing.vertical]     ?? "";
 
   return (
     <div
       data-testid={`card-listing-${listing.id}`}
-      className={`video-card relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
+      className={`video-card ${verticalCss} relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
     >
       <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden group">
+
+        {/* Category badge */}
+        {badgeCss && (
+          <span className={`category-badge ${badgeCss} z-30`}>
+            {VERTICAL_LABELS[listing.vertical]}
+          </span>
+        )}
 
         {/* Video */}
         <iframe

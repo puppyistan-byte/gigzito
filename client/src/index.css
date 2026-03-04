@@ -565,6 +565,44 @@ html, body, #root {
     }
   }
 
+  /* ========================= CATEGORY BADGES ========================= */
+  .category-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: white;
+    z-index: 30;
+  }
+  .cat-crypto    { background: #f5b700; }
+  .cat-music     { background: #7c3aed; }
+  .cat-coaching  { background: #2563eb; }
+  .cat-marketing { background: #e11d48; }
+  .cat-courses   { background: #10b981; }
+
+  /* Per-vertical tinted bottom glow */
+  .video-crypto::after,
+  .video-music::after,
+  .video-coaching::after,
+  .video-marketing::after,
+  .video-courses::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    pointer-events: none;
+    opacity: 0.18;
+  }
+  .video-crypto::after    { background: linear-gradient(to top, #f5b70055, transparent 40%); }
+  .video-music::after     { background: linear-gradient(to top, #7c3aed55, transparent 40%); }
+  .video-coaching::after  { background: linear-gradient(to top, #2563eb55, transparent 40%); }
+  .video-marketing::after { background: linear-gradient(to top, #e11d4855, transparent 40%); }
+  .video-courses::after   { background: linear-gradient(to top, #10b98155, transparent 40%); }
+
   /* ========================= MARKETER DRAWER ========================= */
   .mk-overlay {
     position: fixed;
