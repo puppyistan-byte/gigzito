@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { BottomNav } from "@/components/bottom-nav";
 import { VideoCard } from "@/components/video-card";
+import { OrbitDrawer } from "@/components/orbit-drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -111,6 +112,7 @@ export default function HomePage() {
       </div>
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
+      <OrbitDrawer />
 
       {/* Nav arrows (desktop helper) */}
       {listings.length > 1 && (
