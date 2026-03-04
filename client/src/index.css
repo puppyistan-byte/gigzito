@@ -286,6 +286,7 @@ html, body, #root {
     left: 20px;
     z-index: 9999;
     pointer-events: none;
+    display: block !important;
   }
 
   .brand-logo img {
@@ -368,8 +369,7 @@ html, body, #root {
 
   .brand-header-fixed,
   .brand-logo-fixed,
-  .brand-logo-overlay,
-  .brand-logo {
+  .brand-logo-overlay {
     display: none;
   }
 }
