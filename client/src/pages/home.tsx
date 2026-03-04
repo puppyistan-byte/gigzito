@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { BottomNav } from "@/components/bottom-nav";
 import { VideoCard } from "@/components/video-card";
+import { MarketerDrawer } from "@/components/marketer-drawer";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -111,24 +112,7 @@ export default function HomePage() {
       </div>
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
-
-      {/* Right edge tabs */}
-      <div className="right-tabs">
-        <button
-          className="right-tab"
-          onClick={() => window.location.href = user ? "/provider/new" : "/auth"}
-          data-testid="button-right-upload"
-        >
-          <span>Upload</span>
-        </button>
-        <button
-          className="right-tab"
-          onClick={() => setActiveVertical("MARKETING")}
-          data-testid="button-right-marketers"
-        >
-          <span>Marketers</span>
-        </button>
-      </div>
+      <MarketerDrawer />
 
 
       {/* Nav arrows (desktop helper) */}

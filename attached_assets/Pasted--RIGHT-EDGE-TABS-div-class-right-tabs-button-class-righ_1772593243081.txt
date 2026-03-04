@@ -1,0 +1,297 @@
+<!-- RIGHT EDGE TABS -->
+<div class="right-tabs">
+  <button class="right-tab" onclick="window.location.href='/upload'">
+    <span>Upload</span>
+  </button>
+
+  <!-- Marketers opens the carousel drawer -->
+  <button class="right-tab" id="openMarketers">
+    <span>Marketers</span>
+  </button>
+</div>
+
+<!-- MARKETERS DRAWER + CAROUSEL -->
+<div class="mk-overlay" id="mkOverlay"></div>
+
+<aside class="mk-drawer" id="mkDrawer" aria-hidden="true">
+  <div class="mk-head">
+    <div class="mk-title">Featured Marketers</div>
+    <button class="mk-close" id="closeMarketers">✕</button>
+  </div>
+
+  <div class="mk-carousel" id="mkCarousel">
+    <!-- CARD 1 -->
+    <div class="mk-card">
+      <div class="mk-avatar">A</div>
+      <div class="mk-name">Ava Growth</div>
+      <div class="mk-tag">TikTok Ads • Funnels</div>
+      <div class="mk-actions">
+        <button class="mk-btn" onclick="window.location.href='/marketers/ava'">View</button>
+        <button class="mk-btn ghost" onclick="window.location.href='/marketers/ava/book'">Book</button>
+      </div>
+    </div>
+
+    <!-- CARD 2 -->
+    <div class="mk-card">
+      <div class="mk-avatar">J</div>
+      <div class="mk-name">Jaron Media</div>
+      <div class="mk-tag">UGC • Shorts • Editing</div>
+      <div class="mk-actions">
+        <button class="mk-btn" onclick="window.location.href='/marketers/jaron'">View</button>
+        <button class="mk-btn ghost" onclick="window.location.href='/marketers/jaron/book'">Book</button>
+      </div>
+    </div>
+
+    <!-- CARD 3 -->
+    <div class="mk-card">
+      <div class="mk-avatar">K</div>
+      <div class="mk-name">Kira Brand</div>
+      <div class="mk-tag">Brand • Copy • Email</div>
+      <div class="mk-actions">
+        <button class="mk-btn" onclick="window.location.href='/marketers/kira'">View</button>
+        <button class="mk-btn ghost" onclick="window.location.href='/marketers/kira/book'">Book</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mk-dots" id="mkDots"></div>
+</aside>
+
+<style>
+  :root{
+    --gigzito-red:#c41414;
+    --glass: rgba(255,255,255,0.18);
+    --stroke: rgba(255,255,255,0.45);
+  }
+
+  /* RIGHT EDGE TABS */
+  .right-tabs{
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 9800;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+  }
+  .right-tab{
+    width: 44px;
+    height: 140px;
+    border-radius: 18px 0 0 18px;
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    border-right: none;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 14px 35px rgba(0,0,0,0.18);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition: transform .18s ease, background .18s ease;
+  }
+  .right-tab span{
+    transform: rotate(-90deg);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    color: var(--gigzito-red);
+    user-select:none;
+    white-space: nowrap;
+  }
+  .right-tab:hover{ transform: translateX(-6px); background: rgba(255,255,255,0.24); }
+
+  /* OVERLAY */
+  .mk-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease;
+    z-index: 9850;
+  }
+  .mk-overlay.open{
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* DRAWER */
+  .mk-drawer{
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translate(110%, -50%);
+    width: 340px;
+    height: 320px;
+    border-radius: 22px 0 0 22px;
+
+    background: rgba(255,255,255,0.20);
+    border: 1px solid rgba(255,255,255,0.50);
+    border-right: none;
+
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+
+    box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+    overflow: hidden;
+
+    transition: transform .22s ease;
+    z-index: 9900;
+  }
+  .mk-drawer.open{
+    transform: translate(0, -50%);
+  }
+
+  .mk-head{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.35);
+  }
+  .mk-title{
+    font-weight: 900;
+    font-size: 13px;
+    color: #111;
+  }
+  .mk-close{
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.18);
+    cursor: pointer;
+  }
+
+  /* CAROUSEL */
+  .mk-carousel{
+    height: 250px;
+    display:flex;
+    overflow-x:auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width:none;
+  }
+  .mk-carousel::-webkit-scrollbar{ display:none; }
+
+  .mk-card{
+    min-width: 340px;
+    scroll-snap-align: start;
+    padding: 14px;
+    box-sizing: border-box;
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .mk-avatar{
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 900;
+    color: white;
+    background: linear-gradient(145deg,#ff2a2a,#c41414);
+    box-shadow:
+      0 10px 22px rgba(0,0,0,0.18),
+      inset 0 3px 8px rgba(255,255,255,0.25),
+      inset 0 -6px 10px rgba(0,0,0,0.22);
+  }
+  .mk-name{
+    font-size: 18px;
+    font-weight: 900;
+    margin-top: 10px;
+  }
+  .mk-tag{
+    font-size: 12px;
+    opacity: .82;
+    margin-top: 6px;
+  }
+
+  .mk-actions{
+    display:flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .mk-btn{
+    flex: 1;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    font-weight: 900;
+    cursor: pointer;
+    background: linear-gradient(145deg,#ff2a2a,#c41414);
+    box-shadow:
+      0 10px 22px rgba(0,0,0,0.16),
+      inset 0 3px 8px rgba(255,255,255,0.22),
+      inset 0 -6px 10px rgba(0,0,0,0.18);
+  }
+  .mk-btn.ghost{
+    background: rgba(255,255,255,0.14);
+    color: #111;
+    border: 1px solid rgba(255,255,255,0.40);
+    box-shadow: none;
+  }
+
+  .mk-dots{
+    display:flex;
+    justify-content:center;
+    gap: 6px;
+    padding: 0 0 10px 0;
+  }
+  .mk-dot{
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.18);
+  }
+  .mk-dot.active{ background: var(--gigzito-red); }
+</style>
+
+<script>
+  const openBtn = document.getElementById("openMarketers");
+  const closeBtn = document.getElementById("closeMarketers");
+  const overlay = document.getElementById("mkOverlay");
+  const drawer = document.getElementById("mkDrawer");
+  const carousel = document.getElementById("mkCarousel");
+  const dotsWrap = document.getElementById("mkDots");
+
+  // build dots dynamically based on number of cards
+  function buildDots(){
+    const cards = carousel.children.length;
+    dotsWrap.innerHTML = "";
+    for(let i=0;i<cards;i++){
+      const d=document.createElement("span");
+      d.className="mk-dot" + (i===0?" active":"");
+      d.addEventListener("click", ()=> carousel.scrollTo({left: i*carousel.clientWidth, behavior:"smooth"}));
+      dotsWrap.appendChild(d);
+    }
+  }
+
+  function setOpen(isOpen){
+    overlay.classList.toggle("open", isOpen);
+    drawer.classList.toggle("open", isOpen);
+    drawer.setAttribute("aria-hidden", String(!isOpen));
+  }
+
+  openBtn.addEventListener("click", ()=> {
+    buildDots();
+    setOpen(true);
+  });
+
+  [closeBtn, overlay].forEach(el => el.addEventListener("click", ()=> setOpen(false)));
+
+  carousel.addEventListener("scroll", () => {
+    const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+    const dots = [...dotsWrap.querySelectorAll(".mk-dot")];
+    dots.forEach((d,i)=> d.classList.toggle("active", i===idx));
+  });
+
+  document.addEventListener("keydown", (e)=> {
+    if(e.key==="Escape") setOpen(false);
+  });
+</script>

@@ -553,6 +553,173 @@ html, body, #root {
     }
   }
 
+  /* ========================= MARKETER DRAWER ========================= */
+  .mk-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+    z-index: 9850;
+  }
+  .mk-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mk-drawer {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translate(110%, -50%);
+    width: 340px;
+    height: 320px;
+    border-radius: 22px 0 0 22px;
+    background: rgba(255, 255, 255, 0.20);
+    border: 1px solid rgba(255, 255, 255, 0.50);
+    border-right: none;
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+    overflow: hidden;
+    transition: transform 0.22s ease;
+    z-index: 9900;
+  }
+  .mk-drawer.open {
+    transform: translate(0, -50%);
+  }
+
+  .mk-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  }
+  .mk-title {
+    font-weight: 900;
+    font-size: 13px;
+    color: #111;
+  }
+  .mk-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.18);
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .mk-carousel {
+    height: 250px;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .mk-carousel::-webkit-scrollbar { display: none; }
+
+  .mk-card {
+    min-width: 340px;
+    scroll-snap-align: start;
+    padding: 14px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .mk-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 18px;
+    color: white;
+    background: linear-gradient(145deg, #ff2a2a, #c41414);
+    box-shadow:
+      0 10px 22px rgba(0, 0, 0, 0.18),
+      inset 0 3px 8px rgba(255, 255, 255, 0.25),
+      inset 0 -6px 10px rgba(0, 0, 0, 0.22);
+  }
+  .mk-name {
+    font-size: 18px;
+    font-weight: 900;
+    margin-top: 10px;
+    color: #111;
+  }
+  .mk-tag {
+    font-size: 12px;
+    color: #444;
+    opacity: 0.82;
+    margin-top: 6px;
+  }
+
+  .mk-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .mk-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: white;
+    font-weight: 900;
+    font-size: 13px;
+    cursor: pointer;
+    background: linear-gradient(145deg, #ff2a2a, #c41414);
+    box-shadow:
+      0 10px 22px rgba(0, 0, 0, 0.16),
+      inset 0 3px 8px rgba(255, 255, 255, 0.22),
+      inset 0 -6px 10px rgba(0, 0, 0, 0.18);
+    transition: transform 0.15s ease;
+  }
+  .mk-btn:hover { transform: scale(1.03); }
+  .mk-btn.ghost {
+    background: rgba(255, 255, 255, 0.14);
+    color: #111;
+    border: 1px solid rgba(255, 255, 255, 0.40);
+    box-shadow: none;
+  }
+
+  .mk-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 0 10px 0;
+  }
+  .mk-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .mk-dot.active { background: var(--gigzito-red); }
+
+  @media (max-width: 640px) {
+    .mk-drawer {
+      top: auto;
+      bottom: 110px;
+      transform: translateX(110%);
+      border-radius: 22px 0 0 22px;
+      width: 300px;
+      height: 300px;
+    }
+    .mk-drawer.open {
+      transform: translateX(0);
+    }
+    .mk-card { min-width: 300px; }
+  }
+
   /* ========================= UPLOAD TAB (hidden) ========================= */
   .upload-tab {
     display: none !important;
