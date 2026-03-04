@@ -54,6 +54,7 @@
   --font-mono: Menlo, monospace;
   --radius: .5rem;
   --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.06);
+  --gigzito-red: #c41414;
   --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.08);
   --shadow-sm: 0px 1px 4px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.05);
   --shadow: 0px 2px 6px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.05);
@@ -149,6 +150,7 @@ html, body, #root {
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    padding-bottom: 84px;
   }
 
   html {
@@ -348,34 +350,53 @@ html, body, #root {
 
   .bottom-nav {
     position: fixed;
+    left: 0;
+    right: 0;
     bottom: 0;
-    width: 100%;
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    background: rgba(255, 255, 255, 0.35);
-    border-top: 1px solid rgba(255, 255, 255, 0.45);
+    z-index: 9999;
+    height: 84px;
     display: flex;
-    justify-content: space-around;
     align-items: center;
-    height: var(--bottom-nav-height);
-    z-index: 100;
+    justify-content: space-around;
+    background: rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.55);
   }
 
-  .bottom-nav .nav-item,
-  .bottom-nav svg,
-  .bottom-nav i {
-    color: #c41414 !important;
+  .bottom-nav .nav-item {
+    width: 20%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    user-select: none;
+  }
+
+  .bottom-nav .nav-item svg,
+  .bottom-nav .nav-item i {
+    width: 26px;
+    height: 26px;
+    font-size: 26px;
+    color: var(--gigzito-red) !important;
     fill: none !important;
   }
 
-  .bottom-nav .nav-item.active,
-  .bottom-nav .nav-item.active svg {
-    color: #c41414 !important;
-    fill: rgba(196, 20, 20, 0.2) !important;
+  .bottom-nav .nav-label {
+    display: block !important;
+    font-size: 12px;
+    line-height: 12px;
+    font-weight: 600;
+    color: var(--gigzito-red);
   }
 
-  .bottom-nav .nav-item:hover {
-    color: #c41414 !important;
+  .bottom-nav .nav-item.active svg,
+  .bottom-nav .nav-item.active i,
+  .bottom-nav .nav-item.active .nav-label {
+    filter: drop-shadow(0 0 6px rgba(196, 20, 20, 0.35));
+    transform: translateY(-1px);
   }
 
   .brand-header-fixed,

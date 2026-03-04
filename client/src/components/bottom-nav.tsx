@@ -15,35 +15,33 @@ export function BottomNav({ activeVertical, onVerticalChange }: { activeVertical
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-white/10 safe-area-bottom bottom-nav">
-      <div className="max-w-2xl mx-auto flex justify-around items-center h-16 px-2">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = tab.key === "PROFILE" 
-            ? location.startsWith("/provider") || location === "/auth"
-            : location === "/" && activeVertical === tab.key;
+    <nav className="bottom-nav">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = tab.key === "PROFILE" 
+          ? location.startsWith("/provider") || location === "/auth"
+          : location === "/" && activeVertical === tab.key;
 
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                if (tab.key === "PROFILE") {
-                  window.location.href = user ? "/provider/me" : "/auth";
-                } else {
-                  if (location !== "/") window.location.href = "/";
-                  onVerticalChange(tab.key);
-                }
-              }}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 transition-colors ${
-                isActive ? "active" : "text-white/40 hover:text-white/60"
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+        return (
+          <button
+            key={tab.key}
+            onClick={() => {
+              if (tab.key === "PROFILE") {
+                window.location.href = user ? "/provider/me" : "/auth";
+              } else {
+                if (location !== "/") window.location.href = "/";
+                onVerticalChange(tab.key);
+              }
+            }}
+            className={`nav-item transition-colors ${
+              isActive ? "active" : ""
+            }`}
+          >
+            <Icon />
+            <span className="nav-label">{tab.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
