@@ -1,0 +1,76 @@
+/* =========================
+   GIGZITO – TRUE FROST GLASS (NOT WHITE)
+   + REMOVE ALL PAGERS (ex: 1/18)
+   ========================= */
+
+:root{
+  --gigzito-red:#c41414;
+}
+
+/* ---------- TRUE GLASS (dark translucent, not white) ---------- */
+.bottom-nav{
+  background: rgba(10,10,10,0.35) !important;   /* was white-ish, now true glass */
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  border-top: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow: 0 -12px 30px rgba(0,0,0,0.35) !important;
+}
+
+/* video frame glass: dark + blur */
+.video-frame,
+.video-card,
+.feed-card,
+.video-shell{
+  background: rgba(10,10,10,0.28) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  border: 1px solid rgba(255,255,255,0.16) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35) !important;
+}
+
+/* keep inner video nicely rounded */
+.video-frame video,
+.video-frame iframe,
+.video-card video,
+.video-card iframe,
+.feed-card video,
+.feed-card iframe,
+.video-shell video,
+.video-shell iframe{
+  border-radius: 22px;
+}
+
+/* nav icon + labels stay Gigzito red */
+.bottom-nav .nav-item svg,
+.bottom-nav .nav-item i,
+.bottom-nav .nav-label{
+  color: var(--gigzito-red) !important;
+}
+
+/* ---------- REMOVE PAGE MARKERS (1/18 etc) EVERYWHERE ---------- */
+/* common patterns: swiper pagination, dots, counters, overlays */
+.swiper-pagination,
+.swiper-pagination-bullets,
+.swiper-pagination-fraction,
+.swiper-pagination-custom,
+.pagination,
+.pager,
+.page-indicator,
+.page-count,
+.slide-indicator,
+.carousel-indicator,
+.counter,
+.count,
+.index-badge,
+.badge-count{
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* if your 1/18 is a plain div/span inside the feed */
+.feed-wrap .pager,
+.feed-wrap .page-indicator,
+.feed-wrap .swiper-pagination{
+  display: none !important;
+}

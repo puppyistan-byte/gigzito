@@ -324,12 +324,12 @@ html, body, #root {
     flex: 0 0 auto;
     border-radius: 28px;
     overflow: hidden;
+    background: rgba(10, 10, 10, 0.28) !important;
+    backdrop-filter: blur(22px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35) !important;
     padding: 8px;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    background: rgba(255, 255, 255, 0.22);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
     margin-bottom: 72px;
   }
 
@@ -362,11 +362,11 @@ html, body, #root {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    background: rgba(255, 255, 255, 0.24);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.55);
-    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.12);
+    background: rgba(10, 10, 10, 0.35) !important;
+    backdrop-filter: blur(22px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.35) !important;
   }
 
   .bottom-nav .nav-item {
@@ -404,6 +404,32 @@ html, body, #root {
   .bottom-nav .nav-item.active .nav-label {
     filter: drop-shadow(0 0 7px rgba(196, 20, 20, 0.35));
     transform: translateY(-1px);
+  }
+
+  /* ---------- REMOVE PAGE MARKERS (1/18 etc) EVERYWHERE ---------- */
+  .swiper-pagination,
+  .swiper-pagination-bullets,
+  .swiper-pagination-fraction,
+  .swiper-pagination-custom,
+  .pagination,
+  .pager,
+  .page-indicator,
+  .page-count,
+  .slide-indicator,
+  .carousel-indicator,
+  .counter,
+  .count,
+  .index-badge,
+  .badge-count {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .feed-wrap .pager,
+  .feed-wrap .page-indicator,
+  .feed-wrap .swiper-pagination {
+    display: none !important;
   }
 
   .brand-header-fixed,
