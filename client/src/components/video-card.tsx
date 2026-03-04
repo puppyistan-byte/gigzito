@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Zap } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Youtube } from "lucide-react";
 import type { ListingWithProvider } from "@shared/schema";
 
 import logoImg from "@assets/file_00000000e17471fdb85cd1f020d6f5a2_1772560922928.png";
@@ -13,9 +13,9 @@ interface VideoCardProps {
 }
 
 const VERTICAL_COLORS: Record<string, string> = {
-  MARKETING: "bg-blue-500/20 text-blue-400 dark:text-blue-300",
-  COACHING: "bg-green-500/20 text-green-500 dark:text-green-300",
-  COURSES: "bg-amber-500/20 text-amber-500 dark:text-amber-300",
+  MARKETING: "bg-orange-500 text-white",
+  COACHING: "bg-orange-500 text-white",
+  COURSES: "bg-orange-500 text-white",
 };
 
 const VERTICAL_LABELS: Record<string, string> = {
@@ -32,7 +32,7 @@ function getVideoEmbedUrl(url: string): string {
       if (u.pathname.includes("/embed/")) return url;
       if (u.hostname === "youtu.be") id = u.pathname.slice(1);
       else id = u.searchParams.get("v") ?? "";
-      return `https://www.youtube.com/embed/${id}?autoplay=0&rel=0`;
+      return `https://www.youtube.com/embed/${id}?autoplay=0&controls=0&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0`;
     }
     if (u.hostname.includes("vimeo.com")) {
       const id = u.pathname.split("/").pop();
@@ -58,78 +58,109 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
       className={`video-card relative w-full h-full bg-black overflow-hidden flex items-center justify-center ${className}`}
     >
       {/* Video Container (Inner) enforced 9:16 */}
-      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto bg-black flex items-center justify-center rounded-[14px] overflow-hidden">
+      <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto bg-black flex items-center justify-center rounded-[22px] overflow-hidden group">
         <iframe
           src={embedUrl}
           title={listing.title}
-          className="absolute inset-0 w-full h-full border-0 z-0"
+          className="absolute inset-0 w-full h-full border-0 z-0 pointer-events-none"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           loading="lazy"
         />
 
-        {/* Gigzito Watermark - High Z-index to appear over iframe */}
-        <div 
-          className="absolute bottom-6 right-6 opacity-40 pointer-events-none select-none z-30 flex flex-col items-end filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" 
-          aria-hidden="true"
-        >
-          <img src={logoImg} alt="" className="h-10 w-auto" />
+        {/* Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 z-10" />
+
+        {/* Top Info */}
+        <div className="absolute top-5 left-5 right-5 z-20 flex items-center gap-3">
+          <Avatar className="h-10 w-10 ring-2 ring-white/20">
+            <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
+            <AvatarFallback className="bg-primary text-white">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <h3 className="text-white font-bold text-sm truncate drop-shadow-md">
+              {provider.displayName} - {listing.title}
+            </h3>
+            <p className="text-white/80 text-xs truncate drop-shadow-sm">{provider.displayName}</p>
+          </div>
         </div>
 
-        {/* Info overlay at bottom (inside the 9:16 frame for TikTok feel) */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 pb-12 space-y-2 z-20">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${VERTICAL_COLORS[listing.vertical]}`}>
+        {/* Center Play Button (Visual only) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-110">
+            <Play className="w-8 h-8 fill-white text-white ml-1" />
+          </div>
+        </div>
+
+        {/* Bottom Info Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 space-y-4 z-20">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-orange-500 hover:bg-orange-600 text-[10px] px-2 py-0 uppercase font-bold border-0 text-white">
               {VERTICAL_LABELS[listing.vertical]}
-            </span>
-            <span className="text-[10px] text-white/60 flex items-center gap-1 font-medium">
-              <Clock className="h-3 w-3" />
+            </Badge>
+            <div className="flex items-center gap-1 text-[10px] text-white/90 font-medium">
+              <Clock className="w-3 h-3" />
               {listing.durationSeconds}s
-            </span>
+            </div>
           </div>
 
-          <h3 className="text-white font-bold text-sm leading-tight line-clamp-2 drop-shadow-md">{listing.title}</h3>
+          <div>
+            <h4 className="font-bold text-lg leading-tight mb-1 text-white drop-shadow-md">
+              {listing.title}
+            </h4>
+            {listing.description && (
+              <p className="text-sm text-white/90 line-clamp-2 leading-relaxed drop-shadow-sm">
+                {listing.description}
+              </p>
+            )}
+          </div>
 
-          {listing.description && (
-            <p className="text-white/80 text-xs line-clamp-2 drop-shadow-sm">{listing.description}</p>
-          )}
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8 ring-1 ring-white/20">
+              <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
+              <AvatarFallback className="bg-primary text-white text-[10px]">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="text-xs font-semibold text-white truncate drop-shadow-sm">{provider.displayName}</span>
 
-          <div className="flex items-center justify-between gap-2 pt-1">
-            <Link href={`/listing/${listing.id}`}>
-              <a data-testid={`link-provider-${listing.id}`} className="flex items-center gap-2 min-w-0 group">
-                <Avatar className="h-8 w-8 shrink-0 ring-1 ring-white/20 group-hover:ring-primary transition-all">
-                  <AvatarImage src={provider.avatarUrl} alt={provider.displayName} />
-                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">{initials}</AvatarFallback>
-                </Avatar>
-                <span className="text-white text-xs font-semibold truncate drop-shadow-sm">{provider.displayName || "Provider"}</span>
-              </a>
-            </Link>
-
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex gap-2 ml-auto">
               {listing.ctaUrl && (
-                <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer" data-testid={`link-cta-${listing.id}`}>
-                  <Button size="sm" variant="default" className="h-8 text-xs px-3 font-bold shadow-lg">
-                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                <Button size="sm" className="bg-[#6366f1] hover:bg-[#4f46e5] text-white border-0 h-9 px-4 rounded-lg font-bold gap-2" asChild>
+                  <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-4 h-4" />
                     Visit
-                  </Button>
-                </a>
+                  </a>
+                </Button>
               )}
               <Link href={`/listing/${listing.id}`}>
-                <Button size="sm" variant="outline" className="h-8 text-xs px-3 border-white/30 text-white bg-white/10 backdrop-blur-sm hover:bg-white/20 font-bold" data-testid={`link-detail-${listing.id}`}>
-                  <Play className="h-3.5 w-3.5 mr-1" />
+                <Button size="sm" variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-0 h-9 px-4 rounded-lg font-bold gap-2 backdrop-blur-sm">
+                  <Play className="w-4 h-4 fill-white" />
                   Details
                 </Button>
               </Link>
             </div>
           </div>
 
-          {listing.tags && listing.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {listing.tags.slice(0, 3).map((tag) => (
-                <span key={tag} className="text-[10px] text-white/40 font-medium">#{tag}</span>
+          <div className="flex items-center justify-between pt-2 border-t border-white/10">
+            <div className="flex gap-3 text-xs text-white/60">
+              {listing.tags?.slice(0, 3).map(tag => (
+                <span key={tag}>#{tag}</span>
               ))}
+              {(!listing.tags || listing.tags.length === 0) && (
+                <>
+                  <span>#gigzito</span>
+                  <span>#provider</span>
+                  <span>#featured</span>
+                </>
+              )}
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-white/60 cursor-pointer hover:text-white" />
+              <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-[10px] font-bold text-white">Watch on</span>
+                <Youtube className="w-4 h-4 text-white" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
