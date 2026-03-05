@@ -48,19 +48,17 @@ export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryC
                 aria-pressed={isActive}
                 className="cat-tab-flame"
                 style={{
-                  background: isActive
-                    ? "linear-gradient(45deg, #ff2200, #ff5500, #ff8800)"
-                    : "linear-gradient(45deg, #ff3b00, #ff6a00, #ff9a00)",
+                  background: isActive ? "#ff2a2a" : "#ff1a1a",
                   color: "#ffffff",
                   borderRadius: "999px",
                   padding: "8px 16px",
                   fontWeight: "bold",
                   fontSize: "12px",
                   letterSpacing: "0.2px",
-                  border: isActive ? "1.5px solid rgba(255,200,0,0.5)" : "1.5px solid rgba(255,120,0,0.35)",
+                  border: isActive ? "1.5px solid rgba(255,80,80,0.6)" : "1.5px solid rgba(255,26,26,0.4)",
                   boxShadow: isActive
-                    ? "0 0 16px rgba(255,120,0,0.9), 0 0 6px rgba(255,80,0,0.5)"
-                    : "0 0 10px rgba(255,80,0,0.7)",
+                    ? "0 0 16px rgba(255,0,0,0.9), 0 0 6px rgba(255,0,0,0.5)"
+                    : "0 0 10px rgba(255,0,0,0.6)",
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
