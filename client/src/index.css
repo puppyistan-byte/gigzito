@@ -693,6 +693,197 @@ html, body, #root {
   .video-marketing::after { background: linear-gradient(to top, #e11d4855, transparent 40%); }
   .video-courses::after   { background: linear-gradient(to top, #10b98155, transparent 40%); }
 
+  /* ========================= SIDE RAIL ========================= */
+
+  /* Hide entirely on mobile */
+  .side-rail-btn,
+  .side-panel {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+
+    .side-rail-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 48;
+    }
+
+    /* ── TAB BUTTONS ── */
+    .side-rail-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 50;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(227,0,25,0.18);
+      border-radius: 999px;
+      padding: 14px 10px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+      cursor: pointer;
+      color: #E30019;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .side-rail-btn:hover {
+      transform: translateY(calc(-50% - 2px));
+      box-shadow: 0 6px 22px rgba(0,0,0,0.16);
+      background: rgba(255,255,255,0.97);
+    }
+    .side-rail-btn:active {
+      transform: translateY(calc(-50% + 1px));
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .side-rail-btn-on {
+      background: rgba(227,0,25,0.07);
+      border-color: rgba(227,0,25,0.4);
+    }
+    .side-rail-left  { left: 12px; }
+    .side-rail-right { right: 12px; }
+
+    .side-rail-icon  { color: #E30019; }
+    .side-rail-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #E30019;
+      line-height: 1;
+    }
+
+    /* ── SLIDE-OUT PANELS ── */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 320px;
+      z-index: 49;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      overflow: hidden;
+    }
+    .side-panel-left  {
+      left: 0;
+      border-radius: 0 18px 18px 0;
+      transform: translateX(-100%);
+    }
+    .side-panel-right {
+      right: 0;
+      border-radius: 18px 0 0 18px;
+      transform: translateX(100%);
+    }
+    .side-panel-open { transform: translateX(0) !important; }
+
+    /* Panel internals */
+    .side-panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+    }
+    .side-panel-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 17px;
+      font-weight: 800;
+      color: #E30019;
+    }
+    .side-panel-sub {
+      font-size: 12px;
+      color: #888;
+      margin-top: 3px;
+    }
+    .side-panel-close {
+      background: rgba(0,0,0,0.06);
+      border: none;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #555;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .side-panel-close:hover { background: rgba(0,0,0,0.12); }
+
+    .side-panel-list {
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+      margin: 0;
+      padding: 12px 0;
+    }
+    .side-panel-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      transition: background 0.12s;
+    }
+    .side-panel-item:hover { background: rgba(0,0,0,0.03); }
+    .side-panel-item-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1b1b1b;
+      line-height: 1.35;
+      flex: 1;
+    }
+    .side-panel-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .side-panel-badge-blitz  { background: #fff3cd; color: #8a5800; }
+    .side-panel-badge-reactor { background: #ffe5e8; color: #c4000f; }
+
+    .side-panel-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin: 16px 20px 24px;
+      padding: 12px;
+      background: #E30019;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.12s;
+    }
+    .side-panel-cta:hover {
+      background: #c4000f;
+      transform: translateY(-1px);
+    }
+    .side-panel-cta:active { transform: translateY(0); }
+
+  } /* end @media 768px */
+
   /* ========================= MARKETER DRAWER ========================= */
   .mk-overlay {
     position: fixed;

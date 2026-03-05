@@ -1,0 +1,81 @@
+GIGZITO UI ENHANCEMENT – SIDE ACTION RAIL BUTTONS (REACTOR + GIG BLITZ)
+
+GOAL
+Use the open whitespace on desktop/tablet layouts to add two floating side buttons:
+• RIGHT side: Reactor (nuclear offers)
+• LEFT side: Gig Blitz (lightning offers)
+
+These should be prominent but clean, and not interfere with the video card in the center.
+
+1) ADD TWO FLOATING SIDE BUTTONS
+Create two fixed-position pill/vertical-tab buttons:
+
+A) REACTOR BUTTON (RIGHT)
+• Position: fixed on the right side, vertically centered
+• Icon: nuclear symbol ☢️
+• Label: "Reactor"
+• Purpose: shows “nuclear offers” (highest value / volatile deals)
+• On click: open Reactor panel OR filter feed to Reactor category
+
+B) GIG BLITZ BUTTON (LEFT)
+• Position: fixed on the left side, vertically centered
+• Icon: lightning bolt ⚡
+• Label: "Gig Blitz"
+• Purpose: shows urgent limited-time promos
+• On click: open Gig Blitz panel OR filter feed to Gig Blitz category
+
+2) STYLE (SLICK, NOT CHUNKY)
+Both buttons should be:
+• Rounded pill shape
+• White background (or very light frosted background)
+• Red accent (Gigzito red) for icon + label
+• Subtle shadow (premium)
+• Slight hover lift
+
+Example style intent:
+background: rgba(255,255,255,0.85) with backdrop blur
+border: 1px solid rgba(227,0,25,0.18)
+shadow: soft
+
+3) RESPONSIVE RULES
+• Show these side buttons on desktop/tablet (wide layouts).
+• Hide on small mobile screens to avoid covering content.
+
+Breakpoint recommendation:
+Hide when width < 768px.
+
+4) INTERACTION BEHAVIOR
+When clicked:
+Option A (Preferred): Open a small slide-out panel from that side with:
+• Title
+• list of the latest offers
+• “View All” button
+• Close (X)
+
+Option B (Quick): Simply set the active category to Reactor or Gig Blitz and filter the feed.
+
+If implementing the panel:
+• Reactor slides out from RIGHT
+• Gig Blitz slides out from LEFT
+• Panel width ~320px on desktop
+• Panel uses same frosted/clean styling
+• Panel overlays but does not shift the main center video frame
+
+5) COPY / LABELING
+Reactor panel header:
+“Reactor Drops” (volatile high value offers)
+
+Gig Blitz panel header:
+“Gig Blitz” (urgent limited-time promos)
+
+6) OPTIONAL MICRO-ANIMATION (NICE TO HAVE)
+When a NEW Reactor offer drops:
+• Reactor button briefly pulses once
+
+When a NEW Gig Blitz promo drops:
+• Gig Blitz button briefly pulses once
+
+IMPLEMENTATION NOTES
+• Keep the existing top category chips as-is.
+• Do NOT add Feed to the top chips (Feed stays on bottom nav).
+• These side buttons are quick-access shortcuts into Reactor and Gig Blitz.
