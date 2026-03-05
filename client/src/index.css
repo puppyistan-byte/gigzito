@@ -565,6 +565,58 @@ html, body, #root {
     }
   }
 
+  /* ========================= CATEGORY CAROUSEL ========================= */
+  .cat-carousel-wrap {
+    position: relative;
+    z-index: 25;
+    width: 100%;
+    padding: 8px 0 10px;
+    flex-shrink: 0;
+  }
+  .cat-carousel-track {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 16px;
+    -ms-overflow-style: none;
+  }
+  .cat-carousel-track::-webkit-scrollbar { display: none; }
+
+  .cat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.15s;
+    line-height: 1;
+  }
+  .cat-pill:active { transform: scale(0.95); }
+  .cat-pill-active {
+    background: var(--gigzito-red, #c41414);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(196,20,20,0.28);
+  }
+  .cat-pill-inactive {
+    background: rgba(0,0,0,0.07);
+    color: #555;
+  }
+  .cat-pill-inactive:hover {
+    background: rgba(0,0,0,0.13);
+    color: #222;
+  }
+  .cat-pill-icon { flex-shrink: 0; }
+
   /* ========================= CATEGORY BACKGROUND ========================= */
   .category-bg {
     position: fixed;
@@ -577,12 +629,18 @@ html, body, #root {
     transition: background 0.5s ease, opacity 0.5s ease;
     pointer-events: none;
   }
-  .cat-bg-all      { background: radial-gradient(ellipse at 50% 60%, #d0d0d0, #f0f0f0); }
-  .cat-bg-marketing{ background: radial-gradient(ellipse at 40% 55%, #e11d48, #ff6b35, #f4f4f4); }
-  .cat-bg-music    { background: radial-gradient(ellipse at 50% 60%, #7c3aed, #a855f7, #f4f4f4); }
-  .cat-bg-crypto   { background: radial-gradient(ellipse at 50% 55%, #f5b700, #fde68a, #f4f4f4); }
-  .cat-bg-coaching { background: radial-gradient(ellipse at 45% 60%, #2563eb, #60a5fa, #f4f4f4); }
-  .cat-bg-courses  { background: radial-gradient(ellipse at 50% 60%, #10b981, #6ee7b7, #f4f4f4); }
+  .cat-bg-all         { background: radial-gradient(ellipse at 50% 60%, #d0d0d0, #f0f0f0); }
+  .cat-bg-marketing   { background: radial-gradient(ellipse at 40% 55%, #e11d48, #ff6b35, #f4f4f4); }
+  .cat-bg-music       { background: radial-gradient(ellipse at 50% 60%, #7c3aed, #a855f7, #f4f4f4); }
+  .cat-bg-crypto      { background: radial-gradient(ellipse at 50% 55%, #f5b700, #fde68a, #f4f4f4); }
+  .cat-bg-coaching    { background: radial-gradient(ellipse at 45% 60%, #2563eb, #60a5fa, #f4f4f4); }
+  .cat-bg-courses     { background: radial-gradient(ellipse at 50% 60%, #10b981, #6ee7b7, #f4f4f4); }
+  .cat-bg-events      { background: radial-gradient(ellipse at 50% 55%, #f97316, #fdba74, #f4f4f4); }
+  .cat-bg-influencers { background: radial-gradient(ellipse at 45% 60%, #ec4899, #f9a8d4, #f4f4f4); }
+  .cat-bg-corporate   { background: radial-gradient(ellipse at 50% 60%, #0f172a, #334155, #e2e8f0); }
+  .cat-bg-gigblitz    { background: radial-gradient(ellipse at 50% 55%, #eab308, #fef08a, #f4f4f4); }
+  .cat-bg-reactor     { background: radial-gradient(ellipse at 45% 60%, #06b6d4, #67e8f9, #f4f4f4); }
+  .cat-bg-flash       { background: radial-gradient(ellipse at 50% 60%, #8b5cf6, #c4b5fd, #f4f4f4); }
 
   /* ========================= CATEGORY BADGES ========================= */
   .category-badge {

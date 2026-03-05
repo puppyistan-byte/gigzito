@@ -1,0 +1,100 @@
+UI ENHANCEMENT REQUEST – GIGZITO CATEGORY CAROUSEL
+
+We are expanding the Gigzito platform categories and need to redesign the current bottom navigation menu into a horizontal carousel category selector.
+
+CURRENT ISSUE
+The current UI uses a fixed bottom navigation with limited slots:
+Feed | Music | Marketing | Crypto | Courses | Profile
+
+This will not scale because Gigzito will continue adding more verticals.
+
+NEW DESIGN REQUIREMENT
+Replace the fixed category buttons with a horizontally scrollable carousel category menu positioned directly below the Gigzito logo and above the video feed.
+
+LAYOUT STRUCTURE
+
+Gigzito Logo
+Horizontal Category Carousel
+Main Video Feed
+Bottom Navigation (Feed + Profile only)
+
+CATEGORY CAROUSEL BEHAVIOR
+
+• Horizontal swipe left/right
+• Smooth scroll animation
+• Tap a category to filter the feed
+• Selected category highlights in red
+• Other categories appear in neutral color
+• Carousel should allow unlimited categories
+
+INITIAL CATEGORY SET
+
+Feed
+Music Gigs (rename existing Music category)
+Events
+Influencers
+Marketing
+Courses
+Crypto
+Corporate Deals
+Gig Blitz
+Reactor
+Flash Coupons
+
+CATEGORY ICON IDEAS
+
+Feed → Home icon
+Music Gigs → Guitar icon
+Events → Ticket icon
+Influencers → Megaphone icon
+Marketing → Chart icon
+Courses → Graduation cap
+Crypto → Bitcoin symbol
+Corporate Deals → Building icon
+Gig Blitz → Lightning bolt
+Reactor → Nuclear symbol
+Flash Coupons → Gift box
+
+INTERACTION
+
+When user taps a category:
+
+• The video feed filters to that category
+• Category pill becomes highlighted
+• Feed reloads with only relevant posts
+
+STYLE
+
+Category items should appear as rounded pill buttons.
+
+Example appearance:
+
+[ Music Gigs ] [ Events ] [ Influencers ] [ Marketing ] [ Courses ] [ Crypto ] [ Reactor ]
+
+Active category color:
+Gigzito Red
+
+Inactive color:
+Light gray
+
+ANIMATION
+
+When scrolling categories, the selected pill should gently snap to center for a smooth modern UX.
+
+VIDEO FEED
+
+The feed remains the main central content area and continues to show vertical video cards.
+
+BOTTOM NAVIGATION CHANGE
+
+Bottom navigation should be simplified to:
+
+Feed
+Create Post
+Profile
+
+Remove category icons from bottom nav since categories will now exist in the carousel.
+
+GOAL
+
+This redesign allows Gigzito to support many verticals while keeping the UI clean and mobile friendly.

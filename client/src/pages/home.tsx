@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { Navbar } from "@/components/navbar";
 import { BottomNav } from "@/components/bottom-nav";
+import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
 import { MarketerDrawer } from "@/components/marketer-drawer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,19 +64,26 @@ export default function HomePage() {
     if (feedRef.current) feedRef.current.scrollTop = 0;
   }, [activeVertical]);
 
-  const categoryBgClass = {
-    ALL:       "cat-bg-all",
-    MARKETING: "cat-bg-marketing",
-    MUSIC:     "cat-bg-music",
-    CRYPTO:    "cat-bg-crypto",
-    COACHING:  "cat-bg-coaching",
-    COURSES:   "cat-bg-courses",
-  }[activeVertical] ?? "cat-bg-all";
+  const categoryBgClass: Record<string, string> = {
+    ALL:             "cat-bg-all",
+    MARKETING:       "cat-bg-marketing",
+    MUSIC:           "cat-bg-music",
+    CRYPTO:          "cat-bg-crypto",
+    COACHING:        "cat-bg-coaching",
+    COURSES:         "cat-bg-courses",
+    EVENTS:          "cat-bg-events",
+    INFLUENCERS:     "cat-bg-influencers",
+    CORPORATE_DEALS: "cat-bg-corporate",
+    GIG_BLITZ:       "cat-bg-gigblitz",
+    REACTOR:         "cat-bg-reactor",
+    FLASH_COUPONS:   "cat-bg-flash",
+  };
+  const activeBgClass = categoryBgClass[activeVertical] ?? "cat-bg-all";
 
   return (
     <div className="app-shell flex flex-col h-screen bg-white overflow-hidden relative">
       {/* Dynamic blurred category background */}
-      <div className={`category-bg ${categoryBgClass}`} aria-hidden="true" />
+      <div className={`category-bg ${activeBgClass}`} aria-hidden="true" />
 
       {showSplash && (
         <div className={`splash-screen ${fadeSplash ? 'fade-out' : ''}`}>
@@ -88,6 +94,9 @@ export default function HomePage() {
       <div className="gigzito-logo">
         <img src="/gigzito-logo-v3.png" alt="Gigzito" />
       </div>
+
+      {/* Category Carousel */}
+      <CategoryCarousel activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
       {/* Feed */}
       <div

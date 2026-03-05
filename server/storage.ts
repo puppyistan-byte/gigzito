@@ -86,8 +86,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getListings(vertical?: string): Promise<ListingWithProvider[]> {
+    const DB_VERTICALS = new Set(["MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO"]);
     let rows: VideoListing[];
     if (vertical && vertical !== "ALL") {
+      if (!DB_VERTICALS.has(vertical)) return [];
       rows = await db
         .select()
         .from(videoListings)
