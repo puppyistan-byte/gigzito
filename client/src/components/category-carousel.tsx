@@ -1,30 +1,16 @@
 import { useRef, useEffect } from "react";
-import {
-  Home,
-  Guitar,
-  Ticket,
-  Megaphone,
-  TrendingUp,
-  GraduationCap,
-  Bitcoin,
-  Building2,
-  Zap,
-  Atom,
-  Gift,
-} from "lucide-react";
 
 const CATEGORIES = [
-  { key: "ALL",             label: "Feed",            Icon: Home         },
-  { key: "MUSIC",           label: "Music Gigs",      Icon: Guitar       },
-  { key: "EVENTS",          label: "Events",          Icon: Ticket       },
-  { key: "INFLUENCERS",     label: "Influencers",     Icon: Megaphone    },
-  { key: "MARKETING",       label: "Marketing",       Icon: TrendingUp   },
-  { key: "COURSES",         label: "Courses",         Icon: GraduationCap},
-  { key: "CRYPTO",          label: "Crypto",          Icon: Bitcoin      },
-  { key: "CORPORATE_DEALS", label: "Corporate Deals", Icon: Building2    },
-  { key: "GIG_BLITZ",       label: "Gig Blitz",       Icon: Zap          },
-  { key: "REACTOR",         label: "Reactor",         Icon: Atom         },
-  { key: "FLASH_COUPONS",   label: "Flash Coupons",   Icon: Gift         },
+  { key: "MUSIC",           label: "Music Gigs"      },
+  { key: "EVENTS",          label: "Events"          },
+  { key: "INFLUENCERS",     label: "Influencers"     },
+  { key: "MARKETING",       label: "Marketing"       },
+  { key: "COURSES",         label: "Courses"         },
+  { key: "CRYPTO",          label: "Crypto"          },
+  { key: "CORPORATE_DEALS", label: "Corporate Deals" },
+  { key: "GIG_BLITZ",       label: "Gig Blitz"       },
+  { key: "REACTOR",         label: "Reactor"         },
+  { key: "FLASH_COUPONS",   label: "Flash Coupons"   },
 ];
 
 interface CategoryCarouselProps {
@@ -33,41 +19,34 @@ interface CategoryCarouselProps {
 }
 
 export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryCarouselProps) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const pillRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const stripRef = useRef<HTMLDivElement>(null);
+  const btnRefs  = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
-    const activeIdx = CATEGORIES.findIndex((c) => c.key === activeVertical);
-    const pill = pillRefs.current[activeIdx];
-    if (pill && trackRef.current) {
-      const track = trackRef.current;
-      const pillLeft = pill.offsetLeft;
-      const pillWidth = pill.offsetWidth;
-      const trackWidth = track.offsetWidth;
-      const target = pillLeft - trackWidth / 2 + pillWidth / 2;
-      track.scrollTo({ left: target, behavior: "smooth" });
+    const idx = CATEGORIES.findIndex((c) => c.key === activeVertical);
+    const btn = btnRefs.current[idx];
+    if (btn && stripRef.current) {
+      const strip = stripRef.current;
+      const target = btn.offsetLeft - strip.offsetWidth / 2 + btn.offsetWidth / 2;
+      strip.scrollTo({ left: target, behavior: "smooth" });
     }
   }, [activeVertical]);
 
   return (
-    <div className="cat-carousel-wrap" data-testid="category-carousel">
-      <div className="cat-carousel-track" ref={trackRef}>
-        {CATEGORIES.map(({ key, label, Icon }, idx) => {
-          const isActive = key === activeVertical;
-          return (
-            <button
-              key={key}
-              ref={(el) => { pillRefs.current[idx] = el; }}
-              onClick={() => onVerticalChange(key)}
-              data-testid={`cat-pill-${key.toLowerCase()}`}
-              className={`cat-pill ${isActive ? "cat-pill-active" : "cat-pill-inactive"}`}
-              aria-pressed={isActive}
-            >
-              <Icon size={14} className="cat-pill-icon" />
-              <span>{label}</span>
-            </button>
-          );
-        })}
+    <div className="category-strip" ref={stripRef} data-testid="category-carousel">
+      <div className="category-track">
+        {CATEGORIES.map(({ key, label }, idx) => (
+          <button
+            key={key}
+            ref={(el) => { btnRefs.current[idx] = el; }}
+            onClick={() => onVerticalChange(key)}
+            data-testid={`cat-tab-${key.toLowerCase()}`}
+            className={`cat-tab${activeVertical === key ? " is-active" : ""}`}
+            aria-pressed={activeVertical === key}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   );

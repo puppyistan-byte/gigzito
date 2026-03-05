@@ -566,92 +566,69 @@ html, body, #root {
   }
 
   /* ========================= CATEGORY CAROUSEL ========================= */
-  .cat-carousel-wrap {
-    position: relative;
-    z-index: 25;
+  .category-strip {
     width: 100%;
-    padding: 8px 0 10px;
-    flex-shrink: 0;
-  }
-  .cat-carousel-track {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    padding: 10px 12px 6px;
     overflow-x: auto;
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 4px 16px;
     -ms-overflow-style: none;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 25;
   }
-  .cat-carousel-track::-webkit-scrollbar { display: none; }
+  .category-strip::-webkit-scrollbar { display: none; }
 
-  .cat-pill {
-    display: inline-flex;
+  .category-track {
+    display: flex;
+    gap: 10px;
     align-items: center;
-    gap: 5px;
+    white-space: nowrap;
+    scroll-snap-type: x mandatory;
+  }
+
+  .cat-tab {
+    scroll-snap-align: start;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+    color: #1b1b1b;
+    position: relative;
     white-space: nowrap;
     flex-shrink: 0;
-    padding: 7px 15px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    border: none;
     cursor: pointer;
-    color: #fff;
-    background: #E30019;
-    background-image: linear-gradient(to bottom, #ef2030 0%, #c4000f 100%);
-    box-shadow:
-      0 3px 6px rgba(0,0,0,0.28),
-      inset 0 1px 0 rgba(255,255,255,0.35),
-      inset 0 -2px 4px rgba(0,0,0,0.22);
-    transition: transform 0.12s ease, box-shadow 0.12s ease, background-image 0.12s ease;
-    line-height: 1;
-    user-select: none;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
     -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
-
-  /* Hover — subtle depress */
-  .cat-pill:hover {
-    background-image: linear-gradient(to bottom, #e8202f 0%, #bb000d 100%);
-    box-shadow:
-      0 1px 3px rgba(0,0,0,0.28),
-      inset 0 1px 0 rgba(255,255,255,0.25),
-      inset 0 -1px 3px rgba(0,0,0,0.22);
-    transform: scale(0.97);
+  .cat-tab:hover {
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.95);
   }
-
-  /* Tap / press */
-  .cat-pill:active {
-    transform: scale(0.95);
-    box-shadow:
-      0 1px 2px rgba(0,0,0,0.2),
-      inset 0 2px 4px rgba(0,0,0,0.3);
-    background-image: linear-gradient(to bottom, #c4000f 0%, #e8202f 100%);
+  .cat-tab:active {
+    transform: translateY(0px) scale(0.96);
   }
-
-  /* Selected (active) pill — brighter, scaled up */
-  .cat-pill-active {
-    background-image: linear-gradient(to bottom, #ff2535 0%, #d4001a 100%);
-    box-shadow:
-      0 4px 10px rgba(227,0,25,0.45),
-      inset 0 1px 0 rgba(255,255,255,0.45),
-      inset 0 -2px 5px rgba(0,0,0,0.25);
-    transform: scale(1.05);
+  .cat-tab.is-active {
+    border-color: rgba(227,0,25,0.35);
+    background: rgba(255,255,255,0.95);
   }
-  .cat-pill-active:hover {
-    transform: scale(1.03);
+  .cat-tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: -6px;
+    height: 3px;
+    border-radius: 999px;
+    background: #E30019;
+    box-shadow: 0 6px 14px rgba(227,0,25,0.25);
   }
-  .cat-pill-active:active {
-    transform: scale(0.98);
-  }
-
-  /* Inactive just uses the base red — no override needed */
-  .cat-pill-inactive { }
-
-  .cat-pill-icon { flex-shrink: 0; }
 
   /* ========================= CATEGORY BACKGROUND ========================= */
   .category-bg {
