@@ -1,29 +1,28 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { X, Zap, Atom, ArrowRight } from "lucide-react";
 
-type Panel = "GIG_BLITZ" | "REACTOR" | null;
+type Panel = "GIG_BLITZ" | "MELTDOWN" | null;
 
 interface SideRailProps {
   onVerticalChange: (v: string) => void;
 }
 
 const MOCK_GIG_BLITZ = [
-  { id: 1, title: "60% off Brand Strategy Session",   badge: "2h left"   },
-  { id: 2, title: "Flash: Logo Pack — 3 slots only",  badge: "Urgent"    },
-  { id: 3, title: "TikTok Ad Bundle — Today only",    badge: "45m left"  },
-  { id: 4, title: "Email Campaign Kit — $9",          badge: "Last 5"    },
+  { id: 1, title: "60% off Brand Strategy Session",  badge: "2h left"  },
+  { id: 2, title: "Flash: Logo Pack — 3 slots only", badge: "Urgent"   },
+  { id: 3, title: "TikTok Ad Bundle — Today only",   badge: "45m left" },
+  { id: 4, title: "Email Campaign Kit — $9",         badge: "Last 5"   },
 ];
 
-const MOCK_REACTOR = [
-  { id: 1, title: "Crypto Copy Pack — 10× value",     badge: "🔥 Hot"    },
-  { id: 2, title: "DeFi Marketing Drop — rare",       badge: "Nuclear"   },
-  { id: 3, title: "NFT Launch Package — bid now",     badge: "Volatile"  },
-  { id: 4, title: "Web3 Influencer Bundle",           badge: "💥 Spike"  },
+const MOCK_MELTDOWN = [
+  { id: 1, title: "Crypto Copy Pack — 10× value",    badge: "🔥 Hot"   },
+  { id: 2, title: "DeFi Marketing Drop — rare",      badge: "☢️ Melt"  },
+  { id: 3, title: "NFT Launch Package — bid now",    badge: "Volatile" },
+  { id: 4, title: "Web3 Influencer Bundle",          badge: "💥 Spike" },
 ];
 
 export function SideRail({ onVerticalChange }: SideRailProps) {
   const [open, setOpen] = useState<Panel>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -32,42 +31,62 @@ export function SideRail({ onVerticalChange }: SideRailProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [open]);
 
-  const toggle = (panel: "GIG_BLITZ" | "REACTOR") =>
+  const toggle = (panel: "GIG_BLITZ" | "MELTDOWN") =>
     setOpen((prev) => (prev === panel ? null : panel));
 
-  const handleViewAll = (key: "GIG_BLITZ" | "REACTOR") => {
+  const handleViewAll = (key: string) => {
     onVerticalChange(key);
     setOpen(null);
   };
 
   const isGigBlitz = open === "GIG_BLITZ";
-  const isReactor  = open === "REACTOR";
+  const isMeltdown = open === "MELTDOWN";
 
   return (
     <>
       {/* ── OVERLAY ── */}
       {open && (
         <div
-          className="side-rail-overlay"
+          className="fab-overlay"
           onClick={() => setOpen(null)}
           aria-hidden="true"
         />
       )}
 
-      {/* ── LEFT BUTTON — Gig Blitz ── */}
-      <button
-        className={`side-rail-btn side-rail-left ${isGigBlitz ? "side-rail-btn-on" : ""}`}
-        onClick={() => toggle("GIG_BLITZ")}
-        data-testid="btn-gig-blitz"
-        aria-label="Open Gig Blitz"
-      >
-        <Zap size={16} className="side-rail-icon" />
-        <span className="side-rail-label">Gig Blitz</span>
-      </button>
+      {/* ══════════════════════════════════
+           GIG BLITZ — Left FAB
+          ══════════════════════════════════ */}
+      <div className="fab-wrap fab-left">
+        <button
+          className={`fab fab-blitz ${isGigBlitz ? "fab-active" : ""}`}
+          onClick={() => toggle("GIG_BLITZ")}
+          data-testid="btn-gig-blitz"
+          aria-label="Open Gig Blitz"
+        >
+          <Zap size={26} strokeWidth={2.5} />
+        </button>
+        <span className="fab-tooltip">Gig Blitz</span>
+      </div>
 
-      {/* ── LEFT PANEL — Gig Blitz ── */}
+      {/* ══════════════════════════════════
+           MELTDOWN DEALZ — Right FAB
+          ══════════════════════════════════ */}
+      <div className="fab-wrap fab-right">
+        <button
+          className={`fab fab-meltdown ${isMeltdown ? "fab-active" : ""}`}
+          onClick={() => toggle("MELTDOWN")}
+          data-testid="btn-meltdown"
+          aria-label="Open Meltdown Dealz"
+        >
+          <Atom size={26} strokeWidth={2} />
+        </button>
+        <span className="fab-tooltip">Meltdown Dealz</span>
+      </div>
+
+      {/* ══════════════════════════════════
+           GIG BLITZ PANEL (slides left)
+          ══════════════════════════════════ */}
       <div
-        ref={panelRef}
         className={`side-panel side-panel-left ${isGigBlitz ? "side-panel-open" : ""}`}
         role="dialog"
         aria-label="Gig Blitz Panel"
@@ -102,50 +121,41 @@ export function SideRail({ onVerticalChange }: SideRailProps) {
         </button>
       </div>
 
-      {/* ── RIGHT BUTTON — Reactor ── */}
-      <button
-        className={`side-rail-btn side-rail-right ${isReactor ? "side-rail-btn-on" : ""}`}
-        onClick={() => toggle("REACTOR")}
-        data-testid="btn-reactor"
-        aria-label="Open Reactor"
-      >
-        <Atom size={16} className="side-rail-icon" />
-        <span className="side-rail-label">Reactor</span>
-      </button>
-
-      {/* ── RIGHT PANEL — Reactor ── */}
+      {/* ══════════════════════════════════
+           MELTDOWN PANEL (slides right)
+          ══════════════════════════════════ */}
       <div
-        className={`side-panel side-panel-right ${isReactor ? "side-panel-open" : ""}`}
+        className={`side-panel side-panel-right ${isMeltdown ? "side-panel-open" : ""}`}
         role="dialog"
-        aria-label="Reactor Panel"
+        aria-label="Meltdown Dealz Panel"
       >
-        <div className="side-panel-header">
+        <div className="side-panel-header side-panel-header-meltdown">
           <div>
-            <div className="side-panel-title">
-              <Atom size={15} /> Reactor Drops
+            <div className="side-panel-title side-panel-title-meltdown">
+              <Atom size={15} /> Meltdown Dealz
             </div>
-            <p className="side-panel-sub">Volatile high-value offers</p>
+            <p className="side-panel-sub">Volatile high-value reactor drops</p>
           </div>
-          <button className="side-panel-close" onClick={() => setOpen(null)} data-testid="btn-close-reactor">
+          <button className="side-panel-close" onClick={() => setOpen(null)} data-testid="btn-close-meltdown">
             <X size={16} />
           </button>
         </div>
 
         <ul className="side-panel-list">
-          {MOCK_REACTOR.map((item) => (
+          {MOCK_MELTDOWN.map((item) => (
             <li key={item.id} className="side-panel-item">
               <span className="side-panel-item-title">{item.title}</span>
-              <span className="side-panel-badge side-panel-badge-reactor">{item.badge}</span>
+              <span className="side-panel-badge side-panel-badge-meltdown">{item.badge}</span>
             </li>
           ))}
         </ul>
 
         <button
-          className="side-panel-cta"
+          className="side-panel-cta side-panel-cta-meltdown"
           onClick={() => handleViewAll("REACTOR")}
-          data-testid="btn-view-all-reactor"
+          data-testid="btn-view-all-meltdown"
         >
-          View All Reactor <ArrowRight size={14} />
+          View All Meltdown Dealz <ArrowRight size={14} />
         </button>
       </div>
     </>

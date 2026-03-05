@@ -693,70 +693,184 @@ html, body, #root {
   .video-marketing::after { background: linear-gradient(to top, #e11d4855, transparent 40%); }
   .video-courses::after   { background: linear-gradient(to top, #10b98155, transparent 40%); }
 
-  /* ========================= SIDE RAIL ========================= */
+  /* ========================= FLOATING ACTION BUTTONS (FABs) ========================= */
 
-  /* Hide entirely on mobile */
-  .side-rail-btn,
-  .side-panel {
-    display: none;
+  /* Meltdown fog keyframes — always defined */
+  @keyframes meltdown-fog {
+    0%   { transform: scale(1);    opacity: 0.55; filter: blur(8px);  }
+    50%  { transform: scale(1.22); opacity: 0.25; filter: blur(14px); }
+    100% { transform: scale(1);    opacity: 0.55; filter: blur(8px);  }
+  }
+  @keyframes meltdown-ring {
+    0%   { transform: scale(1);    opacity: 0.7; }
+    50%  { transform: scale(1.18); opacity: 0.3; }
+    100% { transform: scale(1);    opacity: 0.7; }
+  }
+  @keyframes fab-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(227,0,25,0.5); }
+    70%  { box-shadow: 0 0 0 12px rgba(227,0,25,0); }
+    100% { box-shadow: 0 0 0 0 rgba(227,0,25,0);   }
   }
 
+  /* Hidden on mobile by default — shown as small corner buttons */
+  .fab-wrap        { display: none; }
+  .side-panel      { display: none; }
+  .fab-overlay     { display: none; }
+
+  /* ── Mobile: small corner FABs ── */
+  @media (max-width: 767px) {
+    .fab-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: fixed;
+      bottom: 90px;
+      z-index: 40;
+    }
+    .fab-left  { left: 10px; }
+    .fab-right { right: 10px; }
+    .fab {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .fab-blitz {
+      background: #E30019;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(227,0,25,0.45);
+    }
+    .fab-meltdown {
+      background: #0d1f0d;
+      color: #39ff6a;
+      box-shadow: 0 4px 18px rgba(0,200,80,0.4);
+    }
+    .fab-tooltip { display: none; }
+    .side-panel  { display: none; }
+    .fab-overlay { display: none; }
+  }
+
+  /* ── Desktop / Tablet ── */
   @media (min-width: 768px) {
 
-    .side-rail-overlay {
+    .fab-overlay {
+      display: block;
       position: fixed;
       inset: 0;
       z-index: 48;
     }
 
-    /* ── TAB BUTTONS ── */
-    .side-rail-btn {
+    /* FAB wrapper — positions the button + tooltip together */
+    .fab-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
       position: fixed;
       top: 50%;
       transform: translateY(-50%);
       z-index: 50;
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(227,0,25,0.18);
-      border-radius: 999px;
-      padding: 14px 10px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-      cursor: pointer;
-      color: #E30019;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
     }
-    .side-rail-btn:hover {
-      transform: translateY(calc(-50% - 2px));
-      box-shadow: 0 6px 22px rgba(0,0,0,0.16);
-      background: rgba(255,255,255,0.97);
-    }
-    .side-rail-btn:active {
-      transform: translateY(calc(-50% + 1px));
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .side-rail-btn-on {
-      background: rgba(227,0,25,0.07);
-      border-color: rgba(227,0,25,0.4);
-    }
-    .side-rail-left  { left: 12px; }
-    .side-rail-right { right: 12px; }
+    .fab-left  { left: 18px; }
+    .fab-right { right: 18px; }
 
-    .side-rail-icon  { color: #E30019; }
-    .side-rail-label {
-      writing-mode: vertical-rl;
-      text-orientation: mixed;
-      transform: rotate(180deg);
+    /* Base FAB circle */
+    .fab {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .fab:hover  { transform: translateY(-3px); }
+    .fab:active { transform: scale(0.93); }
+    .fab.fab-active { transform: scale(0.96); }
+
+    /* GIG BLITZ FAB — bold red */
+    .fab-blitz {
+      background: linear-gradient(145deg, #ff1a2e, #c4000f);
+      color: #fff;
+      box-shadow:
+        0 6px 22px rgba(227,0,25,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.25),
+        inset 0 -2px 4px rgba(0,0,0,0.2);
+    }
+    .fab-blitz:hover {
+      box-shadow:
+        0 10px 30px rgba(227,0,25,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+
+    /* MELTDOWN DEALZ FAB — dark with green glow */
+    .fab-meltdown {
+      background: radial-gradient(circle at 40% 35%, #1a3a1a, #0a150a);
+      color: #39ff6a;
+      box-shadow:
+        0 6px 24px rgba(0,180,60,0.45),
+        0 0 0 2px rgba(0,255,100,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      z-index: 51;
+    }
+    .fab-meltdown:hover {
+      box-shadow:
+        0 10px 32px rgba(0,220,80,0.55),
+        0 0 0 3px rgba(0,255,100,0.3);
+    }
+
+    /* Green fog aura behind Meltdown button */
+    .fab-meltdown::before {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,255,100,0.38) 0%, transparent 70%);
+      animation: meltdown-fog 3.8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+    /* Outer pulsing ring */
+    .fab-meltdown::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(0,255,100,0.45);
+      animation: meltdown-ring 3.8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Tooltip labels */
+    .fab-tooltip {
+      display: block;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #E30019;
-      line-height: 1;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #444;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    .fab-wrap:hover .fab-tooltip {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     /* ── SLIDE-OUT PANELS ── */
@@ -768,7 +882,7 @@ html, body, #root {
       bottom: 0;
       width: 320px;
       z-index: 49;
-      background: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.93);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(0,0,0,0.08);
@@ -787,6 +901,13 @@ html, body, #root {
       transform: translateX(100%);
     }
     .side-panel-open { transform: translateX(0) !important; }
+
+    /* Meltdown panel gets a dark tinted top strip */
+    .side-panel-header-meltdown {
+      background: linear-gradient(135deg, #0a150a, #1a3a1a);
+      border-bottom-color: rgba(0,255,100,0.15) !important;
+    }
+    .side-panel-title-meltdown { color: #39ff6a !important; }
 
     /* Panel internals */
     .side-panel-header {
@@ -809,6 +930,8 @@ html, body, #root {
       color: #888;
       margin-top: 3px;
     }
+    .side-panel-header-meltdown .side-panel-sub { color: rgba(200,255,220,0.65); }
+
     .side-panel-close {
       background: rgba(0,0,0,0.06);
       border: none;
@@ -823,7 +946,11 @@ html, body, #root {
       flex-shrink: 0;
       transition: background 0.15s;
     }
-    .side-panel-close:hover { background: rgba(0,0,0,0.12); }
+    .side-panel-header-meltdown .side-panel-close {
+      background: rgba(255,255,255,0.1);
+      color: #aaa;
+    }
+    .side-panel-close:hover { background: rgba(0,0,0,0.14); }
 
     .side-panel-list {
       flex: 1;
@@ -857,8 +984,8 @@ html, body, #root {
       border-radius: 999px;
       white-space: nowrap;
     }
-    .side-panel-badge-blitz  { background: #fff3cd; color: #8a5800; }
-    .side-panel-badge-reactor { background: #ffe5e8; color: #c4000f; }
+    .side-panel-badge-blitz    { background: #fff3cd; color: #8a5800; }
+    .side-panel-badge-meltdown { background: #d4ffe6; color: #065a2a; }
 
     .side-panel-cta {
       display: flex;
@@ -876,11 +1003,14 @@ html, body, #root {
       cursor: pointer;
       transition: background 0.15s, transform 0.12s;
     }
-    .side-panel-cta:hover {
-      background: #c4000f;
-      transform: translateY(-1px);
-    }
+    .side-panel-cta:hover  { background: #c4000f; transform: translateY(-1px); }
     .side-panel-cta:active { transform: translateY(0); }
+
+    /* Meltdown CTA — green */
+    .side-panel-cta-meltdown {
+      background: linear-gradient(135deg, #0d7a3a, #1db954);
+    }
+    .side-panel-cta-meltdown:hover { background: linear-gradient(135deg, #0a5e2b, #18a348); }
 
   } /* end @media 768px */
 

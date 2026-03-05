@@ -1,0 +1,91 @@
+GIGZITO UI UPDATE – PROMINENT FLOATING ROUND BUTTONS + MELTDOWN DEALZ
+
+GOAL
+1) Replace the thin vertical side-edge tabs with prominent ROUND floating action buttons (FABs).
+2) Remove "Reactor" from the top category chip menu.
+3) Create a new special floating button: “Meltdown Dealz” that visually looks like a reactor meltdown (green smoke/fog effect).
+4) Keep “Gig Blitz” as a prominent floating button too.
+
+A) REMOVE REACTOR FROM TOP CATEGORY MENU
+In the top category chip list, REMOVE the "Reactor" chip entirely.
+Top chips remain:
+Music Gigs, Events, Influencers, Marketing, Courses, Crypto, Corporate Deals, Gig Blitz, Flash Coupons
+(Reactor will no longer appear as a top chip.)
+
+B) DELETE / STOP USING THE THIN SIDE TABS
+Remove/disable the current left/right slim pill tabs on the screen edges (like the current "Gig Blitz" vertical tab).
+We do NOT want edge tabs.
+
+C) ADD TWO PROMINENT ROUND FLOATING BUTTONS (FABs)
+Add two circular buttons that float over the main page content, positioned in open whitespace so they don’t block the center video.
+
+1) GIG BLITZ FAB (left side)
+• Position: left side, vertically centered (or slightly above center)
+• Shape: perfect circle
+• Size: 64–72px diameter (prominent)
+• Icon: lightning bolt ⚡
+• Color: Gigzito red background (#E30019) with white icon
+• Shadow: strong soft drop shadow
+• On click: open "Gig Blitz" drawer/panel OR filter feed to Gig Blitz content
+
+2) MELTDOWN DEALZ FAB (right side)
+• Position: right side, vertically centered (or slightly above center)
+• Shape: perfect circle
+• Size: 64–72px diameter (prominent)
+• Icon: nuclear/radiation symbol ☢️
+• Label behavior: optional small tooltip/label on hover: “Meltdown Dealz”
+• On click: open "Meltdown Dealz" drawer/panel showing the highest volatility deals (reactor drops)
+
+D) MELTDOWN DEALZ VISUAL EFFECT (GREEN SMOKE / FOG)
+The "Meltdown Dealz" button must look like it’s “melting down” with a green fog/smoke aura.
+
+Implement a subtle animated effect:
+• A green glowing ring around the button
+• A faint green smoke/fog pulse behind it
+• Use CSS animation (no heavy video assets)
+• Keep it tasteful: noticeable but not cheesy
+• Animation loops slowly (3–5 seconds)
+
+Visual requirements:
+• Green glow: rgba(0,255,120,0.35) / neon-lime vibe
+• Fog/smoke effect: blur + opacity + drifting motion (pseudo-elements)
+• Slight particle-like haze is okay, but keep performance smooth
+
+CSS approach suggestion:
+• Use ::before and ::after pseudo-elements behind the circular button
+• Animate scale + blur + opacity to simulate fog
+• Add a subtle rotating gradient or noise-like blur effect if possible
+
+E) PANEL / DRAWER BEHAVIOR
+When the user taps a FAB:
+Open a sleek frosted slide-out panel (drawer).
+
+• Gig Blitz opens from LEFT
+• Meltdown Dealz opens from RIGHT
+• Drawer width ~320px on desktop
+• Drawer has a close (X)
+• Drawer shows a list of offers (cards) with:
+  - title
+  - value highlight
+  - countdown timer
+  - claim button
+
+Drawer headers:
+• “Gig Blitz” (urgent limited-time promos)
+• “Meltdown Dealz” (volatile reactor drops)
+
+F) RESPONSIVE
+• Show these FABs on desktop/tablet.
+• Hide or reposition on small mobile widths to avoid blocking feed (width < 768px).
+• On mobile, optionally convert FABs into small circular buttons near bottom corners.
+
+G) PROMINENCE
+These round buttons must be visually prominent:
+• bigger size
+• strong shadow
+• clear icon
+• animated green fog for Meltdown Dealz
+
+IMPORTANT
+Do not add Reactor back into the top category chips.
+Reactor concept is now expressed as “Meltdown Dealz” via the special floating button and its drawer.
