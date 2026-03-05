@@ -1,0 +1,85 @@
+GIGZITO UI UPDATE – REMOVE GIG BLITZ CHIP + RIGHT-SIDE “TRINITY” SPIN BUTTON CLUSTER
+
+GOAL
+1) Remove “Gig Blitz” from the top category chips.
+2) Create a prominent right-side floating “Trinity” cluster made of 3 round buttons that orbit/spin around a center hub.
+3) Trinity buttons: Gig Blitz, Flash Coupons, Reactive Offers.
+4) Clicking any of the 3 buttons opens its corresponding drawer/panel (or filters feed).
+
+A) REMOVE “GIG BLITZ” FROM TOP MENU CHIPS
+In the top category chip list, REMOVE the “Gig Blitz” chip completely.
+Top chips remain:
+Music Gigs, Events, Influencers, Marketing, Courses, Crypto, Corporate Deals, Flash Coupons
+(Do not show Gig Blitz in the top bar anymore.)
+
+B) ADD RIGHT-SIDE “TRINITY” FLOATING BUTTON CLUSTER (PROMINENT)
+Create a floating UI element on the RIGHT side of the page in open whitespace:
+• Position: fixed
+• Right offset: 24px
+• Vertical placement: centered or slightly above center
+• The cluster consists of:
+  - 1 center hub button (main)
+  - 3 orbiting round buttons (the trinity)
+
+C) TRINITY BUTTONS (3 ORBITING ROUND BUTTONS)
+Each orbiting button is a circle (50–60px diameter) with icon + optional tooltip label on hover.
+All must be visually prominent, premium shadows, smooth motion.
+
+1) Gig Blitz
+• Icon: ⚡
+• Brand color: Gigzito red (#E30019) with white icon
+• Action: open “Gig Blitz” drawer from RIGHT (or set active filter = Gig Blitz)
+
+2) Flash Coupons
+• Icon: 🎟️ or 🏷️ (coupon/tag icon)
+• Color: white background with red icon + red border (or slightly tinted red background)
+• Action: open “Flash Coupons” drawer from RIGHT (or set active filter = Flash Coupons)
+
+3) Reactive Offers (Reactor/Meltdown concept)
+• Icon: ☢️
+• Color: dark/black button with green glow accents OR white button with green glow ring
+• Add subtle green fog / glow effect to communicate volatility (lighter than before, since it’s part of a cluster)
+• Action: open “Reactive Offers” drawer from RIGHT (or set active filter = Reactive Offers)
+
+D) CENTER HUB BUTTON (TRINITY TOGGLE)
+Center hub button is larger (64–72px diameter), premium style.
+• Icon: use Gigzito mark or a simple “⚛︎” reactor-like glyph
+• Default action: expands/collapses the orbiting 3 buttons
+• When collapsed: show only hub
+• When expanded: show the 3 orbiting buttons
+
+E) SPIN / ORBIT ANIMATION (SLICK, NOT CHEESY)
+When expanded, the 3 buttons orbit around the hub in a slow smooth loop.
+Requirements:
+• Motion is subtle: 1 full orbit every ~6–10 seconds
+• Use CSS transform rotate() on a container with the buttons positioned at angles (0°, 120°, 240°)
+• Add easing and keep FPS smooth (no heavy effects)
+• When user hovers over any button, pause orbit (optional but nice)
+• On mobile (small screens), disable orbit and just show a vertical stack when expanded
+
+F) DRAWERS / PANELS
+Clicking each orbiting button opens a frosted drawer from the RIGHT.
+Drawer width: ~320px desktop
+Drawer has: title, close (X), list of offers/cards, “View All”
+Headers:
+• “Gig Blitz” (urgent limited-time promos)
+• “Flash Coupons” (unfair advantage bin)
+• “Reactive Offers” (volatile / nuclear offers)
+
+G) RESPONSIVE
+Desktop/tablet:
+• Trinity cluster on right side with orbit animation.
+
+Mobile (<768px):
+• Hub button stays bottom-right corner.
+• On tap, expands into 3 stacked mini buttons (no orbit) above it.
+
+H) IMPORTANT CLEANUP
+• Do not show Gig Blitz in the top chip menu anymore.
+• Keep Flash Coupons chip in top menu if desired, but it must also exist in the trinity cluster.
+• “Reactive Offers” is its own special lane (reactor-style offers) and should NOT be a top chip unless explicitly requested later.
+
+VISUAL TARGET
+Modern, premium, minimal.
+No chunky red lozenges.
+Red used as accent and for the Gig Blitz button.

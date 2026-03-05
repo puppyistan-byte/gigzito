@@ -8,7 +8,6 @@ const CATEGORIES = [
   { key: "COURSES",         label: "Courses"         },
   { key: "CRYPTO",          label: "Crypto"          },
   { key: "CORPORATE_DEALS", label: "Corporate Deals" },
-  { key: "GIG_BLITZ",       label: "Gig Blitz"       },
   { key: "FLASH_COUPONS",   label: "Flash Coupons"   },
 ];
 

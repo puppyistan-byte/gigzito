@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
-import { MarketerDrawer } from "@/components/marketer-drawer";
 import { SideRail } from "@/components/side-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
@@ -137,7 +136,6 @@ export default function HomePage() {
 
       <SideRail onVerticalChange={setActiveVertical} />
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
-      <MarketerDrawer />
 
 
       {/* Nav arrows (desktop helper) */}
