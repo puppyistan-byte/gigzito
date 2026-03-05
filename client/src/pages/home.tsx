@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
-import { SideRail } from "@/components/side-rail";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -81,7 +80,7 @@ export default function HomePage() {
   const activeBgClass = categoryBgClass[activeVertical] ?? "cat-bg-all";
 
   return (
-    <div className="app-shell flex flex-col h-screen bg-white overflow-hidden relative">
+    <div className="app-shell flex flex-col h-screen overflow-hidden relative">
       {/* Dynamic blurred category background */}
       <div className={`category-bg ${activeBgClass}`} aria-hidden="true" />
 
@@ -101,7 +100,7 @@ export default function HomePage() {
       {/* Feed */}
       <div
         ref={feedRef}
-        className="feed-wrap feed-container flex-1 bg-white"
+        className="feed-wrap feed-container flex-1"
         onScroll={handleScroll}
         data-testid="feed-container"
       >
@@ -134,7 +133,6 @@ export default function HomePage() {
         )}
       </div>
 
-      <SideRail onVerticalChange={setActiveVertical} />
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
 

@@ -1,0 +1,53 @@
+GIGZITO UI UPDATE (ONE SWEEP)
+
+GOAL:
+1) Make the entire app UI black with red brand accents.
+2) Remove the 3-button orbit/trinity cluster completely (no Gig Blitz / Flash / Reactive cluster anywhere).
+3) Replace the current red text/logo (and any generated logo) with the attached Gigzito logo image (the one that says "Gigzito" and "Getcho Gig On").
+4) Logo should be the only branding at the top (no additional headers like "Feed" at the top).
+
+ASSET:
+- Add the attached image into the project as: /public/gigzito-logo-attached.jpg
+  (If using Vite, put it in /public so it loads by path.)
+
+IMPLEMENTATION:
+A) REMOVE ORBIT/TRINITY BUTTONS
+- Find the component or JSX block that renders the 3-button orbit/trinity cluster.
+- Delete it entirely along with any related CSS, animation, positioning, or container wrappers.
+- Also remove any imports or state/hooks used only for that orbit cluster.
+
+B) REPLACE LOGO WITH ATTACHED IMAGE (TOP HEADER)
+- In the main layout/header (top area), replace any text-based logo or old logo reference with:
+  <img src="/gigzito-logo-attached.jpg" alt="Gigzito" />
+- Logo placement:
+  - Top center or top-left (choose whichever is already consistent), but keep it prominent.
+  - Width: 260px desktop, 210px mobile.
+  - Add subtle red glow via CSS filter or drop-shadow (optional but clean).
+
+C) GLOBAL DARK THEME + RED FEATURES
+- Set page background to pure black (#000).
+- Primary accent red: #ff1a1a
+- Hover accent red: #ff3b3b
+- Text: #eaeaea
+- Muted text: #aaaaaa
+- Borders/dividers: #222
+- Buttons: red background, white text, rounded, slight glow on hover.
+- Any previous purple accents must be removed or replaced with red.
+
+D) VIDEO FEED / PLAYER STYLING (CLEAN)
+- Video container background: #0b0b0b
+- Border: 1px solid #222
+- Hover border: 1px solid #ff1a1a
+- Rounded corners: 12px
+- Keep the feed as the hero (minimal UI clutter).
+
+E) REMOVE ANY DUPLICATE TOP FEED LABEL
+- If there is a top "Feed" label/header (since feed exists in bottom nav), remove the top label completely.
+
+FINAL CHECKLIST:
+- Orbit/trinity buttons are gone from UI and codebase.
+- Header shows ONLY the attached Gigzito logo image.
+- App background is black, accents are red, no purple.
+- Buttons + interactive elements use red styling.
+- No top “Feed” header duplication.
+- Build compiles with no unused imports or dead CSS.

@@ -6,44 +6,44 @@
 
 /* LIGHT MODE */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(255,255,255, .12);
+  --badge-outline: rgba(255,255,255, .06);
 
-  --opaque-button-border-intensity: -8;
+  --opaque-button-border-intensity: 8;
 
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 16% 97%;
-  --foreground: 220 20% 10%;
-  --border: 220 14% 88%;
-  --card: 0 0% 100%;
-  --card-foreground: 220 20% 10%;
-  --card-border: 220 14% 90%;
-  --sidebar: 220 16% 95%;
-  --sidebar-foreground: 220 20% 15%;
-  --sidebar-border: 220 14% 87%;
-  --sidebar-primary: 258 80% 55%;
+  --background: 0 0% 0%;
+  --foreground: 0 0% 92%;
+  --border: 0 0% 13%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 92%;
+  --card-border: 0 0% 15%;
+  --sidebar: 0 0% 5%;
+  --sidebar-foreground: 0 0% 88%;
+  --sidebar-border: 0 0% 13%;
+  --sidebar-primary: 0 85% 55%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 258 60% 92%;
-  --sidebar-accent-foreground: 258 60% 30%;
-  --sidebar-ring: 258 80% 55%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 20% 10%;
-  --popover-border: 220 14% 88%;
-  --primary: 258 80% 55%;
+  --sidebar-accent: 0 40% 15%;
+  --sidebar-accent-foreground: 0 85% 75%;
+  --sidebar-ring: 0 85% 55%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 92%;
+  --popover-border: 0 0% 15%;
+  --primary: 0 85% 55%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 14% 92%;
-  --secondary-foreground: 220 20% 20%;
-  --muted: 220 14% 93%;
-  --muted-foreground: 220 12% 50%;
-  --accent: 258 60% 94%;
-  --accent-foreground: 258 60% 30%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 85%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 67%;
+  --accent: 0 50% 15%;
+  --accent-foreground: 0 85% 75%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 14% 86%;
-  --ring: 258 80% 55%;
-  --chart-1: 258 80% 55%;
+  --input: 0 0% 13%;
+  --ring: 0 85% 55%;
+  --chart-1: 0 85% 55%;
   --chart-2: 180 60% 45%;
   --chart-3: 30 80% 55%;
   --chart-4: 340 75% 55%;
@@ -53,15 +53,15 @@
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem;
-  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.06);
-  --gigzito-red: #c41414;
-  --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.08);
-  --shadow-sm: 0px 1px 4px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.05);
-  --shadow: 0px 2px 6px 0px rgba(0,0,0,0.08), 0px 1px 2px -1px rgba(0,0,0,0.05);
-  --shadow-md: 0px 4px 12px 0px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04);
-  --shadow-lg: 0px 8px 24px 0px rgba(0,0,0,0.10), 0px 4px 6px -1px rgba(0,0,0,0.05);
-  --shadow-xl: 0px 16px 40px 0px rgba(0,0,0,0.12), 0px 8px 10px -1px rgba(0,0,0,0.05);
-  --shadow-2xl: 0px 24px 48px 0px rgba(0,0,0,0.14);
+  --shadow-2xs: 0px 1px 2px 0px rgba(0,0,0,0.5);
+  --gigzito-red: #ff1a1a;
+  --shadow-xs: 0px 1px 3px 0px rgba(0,0,0,0.55);
+  --shadow-sm: 0px 1px 4px 0px rgba(0,0,0,0.5), 0px 1px 2px -1px rgba(0,0,0,0.3);
+  --shadow: 0px 2px 6px 0px rgba(0,0,0,0.55), 0px 1px 2px -1px rgba(0,0,0,0.3);
+  --shadow-md: 0px 4px 12px 0px rgba(0,0,0,0.55), 0px 2px 4px -1px rgba(0,0,0,0.3);
+  --shadow-lg: 0px 8px 24px 0px rgba(0,0,0,0.6), 0px 4px 6px -1px rgba(0,0,0,0.35);
+  --shadow-xl: 0px 16px 40px 0px rgba(0,0,0,0.65), 0px 8px 10px -1px rgba(0,0,0,0.4);
+  --shadow-2xl: 0px 24px 48px 0px rgba(0,0,0,0.75);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -139,8 +139,8 @@ html, body, #root {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #ffffff;
-  color: #000000;
+  background: #000000;
+  color: #eaeaea;
 }
 
 @layer base {
@@ -264,12 +264,7 @@ html, body, #root {
     overflow: hidden;
     height: 100vh;
     width: 100vw;
-    background: linear-gradient(
-      180deg,
-      #f4f4f4 0%,
-      #e6e6e6 40%,
-      #dcdcdc 100%
-    );
+    background: #000000;
   }
 
   /* === GIGZITO BRAND HEADER === */
@@ -282,7 +277,7 @@ html, body, #root {
     width: 100vw;
     position: relative;
     overflow: hidden;
-    background: #ffffff;
+    background: #000000;
     --branding-height: 70px;
     --branding-spacing: 16px;
     --bottom-nav-height: 64px;
@@ -298,27 +293,17 @@ html, body, #root {
     overflow: visible;
   }
 
-  .gigzito-logo::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 10px;
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.35) 0%,
-      rgba(255, 255, 255, 0.12) 30%,
-      rgba(255, 255, 255, 0) 60%
-    );
-    pointer-events: none;
-  }
-
   .gigzito-logo img {
-    width: 340px;
+    width: 260px;
     height: auto;
     display: block;
     filter:
-      drop-shadow(0 6px 12px rgba(0, 0, 0, 0.18))
-      drop-shadow(0 0 6px rgba(220, 0, 0, 0.25));
+      drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6))
+      drop-shadow(0 0 12px rgba(255, 26, 26, 0.35));
+  }
+
+  @media (max-width: 640px) {
+    .gigzito-logo img { width: 210px; }
   }
 
   .gigzito-logo svg path {
@@ -352,15 +337,21 @@ html, body, #root {
     height: calc(100vh - 140px);
     scroll-snap-align: start;
     flex: 0 0 auto;
-    border-radius: 28px !important;
+    border-radius: 12px !important;
     overflow: hidden !important;
-    background: rgba(255, 255, 255, 0.16) !important;
-    backdrop-filter: blur(26px) !important;
-    -webkit-backdrop-filter: blur(26px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.50) !important;
-    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.18) !important;
+    background: #0b0b0b !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #222 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
     padding: 8px;
     margin-bottom: 72px;
+    transition: border-color 0.18s ease;
+  }
+  .video-card:hover,
+  .feed-item:hover,
+  .card:hover {
+    border-color: #ff1a1a !important;
   }
 
   .video-card iframe,
@@ -392,8 +383,8 @@ html, body, #root {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    background: #ffffff !important;
-    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    background: #000000 !important;
+    border-top: 1px solid #222 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
@@ -589,16 +580,16 @@ html, body, #root {
 
   .cat-tab {
     scroll-snap-align: start;
-    border: 1px solid rgba(0,0,0,0.08);
-    background: rgba(255,255,255,0.75);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid #333;
+    background: #111;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     padding: 8px 12px;
     border-radius: 999px;
     font-weight: 600;
     font-size: 12px;
     letter-spacing: 0.2px;
-    color: #1b1b1b;
+    color: #eaeaea;
     position: relative;
     white-space: nowrap;
     flex-shrink: 0;
@@ -609,14 +600,16 @@ html, body, #root {
   }
   .cat-tab:hover {
     transform: translateY(-1px);
-    background: rgba(255,255,255,0.95);
+    background: #1a1a1a;
+    border-color: #444;
   }
   .cat-tab:active {
     transform: translateY(0px) scale(0.96);
   }
   .cat-tab.is-active {
-    border-color: rgba(227,0,25,0.35);
-    background: rgba(255,255,255,0.95);
+    border-color: #ff1a1a;
+    background: rgba(255,26,26,0.12);
+    color: #fff;
   }
   .cat-tab.is-active::after {
     content: "";
@@ -626,8 +619,8 @@ html, body, #root {
     bottom: -6px;
     height: 3px;
     border-radius: 999px;
-    background: #E30019;
-    box-shadow: 0 6px 14px rgba(227,0,25,0.25);
+    background: #ff1a1a;
+    box-shadow: 0 4px 12px rgba(255,26,26,0.4);
   }
 
   /* ========================= CATEGORY BACKGROUND ========================= */
@@ -693,11 +686,8 @@ html, body, #root {
   .video-marketing::after { background: linear-gradient(to top, #e11d4855, transparent 40%); }
   .video-courses::after   { background: linear-gradient(to top, #10b98155, transparent 40%); }
 
-  /* ========================= TRINITY CLUSTER ========================= */
-
-  /* Orbit & reactive keyframes */
-  /* Reactive glow — kept for the reactive button's aura */
-  @keyframes reactive-fog {
+  /* ========================= UPLOAD TAB (removed trinity/panel/marketer blocks) ========================= */
+  @keyframes reactive-fog-UNUSED {
     0%   { transform: scale(1);    opacity: 0.45; filter: blur(6px);  }
     50%  { transform: scale(1.18); opacity: 0.18; filter: blur(11px); }
     100% { transform: scale(1);    opacity: 0.45; filter: blur(6px);  }
