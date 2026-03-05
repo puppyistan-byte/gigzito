@@ -34,13 +34,6 @@ const VERTICAL_CSS: Record<string, string> = {
   CRYPTO:    "video-crypto",
 };
 
-const BADGE_CSS: Record<string, string> = {
-  MARKETING: "cat-marketing",
-  COACHING:  "cat-coaching",
-  COURSES:   "cat-courses",
-  MUSIC:     "cat-music",
-  CRYPTO:    "cat-crypto",
-};
 
 function getVideoEmbedUrl(url: string): string {
   try {
@@ -80,7 +73,6 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
   const embedUrl = getVideoEmbedUrl(listing.videoUrl);
   const verticalColor = VERTICAL_COLORS[listing.vertical] ?? "bg-gray-500 text-white";
   const verticalCss  = VERTICAL_CSS[listing.vertical]  ?? "";
-  const badgeCss     = BADGE_CSS[listing.vertical]     ?? "";
 
   return (
     <div
@@ -88,13 +80,6 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
       className={`video-card ${verticalCss} relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
     >
       <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden group">
-
-        {/* Category badge */}
-        {badgeCss && (
-          <span className={`category-badge ${badgeCss} z-30`}>
-            {VERTICAL_LABELS[listing.vertical]}
-          </span>
-        )}
 
         {/* Video */}
         <iframe
