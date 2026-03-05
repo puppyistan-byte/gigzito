@@ -730,7 +730,7 @@ html, body, #root {
       display: block;
       position: fixed;
       bottom: 88px;
-      right: 14px;
+      left: 14px;
       z-index: 50;
     }
     .trinity-hub {
@@ -791,15 +791,14 @@ html, body, #root {
       z-index: 48;
     }
 
-    /* Cluster root — centered on right side */
+    /* Cluster root — left side, vertically centered with video feed */
     .trinity-cluster {
       display: block;
       position: fixed;
-      right: 28px;
+      left: 24px;
       top: 50%;
       transform: translateY(-50%);
       z-index: 50;
-      /* needs relative context for absolute orbit items */
       width: 0;
       height: 0;
     }
@@ -842,7 +841,7 @@ html, body, #root {
     /* Show and spin when expanded */
     .trinity-expanded .trinity-orbit-wrap {
       display: block;
-      animation: orbit-spin 9s linear infinite;
+      animation: orbit-spin 8s linear infinite;
     }
     .trinity-expanded:hover .trinity-orbit-wrap {
       animation-play-state: paused;
@@ -863,19 +862,19 @@ html, body, #root {
     }
 
     /*
-      Orbit positions (radius 96px):
-      Item 1: 270° = top            → rotate(270deg) translateX(96px) rotate(-270deg)
-      Item 2: 30°  = bottom-right   → rotate(30deg)  translateX(96px) rotate(-30deg)
-      Item 3: 150° = bottom-left    → rotate(150deg) translateX(96px) rotate(-150deg)
+      Orbit positions (radius 70px), 3 equal steps of 120°:
+      Item 1:   0° = right          → rotate(0deg)   translateX(70px) rotate(0deg)
+      Item 2: 120° = lower-left     → rotate(120deg) translateX(70px) rotate(-120deg)
+      Item 3: 240° = upper-left     → rotate(240deg) translateX(70px) rotate(-240deg)
       The orbit-spin rotates the container; orbit-counter keeps button upright.
     */
-    .orbit-item-1 { transform: rotate(270deg) translateX(96px) rotate(-270deg); }
-    .orbit-item-2 { transform: rotate(30deg)  translateX(96px) rotate(-30deg);  }
-    .orbit-item-3 { transform: rotate(150deg) translateX(96px) rotate(-150deg); }
+    .orbit-item-1 { transform: rotate(0deg)   translateX(70px) rotate(0deg);    }
+    .orbit-item-2 { transform: rotate(120deg) translateX(70px) rotate(-120deg); }
+    .orbit-item-3 { transform: rotate(240deg) translateX(70px) rotate(-240deg); }
 
     /* Counter-rotate buttons to stay upright while container spins */
     .trinity-expanded .trinity-orbit-wrap .orbit-btn {
-      animation: orbit-counter 9s linear infinite;
+      animation: orbit-counter 8s linear infinite;
     }
     .trinity-expanded:hover .trinity-orbit-wrap .orbit-btn {
       animation-play-state: paused;

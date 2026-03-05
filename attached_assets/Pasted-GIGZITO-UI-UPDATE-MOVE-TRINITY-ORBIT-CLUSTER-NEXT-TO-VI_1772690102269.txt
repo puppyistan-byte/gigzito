@@ -1,0 +1,104 @@
+GIGZITO UI UPDATE – MOVE TRINITY ORBIT CLUSTER NEXT TO VIDEO PLAYER (LEFT SIDE)
+
+GOAL
+Reposition the Trinity spinning button cluster so it sits between the page border and the video player on the LEFT side of the screen instead of the far-right page edge.
+
+This keeps the control visible but prevents it from interfering with UI panels or drawers on the right side.
+
+--------------------------------------------------
+
+A) NEW POSITIONING
+
+Move the Trinity orbit cluster to the LEFT side of the video card.
+
+Placement rules:
+
+• position: fixed
+• left offset: 24px from the left border of the main content area
+• vertical position: centered relative to the video player
+
+The cluster should visually sit in the whitespace between:
+the left page border
+AND
+the video player container.
+
+Do NOT overlap the video player.
+
+--------------------------------------------------
+
+B) ALIGNMENT WITH VIDEO CARD
+
+Use the video player container as the vertical anchor.
+
+Recommended layout logic:
+
+Get the center Y position of the video container and align the Trinity hub button with that center.
+
+Example CSS approach:
+
+top: 50%
+transform: translateY(-50%)
+
+--------------------------------------------------
+
+C) ORBIT STRUCTURE (UNCHANGED)
+
+The Trinity cluster still contains:
+
+CENTER HUB BUTTON
+3 orbiting round buttons:
+
+1) ⚡ Gig Blitz
+2) 🎟 Flash Coupons
+3) ☢ Reactive Offers
+
+Orbit spacing:
+
+buttons positioned around hub at
+0°
+120°
+240°
+
+Orbit radius: ~70px
+
+Animation speed:
+1 orbit every 8 seconds.
+
+--------------------------------------------------
+
+D) VISUAL SPACING
+
+Ensure there is at least:
+
+• 20px spacing between orbit buttons and video card
+• no overlap with the Gigzito logo
+• no overlap with category chips
+
+--------------------------------------------------
+
+E) MOBILE BEHAVIOR
+
+On screens smaller than 768px:
+
+Disable orbit animation.
+
+Instead:
+
+• place hub button bottom-left corner
+• expand the 3 buttons vertically when tapped
+
+--------------------------------------------------
+
+F) CLEAN VISUAL TARGET
+
+Final layout should look like:
+
+PAGE BORDER
+   |
+   |   ⚛ Trinity orbit
+   |      ⚡
+   |   ☢ HUB 🎟
+   |
+   |           [ VIDEO PLAYER ]
+   |
+   |
