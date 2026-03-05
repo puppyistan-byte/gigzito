@@ -1,0 +1,78 @@
+GIGZITO UI UPDATE – STATIC TRINITY BUTTON CLUSTER UNDER LOGO (NO SPIN) + TIGHT SPACING
+
+GOAL
+Replace the orbit/spin concept with a STATIC 3-button “Trinity” cluster placed directly UNDER the Gigzito logo (left side whitespace). The cluster must be tight, prominent, and not overlap the video player.
+
+A) REMOVE ORBIT / SPIN
+Disable any orbit/spin animation entirely.
+No rotating containers.
+No movement.
+This is a static cluster.
+
+B) PLACEMENT
+Place the Trinity cluster directly beneath the Gigzito logo (same left column area).
+It should sit under the logo with ~12–16px spacing.
+
+Rules:
+• Do NOT overlap the video player
+• Keep it inside the left whitespace region
+• Align visually with the left edge of the logo (or slightly inset)
+
+C) TRINITY BUTTONS (STATIC CLUSTER)
+Create 3 round buttons in a tight triangular arrangement (like a trinity).
+
+Buttons:
+1) Gig Blitz (⚡)
+2) Flash Coupons (🏷️ or ticket/tag icon)
+3) Reactive Offers (☢️)
+
+D) LAYOUT SHAPE (TRIANGLE)
+Arrange them as a triangle cluster:
+
+    [ Flash Coupons ]
+[ Gig Blitz ]   [ Reactive Offers ]
+
+This should look like a compact control cluster.
+
+E) TIGHTEN SPACING
+Tight spacing between the 3 buttons:
+• button size: 52–60px diameter
+• gap between buttons: 8–10px
+• cluster should feel “locked together” as one unit
+
+Optional: Add a subtle shared background plate behind them:
+• rounded rectangle
+• frosted white
+• light border
+• soft shadow
+This makes it feel like one cohesive module.
+
+F) STYLING (PROMINENT + PREMIUM)
+Each button:
+• perfect circle
+• strong soft shadow
+• subtle bevel/emboss (very light)
+• modern icons
+
+Color suggestions:
+• Gig Blitz: red background (#E30019) with white icon
+• Flash Coupons: white background with red icon + red border
+• Reactive Offers: dark button with green glow ring OR white button with green glow ring
+  (keep the green subtle; no heavy animation required)
+
+G) BEHAVIOR
+Click actions:
+• Gig Blitz button => open Gig Blitz drawer/panel (or filter feed to Gig Blitz)
+• Flash Coupons button => open Flash Coupons drawer/panel (or filter feed)
+• Reactive Offers button => open Reactive Offers drawer/panel (or filter feed)
+
+H) RESPONSIVE
+On mobile:
+• Move the cluster to a bottom corner (bottom-left) OR collapse into a single hub that expands.
+On desktop/tablet:
+• Keep it under the logo, static.
+
+IMPORTANT CLEANUP
+• Do not show “Gig Blitz” in the top chip menu.
+• Do not show “Reactor” in the top chip menu.
+Reactive Offers is accessed only via this trinity cluster.
