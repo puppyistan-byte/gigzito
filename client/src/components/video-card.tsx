@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info } from "lucide-react";
@@ -7,9 +7,13 @@ import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { VideoInfoModal } from "@/components/video-info-modal";
 import type { ListingWithProvider } from "@shared/schema";
 
+const MAX_PLAY_SECONDS = 20;
+
 interface VideoCardProps {
   listing: ListingWithProvider;
   className?: string;
+  isActive?: boolean;
+  onEnd?: () => void;
 }
 
 const BADGE: Record<string, { bg: string; label: string }> = {
@@ -124,7 +128,7 @@ function ProductBlock({ price, purchaseUrl, stock }: { price?: string | null; pu
   );
 }
 
-export function VideoCard({ listing, className = "" }: VideoCardProps) {
+export function VideoCard({ listing, className = "", isActive = false, onEnd }: VideoCardProps) {
   const provider = listing.provider;
   const initials = provider.displayName
     ? provider.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -141,6 +145,38 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
 
   const [showInquire, setShowInquire] = useState(false);
   const [showInfo,    setShowInfo]    = useState(false);
+  const [timeLeft,    setTimeLeft]    = useState<number | null>(null);
+  const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const endCalledRef  = useRef(false);
+
+  const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
+
+  useEffect(() => {
+    if (!isActive) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
+      setTimeLeft(null);
+      endCalledRef.current = false;
+      return;
+    }
+    endCalledRef.current = false;
+    setTimeLeft(playSeconds);
+    const start = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      const remaining = Math.max(0, playSeconds - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0 && !endCalledRef.current) {
+        endCalledRef.current = true;
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+        onEnd?.();
+      }
+    }, 200);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isActive, listing.id]);
 
   return (
     <>
@@ -161,24 +197,12 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
           />
 
           {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 z-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/10 z-10 pointer-events-none" />
 
-          {/* ── TOP OVERLAY: Name · Bio · Duration ── */}
-          <div className="absolute top-4 left-4 right-4 z-20 flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-white font-bold text-sm leading-tight drop-shadow truncate" data-testid={`text-provider-name-${listing.id}`}>
-                {provider.displayName}
-              </p>
-              {provider.bio && (
-                <p className="text-white/60 text-[11px] leading-tight line-clamp-2 mt-0.5">
-                  {provider.bio}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 flex-shrink-0">
-              <Clock className="w-3 h-3 text-white/80" />
-              <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
-            </div>
+          {/* ── TOP OVERLAY: Duration badge only ── */}
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-black/55 backdrop-blur-sm rounded-full px-2 py-0.5" data-testid={`badge-duration-${listing.id}`}>
+            <Clock className="w-2.5 h-2.5 text-white/70" />
+            <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
           </div>
 
           {/* ── FLOATING CREATOR AVATAR: bottom-right, clickable ── */}

@@ -131,7 +131,14 @@ export default function HomePage() {
               className="feed-item"
               data-testid={`listing-item-${idx}`}
             >
-              <VideoCard listing={listing} className="w-full h-full" />
+              <VideoCard
+                listing={listing}
+                className="w-full h-full"
+                isActive={idx === currentIndex}
+                onEnd={() => {
+                  if (idx < listings.length - 1) scrollToIndex(idx + 1);
+                }}
+              />
             </div>
           ))
         )}
