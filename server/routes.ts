@@ -50,12 +50,12 @@ async function seedDatabase() {
     if (existing.length > 0) return;
 
     const sampleProviders = [
-      { email: "alex@gigzito.com", displayName: "Alex Rivera", bio: "Digital marketing strategist with 10+ years helping brands grow online.", avatarUrl: "https://i.pravatar.cc/150?img=1", thumbUrl: "https://picsum.photos/seed/alex/400/300", contactEmail: "alex@gigzito.com", websiteUrl: "https://alexrivera.com" },
-      { email: "maya@gigzito.com", displayName: "Maya Chen", bio: "Life & business coach. I help entrepreneurs unlock their full potential.", avatarUrl: "https://i.pravatar.cc/150?img=5", thumbUrl: "https://picsum.photos/seed/maya/400/300", contactEmail: "maya@gigzito.com", contactTelegram: "@mayacoach" },
-      { email: "james@gigzito.com", displayName: "James Okafor", bio: "Course creator & e-learning expert. Built 20+ online courses.", avatarUrl: "https://i.pravatar.cc/150?img=8", thumbUrl: "https://picsum.photos/seed/james/400/300", contactEmail: "james@gigzito.com", websiteUrl: "https://jamesokafor.io" },
-      { email: "sofia@gigzito.com", displayName: "Sofia Martinez", bio: "SEO & content marketing specialist. Ranked 500+ pages #1 on Google.", avatarUrl: "https://i.pravatar.cc/150?img=9", thumbUrl: "https://picsum.photos/seed/sofia/400/300", contactEmail: "sofia@gigzito.com", contactPhone: "+1-555-0101" },
-      { email: "noah@gigzito.com", displayName: "Noah Kim", bio: "Mindset coach & NLP practitioner. Transforming lives one session at a time.", avatarUrl: "https://i.pravatar.cc/150?img=12", thumbUrl: "https://picsum.photos/seed/noah/400/300", contactEmail: "noah@gigzito.com", websiteUrl: "https://noahkimcoach.com" },
-      { email: "priya@gigzito.com", displayName: "Priya Patel", bio: "Full-stack developer turned educator. Teaching web dev to 50k+ students.", avatarUrl: "https://i.pravatar.cc/150?img=16", thumbUrl: "https://picsum.photos/seed/priya/400/300", contactEmail: "priya@gigzito.com", contactTelegram: "@priyateaches" },
+      { email: "alex@gigzito.com", displayName: "Alex Rivera", username: "alexrivera", bio: "Digital marketing strategist with 10+ years helping brands grow online.", avatarUrl: "https://i.pravatar.cc/150?img=1", thumbUrl: "https://picsum.photos/seed/alex/400/300", contactEmail: "alex@gigzito.com", websiteUrl: "https://alexrivera.com", primaryCategory: "MARKETING", location: "New York, NY", instagramUrl: "https://instagram.com/alexrivera", youtubeUrl: "https://youtube.com/@alexrivera" },
+      { email: "maya@gigzito.com", displayName: "Maya Chen", username: "mayacoach", bio: "Life & business coach. I help entrepreneurs unlock their full potential.", avatarUrl: "https://i.pravatar.cc/150?img=5", thumbUrl: "https://picsum.photos/seed/maya/400/300", contactEmail: "maya@gigzito.com", contactTelegram: "@mayacoach", primaryCategory: "COACHING", location: "San Francisco, CA", instagramUrl: "https://instagram.com/mayacoach" },
+      { email: "james@gigzito.com", displayName: "James Okafor", username: "jamesokafor", bio: "Course creator & e-learning expert. Built 20+ online courses.", avatarUrl: "https://i.pravatar.cc/150?img=8", thumbUrl: "https://picsum.photos/seed/james/400/300", contactEmail: "james@gigzito.com", websiteUrl: "https://jamesokafor.io", primaryCategory: "COURSES", location: "London, UK", youtubeUrl: "https://youtube.com/@jamesokafor" },
+      { email: "sofia@gigzito.com", displayName: "Sofia Martinez", username: "sofiamarketing", bio: "SEO & content marketing specialist. Ranked 500+ pages #1 on Google.", avatarUrl: "https://i.pravatar.cc/150?img=9", thumbUrl: "https://picsum.photos/seed/sofia/400/300", contactEmail: "sofia@gigzito.com", contactPhone: "+1-555-0101", primaryCategory: "MARKETING", location: "Miami, FL", instagramUrl: "https://instagram.com/sofiamarketing" },
+      { email: "noah@gigzito.com", displayName: "Noah Kim", username: "noahkimcoach", bio: "Mindset coach & NLP practitioner. Transforming lives one session at a time.", avatarUrl: "https://i.pravatar.cc/150?img=12", thumbUrl: "https://picsum.photos/seed/noah/400/300", contactEmail: "noah@gigzito.com", websiteUrl: "https://noahkimcoach.com", primaryCategory: "COACHING", location: "Austin, TX", youtubeUrl: "https://youtube.com/@noahkimcoach" },
+      { email: "priya@gigzito.com", displayName: "Priya Patel", username: "priyateaches", bio: "Full-stack developer turned educator. Teaching web dev to 50k+ students.", avatarUrl: "https://i.pravatar.cc/150?img=16", thumbUrl: "https://picsum.photos/seed/priya/400/300", contactEmail: "priya@gigzito.com", contactTelegram: "@priyateaches", primaryCategory: "COURSES", location: "Toronto, CA", youtubeUrl: "https://youtube.com/@priyateaches" },
     ];
 
     const profiles: any[] = [];
@@ -72,6 +72,12 @@ async function seedDatabase() {
         contactPhone: p.contactPhone ?? null,
         contactTelegram: p.contactTelegram ?? null,
         websiteUrl: p.websiteUrl ?? null,
+        username: (p as any).username ?? null,
+        primaryCategory: (p as any).primaryCategory ?? null,
+        location: (p as any).location ?? null,
+        instagramUrl: (p as any).instagramUrl ?? null,
+        youtubeUrl: (p as any).youtubeUrl ?? null,
+        tiktokUrl: null,
       });
       profiles.push(profile);
     }
@@ -123,7 +129,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (existing) return res.status(409).json({ message: "Email already registered" });
       const hashed = await hashPassword(password);
       const user = await storage.createUser({ email, password: hashed, role: "PROVIDER" });
-      const profile = await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null });
+      const profile = await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null, username: null, primaryCategory: null, location: null, instagramUrl: null, youtubeUrl: null, tiktokUrl: null });
       (req.session as any).userId = user.id;
       (req.session as any).role = user.role;
       return res.status(201).json({ user: { ...user, password: undefined }, profile });
@@ -193,9 +199,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!profile.displayName) missing.push("display name");
     if (!profile.bio) missing.push("bio");
     if (!profile.avatarUrl) missing.push("avatar");
-    if (!profile.thumbUrl) missing.push("thumbnail");
+    if (!profile.primaryCategory) missing.push("primary category");
     const hasContact = profile.contactEmail || profile.contactPhone || profile.contactTelegram || profile.websiteUrl;
-    if (!hasContact) missing.push("at least one contact method");
+    if (!hasContact) missing.push("contact method");
     return res.json({ isComplete: missing.length === 0, missing });
   });
 
@@ -245,18 +251,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!profile) return res.status(400).json({ message: "Provider profile not found" });
 
     const hasContact = profile.contactEmail || profile.contactPhone || profile.contactTelegram || profile.websiteUrl;
-    const isProfileComplete = profile.displayName && profile.bio && profile.avatarUrl && profile.thumbUrl && hasContact;
+    const isProfileComplete = profile.displayName && profile.bio && profile.avatarUrl && profile.primaryCategory && hasContact;
     if (!isProfileComplete) {
       return res.status(400).json({ message: "Please complete your provider profile before submitting a listing" });
     }
 
     const schema = z.object({
-      vertical: z.enum(["MARKETING", "COACHING", "COURSES"]),
+      vertical: z.enum(["MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO"]),
       title: z.string().min(1).max(200),
       videoUrl: z.string().url(),
       durationSeconds: z.coerce.number().int().min(1).max(20),
       description: z.string().max(1000).optional(),
       tags: z.array(z.string()).max(10).optional(),
+      ctaLabel: z.string().max(60).optional(),
       ctaUrl: z.string().url().optional().or(z.literal("")),
     });
 
@@ -264,6 +271,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const data = schema.parse(req.body);
       const listing = await storage.createListing({
         ...data,
+        ctaLabel: data.ctaLabel || null,
         ctaUrl: data.ctaUrl || null,
         providerId: profile.id,
         dropDate: getTodayDate(),

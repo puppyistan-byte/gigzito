@@ -1,0 +1,88 @@
+Update the Gigzito Post Video flow so it includes creator profile data.
+
+Goal:
+The Post Video function should not only collect the video post details, but also connect each post to the user’s creator profile.
+
+Requirements:
+
+1. Create a creator profile model separate from the user account.
+Profile fields:
+- displayName
+- username
+- avatarUrl
+- bio
+- primaryCategory
+- location
+- websiteUrl
+- contactEmail
+- contactPhone
+- instagramUrl
+- youtubeUrl
+- tiktokUrl
+- isProfileComplete
+
+2. Update the dashboard header card to show:
+- profile image
+- display name
+- profile completion status
+- edit profile button
+
+3. Update the Post Video button behavior:
+- when clicked, first check whether required profile fields are complete
+- required fields:
+  displayName, avatarUrl, bio, primaryCategory, cta-ready link/contact method
+- if incomplete, redirect user to Complete Profile form before allowing video posting
+- if complete, open the Post Video modal/form normally
+
+4. In the Post Video form, add a creator profile preview section at the top showing:
+- avatar
+- display name
+- bio snippet
+- primary category
+- edit profile link
+
+5. The Post Video form should include:
+- video upload or video URL
+- thumbnail
+- title
+- description
+- category
+- tags
+- CTA label
+- CTA URL
+- duration validator (max 20 seconds)
+- listing price display ($3.00)
+- publish button
+
+6. Save each video post with references to:
+- userId
+- profileId
+
+7. Update feed cards so each video displays:
+- creator avatar
+- creator display name
+- bio snippet
+- category badge
+- title
+- description snippet
+- CTA button
+- tags
+- duration
+
+8. Keep the UI in the current Gigzito style:
+- black background
+- red primary buttons
+- clean rounded dark cards
+- white text
+- subtle gray secondary text
+- mobile-first vertical layout
+
+9. Add a profile completion indicator on dashboard with logic:
+- show “Profile complete” if required fields are filled
+- otherwise show “Complete your profile to post videos”
+
+Build this in a clean modular way using reusable components for:
+- ProfileCard
+- ProfileForm
+- PostVideoForm
+- VideoCard

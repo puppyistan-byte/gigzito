@@ -1,6 +1,6 @@
 # Gigzito
 
-A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max). Three verticals: Marketing, Coaching, Courses. Max 100 paid video listings per day.
+A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) in 5 verticals: Marketing, Coaching, Courses, Music, Crypto. Max 100 paid video listings per day.
 
 ## Tech Stack
 
@@ -25,8 +25,8 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 - `/` — Home feed (TikTok-style vertical scroll, filter by vertical)
 - `/listing/:id` — Listing detail with video embed + provider card
 - `/auth` — Login / Register
-- `/provider/me` — Provider dashboard (profile status, my listings)
-- `/provider/profile` — Edit profile (required before posting)
+- `/provider/me` — Provider dashboard (profile status, my listings, stats)
+- `/provider/profile` — Edit full creator profile
 - `/provider/new` — Submit a new listing (simulated $3 payment)
 - `/admin` — Admin panel (daily stats, manage listings)
 
@@ -37,26 +37,32 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 
 ## Data Model
 
-- `users` — id, email, password (hashed), role (VISITOR/PROVIDER/ADMIN)
-- `provider_profiles` — displayName, bio, avatarUrl, thumbUrl, contact info
-- `video_listings` — vertical, title, videoUrl, durationSeconds, tags, status, dropDate
+### users
+id, email, password (hashed), role (VISITOR/PROVIDER/ADMIN)
+
+### provider_profiles
+- Core: displayName, bio, avatarUrl, thumbUrl
+- Identity: username, primaryCategory (MARKETING/COACHING/COURSES/MUSIC/CRYPTO), location
+- Contact: contactEmail, contactPhone, contactTelegram, websiteUrl
+- Social: instagramUrl, youtubeUrl, tiktokUrl
+
+### video_listings
+vertical, title, videoUrl, durationSeconds, description, tags, ctaLabel, ctaUrl, status, dropDate, pricePaidCents
+
+## Key Components
+
+- `ProfileCard` (`client/src/components/profile-card.tsx`) — reusable compact/full card with category badge, location, username, edit link
 
 ## Business Rules
 
 1. Daily cap: 100 ACTIVE listings per calendar day
 2. Listing fee: $3 (simulated; Stripe not yet connected)
 3. Video duration: max 20 seconds (honor system with warning)
-4. Profile must be complete before listing submission (displayName, bio, avatarUrl, thumbUrl, + 1 contact method)
+4. Profile completion required: displayName + bio + avatarUrl + primaryCategory + at least one contact method
+5. Five verticals: MARKETING, COACHING, COURSES, MUSIC, CRYPTO
 
-## Stripe Integration
+## Styling
 
-Stripe is not yet connected. To add real payments:
-1. Set `STRIPE_SECRET_KEY` and `VITE_STRIPE_PUBLISHABLE_KEY` env vars
-2. Update `/api/listings/submit` to create a Stripe Checkout session
-3. Add a `/api/stripe/webhook` handler to activate listings after payment
-4. Note: Stripe integration was dismissed during initial setup; ask user to reconnect via integrations
-
-## Environment Variables
-
-- `DATABASE_URL` — PostgreSQL connection string (auto-set by Replit)
-- `SESSION_SECRET` — Session signing secret (set in Replit secrets)
+- Pure black UI: `#000000` page background, `#0b0b0b` elevated cards
+- Accent: `--gigzito-red: #ff1a1a`
+- Logo: `/gigzito-logo-v3.png` in `client/public/`

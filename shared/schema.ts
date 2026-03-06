@@ -28,6 +28,13 @@ export const providerProfiles = pgTable("provider_profiles", {
   contactPhone: text("contact_phone"),
   contactTelegram: text("contact_telegram"),
   websiteUrl: text("website_url"),
+  // Extended creator profile fields
+  username: text("username"),
+  primaryCategory: text("primary_category"),
+  location: text("location"),
+  instagramUrl: text("instagram_url"),
+  youtubeUrl: text("youtube_url"),
+  tiktokUrl: text("tiktok_url"),
 });
 
 export const videoListings = pgTable("video_listings", {
@@ -39,6 +46,7 @@ export const videoListings = pgTable("video_listings", {
   durationSeconds: integer("duration_seconds").notNull(),
   description: text("description"),
   tags: text("tags").array().notNull().default([]),
+  ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
   status: listingStatusEnum("status").notNull().default("ACTIVE"),
   dropDate: date("drop_date").notNull(),
@@ -112,6 +120,7 @@ export type CreateListingRequest = {
   durationSeconds: number;
   description?: string;
   tags?: string[];
+  ctaLabel?: string;
   ctaUrl?: string;
 };
 

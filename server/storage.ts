@@ -132,6 +132,7 @@ export class DatabaseStorage implements IStorage {
         durationSeconds: data.durationSeconds,
         description: data.description ?? null,
         tags: data.tags ?? [],
+        ctaLabel: (data as any).ctaLabel ?? null,
         ctaUrl: data.ctaUrl ?? null,
         status: "ACTIVE",
         dropDate: data.dropDate,
