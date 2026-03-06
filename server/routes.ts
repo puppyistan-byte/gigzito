@@ -451,6 +451,81 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(leads);
   });
 
+  // === LIVE SESSIONS ===
+  const LIVE_ALLOWED_CATEGORIES = ["INFLUENCER", "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "MARKETING", "COACHING", "COURSES", "CRYPTO", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON"];
+
+  function detectPlatform(url: string): string {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) return "youtube";
+      if (u.hostname.includes("twitch.tv")) return "twitch";
+      if (u.hostname.includes("facebook.com")) return "facebook";
+      if (u.hostname.includes("instagram.com")) return "instagram";
+      if (u.hostname.includes("tiktok.com")) return "tiktok";
+      return "native";
+    } catch { return "native"; }
+  }
+
+  app.get("/api/live/active", async (_req, res) => {
+    const sessions = await storage.getActiveLiveSessions();
+    return res.json(sessions);
+  });
+
+  app.get("/api/live/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const session = await storage.getLiveSessionById(id);
+    if (!session) return res.status(404).json({ message: "Not found" });
+    return res.json(session);
+  });
+
+  app.post("/api/live/start", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const profile = await storage.getProfileById(userId);
+    if (!profile) return res.status(400).json({ message: "Creator profile required" });
+
+    const schema = z.object({
+      title: z.string().min(1).max(100),
+      category: z.string().min(1),
+      mode: z.enum(["external", "native"]),
+      streamUrl: z.string().url(),
+      thumbnailUrl: z.string().url().optional().nullable(),
+      platform: z.string().optional().nullable(),
+    });
+    try {
+      const data = schema.parse(req.body);
+      const platform = data.platform ?? detectPlatform(data.streamUrl);
+      const session = await storage.createLiveSession({
+        creatorUserId: userId,
+        providerId: profile.id,
+        title: data.title,
+        category: data.category,
+        mode: data.mode,
+        platform,
+        streamUrl: data.streamUrl,
+        thumbnailUrl: data.thumbnailUrl ?? undefined,
+      });
+      return res.status(201).json(session);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.patch("/api/live/:id/end", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const session = await storage.getLiveSessionById(id);
+    if (!session) return res.status(404).json({ message: "Not found" });
+    if (session.creatorUserId !== userId) return res.status(403).json({ message: "Forbidden" });
+    await storage.endLiveSession(id);
+    return res.json({ success: true });
+  });
+
   // === GIGJACKS ===
   app.post("/api/gigjacks/submit", async (req, res) => {
     if (!requireAuth(req, res)) return;

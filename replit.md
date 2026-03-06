@@ -1,6 +1,6 @@
 # Gigzito
 
-A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) in 5 verticals: Marketing, Coaching, Courses, Music, Crypto. Max 100 paid video listings per day.
+A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) across 11 categories. Includes Live streaming feature supporting YouTube/Twitch embeds and native video streams. Max 100 paid video listings per day.
 
 ## Tech Stack
 
@@ -28,6 +28,9 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 - `/provider/me` — Provider dashboard (profile status, my listings, stats)
 - `/provider/profile` — Edit full creator profile
 - `/provider/new` — Submit a new listing (simulated $3 payment)
+- `/live` — Live Now page (all active sessions with cards)
+- `/live/go` — Go Live form (any authenticated provider)
+- `/live/:id` — Live view (YouTube/Twitch iframe embed, direct video HTML5, or external link)
 - `/admin` — Admin panel (daily stats, manage listings)
 
 ## Demo Accounts

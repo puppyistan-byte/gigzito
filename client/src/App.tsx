@@ -14,6 +14,9 @@ import NewListingPage from "@/pages/new-listing";
 import AdminPage from "@/pages/admin";
 import GigJackNewPage from "@/pages/gigjack-new";
 import ProviderPublicPage from "@/pages/provider-public";
+import LiveNowPage from "@/pages/live-now";
+import GoLivePage from "@/pages/go-live";
+import LiveViewPage from "@/pages/live-view";
 
 function Router() {
   return (
@@ -25,6 +28,9 @@ function Router() {
       <Route path="/provider/profile" component={ProviderProfilePage} />
       <Route path="/provider/new" component={NewListingPage} />
       <Route path="/provider/:id" component={ProviderPublicPage} />
+      <Route path="/live" component={LiveNowPage} />
+      <Route path="/live/go" component={GoLivePage} />
+      <Route path="/live/:id" component={LiveViewPage} />
       <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />

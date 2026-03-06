@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { Home, PlusSquare, User } from "lucide-react";
+import { Home, PlusSquare, User, Radio } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export function BottomNav({ activeVertical, onVerticalChange }: {
   activeVertical: string;
@@ -23,6 +24,13 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
   };
 
   const feedActive = location === "/";
+  const liveActive = location.startsWith("/live");
+
+  const { data: liveSessions = [] } = useQuery<any[]>({
+    queryKey: ["/api/live/active"],
+    refetchInterval: 30000,
+  });
+  const hasLive = liveSessions.length > 0;
 
   return (
     <nav className="bottom-nav">
@@ -33,6 +41,23 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
       >
         <Home size={20} />
         <span className="nav-label">Feed</span>
+      </button>
+
+      <button
+        onClick={() => window.location.href = "/live"}
+        className={`nav-item transition-colors relative ${liveActive ? "active" : ""}`}
+        data-testid="nav-live"
+      >
+        <span className="relative inline-block">
+          <Radio size={20} />
+          {hasLive && (
+            <span
+              className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#ff2b2b] animate-pulse border border-black"
+              style={{ display: "block" }}
+            />
+          )}
+        </span>
+        <span className="nav-label">Live</span>
       </button>
 
       <button

@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type Lead, type CreateLeadRequest } from "@shared/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest } from "@shared/schema";
+import { eq, and, sql, inArray, ne } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -31,6 +31,12 @@ export interface IStorage {
   // Leads
   createLead(data: CreateLeadRequest): Promise<Lead>;
   getLeadsByProvider(creatorUserId: number): Promise<Lead[]>;
+
+  // Live Sessions
+  createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession>;
+  getActiveLiveSessions(): Promise<LiveSessionWithProvider[]>;
+  getLiveSessionById(id: number): Promise<LiveSessionWithProvider | undefined>;
+  endLiveSession(id: number): Promise<void>;
 
   // GigJacks
   createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack>;
@@ -247,6 +253,55 @@ export class DatabaseStorage implements IStorage {
       .from(leads)
       .where(eq(leads.creatorUserId, creatorUserId))
       .orderBy(sql`${leads.createdAt} DESC`);
+  }
+
+  async createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession> {
+    const [session] = await db
+      .insert(liveSessions)
+      .values({
+        creatorUserId: data.creatorUserId,
+        providerId: data.providerId,
+        title: data.title,
+        category: data.category,
+        mode: data.mode,
+        platform: data.platform ?? null,
+        streamUrl: data.streamUrl,
+        thumbnailUrl: data.thumbnailUrl ?? null,
+        viewerCount: 0,
+        status: "active",
+      })
+      .returning();
+    return session;
+  }
+
+  async getActiveLiveSessions(): Promise<LiveSessionWithProvider[]> {
+    const sessions = await db
+      .select()
+      .from(liveSessions)
+      .where(eq(liveSessions.status, "active"))
+      .orderBy(sql`${liveSessions.startedAt} DESC`);
+    if (!sessions.length) return [];
+    const providerIds = [...new Set(sessions.map((s) => s.providerId))];
+    const profiles = await db.select().from(providerProfiles).where(inArray(providerProfiles.id, providerIds));
+    const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]));
+    return sessions
+      .filter((s) => profileMap[s.providerId])
+      .map((s) => ({ ...s, provider: profileMap[s.providerId] }));
+  }
+
+  async getLiveSessionById(id: number): Promise<LiveSessionWithProvider | undefined> {
+    const [session] = await db.select().from(liveSessions).where(eq(liveSessions.id, id));
+    if (!session) return undefined;
+    const [profile] = await db.select().from(providerProfiles).where(eq(providerProfiles.id, session.providerId));
+    if (!profile) return undefined;
+    return { ...session, provider: profile };
+  }
+
+  async endLiveSession(id: number): Promise<void> {
+    await db
+      .update(liveSessions)
+      .set({ status: "ended", endedAt: new Date() })
+      .where(eq(liveSessions.id, id));
   }
 
   async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack> {

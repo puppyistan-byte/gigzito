@@ -211,6 +211,43 @@ export type CreateLeadRequest = {
   category?: string;
 };
 
+// === LIVE SESSIONS TABLE ===
+export const liveSessions = pgTable("live_sessions", {
+  id: serial("id").primaryKey(),
+  creatorUserId: integer("creator_user_id").notNull(),
+  providerId: integer("provider_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  category: text("category").notNull().default("INFLUENCER"),
+  mode: text("mode").notNull().default("external"),
+  platform: text("platform"),
+  streamUrl: text("stream_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  viewerCount: integer("viewer_count").notNull().default(0),
+  status: text("status").notNull().default("active"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+});
+
+export const liveSessionsRelations = relations(liveSessions, ({ one }) => ({
+  provider: one(providerProfiles, { fields: [liveSessions.providerId], references: [providerProfiles.id] }),
+}));
+
+export const insertLiveSessionSchema = createInsertSchema(liveSessions).omit({ id: true, startedAt: true, endedAt: true });
+export type LiveSession = typeof liveSessions.$inferSelect;
+export type InsertLiveSession = z.infer<typeof insertLiveSessionSchema>;
+
+export type LiveSessionWithProvider = LiveSession & {
+  provider: ProviderProfile;
+};
+
+export type CreateLiveSessionRequest = {
+  title: string;
+  category: string;
+  mode: "external" | "native";
+  streamUrl: string;
+  thumbnailUrl?: string;
+};
+
 // GigJack submission
 export type CreateGigJackRequest = {
   companyUrl: string;

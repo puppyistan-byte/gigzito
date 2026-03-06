@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
+import { MiniLivePlayer } from "@/components/mini-live-player";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -97,6 +98,8 @@ export default function HomePage() {
       <div className="gigzito-logo">
         <img src="/gigzito-logo-v3.png" alt="Gigzito" />
       </div>
+
+      <MiniLivePlayer />
 
       {/* Category Carousel */}
       <CategoryCarousel activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
