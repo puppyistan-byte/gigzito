@@ -177,6 +177,35 @@ export type CreateListingRequest = {
   productStock?: string | null;
 };
 
+// === LEADS TABLE ===
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  videoId: integer("video_id").notNull().references(() => videoListings.id, { onDelete: "cascade" }),
+  creatorUserId: integer("creator_user_id").notNull(),
+  firstName: text("first_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  message: text("message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const leadsRelations = relations(leads, ({ one }) => ({
+  video: one(videoListings, { fields: [leads.videoId], references: [videoListings.id] }),
+}));
+
+export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+
+export type CreateLeadRequest = {
+  videoId: number;
+  creatorUserId: number;
+  firstName: string;
+  email: string;
+  phone?: string;
+  message?: string;
+};
+
 // GigJack submission
 export type CreateGigJackRequest = {
   companyUrl: string;

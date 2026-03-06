@@ -52,6 +52,10 @@ vertical, title, videoUrl, durationSeconds, description, tags, ctaLabel, ctaUrl,
 ## Key Components
 
 - `ProfileCard` (`client/src/components/profile-card.tsx`) — reusable compact/full card with category badge, location, username, edit link
+- `VideoCard` (`client/src/components/video-card.tsx`) — TikTok-style card with floating bottom-right avatar, Inquire/Info/Share action row
+- `InquireLeadModal` (`client/src/components/inquire-lead-modal.tsx`) — lead capture form (firstName, email, phone, message) → POST /api/leads
+- `VideoInfoModal` (`client/src/components/video-info-modal.tsx`) — full offer details sheet with creator contact info, quick Inquire button
+- `GigJackCard` (`client/src/components/gigjack-card.tsx`) — GigJack offer card with countdown, coupon, admin action buttons
 
 ## Business Rules
 

@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info } from "lucide-react";
+import { InquireLeadModal } from "@/components/inquire-lead-modal";
+import { VideoInfoModal } from "@/components/video-info-modal";
 import type { ListingWithProvider } from "@shared/schema";
 
 interface VideoCardProps {
@@ -11,23 +12,21 @@ interface VideoCardProps {
   className?: string;
 }
 
-// Badge colours per vertical
 const BADGE: Record<string, { bg: string; label: string }> = {
-  INFLUENCER:      { bg: "bg-purple-600",              label: "Influencer" },
-  MARKETING:       { bg: "bg-red-600",                 label: "Marketing" },
-  COACHING:        { bg: "bg-violet-600",              label: "Coaching" },
-  COURSES:         { bg: "bg-blue-600",                label: "Courses" },
-  PRODUCTS:        { bg: "bg-orange-500",              label: "Products" },
-  FLASH_SALE:      { bg: "bg-red-600",                 label: "Flash Sale" },
-  FLASH_COUPON:    { bg: "bg-emerald-600",             label: "Flash Coupon" },
-  MUSIC_GIGS:      { bg: "bg-pink-500",                label: "Music Gigs" },
-  MUSIC:           { bg: "bg-pink-500",                label: "Music" },
-  EVENTS:          { bg: "bg-yellow-500 text-black",   label: "Events" },
-  CRYPTO:          { bg: "bg-yellow-600",              label: "Crypto" },
-  CORPORATE_DEALS: { bg: "bg-blue-900",                label: "Corporate Deals" },
+  INFLUENCER:      { bg: "bg-purple-600",             label: "Influencer" },
+  MARKETING:       { bg: "bg-red-600",                label: "Marketing" },
+  COACHING:        { bg: "bg-violet-600",             label: "Coaching" },
+  COURSES:         { bg: "bg-blue-600",               label: "Courses" },
+  PRODUCTS:        { bg: "bg-orange-500",             label: "Products" },
+  FLASH_SALE:      { bg: "bg-red-600",                label: "Flash Sale" },
+  FLASH_COUPON:    { bg: "bg-emerald-600",            label: "Flash Coupon" },
+  MUSIC_GIGS:      { bg: "bg-pink-500",               label: "Music Gigs" },
+  MUSIC:           { bg: "bg-pink-500",               label: "Music" },
+  EVENTS:          { bg: "bg-yellow-500 text-black",  label: "Events" },
+  CRYPTO:          { bg: "bg-yellow-600",             label: "Crypto" },
+  CORPORATE_DEALS: { bg: "bg-blue-900",               label: "Corporate Deals" },
 };
 
-// Card border glow per special vertical
 const SPECIAL_GLOW: Record<string, string> = {
   FLASH_SALE:   "ring-2 ring-red-500 shadow-[0_0_24px_rgba(255,0,64,0.55)]",
   FLASH_COUPON: "ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(0,200,83,0.5)]",
@@ -57,7 +56,6 @@ function handleShare(listing: ListingWithProvider) {
 
 function CountdownTimer({ endsAt }: { endsAt: Date }) {
   const [diff, setDiff] = useState(0);
-
   useEffect(() => {
     const calc = () => setDiff(Math.max(0, endsAt.getTime() - Date.now()));
     calc();
@@ -89,25 +87,17 @@ function CountdownTimer({ endsAt }: { endsAt: Date }) {
 
 function CouponCodeBlock({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = () => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
-
   return (
     <div className="flex items-center gap-2 bg-emerald-900/30 border border-emerald-500/30 rounded-lg px-3 py-1.5" data-testid="coupon-code-block">
       <Tag className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-      <span className="font-mono font-bold text-emerald-300 text-sm tracking-widest uppercase flex-1">
-        {code}
-      </span>
-      <button
-        onClick={handleCopy}
-        className="text-emerald-400 hover:text-emerald-200 transition-colors flex-shrink-0"
-        data-testid="button-copy-coupon"
-      >
+      <span className="font-mono font-bold text-emerald-300 text-sm tracking-widest uppercase flex-1">{code}</span>
+      <button onClick={handleCopy} className="text-emerald-400 hover:text-emerald-200 transition-colors flex-shrink-0" data-testid="button-copy-coupon">
         {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
       </button>
     </div>
@@ -118,25 +108,15 @@ function ProductBlock({ price, purchaseUrl, stock }: { price?: string | null; pu
   return (
     <div className="flex items-center gap-2 flex-wrap" data-testid="product-block">
       {price && (
-        <span className="bg-orange-500/20 border border-orange-500/40 text-orange-300 font-bold text-sm px-2.5 py-1 rounded-lg" data-testid="text-product-price">
-          {price}
-        </span>
+        <span className="bg-orange-500/20 border border-orange-500/40 text-orange-300 font-bold text-sm px-2.5 py-1 rounded-lg" data-testid="text-product-price">{price}</span>
       )}
       {stock && (
-        <span className="bg-white/10 border border-white/20 text-white/70 text-xs px-2 py-1 rounded-lg" data-testid="text-product-stock">
-          {stock}
-        </span>
+        <span className="bg-white/10 border border-white/20 text-white/70 text-xs px-2 py-1 rounded-lg" data-testid="text-product-stock">{stock}</span>
       )}
       {purchaseUrl && (
-        <Button
-          size="sm"
-          className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1"
-          asChild
-          data-testid="button-buy-product"
-        >
+        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1" asChild data-testid="button-buy-product">
           <a href={purchaseUrl} target="_blank" rel="noopener noreferrer">
-            <ShoppingCart className="w-3 h-3" />
-            Buy Now
+            <ShoppingCart className="w-3 h-3" /> Buy Now
           </a>
         </Button>
       )}
@@ -157,134 +137,157 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
   const isFlashSale   = listing.vertical === "FLASH_SALE";
   const isFlashCoupon = listing.vertical === "FLASH_COUPON";
   const isProduct     = listing.vertical === "PRODUCTS";
+  const flashEndsAt   = listing.flashSaleEndsAt ? new Date(listing.flashSaleEndsAt) : null;
 
-  const flashEndsAt = listing.flashSaleEndsAt ? new Date(listing.flashSaleEndsAt) : null;
+  const [showInquire, setShowInquire] = useState(false);
+  const [showInfo,    setShowInfo]    = useState(false);
 
   return (
-    <div
-      data-testid={`card-listing-${listing.id}`}
-      className={`video-card relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
-    >
-      <div className={`relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden group ${glowClass}`}>
+    <>
+      <div
+        data-testid={`card-listing-${listing.id}`}
+        className={`video-card relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
+      >
+        <div className={`relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden group ${glowClass}`}>
 
-        {/* Video */}
-        <iframe
-          src={embedUrl}
-          title={listing.title}
-          className="absolute inset-0 w-full h-full border-0 z-0 pointer-events-none"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
-        />
+          {/* Video */}
+          <iframe
+            src={embedUrl}
+            title={listing.title}
+            className="absolute inset-0 w-full h-full border-0 z-0 pointer-events-none"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+          />
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 z-10 pointer-events-none" />
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 z-10 pointer-events-none" />
 
-        {/* ── TOP: Avatar + Provider ── */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex items-center gap-3">
-          <Avatar className="h-10 w-10 ring-2 ring-white/30 flex-shrink-0">
-            <AvatarImage src={provider.avatarUrl ?? ""} alt={provider.displayName} />
-            <AvatarFallback className="bg-primary text-white text-sm font-bold">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="text-white font-bold text-sm leading-tight drop-shadow truncate">{provider.displayName}</p>
-            {provider.bio && (
-              <p className="text-white/65 text-[11px] leading-tight truncate">{provider.bio}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2 py-1 flex-shrink-0">
-            <Clock className="w-3 h-3 text-white/80" />
-            <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
-          </div>
-        </div>
-
-        {/* ── CENTER: Hover play ── */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30">
-            <Play className="w-8 h-8 fill-white text-white ml-1" />
-          </div>
-        </div>
-
-        {/* ── BOTTOM: Info & CTAs ── */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pt-12 z-20 space-y-2.5">
-
-          {/* Category badge */}
-          <Badge className={`${badgeInfo.bg} text-white text-[10px] px-2.5 py-0.5 uppercase font-bold border-0 tracking-wide`}>
-            {badgeInfo.label}
-          </Badge>
-
-          {/* Flash Sale countdown */}
-          {isFlashSale && flashEndsAt && (
-            <CountdownTimer endsAt={flashEndsAt} />
-          )}
-
-          {/* Coupon code */}
-          {isFlashCoupon && listing.couponCode && (
-            <CouponCodeBlock code={listing.couponCode} />
-          )}
-
-          {/* Product extras */}
-          {isProduct && (
-            <ProductBlock
-              price={listing.productPrice}
-              purchaseUrl={listing.productPurchaseUrl}
-              stock={listing.productStock}
-            />
-          )}
-
-          {/* Title + Description */}
-          <div>
-            <h4 className="font-bold text-base leading-snug text-white drop-shadow-md">{listing.title}</h4>
-            {listing.description && (
-              <p className="text-[12px] text-white/80 line-clamp-2 leading-relaxed mt-0.5 drop-shadow-sm">
-                {listing.description}
+          {/* ── TOP OVERLAY: Name · Bio · Duration ── */}
+          <div className="absolute top-4 left-4 right-4 z-20 flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-bold text-sm leading-tight drop-shadow truncate" data-testid={`text-provider-name-${listing.id}`}>
+                {provider.displayName}
               </p>
-            )}
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="flex items-center gap-2">
-            {listing.ctaUrl && (
-              <Button
-                size="sm"
-                className="bg-[#c41414] hover:bg-[#a51010] text-white border-0 h-8 px-4 rounded-full font-bold gap-1.5 text-xs flex-1"
-                asChild
-                data-testid={`button-cta-${listing.id}`}
-              >
-                <a href={listing.ctaUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  {listing.ctaLabel ?? "Visit"}
-                </a>
-              </Button>
-            )}
-            <Link href={`/listing/${listing.id}`}>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="bg-white/15 hover:bg-white/25 text-white border border-white/20 h-8 px-4 rounded-full font-bold gap-1.5 text-xs backdrop-blur-sm"
-                data-testid={`button-details-${listing.id}`}
-              >
-                <Play className="w-3.5 h-3.5 fill-white" />
-                Details
-              </Button>
-            </Link>
-            <button
-              onClick={() => handleShare(listing)}
-              className="h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 transition-colors"
-              data-testid={`button-share-${listing.id}`}
-            >
-              <Share2 className="w-3.5 h-3.5 text-white" />
-            </button>
-          </div>
-
-          {/* Tags */}
-          {listing.tags && listing.tags.length > 0 && (
-            <div className="flex gap-2 text-[11px] text-white/50 flex-wrap">
-              {listing.tags.slice(0, 3).map(tag => <span key={tag}>#{tag}</span>)}
+              {provider.bio && (
+                <p className="text-white/60 text-[11px] leading-tight line-clamp-2 mt-0.5">
+                  {provider.bio}
+                </p>
+              )}
             </div>
-          )}
+            <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 flex-shrink-0">
+              <Clock className="w-3 h-3 text-white/80" />
+              <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
+            </div>
+          </div>
+
+          {/* ── FLOATING CREATOR AVATAR: bottom-right ── */}
+          <div
+            className="absolute bottom-[76px] right-4 z-30"
+            data-testid={`avatar-creator-${listing.id}`}
+          >
+            <div
+              style={{
+                width: "44px",
+                height: "44px",
+                borderRadius: "50%",
+                border: "2.5px solid rgba(255,255,255,0.5)",
+                overflow: "hidden",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3)",
+                background: "#1a1a1a",
+                flexShrink: 0,
+              }}
+            >
+              {provider.avatarUrl ? (
+                <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "15px", fontWeight: "700" }}>
+                  {initials}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── CENTER: Hover play ── */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none">
+            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30">
+              <Play className="w-8 h-8 fill-white text-white ml-1" />
+            </div>
+          </div>
+
+          {/* ── BOTTOM: Info & CTAs ── */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 pt-12 z-20 space-y-2.5">
+
+            {/* Category badge */}
+            <Badge className={`${badgeInfo.bg} text-white text-[10px] px-2.5 py-0.5 uppercase font-bold border-0 tracking-wide`}>
+              {badgeInfo.label}
+            </Badge>
+
+            {/* Flash Sale countdown */}
+            {isFlashSale && flashEndsAt && <CountdownTimer endsAt={flashEndsAt} />}
+
+            {/* Coupon code */}
+            {isFlashCoupon && listing.couponCode && <CouponCodeBlock code={listing.couponCode} />}
+
+            {/* Product extras */}
+            {isProduct && (
+              <ProductBlock price={listing.productPrice} purchaseUrl={listing.productPurchaseUrl} stock={listing.productStock} />
+            )}
+
+            {/* Title + Description */}
+            <div>
+              <h4 className="font-bold text-base leading-snug text-white drop-shadow-md">{listing.title}</h4>
+              {listing.description && (
+                <p className="text-[12px] text-white/80 line-clamp-2 leading-relaxed mt-0.5 drop-shadow-sm">
+                  {listing.description}
+                </p>
+              )}
+            </div>
+
+            {/* Action Row: Inquire · Info · Share */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowInquire(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-[#c41414] hover:bg-[#a51010] text-white h-8 rounded-full font-bold text-xs transition-colors"
+                data-testid={`button-inquire-${listing.id}`}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Inquire
+              </button>
+              <button
+                onClick={() => setShowInfo(true)}
+                className="h-8 px-3 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center gap-1.5 text-white font-bold text-xs flex-shrink-0 transition-colors"
+                data-testid={`button-info-${listing.id}`}
+              >
+                <Info className="w-3.5 h-3.5" />
+                Info
+              </button>
+              <button
+                onClick={() => handleShare(listing)}
+                className="h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 transition-colors"
+                data-testid={`button-share-${listing.id}`}
+              >
+                <Share2 className="w-3.5 h-3.5 text-white" />
+              </button>
+            </div>
+
+            {/* Tags */}
+            {listing.tags && listing.tags.length > 0 && (
+              <div className="flex gap-2 text-[11px] text-white/50 flex-wrap">
+                {listing.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Modals */}
+      {showInquire && (
+        <InquireLeadModal listing={listing} onClose={() => setShowInquire(false)} />
+      )}
+      {showInfo && (
+        <VideoInfoModal listing={listing} onClose={() => setShowInfo(false)} onInquire={() => setShowInquire(true)} />
+      )}
+    </>
   );
 }

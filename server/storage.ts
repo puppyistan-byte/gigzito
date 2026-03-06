@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, gigJacks, leads, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type Lead, type CreateLeadRequest } from "@shared/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
@@ -27,6 +27,9 @@ export interface IStorage {
   // Admin
   getAllListingsWithProviders(): Promise<ListingWithProvider[]>;
   getTodayRevenue(): Promise<number>;
+
+  // Leads
+  createLead(data: CreateLeadRequest): Promise<Lead>;
 
   // GigJacks
   createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack>;
@@ -218,6 +221,21 @@ export class DatabaseStorage implements IStorage {
       .from(videoListings)
       .where(and(eq(videoListings.dropDate, today), eq(videoListings.status, "ACTIVE")));
     return result?.total ?? 0;
+  }
+
+  async createLead(data: CreateLeadRequest): Promise<Lead> {
+    const [lead] = await db
+      .insert(leads)
+      .values({
+        videoId: data.videoId,
+        creatorUserId: data.creatorUserId,
+        firstName: data.firstName,
+        email: data.email,
+        phone: data.phone ?? null,
+        message: data.message ?? null,
+      })
+      .returning();
+    return lead;
   }
 
   async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack> {

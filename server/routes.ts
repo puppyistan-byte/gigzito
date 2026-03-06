@@ -389,6 +389,36 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(listing);
   });
 
+  // === LEADS ===
+  app.post("/api/leads", async (req, res) => {
+    const schema = z.object({
+      videoId: z.coerce.number().int().positive(),
+      creatorUserId: z.coerce.number().int().positive(),
+      firstName: z.string().min(1).max(60),
+      email: z.string().email(),
+      phone: z.string().max(30).optional().nullable(),
+      message: z.string().max(500).optional().nullable(),
+    });
+    try {
+      const data = schema.parse(req.body);
+      const lead = await storage.createLead({
+        videoId: data.videoId,
+        creatorUserId: data.creatorUserId,
+        firstName: data.firstName,
+        email: data.email,
+        phone: data.phone ?? undefined,
+        message: data.message ?? undefined,
+      });
+      return res.status(201).json({ success: true, leadId: lead.id });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // === GIGJACKS ===
   app.post("/api/gigjacks/submit", async (req, res) => {
     if (!requireAuth(req, res)) return;
