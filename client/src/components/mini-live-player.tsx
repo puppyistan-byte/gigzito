@@ -137,18 +137,6 @@ export function MiniLivePlayer() {
                 </span>
               </div>
 
-              {/* Bottom strip */}
-              <div
-                className="flex items-center justify-between px-2.5 py-2"
-                style={{ borderTop: "1px solid rgba(255,43,43,0.15)" }}
-              >
-                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.3)", fontWeight: "500" }}>
-                  No one is live
-                </span>
-                <span style={{ fontSize: "9px", color: "rgba(255,43,43,0.6)", fontWeight: "600" }}>
-                  Go Live →
-                </span>
-              </div>
             </div>
           </Link>
         )}

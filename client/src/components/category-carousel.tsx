@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import { useLocation } from "wouter";
 
 const CATEGORIES = [
   { key: "ALL",            label: "All" },
@@ -22,6 +23,7 @@ interface CategoryCarouselProps {
 export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryCarouselProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const btnRefs  = useRef<(HTMLButtonElement | null)[]>([]);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     const idx = CATEGORIES.findIndex((c) => c.key === activeVertical);
@@ -76,6 +78,30 @@ export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryC
             </button>
           );
         })}
+
+        {/* Buy Live Show CTA — pinned after categories */}
+        <button
+          onClick={() => navigate("/buy-live")}
+          data-testid="button-buy-live-show"
+          style={{
+            background: "#ff2b2b",
+            borderRadius: "999px",
+            border: "none",
+            color: "#fff",
+            padding: "6px 16px",
+            fontWeight: "700",
+            fontSize: "12px",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            letterSpacing: "0.01em",
+            boxShadow: "0 0 10px rgba(255,43,43,0.4)",
+          }}
+        >
+          📡 Buy Live Show
+        </button>
       </div>
     </div>
   );

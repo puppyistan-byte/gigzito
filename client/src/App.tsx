@@ -17,6 +17,7 @@ import ProviderPublicPage from "@/pages/provider-public";
 import LiveNowPage from "@/pages/live-now";
 import GoLivePage from "@/pages/go-live";
 import LiveViewPage from "@/pages/live-view";
+import BuyLivePage from "@/pages/buy-live";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/live" component={LiveNowPage} />
       <Route path="/live/go" component={GoLivePage} />
       <Route path="/live/:id" component={LiveViewPage} />
+      <Route path="/buy-live" component={BuyLivePage} />
       <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />

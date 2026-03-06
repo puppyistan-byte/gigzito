@@ -1,16 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { LiveCard } from "@/components/live-card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/lib/auth";
 import { Radio } from "lucide-react";
 import type { LiveSessionWithProvider } from "@shared/schema";
 
 export default function LiveNowPage() {
-  const { user } = useAuth();
-  const [, navigate] = useLocation();
 
   const { data: sessions = [], isLoading } = useQuery<LiveSessionWithProvider[]>({
     queryKey: ["/api/live/active"],
@@ -33,17 +28,6 @@ export default function LiveNowPage() {
               </span>
             )}
           </div>
-          {user && (
-            <Button
-              size="sm"
-              onClick={() => navigate("/live/go")}
-              className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white font-bold rounded-xl shrink-0"
-              data-testid="button-go-live"
-            >
-              <Radio className="h-4 w-4 mr-1.5" />
-              Go Live
-            </Button>
-          )}
         </div>
 
         {/* Live sessions */}
@@ -56,16 +40,6 @@ export default function LiveNowPage() {
             <Radio className="h-10 w-10 text-[#222] mx-auto mb-3" />
             <p className="text-white font-bold mb-1">No one is live right now</p>
             <p className="text-[#555] text-sm">Check back soon — Influencers, Musicians, and Event creators go live here.</p>
-            {user && (
-              <Button
-                onClick={() => navigate("/live/go")}
-                className="mt-4 bg-[#ff2b2b] hover:bg-[#e01e1e] text-white font-bold rounded-xl"
-                data-testid="button-go-live-empty"
-              >
-                <Radio className="h-4 w-4 mr-1.5" />
-                Start Live Session
-              </Button>
-            )}
           </div>
         ) : (
           <div className="grid gap-4">
