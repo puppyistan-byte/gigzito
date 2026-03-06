@@ -86,21 +86,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getListings(vertical?: string): Promise<ListingWithProvider[]> {
-    const DB_VERTICALS = new Set(["MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO"]);
+    const DB_VERTICALS = new Set([
+      "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
+      "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
+      "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
+    ]);
+    // Map frontend-only keys to DB values
+    const FRONTEND_MAP: Record<string, string> = {
+      GIG_BLITZ:    "MUSIC_GIGS",
+      FLASH_COUPONS: "FLASH_COUPON",
+      INFLUENCERS:  "INFLUENCER",
+    };
+
     let rows: VideoListing[];
     if (vertical && vertical !== "ALL") {
-      if (!DB_VERTICALS.has(vertical)) return [];
+      const dbVertical = FRONTEND_MAP[vertical] ?? vertical;
+      if (!DB_VERTICALS.has(dbVertical)) return [];
       rows = await db
         .select()
         .from(videoListings)
-        .where(and(eq(videoListings.status, "ACTIVE"), eq(videoListings.vertical, vertical as any)))
+        .where(and(eq(videoListings.status, "ACTIVE"), eq(videoListings.vertical, dbVertical as any)))
         .orderBy(sql`${videoListings.createdAt} DESC`);
     } else {
+      // Flash Sale listings float to top in ALL feed
       rows = await db
         .select()
         .from(videoListings)
         .where(eq(videoListings.status, "ACTIVE"))
-        .orderBy(sql`${videoListings.createdAt} DESC`);
+        .orderBy(
+          sql`CASE WHEN ${videoListings.vertical} = 'FLASH_SALE' THEN 0 ELSE 1 END`,
+          sql`${videoListings.createdAt} DESC`
+        );
     }
     return this.enrichListings(rows);
   }
@@ -126,14 +142,19 @@ export class DatabaseStorage implements IStorage {
       .insert(videoListings)
       .values({
         providerId: data.providerId,
-        vertical: data.vertical,
+        vertical: data.vertical as any,
         title: data.title,
         videoUrl: data.videoUrl,
         durationSeconds: data.durationSeconds,
         description: data.description ?? null,
         tags: data.tags ?? [],
-        ctaLabel: (data as any).ctaLabel ?? null,
+        ctaLabel: data.ctaLabel ?? null,
         ctaUrl: data.ctaUrl ?? null,
+        flashSaleEndsAt: data.flashSaleEndsAt ? new Date(data.flashSaleEndsAt) : null,
+        couponCode: data.couponCode ?? null,
+        productPrice: data.productPrice ?? null,
+        productPurchaseUrl: data.productPurchaseUrl ?? null,
+        productStock: data.productStock ?? null,
         status: "ACTIVE",
         dropDate: data.dropDate,
         pricePaidCents: data.pricePaidCents,

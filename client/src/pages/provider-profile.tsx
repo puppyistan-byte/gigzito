@@ -15,11 +15,17 @@ import { SiTiktok } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
 const VERTICALS = [
-  { value: "MARKETING", label: "Marketing" },
-  { value: "COACHING",  label: "Coaching" },
-  { value: "COURSES",   label: "Courses" },
-  { value: "MUSIC",     label: "Music" },
-  { value: "CRYPTO",    label: "Crypto" },
+  { value: "INFLUENCER",      label: "Influencer" },
+  { value: "MARKETING",       label: "Marketing" },
+  { value: "COURSES",         label: "Courses" },
+  { value: "COACHING",        label: "Coaching" },
+  { value: "PRODUCTS",        label: "Products" },
+  { value: "FLASH_SALE",      label: "Flash Sale" },
+  { value: "FLASH_COUPON",    label: "Flash Coupon" },
+  { value: "MUSIC_GIGS",      label: "Music Gigs" },
+  { value: "EVENTS",          label: "Events" },
+  { value: "CRYPTO",          label: "Crypto" },
+  { value: "CORPORATE_DEALS", label: "Corporate Deals" },
 ];
 
 type FormState = {

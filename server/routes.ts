@@ -257,7 +257,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
 
     const schema = z.object({
-      vertical: z.enum(["MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO"]),
+      vertical: z.enum([
+        "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
+        "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
+        "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
+      ]),
       title: z.string().min(1).max(200),
       videoUrl: z.string().url(),
       durationSeconds: z.coerce.number().int().min(1).max(20),
@@ -265,6 +269,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       tags: z.array(z.string()).max(10).optional(),
       ctaLabel: z.string().max(60).optional(),
       ctaUrl: z.string().url().optional().or(z.literal("")),
+      flashSaleEndsAt: z.string().datetime().optional().nullable(),
+      couponCode: z.string().max(40).optional().nullable(),
+      productPrice: z.string().max(30).optional().nullable(),
+      productPurchaseUrl: z.string().url().optional().or(z.literal("")).nullable(),
+      productStock: z.string().max(50).optional().nullable(),
     });
 
     try {

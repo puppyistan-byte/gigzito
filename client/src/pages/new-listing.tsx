@@ -10,33 +10,57 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart } from "lucide-react";
 import type { ProfileCompletionStatus, ProviderProfile } from "@shared/schema";
 
 const VERTICALS = [
-  { value: "MARKETING", label: "Marketing" },
-  { value: "COACHING",  label: "Coaching" },
-  { value: "COURSES",   label: "Courses" },
-  { value: "MUSIC",     label: "Music" },
-  { value: "CRYPTO",    label: "Crypto" },
+  { value: "INFLUENCER",      label: "Influencer",      icon: "⭐" },
+  { value: "MARKETING",       label: "Marketing",       icon: "📈" },
+  { value: "COURSES",         label: "Courses",         icon: "🎓" },
+  { value: "COACHING",        label: "Coaching",        icon: "🧠" },
+  { value: "PRODUCTS",        label: "Products",        icon: "📦" },
+  { value: "FLASH_SALE",      label: "Flash Sale",      icon: "⚡" },
+  { value: "FLASH_COUPON",    label: "Flash Coupon",    icon: "💰" },
+  { value: "MUSIC_GIGS",      label: "Music Gigs",      icon: "🎵" },
+  { value: "EVENTS",          label: "Events",          icon: "🎪" },
+  { value: "CRYPTO",          label: "Crypto",          icon: "₿" },
+  { value: "CORPORATE_DEALS", label: "Corporate Deals", icon: "🏢" },
 ];
+
+type Vertical = typeof VERTICALS[number]["value"];
+
+type FormState = {
+  vertical: Vertical | "";
+  title: string;
+  videoUrl: string;
+  durationSeconds: string;
+  description: string;
+  tags: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  // Flash Sale
+  flashSaleEndsAt: string;
+  // Flash Coupon
+  couponCode: string;
+  // Products
+  productPrice: string;
+  productPurchaseUrl: string;
+  productStock: string;
+};
+
+const EMPTY: FormState = {
+  vertical: "", title: "", videoUrl: "", durationSeconds: "",
+  description: "", tags: "", ctaLabel: "", ctaUrl: "",
+  flashSaleEndsAt: "", couponCode: "",
+  productPrice: "", productPurchaseUrl: "", productStock: "",
+};
 
 export default function NewListingPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const [form, setForm] = useState({
-    vertical: "" as "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO" | "",
-    title: "",
-    videoUrl: "",
-    durationSeconds: "",
-    description: "",
-    tags: "",
-    ctaLabel: "",
-    ctaUrl: "",
-  });
+  const [form, setForm] = useState<FormState>(EMPTY);
   const [durationWarning, setDurationWarning] = useState(false);
 
   useEffect(() => {
@@ -60,19 +84,31 @@ export default function NewListingPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+      const payload: Record<string, unknown> = {
+        vertical: form.vertical,
+        title: form.title,
+        videoUrl: form.videoUrl,
+        durationSeconds: parseInt(form.durationSeconds, 10),
+        description: form.description || undefined,
+        tags,
+        ctaLabel: form.ctaLabel || undefined,
+        ctaUrl: form.ctaUrl || undefined,
+      };
+      if (form.vertical === "FLASH_SALE" && form.flashSaleEndsAt) {
+        payload.flashSaleEndsAt = new Date(form.flashSaleEndsAt).toISOString();
+      }
+      if (form.vertical === "FLASH_COUPON" && form.couponCode) {
+        payload.couponCode = form.couponCode;
+      }
+      if (form.vertical === "PRODUCTS") {
+        if (form.productPrice) payload.productPrice = form.productPrice;
+        if (form.productPurchaseUrl) payload.productPurchaseUrl = form.productPurchaseUrl;
+        if (form.productStock) payload.productStock = form.productStock;
+      }
       const res = await fetch("/api/listings/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vertical: form.vertical,
-          title: form.title,
-          videoUrl: form.videoUrl,
-          durationSeconds: parseInt(form.durationSeconds, 10),
-          description: form.description || undefined,
-          tags,
-          ctaLabel: form.ctaLabel || undefined,
-          ctaUrl: form.ctaUrl || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Submission failed");
@@ -90,8 +126,10 @@ export default function NewListingPage() {
     },
   });
 
+  const set = (field: keyof FormState, val: string) => setForm((p) => ({ ...p, [field]: val }));
+
   const handleDurationChange = (val: string) => {
-    setForm((prev) => ({ ...prev, durationSeconds: val }));
+    set("durationSeconds", val);
     const n = parseInt(val, 10);
     setDurationWarning(!isNaN(n) && n > 20);
   };
@@ -110,7 +148,7 @@ export default function NewListingPage() {
   if (!user) return null;
 
   const canSubmit = completion?.isComplete && !dailyStats?.capReached;
-  const set = (field: keyof typeof form, val: string) => setForm((p) => ({ ...p, [field]: val }));
+  const v = form.vertical;
 
   return (
     <div className="min-h-screen bg-black">
@@ -123,7 +161,6 @@ export default function NewListingPage() {
           <h1 className="text-xl font-bold text-white" data-testid="text-page-title">Post a Video</h1>
         </div>
 
-        {/* Creator preview */}
         {profile && (
           <div>
             <p className="text-xs text-[#555] uppercase tracking-widest mb-2 font-semibold">Posting as</p>
@@ -131,7 +168,6 @@ export default function NewListingPage() {
           </div>
         )}
 
-        {/* Profile incomplete warning */}
         {completion && !completion.isComplete && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/8 border border-amber-500/20 text-sm text-amber-400" data-testid="alert-incomplete-profile">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -142,7 +178,6 @@ export default function NewListingPage() {
           </div>
         )}
 
-        {/* Cap warning */}
         {dailyStats?.capReached && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/8 border border-red-500/20 text-sm text-red-400" data-testid="alert-cap-reached">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -150,10 +185,9 @@ export default function NewListingPage() {
           </div>
         )}
 
-        {/* Pricing */}
         <div className="flex items-center gap-2 p-3 rounded-xl bg-[#ff1a1a]/8 border border-[#ff1a1a]/20 text-sm text-[#ff6666]">
           <DollarSign className="h-4 w-4 shrink-0" />
-          <span><strong className="text-[#ff1a1a]">$3.00 listing fee</strong> — simulated checkout. Stripe can be wired in later.</span>
+          <span><strong className="text-[#ff1a1a]">$3.00 listing fee</strong> — simulated checkout.</span>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,24 +197,25 @@ export default function NewListingPage() {
             <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Video Details</h2>
 
             <div className="space-y-1.5">
-              <Label htmlFor="vertical" className="text-[#aaa] text-sm">Category *</Label>
-              <Select value={form.vertical} onValueChange={(v) => set("vertical", v as any)}>
+              <Label className="text-[#aaa] text-sm">Category *</Label>
+              <Select value={form.vertical} onValueChange={(val) => set("vertical", val)}>
                 <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff1a1a]" data-testid="select-vertical">
                   <SelectValue placeholder="Choose a category" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111] border-[#2a2a2a]">
                   {VERTICALS.map((v) => (
-                    <SelectItem key={v.value} value={v.value} className="text-white focus:bg-[#222]">{v.label}</SelectItem>
+                    <SelectItem key={v.value} value={v.value} className="text-white focus:bg-[#222]">
+                      {v.icon} {v.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="title" className="text-[#aaa] text-sm">Title *</Label>
+              <Label className="text-[#aaa] text-sm">Title *</Label>
               <Input
-                id="title"
-                placeholder="How I 10x'd my email open rates"
+                placeholder="Your video title"
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
                 required maxLength={200}
@@ -190,9 +225,9 @@ export default function NewListingPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="videoUrl" className="text-[#aaa] text-sm">Video URL *</Label>
+              <Label className="text-[#aaa] text-sm">Video URL *</Label>
               <Input
-                id="videoUrl" type="url"
+                type="url"
                 placeholder="https://youtube.com/watch?v=..."
                 value={form.videoUrl}
                 onChange={(e) => set("videoUrl", e.target.value)}
@@ -204,11 +239,9 @@ export default function NewListingPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="durationSeconds" className="text-[#aaa] text-sm">
-                Duration (seconds) * <span className="text-[#555] font-normal">Max 20s</span>
-              </Label>
+              <Label className="text-[#aaa] text-sm">Duration (seconds) * <span className="text-[#555] font-normal">Max 20s</span></Label>
               <Input
-                id="durationSeconds" type="number" min={1} max={20} placeholder="15"
+                type="number" min={1} max={20} placeholder="15"
                 value={form.durationSeconds}
                 onChange={(e) => handleDurationChange(e.target.value)}
                 required
@@ -218,20 +251,104 @@ export default function NewListingPage() {
               {durationWarning && (
                 <p className="text-xs text-amber-400 flex items-center gap-1" data-testid="text-duration-warning">
                   <AlertCircle className="h-3 w-3" />
-                  Videos over 20 seconds may be removed.
+                  Videos over 20 seconds will be rejected.
                 </p>
               )}
             </div>
           </div>
+
+          {/* Flash Sale extras */}
+          {v === "FLASH_SALE" && (
+            <div className="rounded-xl bg-red-950/30 border border-red-500/30 p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Timer className="h-3.5 w-3.5" /> Flash Sale Details
+              </h2>
+              <div className="space-y-1.5">
+                <Label className="text-[#aaa] text-sm">Sale Ends At</Label>
+                <Input
+                  type="datetime-local"
+                  value={form.flashSaleEndsAt}
+                  onChange={(e) => set("flashSaleEndsAt", e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white focus:border-red-500 [color-scheme:dark]"
+                  data-testid="input-flash-sale-ends-at"
+                />
+                <p className="text-xs text-[#555]">A live countdown timer will appear on your video card.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Flash Coupon extras */}
+          {v === "FLASH_COUPON" && (
+            <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/30 p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" /> Coupon Details
+              </h2>
+              <div className="space-y-1.5">
+                <Label className="text-[#aaa] text-sm">Coupon Code *</Label>
+                <Input
+                  placeholder="SAVE20"
+                  value={form.couponCode}
+                  onChange={(e) => set("couponCode", e.target.value.toUpperCase())}
+                  maxLength={40}
+                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-emerald-500 font-mono tracking-widest uppercase"
+                  data-testid="input-coupon-code"
+                />
+                <p className="text-xs text-[#555]">Viewers can copy this code with one tap. A green glowing border highlights your card.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Products extras */}
+          {v === "PRODUCTS" && (
+            <div className="rounded-xl bg-orange-950/30 border border-orange-500/30 p-4 space-y-3">
+              <h2 className="text-xs font-semibold text-orange-400 uppercase tracking-widest flex items-center gap-1.5">
+                <ShoppingCart className="h-3.5 w-3.5" /> Product Details
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[#aaa] text-sm">Price</Label>
+                  <Input
+                    placeholder="$29.99"
+                    value={form.productPrice}
+                    onChange={(e) => set("productPrice", e.target.value)}
+                    maxLength={30}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-orange-500"
+                    data-testid="input-product-price"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[#aaa] text-sm">Stock Indicator</Label>
+                  <Input
+                    placeholder="Only 12 left!"
+                    value={form.productStock}
+                    onChange={(e) => set("productStock", e.target.value)}
+                    maxLength={50}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-orange-500"
+                    data-testid="input-product-stock"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[#aaa] text-sm">Purchase URL</Label>
+                <Input
+                  type="url"
+                  placeholder="https://yourstore.com/product"
+                  value={form.productPurchaseUrl}
+                  onChange={(e) => set("productPurchaseUrl", e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-orange-500"
+                  data-testid="input-product-purchase-url"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Optional fields */}
           <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
             <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Optional Details</h2>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description" className="text-[#aaa] text-sm">Description</Label>
+              <Label className="text-[#aaa] text-sm">Description</Label>
               <Textarea
-                id="description"
                 placeholder="Brief description of your video..."
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
@@ -242,9 +359,8 @@ export default function NewListingPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="tags" className="text-[#aaa] text-sm">Tags <span className="text-[#555] font-normal">(comma-separated)</span></Label>
+              <Label className="text-[#aaa] text-sm">Tags <span className="text-[#555] font-normal">(comma-separated)</span></Label>
               <Input
-                id="tags"
                 placeholder="marketing, email, growth"
                 value={form.tags}
                 onChange={(e) => set("tags", e.target.value)}
@@ -255,9 +371,8 @@ export default function NewListingPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="ctaLabel" className="text-[#aaa] text-sm">CTA Button Label</Label>
+                <Label className="text-[#aaa] text-sm">CTA Button Label</Label>
                 <Input
-                  id="ctaLabel"
                   placeholder="Get the guide"
                   value={form.ctaLabel}
                   onChange={(e) => set("ctaLabel", e.target.value)}
@@ -267,9 +382,9 @@ export default function NewListingPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="ctaUrl" className="text-[#aaa] text-sm">CTA URL</Label>
+                <Label className="text-[#aaa] text-sm">CTA URL</Label>
                 <Input
-                  id="ctaUrl" type="url"
+                  type="url"
                   placeholder="https://yoursite.com/offer"
                   value={form.ctaUrl}
                   onChange={(e) => set("ctaUrl", e.target.value)}
@@ -290,7 +405,7 @@ export default function NewListingPage() {
             Pay $3.00 &amp; List Video
           </Button>
           <p className="text-xs text-center text-[#444]">
-            Payment is simulated. Stripe will be connected for real charges.
+            Payment is simulated. Stripe can be connected for real charges.
           </p>
         </form>
       </div>

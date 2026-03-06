@@ -67,15 +67,19 @@ export default function HomePage() {
     ALL:             "cat-bg-all",
     MARKETING:       "cat-bg-marketing",
     MUSIC:           "cat-bg-music",
+    MUSIC_GIGS:      "cat-bg-music",
     CRYPTO:          "cat-bg-crypto",
     COACHING:        "cat-bg-coaching",
     COURSES:         "cat-bg-courses",
     EVENTS:          "cat-bg-events",
     INFLUENCERS:     "cat-bg-influencers",
+    INFLUENCER:      "cat-bg-influencers",
     CORPORATE_DEALS: "cat-bg-corporate",
     GIG_BLITZ:       "cat-bg-gigblitz",
-    REACTOR:         "cat-bg-reactor",
+    FLASH_SALE:      "cat-bg-flash",
     FLASH_COUPONS:   "cat-bg-flash",
+    FLASH_COUPON:    "cat-bg-flash",
+    PRODUCTS:        "cat-bg-marketing",
   };
   const activeBgClass = categoryBgClass[activeVertical] ?? "cat-bg-all";
 

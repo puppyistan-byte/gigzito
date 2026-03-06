@@ -5,7 +5,11 @@ import { z } from "zod";
 
 // === ENUMS ===
 export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "ADMIN"]);
-export const verticalEnum = pgEnum("vertical", ["MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO"]);
+export const verticalEnum = pgEnum("vertical", [
+  "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
+  "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
+  "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
+]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED"]);
 
 // === TABLES ===
@@ -28,7 +32,6 @@ export const providerProfiles = pgTable("provider_profiles", {
   contactPhone: text("contact_phone"),
   contactTelegram: text("contact_telegram"),
   websiteUrl: text("website_url"),
-  // Extended creator profile fields
   username: text("username"),
   primaryCategory: text("primary_category"),
   location: text("location"),
@@ -48,6 +51,14 @@ export const videoListings = pgTable("video_listings", {
   tags: text("tags").array().notNull().default([]),
   ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
+  // Flash Sale extras
+  flashSaleEndsAt: timestamp("flash_sale_ends_at"),
+  // Flash Coupon extras
+  couponCode: text("coupon_code"),
+  // Products extras
+  productPrice: text("product_price"),
+  productPurchaseUrl: text("product_purchase_url"),
+  productStock: text("product_stock"),
   status: listingStatusEnum("status").notNull().default("ACTIVE"),
   dropDate: date("drop_date").notNull(),
   pricePaidCents: integer("price_paid_cents").notNull().default(300),
@@ -94,7 +105,6 @@ export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type VideoListing = typeof videoListings.$inferSelect;
 export type InsertListing = z.infer<typeof insertListingSchema>;
 
-// Listing with provider info
 export interface ListingWithProvider extends VideoListing {
   provider: ProviderProfile & { user: User };
 }
@@ -112,9 +122,14 @@ export type ProfileCompletionStatus = {
   missing: string[];
 };
 
+export type VerticalKey =
+  | "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO"
+  | "INFLUENCER" | "PRODUCTS" | "FLASH_SALE" | "FLASH_COUPON"
+  | "MUSIC_GIGS" | "EVENTS" | "CORPORATE_DEALS";
+
 // Listing submission
 export type CreateListingRequest = {
-  vertical: "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO";
+  vertical: VerticalKey;
   title: string;
   videoUrl: string;
   durationSeconds: number;
@@ -122,6 +137,11 @@ export type CreateListingRequest = {
   tags?: string[];
   ctaLabel?: string;
   ctaUrl?: string;
+  flashSaleEndsAt?: string | null;
+  couponCode?: string | null;
+  productPrice?: string | null;
+  productPurchaseUrl?: string | null;
+  productStock?: string | null;
 };
 
 // Simulated payment
@@ -143,5 +163,5 @@ export type UpdateListingStatusRequest = { status: "ACTIVE" | "PAUSED" | "REMOVE
 
 // Filters
 export type ListingsFilter = {
-  vertical?: "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO" | "ALL";
+  vertical?: VerticalKey | "ALL" | "GIG_BLITZ" | "FLASH_COUPONS" | "INFLUENCERS";
 };

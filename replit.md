@@ -59,7 +59,20 @@ vertical, title, videoUrl, durationSeconds, description, tags, ctaLabel, ctaUrl,
 2. Listing fee: $3 (simulated; Stripe not yet connected)
 3. Video duration: max 20 seconds (honor system with warning)
 4. Profile completion required: displayName + bio + avatarUrl + primaryCategory + at least one contact method
-5. Five verticals: MARKETING, COACHING, COURSES, MUSIC, CRYPTO
+5. Eleven postable verticals: INFLUENCER, MARKETING, COACHING, COURSES, PRODUCTS, FLASH_SALE, FLASH_COUPON, MUSIC_GIGS, EVENTS, CRYPTO, CORPORATE_DEALS (+ legacy MUSIC)
+6. Flash Sale listings float to the top of the ALL feed
+7. Frontend-only carousel keys: GIG_BLITZ (→ MUSIC_GIGS), FLASH_COUPONS (→ FLASH_COUPON), INFLUENCERS (→ INFLUENCER)
+
+## Category Special Features
+
+- **Flash Sale**: countdown timer (flashSaleEndsAt), red glowing card border, priority in ALL feed
+- **Flash Coupon**: coupon code display (couponCode), copy-to-clipboard, green glowing border
+- **Products**: price display (productPrice), stock indicator (productStock), purchase link (productPurchaseUrl)
+
+## Category Carousel
+
+Regular chips: All, Music Gigs, Events, Influencers, Marketing, Courses, Products, Crypto
+Highlighted buttons: 🔥 Gig Blitz (red), ⚡ Flash Sale (bright red), 💰 Flash Coupons (green)
 
 ## Styling
 
