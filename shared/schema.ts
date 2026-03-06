@@ -39,6 +39,7 @@ export const providerProfiles = pgTable("provider_profiles", {
   instagramUrl: text("instagram_url"),
   youtubeUrl: text("youtube_url"),
   tiktokUrl: text("tiktok_url"),
+  webhookUrl: text("webhook_url"),
 });
 
 export const videoListings = pgTable("video_listings", {
@@ -186,6 +187,8 @@ export const leads = pgTable("leads", {
   email: text("email").notNull(),
   phone: text("phone"),
   message: text("message"),
+  videoTitle: text("video_title"),
+  category: text("category"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -204,6 +207,8 @@ export type CreateLeadRequest = {
   email: string;
   phone?: string;
   message?: string;
+  videoTitle?: string;
+  category?: string;
 };
 
 // GigJack submission

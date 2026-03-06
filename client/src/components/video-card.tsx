@@ -181,32 +181,38 @@ export function VideoCard({ listing, className = "" }: VideoCardProps) {
             </div>
           </div>
 
-          {/* ── FLOATING CREATOR AVATAR: bottom-right ── */}
-          <div
-            className="absolute bottom-[76px] right-4 z-30"
-            data-testid={`avatar-creator-${listing.id}`}
-          >
+          {/* ── FLOATING CREATOR AVATAR: bottom-right, clickable ── */}
+          <Link href={`/provider/${listing.provider.id}`}>
             <div
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                border: "2.5px solid rgba(255,255,255,0.5)",
-                overflow: "hidden",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3)",
-                background: "#1a1a1a",
-                flexShrink: 0,
-              }}
+              className="absolute bottom-[76px] right-4 z-30 cursor-pointer"
+              data-testid={`avatar-creator-${listing.id}`}
+              title={`View ${provider.displayName}'s profile`}
+              style={{ transition: "transform 0.15s ease" }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
-              {provider.avatarUrl ? (
-                <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "15px", fontWeight: "700" }}>
-                  {initials}
-                </div>
-              )}
+              <div
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "50%",
+                  border: "2.5px solid rgba(255,255,255,0.5)",
+                  overflow: "hidden",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3)",
+                  background: "#1a1a1a",
+                  flexShrink: 0,
+                }}
+              >
+                {provider.avatarUrl ? (
+                  <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "15px", fontWeight: "700" }}>
+                    {initials}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </Link>
 
           {/* ── CENTER: Hover play ── */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none">

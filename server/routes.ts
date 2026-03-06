@@ -398,6 +398,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       email: z.string().email(),
       phone: z.string().max(30).optional().nullable(),
       message: z.string().max(500).optional().nullable(),
+      videoTitle: z.string().max(200).optional().nullable(),
+      category: z.string().max(50).optional().nullable(),
     });
     try {
       const data = schema.parse(req.body);
@@ -408,7 +410,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         email: data.email,
         phone: data.phone ?? undefined,
         message: data.message ?? undefined,
+        videoTitle: data.videoTitle ?? undefined,
+        category: data.category ?? undefined,
       });
+      // Fire webhook if the creator has one configured
+      const creatorProfile = await storage.getProfileById(data.creatorUserId);
+      if (creatorProfile?.webhookUrl) {
+        fetch(creatorProfile.webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "new_lead",
+            leadId: lead.id,
+            videoId: lead.videoId,
+            videoTitle: lead.videoTitle,
+            category: lead.category,
+            name: lead.firstName,
+            email: lead.email,
+            phone: lead.phone,
+            message: lead.message,
+            createdAt: lead.createdAt,
+          }),
+          signal: AbortSignal.timeout(5000),
+        }).catch((err) => console.warn("Webhook delivery failed:", err.message));
+      }
       return res.status(201).json({ success: true, leadId: lead.id });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -417,6 +442,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
+  });
+
+  app.get("/api/leads/mine", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const leads = await storage.getLeadsByProvider(userId);
+    return res.json(leads);
   });
 
   // === GIGJACKS ===

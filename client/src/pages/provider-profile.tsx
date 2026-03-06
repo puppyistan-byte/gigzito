@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook } from "lucide-react";
 import { SiTiktok } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
@@ -43,12 +43,14 @@ type FormState = {
   instagramUrl: string;
   youtubeUrl: string;
   tiktokUrl: string;
+  webhookUrl: string;
 };
 
 const EMPTY: FormState = {
   displayName: "", username: "", bio: "", avatarUrl: "", thumbUrl: "",
   primaryCategory: "", location: "", contactEmail: "", contactPhone: "",
   contactTelegram: "", websiteUrl: "", instagramUrl: "", youtubeUrl: "", tiktokUrl: "",
+  webhookUrl: "",
 };
 
 export default function ProviderProfilePage() {
@@ -84,6 +86,7 @@ export default function ProviderProfilePage() {
         instagramUrl:     profile.instagramUrl ?? "",
         youtubeUrl:       profile.youtubeUrl ?? "",
         tiktokUrl:        profile.tiktokUrl ?? "",
+        webhookUrl:       (profile as any).webhookUrl ?? "",
       });
     }
   }, [profile]);
@@ -102,6 +105,7 @@ export default function ProviderProfilePage() {
         instagramUrl:    data.instagramUrl || null,
         youtubeUrl:      data.youtubeUrl || null,
         tiktokUrl:       data.tiktokUrl || null,
+        webhookUrl:      data.webhookUrl || null,
       };
       const res = await fetch("/api/profile/me", {
         method: "PUT",
@@ -148,6 +152,7 @@ export default function ProviderProfilePage() {
     instagramUrl:    form.instagramUrl || null,
     youtubeUrl:      form.youtubeUrl || null,
     tiktokUrl:       form.tiktokUrl || null,
+    webhookUrl:      form.webhookUrl || null,
   };
 
   return (
@@ -322,6 +327,28 @@ export default function ProviderProfilePage() {
                 <SiTiktok className="h-3.5 w-3.5" /> TikTok
               </Label>
               <Input id="tiktokUrl" type="url" placeholder="https://tiktok.com/@yourhandle" value={form.tiktokUrl} onChange={(e) => set("tiktokUrl", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-tiktok-url" />
+            </div>
+          </div>
+
+          {/* Integrations */}
+          <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
+            <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Integrations</h2>
+            <div className="space-y-1.5">
+              <Label htmlFor="webhookUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                <Webhook className="h-3.5 w-3.5" /> Webhook URL <span className="text-[#444] font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="webhookUrl"
+                type="url"
+                placeholder="https://hooks.yourapp.com/leads"
+                value={form.webhookUrl}
+                onChange={(e) => set("webhookUrl", e.target.value)}
+                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
+                data-testid="input-webhook-url"
+              />
+              <p className="text-xs text-[#444]">
+                When set, new lead inquiries will be POSTed as JSON to this URL in real time.
+              </p>
             </div>
           </div>
 

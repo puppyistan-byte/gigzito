@@ -30,6 +30,7 @@ export interface IStorage {
 
   // Leads
   createLead(data: CreateLeadRequest): Promise<Lead>;
+  getLeadsByProvider(creatorUserId: number): Promise<Lead[]>;
 
   // GigJacks
   createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack>;
@@ -233,9 +234,19 @@ export class DatabaseStorage implements IStorage {
         email: data.email,
         phone: data.phone ?? null,
         message: data.message ?? null,
+        videoTitle: data.videoTitle ?? null,
+        category: data.category ?? null,
       })
       .returning();
     return lead;
+  }
+
+  async getLeadsByProvider(creatorUserId: number): Promise<Lead[]> {
+    return db
+      .select()
+      .from(leads)
+      .where(eq(leads.creatorUserId, creatorUserId))
+      .orderBy(sql`${leads.createdAt} DESC`);
   }
 
   async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack> {

@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, AlertCircle, CheckCircle2, ExternalLink, Pause, Play, Trash2 } from "lucide-react";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile } from "@shared/schema";
+import { PlusCircle, AlertCircle, CheckCircle2, ExternalLink, Pause, Play, Trash2, Download, Mail, Phone, MessageSquare, Inbox } from "lucide-react";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -46,6 +46,34 @@ export default function ProviderDashboard() {
   const { data: dailyStats } = useQuery<{ date: string; count: number; capReached: boolean; maxCap: number }>({
     queryKey: ["/api/stats/daily"],
   });
+
+  const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
+    queryKey: ["/api/leads/mine"],
+    enabled: !!user,
+  });
+
+  const exportLeadsCSV = () => {
+    if (!leads.length) return;
+    const headers = ["ID", "Name", "Email", "Phone", "Message", "Video Title", "Category", "Date"];
+    const rows = leads.map((l) => [
+      l.id,
+      `"${(l.firstName ?? "").replace(/"/g, '""')}"`,
+      `"${(l.email ?? "").replace(/"/g, '""')}"`,
+      `"${(l.phone ?? "").replace(/"/g, '""')}"`,
+      `"${(l.message ?? "").replace(/"/g, '""')}"`,
+      `"${(l.videoTitle ?? "").replace(/"/g, '""')}"`,
+      `"${(l.category ?? "").replace(/"/g, '""')}"`,
+      new Date(l.createdAt).toLocaleString(),
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gigzito-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -218,6 +246,66 @@ export default function ProviderDashboard() {
             </div>
           )}
         </div>
+        {/* Leads section */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white" data-testid="text-leads-title">Leads</h2>
+            {leads.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={exportLeadsCSV}
+                className="text-xs text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg h-7 px-2.5"
+                data-testid="button-export-leads"
+              >
+                <Download className="h-3 w-3 mr-1.5" />
+                Export CSV
+              </Button>
+            )}
+          </div>
+
+          {leadsLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full bg-[#111] rounded-xl" />)}
+            </div>
+          ) : leads.length === 0 ? (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-leads">
+              <Inbox className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-sm">No leads yet. When viewers click Inquire on your listings, they'll appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {leads.map((lead) => (
+                <div key={lead.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-lead-${lead.id}`}>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="text-sm font-semibold text-white">{lead.firstName}</p>
+                    <span className="text-[10px] text-[#444] shrink-0">{new Date(lead.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  {lead.videoTitle && (
+                    <p className="text-xs text-[#ff2b2b] mb-1.5">{lead.videoTitle}</p>
+                  )}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1 text-xs text-[#777]">
+                      <Mail className="h-3 w-3" /> {lead.email}
+                    </span>
+                    {lead.phone && (
+                      <span className="flex items-center gap-1 text-xs text-[#777]">
+                        <Phone className="h-3 w-3" /> {lead.phone}
+                      </span>
+                    )}
+                  </div>
+                  {lead.message && (
+                    <p className="text-xs text-[#555] mt-1.5 flex gap-1">
+                      <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
+                      {lead.message}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

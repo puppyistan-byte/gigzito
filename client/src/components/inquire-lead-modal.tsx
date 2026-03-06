@@ -44,6 +44,8 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
         email: data.email,
         phone: data.phone || null,
         message: data.message || null,
+        videoTitle: listing.title,
+        category: listing.vertical,
       });
       return res.json();
     },
@@ -147,10 +149,10 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
                 <FormItem>
                   <FormLabel style={{ fontSize: "12px" }}>
                     <User size={11} style={{ display: "inline", marginRight: "5px" }} />
-                    First Name *
+                    Name *
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Your first name" data-testid="input-lead-first-name" {...field} />
+                    <Input placeholder="Your name" data-testid="input-lead-first-name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
