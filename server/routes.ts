@@ -6,6 +6,53 @@ import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
+// === BOT CHECKS ===
+function runBotChecks(data: {
+  offerTitle: string;
+  description: string;
+  couponCode?: string | null;
+  ctaLink: string;
+  companyUrl: string;
+}): { warning: boolean; message: string | null } {
+  const WEAK_MSG = "This offer may not qualify as a GigJack. GigJacks should be high-impact limited-time offers. Consider increasing the discount or adding scarcity.";
+
+  // URL validation
+  try { new URL(data.ctaLink); new URL(data.companyUrl); } catch {
+    return { warning: true, message: "Please provide valid HTTPS URLs for company and CTA link." };
+  }
+
+  const fullText = `${data.offerTitle} ${data.description}`;
+
+  // Discount strength detection
+  const discountMatch = fullText.match(/(\d+)\s*%\s*off/i);
+  if (discountMatch && parseInt(discountMatch[1]) < 10) {
+    return { warning: true, message: WEAK_MSG };
+  }
+
+  // Generic coupon detection
+  if (data.couponCode) {
+    const genericPatterns = ["SAVE10", "DISCOUNT", "COUPON", "PROMO", "OFF10", "DEAL", "CODE", "OFFER"];
+    if (genericPatterns.some((p) => data.couponCode!.toUpperCase() === p)) {
+      return { warning: true, message: WEAK_MSG };
+    }
+  }
+
+  // Spam detection: excessive exclamation marks
+  const exclamations = (fullText.match(/!/g) || []).length;
+  if (exclamations > 4) {
+    return { warning: true, message: WEAK_MSG };
+  }
+
+  // Spam detection: mostly caps
+  const words = fullText.split(/\s+/).filter((w) => w.length > 3);
+  const capsWords = words.filter((w) => w === w.toUpperCase() && /[A-Z]/.test(w));
+  if (words.length > 3 && capsWords.length / words.length > 0.6) {
+    return { warning: true, message: WEAK_MSG };
+  }
+
+  return { warning: false, message: null };
+}
+
 const scryptAsync = promisify(scrypt);
 
 const DAILY_CAP = 100;
@@ -340,6 +387,89 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const listing = await storage.updateListingStatus(id, status);
     if (!listing) return res.status(404).json({ message: "Listing not found" });
     return res.json(listing);
+  });
+
+  // === GIGJACKS ===
+  app.post("/api/gigjacks/submit", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+
+    const profile = await storage.getProfileByUserId(userId);
+    if (!profile) return res.status(400).json({ message: "Provider profile not found" });
+
+    const schema = z.object({
+      companyUrl: z.string().url(),
+      artworkUrl: z.string().url(),
+      offerTitle: z.string().min(5).max(120),
+      description: z.string().min(10).max(500),
+      ctaLink: z.string().url(),
+      countdownMinutes: z.coerce.number().int().min(1).max(30),
+      couponCode: z.string().max(40).optional().nullable(),
+      quantityLimit: z.coerce.number().int().min(1).max(100000).optional().nullable(),
+    });
+
+    try {
+      const data = schema.parse(req.body);
+      const botResult = runBotChecks({
+        offerTitle: data.offerTitle,
+        description: data.description,
+        couponCode: data.couponCode,
+        ctaLink: data.ctaLink,
+        companyUrl: data.companyUrl,
+      });
+      const gj = await storage.createGigJack({
+        ...data,
+        providerId: profile.id,
+        botWarning: botResult.warning,
+        botWarningMessage: botResult.message,
+      });
+      return res.status(201).json({ success: true, gigJackId: gj.id, botWarning: botResult.warning, botWarningMessage: botResult.message });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join(".") });
+      }
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/gigjacks/mine", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const profile = await storage.getProfileByUserId(userId);
+    if (!profile) return res.json([]);
+    const gigjacks = await storage.getGigJacksByProvider(profile.id);
+    return res.json(gigjacks);
+  });
+
+  app.get("/api/admin/gigjacks", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const gigjacks = await storage.getAllGigJacks();
+    return res.json(gigjacks);
+  });
+
+  app.patch("/api/admin/gigjacks/:id/review", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(404).json({ message: "Not found" });
+
+    const schema = z.object({
+      status: z.enum(["APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"]),
+      reviewNote: z.string().max(500).optional(),
+    });
+
+    try {
+      const { status, reviewNote } = schema.parse(req.body);
+      const gj = await storage.reviewGigJack(id, status, reviewNote);
+      if (!gj) return res.status(404).json({ message: "GigJack not found" });
+      return res.json(gj);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
   });
 
   return httpServer;

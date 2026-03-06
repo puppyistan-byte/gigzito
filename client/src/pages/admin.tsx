@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
+import { GigJackCard } from "@/components/gigjack-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, DollarSign, BarChart2, Eye, EyeOff, Trash2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { Shield, DollarSign, BarChart2, Eye, EyeOff, Trash2, Zap } from "lucide-react";
+import type { GigJackWithProvider } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -24,11 +27,15 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-blue-500/20 text-blue-500 dark:text-blue-400",
 };
 
+const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"] as const;
+type GJStatusTab = typeof GJ_STATUS_TABS[number];
+
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [gjTab, setGjTab] = useState<GJStatusTab>("PENDING_REVIEW");
 
   useEffect(() => {
     if (!authLoading && (!user || user.user?.role !== "ADMIN")) navigate("/");
@@ -38,6 +45,11 @@ export default function AdminPage() {
     queryKey: ["/api/admin/stats"],
     enabled: !!user && user.user?.role === "ADMIN",
     refetchInterval: 30000,
+  });
+
+  const { data: gigJacks, isLoading: gjLoading } = useQuery<GigJackWithProvider[]>({
+    queryKey: ["/api/admin/gigjacks"],
+    enabled: !!user && user.user?.role === "ADMIN",
   });
 
   const statusMutation = useMutation({
@@ -55,6 +67,18 @@ export default function AdminPage() {
       toast({ title: "Listing updated" });
     },
     onError: () => toast({ title: "Error", variant: "destructive" }),
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ id, status, reviewNote }: { id: number; status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT"; reviewNote?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/review`, { status, reviewNote });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] });
+      toast({ title: "GigJack updated" });
+    },
+    onError: () => toast({ title: "Error updating GigJack", variant: "destructive" }),
   });
 
   if (authLoading || isLoading) {
@@ -75,6 +99,12 @@ export default function AdminPage() {
   if (!user || user.user?.role !== "ADMIN") return null;
 
   const DAILY_CAP = 100;
+
+  const filteredGigJacks = (gigJacks ?? []).filter((gj) =>
+    gjTab === "ALL" ? true : gj.status === gjTab
+  );
+
+  const pendingCount = (gigJacks ?? []).filter((gj) => gj.status === "PENDING_REVIEW").length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -118,6 +148,94 @@ export default function AdminPage() {
             />
           </div>
         </Card>
+
+        {/* GigJack Moderation Queue */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="h-4 w-4" style={{ color: "#ff2b2b" }} />
+            <h2 className="text-base font-semibold">Pending GigJacks</h2>
+            {pendingCount > 0 && (
+              <span
+                style={{
+                  background: "#ff2b2b",
+                  color: "#fff",
+                  borderRadius: "999px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  padding: "1px 7px",
+                  lineHeight: "18px",
+                }}
+                data-testid="badge-gigjack-pending-count"
+              >
+                {pendingCount}
+              </span>
+            )}
+          </div>
+
+          {/* Status filter tabs */}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "12px", overflowX: "auto", paddingBottom: "4px" }}>
+            {GJ_STATUS_TABS.map((tab) => {
+              const count = tab === "ALL" ? (gigJacks ?? []).length : (gigJacks ?? []).filter((gj) => gj.status === tab).length;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setGjTab(tab)}
+                  data-testid={`tab-gigjack-${tab.toLowerCase()}`}
+                  style={{
+                    background: gjTab === tab ? "rgba(255,43,43,0.12)" : "transparent",
+                    border: gjTab === tab ? "1px solid rgba(255,43,43,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "999px",
+                    color: gjTab === tab ? "#ff2b2b" : "rgba(255,255,255,0.45)",
+                    padding: "4px 12px",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  {tab.replace("_", " ")} {count > 0 ? `(${count})` : ""}
+                </button>
+              );
+            })}
+          </div>
+
+          {gjLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-32 w-full" />)}
+            </div>
+          ) : filteredGigJacks.length === 0 ? (
+            <div
+              style={{
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: "10px",
+                padding: "24px",
+                textAlign: "center",
+                color: "rgba(255,255,255,0.35)",
+                fontSize: "13px",
+              }}
+              data-testid="text-gigjack-empty"
+            >
+              {gjTab === "PENDING_REVIEW" ? "No GigJacks pending review." : `No GigJacks with status "${gjTab.replace("_", " ")}".`}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredGigJacks.map((gj) => (
+                <GigJackCard
+                  key={gj.id}
+                  gigJack={gj}
+                  showStatus
+                  showAdminActions
+                  isPending={reviewMutation.isPending}
+                  onApprove={(id) => reviewMutation.mutate({ id, status: "APPROVED" })}
+                  onReject={(id) => reviewMutation.mutate({ id, status: "REJECTED" })}
+                  onNeedsImprovement={(id) => reviewMutation.mutate({ id, status: "NEEDS_IMPROVEMENT" })}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* All listings */}
         <div>

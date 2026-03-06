@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, gigJacks, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest } from "@shared/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
@@ -27,6 +27,13 @@ export interface IStorage {
   // Admin
   getAllListingsWithProviders(): Promise<ListingWithProvider[]>;
   getTodayRevenue(): Promise<number>;
+
+  // GigJacks
+  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack>;
+  getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]>;
+  getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
+  getAllGigJacks(): Promise<GigJackWithProvider[]>;
+  reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string): Promise<GigJack | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -85,13 +92,28 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  private async enrichGigJacks(rows: GigJack[]): Promise<GigJackWithProvider[]> {
+    if (rows.length === 0) return [];
+    const providerIds = [...new Set(rows.map((r) => r.providerId))];
+    const profiles = await db.select().from(providerProfiles).where(inArray(providerProfiles.id, providerIds));
+    const userIds = [...new Set(profiles.map((p) => p.userId))];
+    const userRows = await db.select().from(users).where(inArray(users.id, userIds));
+    const userMap = new Map(userRows.map((u) => [u.id, u]));
+    const profileMap = new Map(
+      profiles.map((p) => [p.id, { ...p, user: userMap.get(p.userId)! }])
+    );
+    return rows.map((gj) => ({
+      ...gj,
+      provider: profileMap.get(gj.providerId)!,
+    }));
+  }
+
   async getListings(vertical?: string): Promise<ListingWithProvider[]> {
     const DB_VERTICALS = new Set([
       "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
       "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
       "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
     ]);
-    // Map frontend-only keys to DB values
     const FRONTEND_MAP: Record<string, string> = {
       GIG_BLITZ:    "MUSIC_GIGS",
       FLASH_COUPONS: "FLASH_COUPON",
@@ -108,7 +130,6 @@ export class DatabaseStorage implements IStorage {
         .where(and(eq(videoListings.status, "ACTIVE"), eq(videoListings.vertical, dbVertical as any)))
         .orderBy(sql`${videoListings.createdAt} DESC`);
     } else {
-      // Flash Sale listings float to top in ALL feed
       rows = await db
         .select()
         .from(videoListings)
@@ -197,6 +218,62 @@ export class DatabaseStorage implements IStorage {
       .from(videoListings)
       .where(and(eq(videoListings.dropDate, today), eq(videoListings.status, "ACTIVE")));
     return result?.total ?? 0;
+  }
+
+  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack> {
+    const [gj] = await db
+      .insert(gigJacks)
+      .values({
+        providerId: data.providerId,
+        companyUrl: data.companyUrl,
+        artworkUrl: data.artworkUrl,
+        offerTitle: data.offerTitle,
+        description: data.description,
+        ctaLink: data.ctaLink,
+        countdownMinutes: data.countdownMinutes,
+        couponCode: data.couponCode ?? null,
+        quantityLimit: data.quantityLimit ?? null,
+        status: "PENDING_REVIEW",
+        botWarning: data.botWarning,
+        botWarningMessage: data.botWarningMessage,
+      })
+      .returning();
+    return gj;
+  }
+
+  async getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]> {
+    const rows = await db
+      .select()
+      .from(gigJacks)
+      .where(eq(gigJacks.providerId, providerId))
+      .orderBy(sql`${gigJacks.createdAt} DESC`);
+    return this.enrichGigJacks(rows);
+  }
+
+  async getAllPendingGigJacks(): Promise<GigJackWithProvider[]> {
+    const rows = await db
+      .select()
+      .from(gigJacks)
+      .where(eq(gigJacks.status, "PENDING_REVIEW"))
+      .orderBy(sql`${gigJacks.createdAt} DESC`);
+    return this.enrichGigJacks(rows);
+  }
+
+  async getAllGigJacks(): Promise<GigJackWithProvider[]> {
+    const rows = await db
+      .select()
+      .from(gigJacks)
+      .orderBy(sql`${gigJacks.createdAt} DESC`);
+    return this.enrichGigJacks(rows);
+  }
+
+  async reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string): Promise<GigJack | undefined> {
+    const [gj] = await db
+      .update(gigJacks)
+      .set({ status, reviewNote: reviewNote ?? null, updatedAt: new Date() })
+      .where(eq(gigJacks.id, id))
+      .returning();
+    return gj;
   }
 }
 

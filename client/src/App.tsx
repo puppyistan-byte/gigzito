@@ -12,6 +12,7 @@ import ProviderDashboard from "@/pages/provider-dashboard";
 import ProviderProfilePage from "@/pages/provider-profile";
 import NewListingPage from "@/pages/new-listing";
 import AdminPage from "@/pages/admin";
+import GigJackNewPage from "@/pages/gigjack-new";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/provider/me" component={ProviderDashboard} />
       <Route path="/provider/profile" component={ProviderProfilePage} />
       <Route path="/provider/new" component={NewListingPage} />
+      <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

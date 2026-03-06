@@ -11,6 +11,7 @@ export const verticalEnum = pgEnum("vertical", [
   "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED"]);
+export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"]);
 
 // === TABLES ===
 export const users = pgTable("users", {
@@ -51,11 +52,8 @@ export const videoListings = pgTable("video_listings", {
   tags: text("tags").array().notNull().default([]),
   ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
-  // Flash Sale extras
   flashSaleEndsAt: timestamp("flash_sale_ends_at"),
-  // Flash Coupon extras
   couponCode: text("coupon_code"),
-  // Products extras
   productPrice: text("product_price"),
   productPurchaseUrl: text("product_purchase_url"),
   productStock: text("product_stock"),
@@ -63,6 +61,25 @@ export const videoListings = pgTable("video_listings", {
   dropDate: date("drop_date").notNull(),
   pricePaidCents: integer("price_paid_cents").notNull().default(300),
   stripeSessionId: text("stripe_session_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const gigJacks = pgTable("gig_jacks", {
+  id: serial("id").primaryKey(),
+  providerId: integer("provider_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
+  companyUrl: text("company_url").notNull(),
+  artworkUrl: text("artwork_url").notNull(),
+  offerTitle: text("offer_title").notNull(),
+  description: text("description").notNull(),
+  ctaLink: text("cta_link").notNull(),
+  countdownMinutes: integer("countdown_minutes").notNull(),
+  couponCode: text("coupon_code"),
+  quantityLimit: integer("quantity_limit"),
+  status: gigJackStatusEnum("status").notNull().default("PENDING_REVIEW"),
+  reviewNote: text("review_note"),
+  botWarning: boolean("bot_warning").notNull().default(false),
+  botWarningMessage: text("bot_warning_message"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -81,6 +98,7 @@ export const providerProfilesRelations = relations(providerProfiles, ({ one, man
     references: [users.id],
   }),
   listings: many(videoListings),
+  gigJacks: many(gigJacks),
 }));
 
 export const videoListingsRelations = relations(videoListings, ({ one }) => ({
@@ -90,10 +108,18 @@ export const videoListingsRelations = relations(videoListings, ({ one }) => ({
   }),
 }));
 
+export const gigJacksRelations = relations(gigJacks, ({ one }) => ({
+  provider: one(providerProfiles, {
+    fields: [gigJacks.providerId],
+    references: [providerProfiles.id],
+  }),
+}));
+
 // === BASE SCHEMAS ===
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertProfileSchema = createInsertSchema(providerProfiles).omit({ id: true });
 export const insertListingSchema = createInsertSchema(videoListings).omit({ id: true, createdAt: true, updatedAt: true, dropDate: true, pricePaidCents: true, stripeSessionId: true, status: true });
+export const insertGigJackSchema = createInsertSchema(gigJacks).omit({ id: true, createdAt: true, updatedAt: true, status: true, reviewNote: true, botWarning: true, botWarningMessage: true });
 
 // === API CONTRACT TYPES ===
 export type User = typeof users.$inferSelect;
@@ -105,7 +131,14 @@ export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type VideoListing = typeof videoListings.$inferSelect;
 export type InsertListing = z.infer<typeof insertListingSchema>;
 
+export type GigJack = typeof gigJacks.$inferSelect;
+export type InsertGigJack = z.infer<typeof insertGigJackSchema>;
+
 export interface ListingWithProvider extends VideoListing {
+  provider: ProviderProfile & { user: User };
+}
+
+export interface GigJackWithProvider extends GigJack {
   provider: ProviderProfile & { user: User };
 }
 
@@ -142,6 +175,23 @@ export type CreateListingRequest = {
   productPrice?: string | null;
   productPurchaseUrl?: string | null;
   productStock?: string | null;
+};
+
+// GigJack submission
+export type CreateGigJackRequest = {
+  companyUrl: string;
+  artworkUrl: string;
+  offerTitle: string;
+  description: string;
+  ctaLink: string;
+  countdownMinutes: number;
+  couponCode?: string | null;
+  quantityLimit?: number | null;
+};
+
+export type ReviewGigJackRequest = {
+  status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT";
+  reviewNote?: string;
 };
 
 // Simulated payment
