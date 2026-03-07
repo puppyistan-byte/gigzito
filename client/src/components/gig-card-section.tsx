@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { CreditCard, Download, Package, Loader2, RotateCcw, MapPin, Truck, Clock } from "lucide-react";
 import type { ProviderProfile } from "@shared/schema";
+import gigzitoLogoPath from "@assets/reoverblack_1772857110054.jpg";
 
 const CARD_W = 350;
 const CARD_H = 200;
@@ -18,6 +19,9 @@ interface GigCardSectionProps {
 function CardFront({ qrDataUrl, size = CARD_W }: { qrDataUrl: string | null; size?: number }) {
   const h = Math.round(size * (CARD_H / CARD_W));
   const scale = size / CARD_W;
+  const qrSize = 108 * scale;
+  const qrRight = 14 * scale;
+  const qrTop = 16 * scale;
   return (
     <div
       style={{
@@ -27,33 +31,35 @@ function CardFront({ qrDataUrl, size = CARD_W }: { qrDataUrl: string | null; siz
         borderRadius: 8 * scale,
         position: "relative",
         overflow: "hidden",
-        fontFamily: "'Arial Black', 'Arial', sans-serif",
         userSelect: "none",
         flexShrink: 0,
       }}
       data-testid="gig-card-front"
     >
-      {/* Red accent stripe */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3 * scale, background: "#ff2b2b" }} />
-
-      {/* Left column - branding */}
-      <div style={{ position: "absolute", left: 16 * scale, top: 20 * scale, width: 190 * scale }}>
-        <div style={{ fontSize: 26 * scale, fontWeight: 900, color: "#ff2b2b", lineHeight: 1, letterSpacing: -1 * scale }}>
-          Gigzito
-        </div>
-        <div style={{ fontSize: 9 * scale, color: "rgba(255,255,255,0.7)", marginTop: 4 * scale, letterSpacing: 0.5 * scale }}>
-          Getcho Gig On!
-        </div>
-      </div>
+      {/* Official logo image – fills the left portion; black bg blends naturally */}
+      <img
+        src={gigzitoLogoPath}
+        alt="Gigzito"
+        style={{
+          position: "absolute",
+          left: -10 * scale,
+          top: "50%",
+          transform: "translateY(-52%)",
+          width: 220 * scale,
+          height: "auto",
+          objectFit: "contain",
+          pointerEvents: "none",
+        }}
+      />
 
       {/* QR code - right column */}
       <div
         style={{
           position: "absolute",
-          right: 16 * scale,
-          top: 18 * scale,
-          width: 110 * scale,
-          height: 110 * scale,
+          right: qrRight,
+          top: qrTop,
+          width: qrSize,
+          height: qrSize,
           background: "#fff",
           borderRadius: 4 * scale,
           display: "flex",
@@ -72,20 +78,21 @@ function CardFront({ qrDataUrl, size = CARD_W }: { qrDataUrl: string | null; siz
       {/* Scan text */}
       <div style={{
         position: "absolute",
-        right: 16 * scale,
-        top: 136 * scale,
-        width: 110 * scale,
+        right: qrRight,
+        top: qrTop + qrSize + 4 * scale,
+        width: qrSize,
         textAlign: "center",
         fontSize: 7 * scale,
-        color: "rgba(255,255,255,0.4)",
+        color: "rgba(255,255,255,0.35)",
         letterSpacing: 0.3 * scale,
+        fontFamily: "Arial, sans-serif",
       }}>
         Scan to unlock my gigs
       </div>
 
       {/* Bottom red bar */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28 * scale, background: "#ff2b2b", display: "flex", alignItems: "center", paddingLeft: 16 * scale }}>
-        <span style={{ fontSize: 7.5 * scale, color: "#fff", fontWeight: 700, letterSpacing: 1 * scale, textTransform: "uppercase" }}>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 24 * scale, background: "#ff2b2b", display: "flex", alignItems: "center", paddingLeft: 14 * scale }}>
+        <span style={{ fontSize: 7 * scale, color: "#fff", fontWeight: 700, letterSpacing: 1.2 * scale, textTransform: "uppercase", fontFamily: "Arial, sans-serif" }}>
           gigzito.com
         </span>
       </div>
@@ -196,6 +203,15 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ orientation: "landscape", unit: "in", format: [3.5, 2] });
 
+      // Fetch logo as base64 data URL for PDF embedding
+      const logoDataUrl = await fetch(gigzitoLogoPath)
+        .then((r) => r.blob())
+        .then((blob) => new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        }));
+
       const roleLabel = profile.primaryCategory
         ? profile.primaryCategory.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
         : "Creator";
@@ -204,22 +220,10 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
       doc.setFillColor("#000000");
       doc.rect(0, 0, 3.5, 2, "F");
 
-      // Red top stripe
-      doc.setFillColor("#ff2b2b");
-      doc.rect(0, 0, 3.5, 0.03, "F");
-
-      // "Gigzito" logo
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(28);
-      doc.setTextColor("#ff2b2b");
-      doc.text("Gigzito", 0.18, 0.42);
-
-      // Tagline
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor("rgba(255,255,255,0.7)");
-      doc.setTextColor(180, 180, 180);
-      doc.text("Getcho Gig On!", 0.18, 0.58);
+      // Official Gigzito logo image (left column, black bg blends)
+      // Logo native ratio: 1022×563 ≈ 1.815:1
+      // Target: 1.9" wide × 1.05" tall, nudged left so scripts don't clip
+      doc.addImage(logoDataUrl, "JPEG", -0.08, 0.35, 1.9, 1.05);
 
       // QR code (right side)
       doc.addImage(qrDataUrl, "PNG", 2.26, 0.17, 1.06, 1.06);
