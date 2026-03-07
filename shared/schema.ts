@@ -83,11 +83,15 @@ export const gigJacks = pgTable("gig_jacks", {
   tagline: text("tagline"),
   category: text("category"),
   scheduledAt: timestamp("scheduled_at"),
+  bookedDate: text("booked_date"),
+  bookedHour: integer("booked_hour"),
   flashDurationSeconds: integer("flash_duration_seconds").default(7),
   status: gigJackStatusEnum("status").notNull().default("PENDING_REVIEW"),
   reviewNote: text("review_note"),
   botWarning: boolean("bot_warning").notNull().default(false),
   botWarningMessage: text("bot_warning_message"),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: integer("approved_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -282,6 +286,19 @@ export type GigJackSlot = {
   dateLabel: string;
   iso: string;
   available: boolean;
+};
+
+export type HourSlot = {
+  hour: number;
+  label: string;
+  approvedCount: number;
+  pendingCount: number;
+  available: boolean;
+};
+
+export type SlotAvailabilityResponse = {
+  date: string;
+  hours: HourSlot[];
 };
 
 export type ReviewGigJackRequest = {

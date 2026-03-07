@@ -600,9 +600,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       ctaLink: z.string().url(),
       tagline: z.string().max(120).optional().nullable(),
       category: z.string().max(60).optional().nullable(),
+      bookedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+      bookedHour: z.coerce.number().int().min(0).max(23).optional().nullable(),
       scheduledAt: z.string().datetime().optional().nullable(),
       flashDurationSeconds: z.coerce.number().int().min(5).max(10).optional().nullable(),
-      companyUrl: z.string().url().optional(),
+      companyUrl: z.string().url().optional().or(z.literal("")),
       description: z.string().optional(),
       countdownMinutes: z.coerce.number().int().optional(),
       couponCode: z.string().max(40).optional().nullable(),
@@ -613,6 +615,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     try {
       const data = schema.parse(req.body);
+
+      // Validate slot availability (non-admin only) — check 2-per-hour approved cap
+      if (!isAdminGj && data.bookedDate && data.bookedHour !== null && data.bookedHour !== undefined) {
+        const slots = await storage.getSlotAvailability(data.bookedDate);
+        const slot = slots.find((s) => s.hour === data.bookedHour);
+        if (slot && !slot.available) {
+          return res.status(409).json({ message: "This hour slot is fully booked (2 approved GigJacks). Please choose another time." });
+        }
+      }
+
       const botResult = isAdminGj
         ? { warning: false, message: null }
         : runBotChecks({
@@ -628,9 +640,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         ctaLink: data.ctaLink,
         tagline: data.tagline ?? null,
         category: data.category ?? null,
+        bookedDate: data.bookedDate ?? undefined,
+        bookedHour: data.bookedHour ?? undefined,
         scheduledAt: data.scheduledAt ?? null,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
-        companyUrl: data.companyUrl ?? data.ctaLink,
+        companyUrl: data.companyUrl || data.ctaLink,
         description: data.description ?? data.tagline ?? data.offerTitle,
         countdownMinutes: data.countdownMinutes ?? 0,
         couponCode: data.couponCode ?? null,
@@ -665,10 +679,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(gigjacks);
   });
 
+  app.get("/api/gigjacks/availability", async (req, res) => {
+    const date = req.query.date as string;
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
+    }
+    const hours = await storage.getSlotAvailability(date);
+    return res.json({ date, hours });
+  });
+
   app.patch("/api/admin/gigjacks/:id/review", async (req, res) => {
     if (!requireAdmin(req, res)) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(404).json({ message: "Not found" });
+    const adminUserId = (req.session as any).userId;
 
     const schema = z.object({
       status: z.enum(["APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"]),
@@ -677,9 +701,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     try {
       const { status, reviewNote } = schema.parse(req.body);
-      const gj = await storage.reviewGigJack(id, status, reviewNote);
-      if (!gj) return res.status(404).json({ message: "GigJack not found" });
-      return res.json(gj);
+      const result = await storage.reviewGigJack(id, status, reviewNote, adminUserId);
+      if (result.error) return res.status(409).json({ message: result.error });
+      if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
+      return res.json(result.gj);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });

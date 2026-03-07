@@ -1,0 +1,64 @@
+Replace the current horizontal time-slot layout for Gig Jacks with a calendar/date-time booking system.
+
+NEW GIG JACK RULES
+1. Users must select a date and time for their Gig Jack from a calendar interface.
+2. Only 2 Gig Jacks may be requested per hour block.
+3. If 2 Gig Jacks already exist for a given hour, that hour must show as unavailable or disabled.
+4. A user can submit a Gig Jack request for an available hour, but it is NOT live until admin approves it.
+5. All new Gig Jack bookings should enter a “pending approval” state by default.
+
+USER SIDE
+1. Add a calendar picker for date selection.
+2. After selecting a date, show available hourly Gig Jack slots for that day.
+3. Only show hour blocks that have fewer than 2 existing Gig Jack bookings.
+4. When a user selects a time and submits, save the Gig Jack request with:
+   - selected date
+   - selected hour block
+   - status = pending
+   - submitted by user
+5. After submission, show:
+   “Your Gig Jack request has been submitted and is awaiting admin approval.”
+
+ADMIN SIDE
+1. In the admin console, add a Gig Jack approval section.
+2. Admin must be able to see all Gig Jack requests with:
+   - user
+   - date
+   - hour
+   - status
+3. Add an APPROVE button for each pending Gig Jack request.
+4. Add an optional REJECT button as well.
+5. When admin clicks APPROVE:
+   - booking status changes from pending to approved
+   - the Gig Jack becomes active/live
+6. If 2 Gig Jacks for that same hour are already approved, prevent approving additional requests for that hour.
+7. Pending requests can still exist for a full hour, but admin cannot approve beyond the 2-per-hour limit.
+
+DATABASE / LOGIC
+Add Gig Jack fields if they do not already exist:
+- id
+- userId
+- date
+- hourSlot
+- status (pending, approved, rejected)
+- createdAt
+- approvedAt
+- approvedBy
+
+BOOKING LOGIC
+- Maximum approved Gig Jacks per hour = 2
+- Pending requests do not count as live until approved
+- Approved Gig Jacks count toward the 2-per-hour cap
+- Calendar must reflect approved count and optionally pending count
+
+UI NOTES
+- Make the calendar clean, modern, and mobile-friendly
+- Use clear labels:
+  Pending Approval
+  Approved
+  Rejected
+- Approved Gig Jacks should visually differ from pending ones
+- Disabled/full time slots should appear grayed out
+
+GOAL
+The horizontal Gig Jack slots must be removed and fully replaced by a calendar-driven approval workflow where users request a Gig Jack time and admin manually approves it, with a hard cap of 2 approved Gig Jacks per hour.

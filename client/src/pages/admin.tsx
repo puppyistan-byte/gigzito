@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Shield, DollarSign, BarChart2, Eye, EyeOff, Trash2, Zap,
-  Users, Video, UserCheck, UserX, ChevronDown, LayoutDashboard,
+  Users, Video, UserCheck, UserX, LayoutDashboard, CalendarDays, Clock,
+  CheckCircle, XCircle, AlertCircle,
 } from "lucide-react";
 import type { GigJackWithProvider, UserWithProfile } from "@shared/schema";
 
@@ -145,10 +146,14 @@ export default function AdminPage() {
   const reviewMutation = useMutation({
     mutationFn: async ({ id, status, reviewNote }: { id: number; status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT"; reviewNote?: string }) => {
       const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/review`, { status, reviewNote });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.message ?? "Failed to update GigJack");
+      }
       return res.json();
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] }); toast({ title: "GigJack updated" }); },
-    onError: () => toast({ title: "Error updating GigJack", variant: "destructive" }),
+    onError: (err: any) => toast({ title: "Error updating GigJack", description: err.message ?? "", variant: "destructive" }),
   });
 
   const userStatusMutation = useMutation({
@@ -466,18 +471,107 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredGigJacks.map((gj) => (
-                  <GigJackCard
-                    key={gj.id}
-                    gigJack={gj}
-                    showStatus
-                    showAdminActions
-                    isPending={reviewMutation.isPending}
-                    onApprove={(id) => reviewMutation.mutate({ id, status: "APPROVED" })}
-                    onReject={(id) => reviewMutation.mutate({ id, status: "REJECTED" })}
-                    onNeedsImprovement={(id) => reviewMutation.mutate({ id, status: "NEEDS_IMPROVEMENT" })}
-                  />
-                ))}
+                {filteredGigJacks.map((gj) => {
+                  const statusColor =
+                    gj.status === "APPROVED" ? "text-green-400 bg-green-400/10 border-green-400/20" :
+                    gj.status === "REJECTED" ? "text-red-400 bg-red-400/10 border-red-400/20" :
+                    gj.status === "NEEDS_IMPROVEMENT" ? "text-amber-400 bg-amber-400/10 border-amber-400/20" :
+                    "text-blue-400 bg-blue-400/10 border-blue-400/20";
+                  const hourNum = gj.bookedHour;
+                  const hourLabel = hourNum !== null && hourNum !== undefined
+                    ? (() => {
+                        const p = hourNum < 12 ? "AM" : "PM";
+                        const d = hourNum === 12 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+                        return `${d}:00 ${p}`;
+                      })()
+                    : null;
+                  return (
+                    <div key={gj.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3" data-testid={`card-admin-gigjack-${gj.id}`}>
+                      <div className="flex items-start gap-3">
+                        {gj.artworkUrl && (
+                          <img src={gj.artworkUrl} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0 border border-[#222]" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusColor}`}>
+                              {gj.status.replace("_", " ")}
+                            </span>
+                            {gj.botWarning && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border text-amber-400 bg-amber-400/10 border-amber-400/20">
+                                Bot Warning
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-semibold text-white text-sm leading-snug line-clamp-2">{gj.offerTitle}</p>
+                          <p className="text-xs text-[#555] mt-0.5">
+                            {gj.provider?.displayName ?? gj.provider?.username ?? "Unknown provider"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Booking slot */}
+                      {(gj.bookedDate || hourLabel) && (
+                        <div className="flex items-center gap-4 rounded-lg bg-[#ff2b2b]/06 border border-[#ff2b2b]/15 px-3 py-2">
+                          {gj.bookedDate && (
+                            <span className="flex items-center gap-1.5 text-xs text-[#ccc]">
+                              <CalendarDays className="h-3.5 w-3.5 text-[#ff2b2b]" />
+                              {gj.bookedDate}
+                            </span>
+                          )}
+                          {hourLabel && (
+                            <span className="flex items-center gap-1.5 text-xs text-[#ccc]">
+                              <Clock className="h-3.5 w-3.5 text-[#ff2b2b]" />
+                              {hourLabel}
+                            </span>
+                          )}
+                          {!gj.bookedDate && !hourLabel && (
+                            <span className="text-xs text-[#555]">No slot selected</span>
+                          )}
+                        </div>
+                      )}
+
+                      {gj.botWarningMessage && (
+                        <p className="text-xs text-amber-400/80 bg-amber-400/06 border border-amber-400/15 rounded-lg px-3 py-2">
+                          <span className="font-semibold">Bot flag:</span> {gj.botWarningMessage}
+                        </p>
+                      )}
+
+                      {gj.status === "PENDING_REVIEW" && (
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            disabled={reviewMutation.isPending}
+                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "APPROVED" })}
+                            className="flex-1 gap-1.5 bg-green-600 hover:bg-green-500 border-0 text-white"
+                            data-testid={`btn-approve-gigjack-${gj.id}`}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={reviewMutation.isPending}
+                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "NEEDS_IMPROVEMENT" })}
+                            variant="outline"
+                            className="flex-1 gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+                            data-testid={`btn-needs-improvement-gigjack-${gj.id}`}
+                          >
+                            <AlertCircle className="h-3.5 w-3.5" /> Needs Work
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={reviewMutation.isPending}
+                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "REJECTED" })}
+                            variant="outline"
+                            className="gap-1.5 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                            data-testid={`btn-reject-gigjack-${gj.id}`}
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

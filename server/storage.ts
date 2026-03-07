@@ -44,13 +44,14 @@ export interface IStorage {
   endLiveSession(id: number): Promise<void>;
 
   // GigJacks
-  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string }): Promise<GigJack>;
+  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string; bookedDate?: string; bookedHour?: number }): Promise<GigJack>;
   getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]>;
   getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
   getAllGigJacks(): Promise<GigJackWithProvider[]>;
-  reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string): Promise<GigJack | undefined>;
+  reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string, approvedBy?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
   getActiveGigJack(): Promise<GigJackWithProvider | null>;
   getAvailableSlots(): Promise<GigJackSlot[]>;
+  getSlotAvailability(date: string): Promise<import("@shared/schema").HourSlot[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -348,7 +349,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(liveSessions.id, id));
   }
 
-  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string }): Promise<GigJack> {
+  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string; bookedDate?: string; bookedHour?: number }): Promise<GigJack> {
+    // Build scheduledAt from bookedDate + bookedHour if provided
+    let scheduledAt: Date | null = null;
+    if (data.bookedDate && data.bookedHour !== undefined) {
+      scheduledAt = new Date(`${data.bookedDate}T${String(data.bookedHour).padStart(2, "0")}:00:00`);
+    } else if (data.scheduledAt) {
+      scheduledAt = new Date(data.scheduledAt);
+    }
     const [gj] = await db
       .insert(gigJacks)
       .values({
@@ -363,7 +371,9 @@ export class DatabaseStorage implements IStorage {
         quantityLimit: data.quantityLimit ?? null,
         tagline: data.tagline ?? null,
         category: data.category ?? null,
-        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        scheduledAt,
+        bookedDate: data.bookedDate ?? null,
+        bookedHour: data.bookedHour ?? null,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
         status: (data.initialStatus as any) ?? "PENDING_REVIEW",
         botWarning: data.botWarning,
@@ -399,13 +409,39 @@ export class DatabaseStorage implements IStorage {
     return this.enrichGigJacks(rows);
   }
 
-  async reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string): Promise<GigJack | undefined> {
+  async reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string, approvedBy?: number): Promise<{ gj: GigJack | undefined; error?: string }> {
+    if (status === "APPROVED") {
+      // Enforce 2-per-hour cap: check how many approved GigJacks share the same bookedDate + bookedHour
+      const target = await db.select().from(gigJacks).where(eq(gigJacks.id, id)).limit(1);
+      if (target.length > 0 && target[0].bookedDate && target[0].bookedHour !== null) {
+        const { bookedDate, bookedHour } = target[0];
+        const approvedInSlot = await db
+          .select()
+          .from(gigJacks)
+          .where(
+            and(
+              eq(gigJacks.bookedDate, bookedDate!),
+              eq(gigJacks.bookedHour, bookedHour!),
+              eq(gigJacks.status, "APPROVED"),
+              sql`${gigJacks.id} != ${id}`
+            )
+          );
+        if (approvedInSlot.length >= 2) {
+          return { gj: undefined, error: `This hour slot already has 2 approved GigJacks. Cannot approve more.` };
+        }
+      }
+    }
+    const setData: any = { status, reviewNote: reviewNote ?? null, updatedAt: new Date() };
+    if (status === "APPROVED") {
+      setData.approvedAt = new Date();
+      setData.approvedBy = approvedBy ?? null;
+    }
     const [gj] = await db
       .update(gigJacks)
-      .set({ status, reviewNote: reviewNote ?? null, updatedAt: new Date() })
+      .set(setData)
       .where(eq(gigJacks.id, id))
       .returning();
-    return gj;
+    return { gj };
   }
 
   async getActiveGigJack(): Promise<GigJackWithProvider | null> {
@@ -459,6 +495,44 @@ export class DatabaseStorage implements IStorage {
       }
     }
     return slots;
+  }
+
+  async getSlotAvailability(date: string): Promise<import("@shared/schema").HourSlot[]> {
+    const rows = await db
+      .select({ bookedHour: gigJacks.bookedHour, status: gigJacks.status })
+      .from(gigJacks)
+      .where(eq(gigJacks.bookedDate, date));
+
+    const approvedPerHour = new Map<number, number>();
+    const pendingPerHour = new Map<number, number>();
+    for (const row of rows) {
+      if (row.bookedHour === null) continue;
+      if (row.status === "APPROVED") {
+        approvedPerHour.set(row.bookedHour, (approvedPerHour.get(row.bookedHour) ?? 0) + 1);
+      } else if (row.status === "PENDING_REVIEW") {
+        pendingPerHour.set(row.bookedHour, (pendingPerHour.get(row.bookedHour) ?? 0) + 1);
+      }
+    }
+
+    const hours: import("@shared/schema").HourSlot[] = [];
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    for (let h = 8; h <= 21; h++) {
+      // Skip past hours for today
+      if (date === todayStr && h <= now.getHours()) continue;
+      const approvedCount = approvedPerHour.get(h) ?? 0;
+      const pendingCount = pendingPerHour.get(h) ?? 0;
+      const period = h < 12 ? "AM" : "PM";
+      const display = h === 12 ? 12 : h > 12 ? h - 12 : h;
+      hours.push({
+        hour: h,
+        label: `${display}:00 ${period}`,
+        approvedCount,
+        pendingCount,
+        available: approvedCount < 2,
+      });
+    }
+    return hours;
   }
 }
 
