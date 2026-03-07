@@ -18,10 +18,10 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, Calendar,
+  Inbox, Zap, Clock, ChevronUp, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, GigJackSlot } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -42,407 +42,262 @@ const CATEGORIES = [
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "EVENTS", "MUSIC_GIGS", "CORPORATE_DEALS",
 ];
 
-const gjFormSchema = z.object({
-  artworkUrl:          z.string().url("Must be a valid image URL (include https://)"),
-  offerTitle:          z.string().min(5, "Min 5 characters").max(120, "Max 120 characters"),
-  tagline:             z.string().max(120, "Max 120 characters").optional().or(z.literal("")),
-  category:            z.string().min(1, "Select a category"),
-  ctaLink:             z.string().url("Must be a valid URL (include https://)"),
-  scheduledAt:         z.string().min(1, "Select a time slot"),
-  flashDurationSeconds: z.coerce.number().int().min(5).max(10),
-});
-
-type GJFormValues = z.infer<typeof gjFormSchema>;
-
 function GigJackCenter() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [denyNote, setDenyNote] = useState("");
+  const [showDenyInput, setShowDenyInput] = useState<number | null>(null);
+
+  const isAdmin = user?.user?.role === "ADMIN" || user?.user?.role === "SUPER_ADMIN";
 
   const { data: myGigJacks = [], isLoading: gjLoading } = useQuery<GigJackWithProvider[]>({
-    queryKey: ["/api/gigjacks/mine"],
+    queryKey: isAdmin ? ["/api/admin/gigjacks"] : ["/api/gigjacks/mine"],
+    enabled: !!user,
   });
 
-  const { data: slots = [], isLoading: slotsLoading } = useQuery<GigJackSlot[]>({
-    queryKey: ["/api/gigjacks/slots"],
-    enabled: showForm,
-  });
-
-  const uniqueDates = [...new Set(slots.map((s) => s.dateLabel))];
-  const slotsForDate = slots.filter((s) => s.dateLabel === selectedDate && s.available);
-
-  const form = useForm<GJFormValues>({
-    resolver: zodResolver(gjFormSchema),
-    defaultValues: {
-      artworkUrl: "",
-      offerTitle: "",
-      tagline: "",
-      category: "",
-      ctaLink: "",
-      scheduledAt: "",
-      flashDurationSeconds: 7,
-    },
-  });
-
-  const submitMutation = useMutation({
-    mutationFn: async (data: GJFormValues) => {
-      const res = await apiRequest("POST", "/api/gigjacks/submit", {
-        ...data,
-        tagline: data.tagline || null,
-      });
+  const reviewMutation = useMutation({
+    mutationFn: async ({ id, status, reviewNote }: { id: number; status: "APPROVED" | "DENIED"; reviewNote?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/review`, { status, reviewNote });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "GigJack submitted!", description: "Pending admin review before it goes live." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] });
+      setShowDenyInput(null);
+      setDenyNote("");
+      toast({ title: "GigJack updated successfully" });
+    },
+    onError: (err: any) => toast({ title: "Update failed", description: err.message, variant: "destructive" }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/gigjacks/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to remove");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/gigjacks/mine"] });
-      setShowForm(false);
-      form.reset();
-      setSelectedDate("");
+      toast({ title: "GigJack removed" });
     },
-    onError: (err: any) => {
-      toast({ title: "Submission failed", description: err.message ?? "Please try again.", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Failed to remove GigJack", variant: "destructive" }),
   });
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Zap size={15} style={{ color: "#ff2b2b" }} />
-          <h2 className="text-sm font-semibold text-white" data-testid="text-gigjack-center-title">GigJack Center</h2>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Zap size={15} className="text-[#ff2b2b]" />
+          <h2 className="text-sm font-semibold text-white" data-testid="text-gigjack-center-title">
+            GigJack Center
+          </h2>
+          {isAdmin && (
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded-full px-2 py-0.5">
+              <ShieldCheck size={9} /> All Users
+            </span>
+          )}
         </div>
         <Button
           size="sm"
-          variant="ghost"
-          onClick={() => setShowForm((v) => !v)}
-          className="text-xs border border-[#2a2a2a] hover:border-[#444] rounded-lg h-7 px-2.5 text-[#888] hover:text-white"
-          data-testid="button-toggle-gigjack-form"
+          onClick={() => navigate("/gigjack/new")}
+          className="text-xs h-7 px-2.5 rounded-lg font-semibold"
+          style={{ background: "#ff2b2b", color: "#fff", border: "none" }}
+          data-testid="button-new-gigjack"
         >
-          {showForm ? <><ChevronUp className="h-3 w-3 mr-1" /> Cancel</> : <><PlusCircle className="h-3 w-3 mr-1" /> New GigJack</>}
+          <PlusCircle className="h-3 w-3 mr-1" /> New GigJack
         </Button>
       </div>
 
-      {/* Submission form */}
-      {showForm && (
-        <div
-          style={{
-            background: "rgba(255,43,43,0.03)",
-            border: "1px solid rgba(255,43,43,0.18)",
-            borderRadius: "12px",
-            padding: "16px",
-            marginBottom: "12px",
-          }}
-          data-testid="form-gigjack-center"
-        >
-          <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", marginBottom: "14px", lineHeight: "1.5" }}>
-            GigJacks are 5–10 second flash events that appear platform-wide when scheduled. Submit for review and pick a calendar slot.
-          </p>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((d) => submitMutation.mutate(d))} className="space-y-4">
+      {/* Info note */}
+      <div
+        className="rounded-lg mb-3 px-3 py-2 text-[11px] leading-relaxed"
+        style={{ background: "rgba(255,43,43,0.04)", border: "1px solid rgba(255,43,43,0.12)", color: "rgba(255,255,255,0.35)" }}
+      >
+        GigJacks are 5–10 second platform-wide flash events. Max <strong className="text-[rgba(255,255,255,0.5)]">2 per hour</strong>, with a <strong className="text-[rgba(255,255,255,0.5)]">15-minute</strong> gap between each. Click &ldquo;New GigJack&rdquo; to book a slot using the scheduling calendar (up to 90 days ahead).
+      </div>
 
-              <FormField control={form.control} name="artworkUrl" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>Logo / Artwork URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://..."
-                      data-testid="input-gj-artwork-url"
-                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground mt-1">Paste a direct image link (e.g. from Imgur). Square images work best.</p>
-                  <FormMessage />
-                  {field.value && (
-                    <img
-                      src={field.value}
-                      alt="preview"
-                      style={{ width: "72px", height: "72px", borderRadius: "8px", objectFit: "cover", marginTop: "6px" }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
-                  )}
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="offerTitle" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>Offer Title</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g. 50% off — today only!"
-                      data-testid="input-gj-offer-title"
-                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="tagline" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>Tagline <span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>(optional)</span></FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Short punchy description…"
-                      data-testid="input-gj-tagline"
-                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <FormField control={form.control} name="category" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel style={{ fontSize: "12px" }}>Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger
-                          data-testid="select-gj-category"
-                          style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
-                        >
-                          <SelectValue placeholder="Pick one" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent style={{ background: "#0b0b0b", border: "1px solid #2a2a2a" }}>
-                        {CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c} style={{ fontSize: "13px" }}>
-                            {c.replace(/_/g, " ")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                <FormField control={form.control} name="flashDurationSeconds" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel style={{ fontSize: "12px" }}>Flash Duration</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(parseInt(v))} value={String(field.value)}>
-                      <FormControl>
-                        <SelectTrigger
-                          data-testid="select-gj-duration"
-                          style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent style={{ background: "#0b0b0b", border: "1px solid #2a2a2a" }}>
-                        {[5, 6, 7, 8, 9, 10].map((n) => (
-                          <SelectItem key={n} value={String(n)} style={{ fontSize: "13px" }}>{n} seconds</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
-
-              <FormField control={form.control} name="ctaLink" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>Offer URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://yoursite.com/deal"
-                      data-testid="input-gj-cta-link"
-                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              {/* Slot picker */}
-              <FormField control={form.control} name="scheduledAt" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
-                    <Calendar size={12} />
-                    Schedule Slot
-                  </FormLabel>
-                  {slotsLoading ? (
-                    <div style={{ height: "48px", background: "#111", borderRadius: "8px", border: "1px solid #222" }} />
-                  ) : (
-                    <div className="space-y-2">
-                      {/* Date row */}
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        {uniqueDates.map((d) => {
-                          const hasAvail = slots.some((s) => s.dateLabel === d && s.available);
-                          return (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => { setSelectedDate(d); field.onChange(""); }}
-                              data-testid={`button-gj-date-${d.replace(/\s/g, "-")}`}
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: "500",
-                                padding: "4px 10px",
-                                borderRadius: "999px",
-                                border: selectedDate === d ? "1px solid rgba(255,43,43,0.6)" : "1px solid #2a2a2a",
-                                background: selectedDate === d ? "rgba(255,43,43,0.12)" : "#0b0b0b",
-                                color: selectedDate === d ? "#ff2b2b" : hasAvail ? "#888" : "#444",
-                                cursor: hasAvail ? "pointer" : "not-allowed",
-                                opacity: hasAvail ? 1 : 0.4,
-                              }}
-                            >
-                              {d}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {/* Time slots */}
-                      {selectedDate && (
-                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
-                          {slotsForDate.length === 0 ? (
-                            <p style={{ fontSize: "12px", color: "#555" }}>No available slots on this date.</p>
-                          ) : slotsForDate.map((s) => {
-                            const t = new Date(s.iso).toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
-                            const isSelected = field.value === s.iso;
-                            return (
-                              <button
-                                key={s.iso}
-                                type="button"
-                                onClick={() => field.onChange(s.iso)}
-                                data-testid={`button-gj-slot-${s.iso}`}
-                                style={{
-                                  fontSize: "12px",
-                                  fontWeight: "500",
-                                  padding: "4px 12px",
-                                  borderRadius: "999px",
-                                  border: isSelected ? "1px solid rgba(255,43,43,0.6)" : "1px solid #2a2a2a",
-                                  background: isSelected ? "rgba(255,43,43,0.12)" : "#0b0b0b",
-                                  color: isSelected ? "#ff2b2b" : "#888",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {t}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <div
-                style={{
-                  background: "rgba(255,43,43,0.05)",
-                  border: "1px solid rgba(255,43,43,0.12)",
-                  borderRadius: "8px",
-                  padding: "10px 12px",
-                  fontSize: "11px",
-                  color: "rgba(255,255,255,0.4)",
-                  lineHeight: "1.5",
-                }}
-              >
-                Billing is currently disabled. Slot reservations are free during the beta period.
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={submitMutation.isPending}
-                data-testid="button-submit-gigjack"
-                style={{ background: "#ff2b2b", color: "#fff", border: "none", fontWeight: 700 }}
-              >
-                <Zap size={14} style={{ marginRight: "6px" }} />
-                {submitMutation.isPending ? "Submitting…" : "Submit GigJack for Review"}
-              </Button>
-            </form>
-          </Form>
-        </div>
-      )}
-
-      {/* Existing GigJacks */}
+      {/* GigJack list */}
       {gjLoading ? (
         <div className="space-y-2">
-          {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full bg-[#111] rounded-xl" />)}
+          {[1, 2].map((i) => <Skeleton key={i} className="h-20 w-full bg-[#111] rounded-xl" />)}
         </div>
       ) : myGigJacks.length === 0 ? (
         <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-gigjacks">
           <Zap className="h-5 w-5 text-[#333] mx-auto mb-2" />
-          <p className="text-[#555] text-sm">No GigJacks yet. Submit one above to schedule a flash event.</p>
+          <p className="text-[#555] text-sm">No GigJacks yet.</p>
+          <Button
+            size="sm"
+            onClick={() => navigate("/gigjack/new")}
+            className="mt-3 text-xs"
+            style={{ background: "#ff2b2b", color: "#fff", border: "none" }}
+            data-testid="button-first-gigjack"
+          >
+            <Calendar className="h-3 w-3 mr-1" /> Book Your First GigJack Slot
+          </Button>
         </div>
       ) : (
         <div className="space-y-2">
           {myGigJacks.map((gj) => {
-            const st = GJ_STATUS[gj.status] ?? { label: gj.status, color: "#888" };
+            const isPending = gj.status === "PENDING_REVIEW";
+            const isApproved = gj.status === "APPROVED";
+            const isDenied = gj.status === "DENIED" || gj.status === "REJECTED";
+            const statusColor = isApproved ? "#22c55e" : isDenied ? "#ef4444" : isPending ? "#f59e0b" : "#888";
+            const statusLabel = isApproved ? "Approved" : isDenied ? "Denied" : isPending ? "Pending Review" : gj.status;
+
             return (
               <div
                 key={gj.id}
                 className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5"
                 data-testid={`card-gigjack-${gj.id}`}
               >
-                <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                <div className="flex gap-3 items-start">
                   {gj.artworkUrl && (
                     <img
                       src={gj.artworkUrl}
                       alt={gj.offerTitle}
-                      style={{ width: "48px", height: "48px", borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
+                      className="w-12 h-12 rounded-lg object-cover shrink-0"
                       data-testid={`img-gj-artwork-${gj.id}`}
                     />
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-                      <p className="text-sm font-semibold text-white truncate" data-testid={`text-gj-title-${gj.id}`}>
-                        {gj.offerTitle}
-                      </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate" data-testid={`text-gj-title-${gj.id}`}>
+                          {gj.offerTitle}
+                        </p>
+                        {isAdmin && gj.provider?.displayName && (
+                          <p className="text-[10px] text-[#555] mt-0.5">
+                            by <span className="text-[#777]">{gj.provider.displayName}</span>
+                          </p>
+                        )}
+                      </div>
                       <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 600,
-                          color: st.color,
-                          background: `${st.color}18`,
-                          border: `1px solid ${st.color}44`,
-                          borderRadius: "999px",
-                          padding: "2px 7px",
-                          whiteSpace: "nowrap",
-                          flexShrink: 0,
-                        }}
+                        className="shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5"
+                        style={{ color: statusColor, background: `${statusColor}18`, border: `1px solid ${statusColor}44` }}
                         data-testid={`badge-gj-status-${gj.id}`}
                       >
-                        {st.label}
+                        {statusLabel}
                       </span>
                     </div>
-                    {gj.tagline && (
-                      <p className="text-xs text-[#555] mt-0.5" data-testid={`text-gj-tagline-${gj.id}`}>{gj.tagline}</p>
-                    )}
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "5px", flexWrap: "wrap" }}>
+
+                    <div className="flex items-center gap-3 flex-wrap mt-1.5">
+                      {gj.scheduledAt ? (
+                        <span className="flex items-center gap-1 text-[10px] text-[#555]">
+                          <Clock size={9} />
+                          {new Date(gj.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#444] italic">No time scheduled</span>
+                      )}
                       {gj.category && (
-                        <span style={{ fontSize: "10px", color: "#555", background: "#111", border: "1px solid #222", borderRadius: "4px", padding: "1px 6px" }}>
+                        <span className="text-[10px] text-[#555] bg-[#111] border border-[#1e1e1e] rounded px-1.5 py-0.5">
                           {gj.category.replace(/_/g, " ")}
                         </span>
                       )}
-                      {gj.scheduledAt && (
-                        <span style={{ display: "flex", alignItems: "center", gap: "3px", fontSize: "10px", color: "#555" }}>
-                          <Clock size={9} />
-                          {new Date(gj.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", hour12: true })}
-                        </span>
-                      )}
                       {gj.flashDurationSeconds && (
-                        <span style={{ fontSize: "10px", color: "#444" }}>{gj.flashDurationSeconds}s flash</span>
+                        <span className="text-[10px] text-[#444]">{gj.flashDurationSeconds}s flash</span>
                       )}
                       <a
                         href={gj.ctaLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ display: "flex", alignItems: "center", gap: "2px", fontSize: "10px", color: "#ff2b2b" }}
+                        className="flex items-center gap-1 text-[10px] text-[#ff2b2b]"
                         data-testid={`link-gj-cta-${gj.id}`}
                       >
-                        <ExternalLink size={9} /> View offer
+                        <ExternalLink size={9} /> Offer link
                       </a>
                     </div>
+
                     {gj.reviewNote && (
-                      <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "5px" }}>Note: {gj.reviewNote}</p>
+                      <p className="text-[11px] text-amber-400 mt-1.5">Note: {gj.reviewNote}</p>
+                    )}
+
+                    {/* Admin action buttons */}
+                    {isAdmin && (
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {isPending && (
+                          <>
+                            <Button
+                              size="sm"
+                              disabled={reviewMutation.isPending}
+                              onClick={() => reviewMutation.mutate({ id: gj.id, status: "APPROVED" })}
+                              className="h-6 px-2 text-[10px] gap-1 bg-green-600 hover:bg-green-500 text-white border-0"
+                              data-testid={`btn-approve-gigjack-${gj.id}`}
+                            >
+                              <CheckCircle size={10} /> Approve
+                            </Button>
+                            {showDenyInput === gj.id ? (
+                              <div className="flex gap-1 items-center">
+                                <input
+                                  value={denyNote}
+                                  onChange={(e) => setDenyNote(e.target.value)}
+                                  placeholder="Reason (optional)"
+                                  className="h-6 px-2 text-[10px] rounded bg-[#111] border border-[#2a2a2a] text-white w-32 focus:outline-none focus:border-red-500/30"
+                                  data-testid={`input-deny-note-${gj.id}`}
+                                />
+                                <Button
+                                  size="sm"
+                                  disabled={reviewMutation.isPending}
+                                  onClick={() => { reviewMutation.mutate({ id: gj.id, status: "DENIED", reviewNote: denyNote || undefined }); }}
+                                  className="h-6 px-2 text-[10px] gap-1 bg-red-600 hover:bg-red-500 text-white border-0"
+                                  data-testid={`btn-confirm-deny-${gj.id}`}
+                                >
+                                  Confirm Deny
+                                </Button>
+                                <button
+                                  onClick={() => { setShowDenyInput(null); setDenyNote(""); }}
+                                  className="text-[#555] hover:text-white text-[10px]"
+                                >✕</button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setShowDenyInput(gj.id)}
+                                className="h-6 px-2 text-[10px] gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                data-testid={`btn-deny-gigjack-${gj.id}`}
+                              >
+                                <XCircle size={10} /> Deny
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        {!isPending && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={reviewMutation.isPending}
+                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "APPROVED" })}
+                            className="h-6 px-2 text-[10px] gap-1 border-green-500/30 text-green-400 hover:bg-green-500/10"
+                            data-testid={`btn-re-approve-gigjack-${gj.id}`}
+                          >
+                            <CheckCircle size={10} /> {isApproved ? "Re-approve" : "Approve"}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/admin?tab=gigjacks`)}
+                          className="h-6 px-2 text-[10px] gap-1 border-[#2a2a2a] text-[#888] hover:border-[#ff2b2b]/30 hover:text-[#ff2b2b]"
+                          data-testid={`btn-edit-gigjack-${gj.id}`}
+                        >
+                          <Pencil size={10} /> Edit in Admin
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={removeMutation.isPending}
+                          onClick={() => { if (confirm("Remove this GigJack permanently?")) removeMutation.mutate(gj.id); }}
+                          className="h-6 px-2 text-[10px] gap-1 border-[#2a2a2a] text-[#555] hover:border-red-500/30 hover:text-red-400"
+                          data-testid={`btn-remove-gigjack-${gj.id}`}
+                        >
+                          <Trash2 size={10} /> Remove
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
