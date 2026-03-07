@@ -1,0 +1,68 @@
+Add a Source Format Disclaimer to the video upload / post creation interface.
+
+==================================================
+VIDEO SOURCE DISCLAIMER
+==================================================
+
+Display a clear notice when users upload or import a video.
+
+The purpose is to inform creators that Gigzito is optimized for short-form vertical content.
+
+This message should appear in the video upload or video link submission area.
+
+==================================================
+DISCLAIMER MESSAGE
+==================================================
+
+Display the following message near the upload field:
+
+"Source Format Notice
+
+Gigzito performs best with short-form vertical videos sourced from platforms such as:
+
+• YouTube Shorts
+• Instagram Reels
+• TikTok
+• Facebook Reels
+
+These formats are already optimized for vertical short-form engagement.
+
+If you upload full-size horizontal videos or non-short-form content, performance may be significantly reduced and the content may not scale within the Gigzito feed.
+
+Gigzito does not support optimization or scaling adjustments for non-short-form formats."
+
+==================================================
+OPTIONAL WARNING (WHEN NON-VERTICAL VIDEO DETECTED)
+==================================================
+
+If possible, detect video aspect ratio.
+
+If aspect ratio is not vertical (9:16):
+
+Show a warning message:
+
+"This video does not appear to be a vertical short-form format. Engagement and distribution may be limited."
+
+Allow the user to continue posting if they choose.
+
+==================================================
+UI PLACEMENT
+==================================================
+
+Place the disclaimer:
+
+• under the video upload field
+• under the video URL import field
+• inside the Create Post interface
+
+Use smaller but readable text styling.
+
+The message should inform users without interrupting the posting workflow.
+
+==================================================
+GOAL
+==================================================
+
+Encourage creators to use short-form vertical content optimized for the Gigzito feed.
+
+This prevents scaling issues and ensures a consistent feed experience similar to TikTok, Reels, and Shorts.

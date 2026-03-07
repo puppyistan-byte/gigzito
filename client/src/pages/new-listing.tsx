@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap, Smartphone } from "lucide-react";
 import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
@@ -43,6 +43,30 @@ function isTikTokShopUrl(url: string): boolean {
     return TIKTOK_DOMAINS.some((d) => hostname === d || hostname.endsWith("." + d));
   } catch {
     return false;
+  }
+}
+
+type VideoFormatStatus = "vertical" | "landscape" | "unknown";
+
+function detectVideoFormat(url: string): VideoFormatStatus {
+  if (!url) return "unknown";
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    const path = u.pathname;
+    // Known vertical / short-form platforms
+    if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "vertical";
+    if (host === "instagram.com" && (path.includes("/reel") || path.includes("/p/"))) return "vertical";
+    if (host === "facebook.com" && path.includes("/reel")) return "vertical";
+    if (host === "fb.watch") return "vertical";
+    if ((host === "youtube.com" || host === "youtu.be") && path.includes("/shorts/")) return "vertical";
+    // Standard YouTube watch links are typically landscape
+    if ((host === "youtube.com" || host === "youtu.be") && !path.includes("/shorts/")) return "landscape";
+    // Vimeo is typically landscape
+    if (host === "vimeo.com") return "landscape";
+    return "unknown";
+  } catch {
+    return "unknown";
   }
 }
 
@@ -97,7 +121,8 @@ export default function NewListingPage() {
     queryKey: ["/api/stats/daily"],
   });
 
-  const isTikTokLink = useMemo(() => form.ctaUrl ? isTikTokShopUrl(form.ctaUrl) : false, [form.ctaUrl]);
+  const isTikTokLink       = useMemo(() => form.ctaUrl ? isTikTokShopUrl(form.ctaUrl) : false, [form.ctaUrl]);
+  const videoFormatStatus  = useMemo(() => detectVideoFormat(form.videoUrl), [form.videoUrl]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -254,14 +279,46 @@ export default function NewListingPage() {
               <Label className="text-[#aaa] text-sm">Video URL *</Label>
               <Input
                 type="url"
-                placeholder="https://youtube.com/watch?v=..."
+                placeholder="https://youtube.com/shorts/... or tiktok.com/..."
                 value={form.videoUrl}
                 onChange={(e) => set("videoUrl", e.target.value)}
                 required
                 className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
                 data-testid="input-video-url"
               />
-              <p className="text-xs text-[#444]">YouTube and Vimeo supported.</p>
+
+              {/* Dynamic landscape warning */}
+              {videoFormatStatus === "landscape" && (
+                <div
+                  className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300"
+                  data-testid="alert-landscape-video"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400" />
+                  <span>
+                    <strong className="text-amber-400">Landscape video detected.</strong> This video does not appear to be a vertical short-form format.
+                    Engagement and distribution may be limited. You can still post, but vertical content performs best.
+                  </span>
+                </div>
+              )}
+
+              {/* Source Format Notice — always visible */}
+              <div
+                className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] text-xs text-[#666] mt-1"
+                data-testid="notice-source-format"
+              >
+                <Smartphone className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#444]" />
+                <div className="space-y-1">
+                  <p className="text-[#888] font-semibold">Source Format Notice</p>
+                  <p>Gigzito performs best with short-form <strong className="text-[#666]">vertical (9:16)</strong> videos from:</p>
+                  <ul className="list-none space-y-0.5 text-[#555] pl-0">
+                    <li>• YouTube Shorts</li>
+                    <li>• TikTok</li>
+                    <li>• Instagram Reels</li>
+                    <li>• Facebook Reels</li>
+                  </ul>
+                  <p className="text-[#444]">Horizontal or non-short-form videos may appear letterboxed in the feed. Gigzito does not scale or reformat non-vertical content.</p>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1.5">
