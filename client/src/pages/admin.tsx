@@ -18,6 +18,7 @@ import {
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import type { GigJackWithProvider, UserWithProfile, AuditLog, InjectedFeed } from "@shared/schema";
 
 interface AdminStats {
@@ -123,6 +124,9 @@ export default function AdminPage() {
   const [injStatus, setInjStatus] = useState<"active" | "inactive">("active");
   const [injEndsAt, setInjEndsAt] = useState("");
   const [editingInj, setEditingInj] = useState<InjectedFeed | null>(null);
+
+  // Delete confirmation dialog state
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string } | null>(null);
 
   const userRole = user?.user?.role ?? "";
   const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN");
@@ -802,7 +806,7 @@ export default function AdminPage() {
                     <EyeOff className="h-3.5 w-3.5 opacity-50" />
                   </Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-red-500"
-                    onClick={() => { if (confirm("Delete this listing permanently?")) deleteListingMutation.mutate(listing.id); }}
+                    onClick={() => setConfirmDelete({ id: listing.id, title: listing.title })}
                     disabled={deleteListingMutation.isPending}
                     data-testid={`button-admin-delete-listing-${listing.id}`}
                     title="Delete permanently">
@@ -1491,6 +1495,19 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <DeleteConfirmDialog
+          title={confirmDelete.title}
+          isPending={deleteListingMutation.isPending}
+          onConfirm={() => {
+            deleteListingMutation.mutate(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );

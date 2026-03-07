@@ -21,6 +21,7 @@ import {
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -49,6 +50,7 @@ function GigJackCenter() {
   const queryClient = useQueryClient();
   const [denyNote, setDenyNote] = useState("");
   const [showDenyInput, setShowDenyInput] = useState<number | null>(null);
+  const [confirmRemoveGJ, setConfirmRemoveGJ] = useState<{ id: number; title: string } | null>(null);
 
   const isAdmin = user?.user?.role === "ADMIN" || user?.user?.role === "SUPER_ADMIN";
 
@@ -291,7 +293,7 @@ function GigJackCenter() {
                           size="sm"
                           variant="outline"
                           disabled={removeMutation.isPending}
-                          onClick={() => { if (confirm("Remove this GigJack permanently?")) removeMutation.mutate(gj.id); }}
+                          onClick={() => setConfirmRemoveGJ({ id: gj.id, title: gj.offerTitle })}
                           className="h-6 px-2 text-[10px] gap-1 border-[#2a2a2a] text-[#555] hover:border-red-500/30 hover:text-red-400"
                           data-testid={`btn-remove-gigjack-${gj.id}`}
                         >
@@ -306,6 +308,18 @@ function GigJackCenter() {
           })}
         </div>
       )}
+
+      {confirmRemoveGJ && (
+        <DeleteConfirmDialog
+          title={confirmRemoveGJ.title}
+          isPending={removeMutation.isPending}
+          onConfirm={() => {
+            removeMutation.mutate(confirmRemoveGJ.id);
+            setConfirmRemoveGJ(null);
+          }}
+          onCancel={() => setConfirmRemoveGJ(null)}
+        />
+      )}
     </div>
   );
 }
@@ -315,6 +329,9 @@ export default function ProviderDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Delete confirmation for listings
+  const [confirmRemoveListing, setConfirmRemoveListing] = useState<{ id: number; title: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -536,7 +553,7 @@ export default function ProviderDashboard() {
                           <Play className="h-3.5 w-3.5" />
                         </Button>
                       ) : null}
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#ff1a1a]/60 hover:text-[#ff1a1a]" data-testid={`button-remove-${listing.id}`} onClick={() => statusMutation.mutate({ id: listing.id, status: "REMOVED" })} disabled={statusMutation.isPending || listing.status === "REMOVED"}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#ff1a1a]/60 hover:text-[#ff1a1a]" data-testid={`button-remove-${listing.id}`} onClick={() => setConfirmRemoveListing({ id: listing.id, title: listing.title })} disabled={statusMutation.isPending || listing.status === "REMOVED"}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -614,6 +631,18 @@ export default function ProviderDashboard() {
         </div>
 
       </div>
+
+      {confirmRemoveListing && (
+        <DeleteConfirmDialog
+          title={confirmRemoveListing.title}
+          isPending={statusMutation.isPending}
+          onConfirm={() => {
+            statusMutation.mutate({ id: confirmRemoveListing.id, status: "REMOVED" });
+            setConfirmRemoveListing(null);
+          }}
+          onCancel={() => setConfirmRemoveListing(null)}
+        />
+      )}
     </div>
   );
 }
