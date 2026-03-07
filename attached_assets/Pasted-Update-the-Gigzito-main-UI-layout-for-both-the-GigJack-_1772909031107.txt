@@ -1,0 +1,115 @@
+Update the Gigzito main UI layout for both the GigJack window and the ZitoTV module.
+
+==================================================
+GIGJACK WINDOW — POSITION / SIZE / VISUAL HIERARCHY
+==================================================
+
+The GigJack window is still not placed correctly.
+
+Make these changes:
+
+1. Move the GigJack window snugly into the TOP-RIGHT corner.
+2. It should be anchored tightly and intentionally in the corner with clean padding.
+3. Do not let it float inward away from the corner.
+4. Keep enough edge margin so it looks premium, but it should clearly belong to the top-right corner.
+
+Recommended placement:
+- position: fixed
+- top: small consistent margin
+- right: small consistent margin
+
+==================================================
+GIGJACK WINDOW — PROMINENCE
+==================================================
+
+The GigJack window needs to display more prominently.
+
+Make it feel like an important live-alert module.
+
+Required visual changes:
+1. Add a stronger RED FRAME around the GigJack window.
+2. Increase contrast so the window does not visually fade into the background.
+3. The red frame should feel intentional, branded, and premium.
+4. Add a subtle red glow or pulse when active.
+5. Keep styling clean — not cheap, not cluttered.
+
+The GigJack window should clearly read as:
+- a live alert zone
+- a premium flash-offer module
+- a persistent attention area
+
+==================================================
+GIGJACK WINDOW — SIREN INDICATOR
+==================================================
+
+Inside the GigJack window, add a siren indicator in the TOP-RIGHT area of the card itself.
+
+Behavior:
+1. The siren icon should live inside the GigJack card in the top-right corner.
+2. When a GigJack is ACTIVE:
+   - the siren should flash/pulse
+   - the siren should visually communicate urgency
+3. When there is NO active GigJack:
+   - the siren should remain idle or dim
+   - no aggressive flashing
+
+Recommended active behavior:
+- flashing red siren icon
+- subtle pulse animation
+- optional glow
+- no obnoxious constant full-card strobe
+
+This siren is separate from the outer card frame.
+It is a status beacon inside the GigJack window.
+
+==================================================
+GIGJACK STATES
+==================================================
+
+Idle state:
+- red frame still visible
+- placeholder copy visible
+- siren dim/inactive
+
+Active state:
+- red frame stronger
+- siren flashing
+- offer visible
+- countdown active
+- CTA visible
+
+Expired state:
+- offer removed from active widget
+- moved to Today's GigJacks
+- widget returns to idle placeholder state
+
+==================================================
+ZITOTV UI — SIZE INCREASE
+==================================================
+
+Increase the ZitoTV UI by 25%.
+
+Requirements:
+1. Make the ZitoTV frame one-quarter bigger than its current size.
+2. Keep it anchored in the bottom-left corner.
+3. Maintain the same general proportions and styling.
+4. Do not distort the frame.
+5. It should feel more substantial and readable.
+
+Label:
+Keep the text:
+ZitoTV
+
+The frame should still feel like a persistent monitor / live broadcast module.
+
+==================================================
+FINAL GOAL
+==================================================
+
+Top-right:
+GigJack window snug in the corner, stronger red frame, more prominent, siren icon inside the card flashing when active.
+
+Bottom-left:
+ZitoTV module enlarged by 25%, still anchored cleanly in the corner.
+
+The interface should feel balanced, branded, and intentional.

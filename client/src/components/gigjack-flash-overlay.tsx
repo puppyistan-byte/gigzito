@@ -159,10 +159,12 @@ export function GigJackFlashOverlay() {
           <div className="gigjack-siren-header">
             <Zap className="gigjack-siren-zap" size={12} />
             <span className="gigjack-siren-label">LIVE OFFER</span>
+            <div className="gigjack-beacon gigjack-beacon-active" aria-hidden="true" />
             <button
               className="gigjack-siren-close"
               onClick={() => setDismissed(true)}
               data-testid="button-gigjack-siren-dismiss"
+              style={{ marginLeft: "6px" }}
             >
               <X size={10} />
             </button>
@@ -233,6 +235,7 @@ export function GigJackFlashOverlay() {
         <div className="gigjack-siren-header">
           <Zap className="gigjack-siren-zap" size={12} style={{ color: "#333" }} />
           <span className="gigjack-siren-label" style={{ color: "#333" }}>GIG JACK</span>
+          <div className="gigjack-beacon gigjack-beacon-idle" aria-hidden="true" />
         </div>
         <div className="gigjack-idle-body" data-testid="gigjack-idle-placeholder">
           <div className="gigjack-idle-icon" aria-hidden="true">

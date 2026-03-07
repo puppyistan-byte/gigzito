@@ -59,8 +59,8 @@ export function MiniLivePlayer() {
     }
   };
 
-  const EMBED_H = 134;
-  const CARD_W = 238;
+  const EMBED_H = 168;
+  const CARD_W = 298;
 
   return (
     <div
