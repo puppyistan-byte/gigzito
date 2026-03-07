@@ -1,0 +1,282 @@
+Enhance the GigJack system to support a full live-event lifecycle consisting of:
+1. Flash Takeover Event
+2. Collapse to Siren Widget
+3. Active Offer Countdown
+4. Triage to Today's GigJack Queue
+5. Expired GigJack State
+
+==================================================
+GIGJACK CONCEPT
+==================================================
+
+A GigJack is a platform-wide interruption event on the Gigzito network designed to command attention for a breaking offer.
+
+When a scheduled and approved GigJack reaches its launch time, it must trigger a live visual event on the main UI.
+
+The GigJack lifecycle has four main phases:
+
+1. Flash Takeover
+2. Collapse to Siren Widget
+3. Active Offer Countdown
+4. Queue / Expired Listing
+
+==================================================
+PHASE 1 — FLASH TAKEOVER
+==================================================
+
+When the GigJack reaches its scheduled launch time:
+
+1. The GigJack takes over the main UI area.
+2. This takeover is temporary and acts like a breaking broadcast event.
+3. The offering must display prominently with:
+   - brand artwork/logo
+   - offer title
+   - tagline
+   - call to action
+   - offer link
+
+FLASH DURATION RULE
+
+The duration of the takeover must match the "Flash Duration" selected in the creation form.
+
+Example flash duration options:
+5 seconds
+7 seconds
+10 seconds
+30 seconds
+1 minute
+etc.
+
+The flash duration must NOT exceed the increment chosen by the user in the creation form.
+
+After the flash duration ends, the takeover must NOT disappear abruptly.
+
+==================================================
+PHASE 2 — THEATRICAL COLLAPSE
+==================================================
+
+When the flash takeover finishes:
+
+1. Animate the GigJack so it collapses theatrically.
+2. The collapse should feel dramatic and intentional.
+3. The GigJack should shrink and move toward the top-right area of the site.
+
+PLACEMENT RULES
+
+The collapsed element should:
+
+• appear near the top-right area of the site
+• NOT sit directly against the Zito TV module
+• maintain comfortable spacing
+• remain clearly visible
+
+The collapsed element becomes a **GigJack Siren Widget**.
+
+==================================================
+PHASE 3 — SIREN WIDGET + ACTIVE OFFER COUNTDOWN
+==================================================
+
+Once collapsed, the GigJack becomes a Siren Widget.
+
+The Siren Widget represents the live offer countdown.
+
+Widget behavior:
+
+• show offer title
+• show brand artwork/logo
+• show CTA / offer link
+• show countdown timer
+• show urgency styling
+• optional siren / alert effect
+
+The countdown timer reflects the **Offer Duration** selected by the marketer/creator.
+
+==================================================
+OFFER DURATION
+==================================================
+
+The marketer / creator initiating the GigJack decides the offer duration.
+
+Offer duration must support flexible timing including examples such as:
+
+10 minutes
+30 minutes
+1 hour
+6 hours
+12 hours
+24 hours
+
+Maximum allowed offer duration = 24 hours.
+
+Example scenario:
+
+Flash takeover = 7 seconds
+Offer duration = 10 minutes
+
+Behavior:
+
+• takeover runs for 7 seconds
+• collapses into siren widget
+• widget counts down from 10 minutes
+• when countdown reaches zero → GigJack expires
+
+==================================================
+VISITOR EXPERIENCE
+==================================================
+
+While the offer countdown is active:
+
+Visitors can:
+
+• click the Siren Widget
+• view the offer
+• navigate to the deal page
+
+Additionally, visitors can open a section called:
+
+"Today's GigJacks"
+
+==================================================
+TODAY'S GIGJACKS
+==================================================
+
+Create a section called:
+
+Today's GigJacks
+
+This section must display all GigJacks launched during the current day.
+
+The list must display in **vertical chronological order**.
+
+Each entry should include:
+
+• artwork/logo
+• offer title
+• brand
+• category
+• launch time
+• offer link
+• status
+
+Possible statuses:
+
+active
+expired
+
+Visitors should be able to click any GigJack entry to view the offer.
+
+==================================================
+QUEUE BEHAVIOR
+==================================================
+
+GigJacks move through a queue lifecycle.
+
+Example lifecycle:
+
+pending
+approved
+scheduled
+flash_takeover
+active_offer
+expired
+
+When the offer countdown reaches zero:
+
+1. The Siren Widget disappears.
+2. The GigJack is moved into the queue as "expired".
+3. The expired listing remains visible in Today's GigJacks.
+
+Expired entries should still be viewable but clearly marked.
+
+==================================================
+CREATION FORM REQUIREMENTS
+==================================================
+
+The GigJack creation form must include:
+
+Flash Duration
+Offer Duration
+
+Flash Duration controls how long the takeover appears on the main UI.
+
+Offer Duration controls how long the Siren Widget remains active.
+
+Validation rules:
+
+Flash Duration = selected increment
+Offer Duration ≤ 24 hours
+
+==================================================
+ADMIN / SUPER ADMIN CONTROLS
+==================================================
+
+Admin and Super Admin must be able to:
+
+• approve GigJacks
+• deny GigJacks
+• edit flash duration
+• edit offer duration
+• remove GigJacks
+• force end active GigJacks
+• manually move GigJacks to expired state
+
+Super Admin must retain override ability.
+
+==================================================
+DATABASE FIELDS
+==================================================
+
+Add or confirm these fields:
+
+flashDurationSeconds
+offerDurationMinutes
+scheduledAt
+flashStartedAt
+flashEndedAt
+offerStartedAt
+offerEndsAt
+completedAt
+status
+displayState
+sirenEnabled
+
+Status values:
+
+pending
+approved
+scheduled
+flash_takeover
+active_offer
+expired
+denied
+removed
+
+==================================================
+UI EXPERIENCE GOALS
+==================================================
+
+GigJacks should feel theatrical and premium.
+
+The experience should feel like:
+
+• a breaking broadcast event
+• a dramatic collapse transition
+• a persistent urgency widget
+• a daily event queue
+
+Avoid abrupt disappearance of events.
+
+Motion should feel cinematic and intentional.
+
+==================================================
+FINAL SYSTEM GOAL
+==================================================
+
+A GigJack should:
+
+1. launch as a flash takeover
+2. run for the flash duration selected
+3. collapse into a siren widget
+4. run a countdown for the chosen offer duration
+5. allow visitors to interact with the offer
+6. move to the Today's GigJacks list as expired once the timer ends
