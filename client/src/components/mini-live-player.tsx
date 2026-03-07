@@ -1,8 +1,30 @@
 import { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, X, Eye, Volume2, VolumeX } from "lucide-react";
-import type { LiveSessionWithProvider } from "@shared/schema";
+import { Radio, X, Eye, Volume2, VolumeX, ExternalLink } from "lucide-react";
+import type { LiveSessionWithProvider, InjectedFeed } from "@shared/schema";
+
+const PLATFORM_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  YouTube:   { bg: "#ff0000",   text: "#fff", label: "YouTube" },
+  TikTok:    { bg: "#010101",   text: "#fff", label: "TikTok" },
+  Instagram: { bg: "#c13584",   text: "#fff", label: "Instagram" },
+  Facebook:  { bg: "#1877f2",   text: "#fff", label: "Facebook" },
+};
+
+function getInjectedEmbedUrl(feed: InjectedFeed): string | null {
+  try {
+    const u = new URL(feed.sourceUrl);
+    if (feed.platform === "YouTube" || u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
+      let id = "";
+      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
+      else if (u.hostname === "youtu.be") id = u.pathname.slice(1);
+      else id = u.searchParams.get("v") ?? u.pathname.split("/").pop() ?? "";
+      if (!id) return null;
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
+    }
+    return null;
+  } catch { return null; }
+}
 
 function getEmbedUrl(url: string, muted: boolean): string | null {
   try {
@@ -45,8 +67,14 @@ export function MiniLivePlayer() {
     refetchInterval: 30000,
   });
 
+  const { data: activeInj } = useQuery<InjectedFeed | null>({
+    queryKey: ["/api/injected-feed/active"],
+    refetchInterval: 60000,
+  });
+
   const session = sessions[0];
   const hasSession = !!session && !dismissed;
+  const hasInjectedFeed = !hasSession && !!activeInj;
 
   const toggleMute = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -206,6 +234,76 @@ export function MiniLivePlayer() {
               </Link>
             )}
           </>
+        ) : hasInjectedFeed && activeInj ? (
+          /* Injected Feed */
+          (() => {
+            const embedUrl = getInjectedEmbedUrl(activeInj);
+            const platformStyle = PLATFORM_COLORS[activeInj.platform] ?? { bg: "#ff2b2b", text: "#fff", label: activeInj.platform };
+            return (
+              <div data-testid="mini-live-injected">
+                {/* Inject badge */}
+                <div style={{ position: "absolute", top: "30px", left: "6px", zIndex: 20, display: "flex", alignItems: "center", gap: "4px", background: platformStyle.bg, borderRadius: "999px", padding: "2px 7px" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: platformStyle.text, opacity: 0.85 }} />
+                  <span style={{ fontSize: "8px", fontWeight: "700", color: platformStyle.text, letterSpacing: "0.08em", textTransform: "uppercase" }}>{platformStyle.label}</span>
+                </div>
+
+                {embedUrl ? (
+                  /* Embeddable (YouTube) — iframe */
+                  <div
+                    className="relative w-full"
+                    style={{ height: `${EMBED_H}px`, background: "#000", cursor: "pointer" }}
+                    onClick={() => window.open(activeInj.sourceUrl, "_blank")}
+                  >
+                    <iframe
+                      src={embedUrl}
+                      title={activeInj.displayTitle ?? "Injected Feed"}
+                      className="absolute inset-0 w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      style={{ pointerEvents: "none" }}
+                    />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(11,11,11,0.7) 0%, transparent 55%)" }} />
+                    <div style={{ position: "absolute", bottom: "6px", right: "6px", background: "rgba(0,0,0,0.6)", borderRadius: "6px", padding: "3px 6px", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <ExternalLink style={{ width: "8px", height: "8px", color: "rgba(255,255,255,0.6)" }} />
+                      <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.6)", fontWeight: "600" }}>Open</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Non-embeddable (TikTok, Instagram, Facebook) — click-through card */
+                  <a href={activeInj.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block", textDecoration: "none" }}>
+                    <div
+                      className="relative w-full flex flex-col items-center justify-center gap-2"
+                      style={{ height: `${EMBED_H}px`, background: platformStyle.bg + "22", cursor: "pointer" }}
+                    >
+                      <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: platformStyle.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <ExternalLink style={{ width: "20px", height: "20px", color: platformStyle.text }} />
+                      </div>
+                      <p style={{ fontSize: "10px", fontWeight: "700", color: "#fff", textAlign: "center", padding: "0 12px", lineHeight: 1.3 }}>
+                        {activeInj.displayTitle ?? platformStyle.label + " Live"}
+                      </p>
+                      <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)" }}>Tap to watch</span>
+                    </div>
+                  </a>
+                )}
+
+                {/* Info row */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 8px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {activeInj.displayTitle ?? platformStyle.label + " Feed"}
+                    </p>
+                    {activeInj.category && (
+                      <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        #{activeInj.category}
+                      </p>
+                    )}
+                  </div>
+                  <a href={activeInj.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, padding: "4px 8px", background: platformStyle.bg, borderRadius: "6px", fontSize: "9px", fontWeight: "700", color: platformStyle.text, textDecoration: "none" }}>
+                    Watch
+                  </a>
+                </div>
+              </div>
+            );
+          })()
         ) : (
           /* Off Air */
           <Link href="/live">

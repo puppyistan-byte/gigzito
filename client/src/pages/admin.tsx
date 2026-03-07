@@ -15,8 +15,10 @@ import {
   Users, Video, UserCheck, UserX, LayoutDashboard, CalendarDays, Clock,
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
+  Radio, PlusCircle, ExternalLink, Wifi, WifiOff,
 } from "lucide-react";
-import type { GigJackWithProvider, UserWithProfile, AuditLog } from "@shared/schema";
+import { Input } from "@/components/ui/input";
+import type { GigJackWithProvider, UserWithProfile, AuditLog, InjectedFeed } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -56,7 +58,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "users" | "content" | "gigjacks" | "audit";
+type AdminTab = "overview" | "users" | "content" | "gigjacks" | "audit" | "injection";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -112,6 +114,16 @@ export default function AdminPage() {
   const [editContactEmail, setEditContactEmail] = useState("");
   const [editLocation, setEditLocation] = useState("");
 
+  // Injection state
+  const [injPlatform, setInjPlatform] = useState("YouTube");
+  const [injUrl, setInjUrl] = useState("");
+  const [injTitle, setInjTitle] = useState("");
+  const [injCategory, setInjCategory] = useState("");
+  const [injMode, setInjMode] = useState<"immediate" | "fallback">("fallback");
+  const [injStatus, setInjStatus] = useState<"active" | "inactive">("active");
+  const [injEndsAt, setInjEndsAt] = useState("");
+  const [editingInj, setEditingInj] = useState<InjectedFeed | null>(null);
+
   const userRole = user?.user?.role ?? "";
   const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN");
   const isSuperAdmin = userRole === "SUPER_ADMIN";
@@ -143,6 +155,55 @@ export default function AdminPage() {
   const { data: auditLogs, isLoading: auditLoading } = useQuery<AuditLog[]>({
     queryKey: ["/api/admin/audit-log"],
     enabled: enabled && isSuperAdmin && activeTab === "audit",
+  });
+
+  const { data: injectedFeeds = [], isLoading: injLoading } = useQuery<InjectedFeed[]>({
+    queryKey: ["/api/admin/injected-feeds"],
+    enabled: enabled && activeTab === "injection",
+  });
+
+  const createInjMutation = useMutation({
+    mutationFn: async (data: object) => {
+      const res = await apiRequest("POST", "/api/admin/injected-feeds", data);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/injected-feeds"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/injected-feed/active"] });
+      toast({ title: "Feed injected" });
+      setInjUrl(""); setInjTitle(""); setInjCategory(""); setInjEndsAt("");
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updateInjMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: object }) => {
+      const res = await apiRequest("PATCH", `/api/admin/injected-feeds/${id}`, data);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/injected-feeds"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/injected-feed/active"] });
+      toast({ title: "Feed updated" });
+      setEditingInj(null);
+    },
+    onError: () => toast({ title: "Error updating feed", variant: "destructive" }),
+  });
+
+  const deleteInjMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/injected-feeds/${id}`, undefined);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/injected-feeds"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/injected-feed/active"] });
+      toast({ title: "Feed removed" });
+    },
+    onError: () => toast({ title: "Error removing feed", variant: "destructive" }),
   });
 
   const statusMutation = useMutation({
@@ -417,6 +478,7 @@ export default function AdminPage() {
           <TabBtn label="Users" icon={Users} active={activeTab === "users"} onClick={() => setActiveTab("users")} badge={disabledCount} />
           <TabBtn label="Content" icon={Video} active={activeTab === "content"} onClick={() => setActiveTab("content")} />
           <TabBtn label="GigJacks" icon={Zap} active={activeTab === "gigjacks"} onClick={() => setActiveTab("gigjacks")} badge={pendingCount} />
+          <TabBtn label="Live Injection" icon={Radio} active={activeTab === "injection"} onClick={() => setActiveTab("injection")} />
           {isSuperAdmin && (
             <TabBtn label="Audit Log" icon={ClipboardList} active={activeTab === "audit"} onClick={() => setActiveTab("audit")} superOnly />
           )}
@@ -951,6 +1013,231 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════ LIVE INJECTION ═══════════════════════════════ */}
+        {activeTab === "injection" && (
+          <div className="space-y-4" data-testid="section-admin-injection">
+            <div className="flex items-center gap-2">
+              <Radio className="h-4 w-4 text-[#ff2b2b]" />
+              <h2 className="text-sm font-semibold text-white">Live Feed Injection</h2>
+              <span className="ml-auto text-xs text-[#444]">Content continuity tool</span>
+            </div>
+
+            <div className="rounded-xl bg-[#070707] border border-[#ff2b2b]/20 p-3 text-xs text-[#666] leading-relaxed">
+              <p className="text-[#888]">Inject a live or fallback source into the platform when no scheduled content is active. <strong className="text-[#aaa]">Immediate</strong> mode activates right away; <strong className="text-[#aaa]">Fallback Only</strong> shows only when no GigJack or live event is running.</p>
+            </div>
+
+            {/* Create form */}
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-[#555] uppercase tracking-widest flex items-center gap-1.5">
+                  <PlusCircle className="h-3.5 w-3.5" /> {editingInj ? "Edit Injection" : "New Injection"}
+                </h3>
+                {editingInj && (
+                  <button onClick={() => { setEditingInj(null); setInjUrl(""); setInjTitle(""); setInjCategory(""); setInjEndsAt(""); }} className="text-[10px] text-[#555] hover:text-white flex items-center gap-1">
+                    <X className="h-3 w-3" /> Cancel
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[#666]">Platform</label>
+                  <Select value={injPlatform} onValueChange={setInjPlatform}>
+                    <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-inj-platform">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                      {["YouTube", "TikTok", "Instagram", "Facebook"].map((p) => (
+                        <SelectItem key={p} value={p} className="text-white focus:bg-[#222]">{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[#666]">Inject Mode</label>
+                  <Select value={injMode} onValueChange={(v) => setInjMode(v as "immediate" | "fallback")}>
+                    <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-inj-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                      <SelectItem value="immediate" className="text-white focus:bg-[#222]">Immediate — activate now</SelectItem>
+                      <SelectItem value="fallback" className="text-white focus:bg-[#222]">Fallback Only — quiet periods</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-[#666]">Source URL *</label>
+                <Input
+                  placeholder="https://youtube.com/watch?v=... or tiktok.com/..."
+                  value={injUrl}
+                  onChange={(e) => setInjUrl(e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] h-9 text-sm"
+                  data-testid="input-inj-url"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[#666]">Display Title <span className="text-[#444]">(optional)</span></label>
+                  <Input
+                    placeholder="Admin Live Feed"
+                    value={injTitle}
+                    onChange={(e) => setInjTitle(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] h-9 text-sm"
+                    data-testid="input-inj-title"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[#666]">Category <span className="text-[#444]">(optional)</span></label>
+                  <Input
+                    placeholder="marketing, music, crypto..."
+                    value={injCategory}
+                    onChange={(e) => setInjCategory(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] h-9 text-sm"
+                    data-testid="input-inj-category"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-[#666]">Status</label>
+                  <Select value={injStatus} onValueChange={(v) => setInjStatus(v as "active" | "inactive")}>
+                    <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-inj-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                      <SelectItem value="active" className="text-green-400 focus:bg-[#222]">Active</SelectItem>
+                      <SelectItem value="inactive" className="text-[#666] focus:bg-[#222]">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-[#666]">Expires At <span className="text-[#444]">(optional)</span></label>
+                  <Input
+                    type="datetime-local"
+                    value={injEndsAt}
+                    onChange={(e) => setInjEndsAt(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm [color-scheme:dark]"
+                    data-testid="input-inj-ends-at"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  className="bg-[#ff1a1a] hover:bg-[#ff2a2a] text-white border-0 h-8 px-4 text-xs font-bold flex-1"
+                  onClick={() => {
+                    if (!injUrl) { toast({ title: "Source URL required", variant: "destructive" }); return; }
+                    const payload = { platform: injPlatform, sourceUrl: injUrl, displayTitle: injTitle || undefined, category: injCategory || undefined, injectMode: injMode, status: injStatus, endsAt: injEndsAt || null };
+                    if (editingInj) {
+                      updateInjMutation.mutate({ id: editingInj.id, data: payload });
+                    } else {
+                      createInjMutation.mutate(payload);
+                    }
+                  }}
+                  disabled={createInjMutation.isPending || updateInjMutation.isPending}
+                  data-testid="btn-inject-now"
+                >
+                  {editingInj ? "Update Feed" : injStatus === "active" ? "Inject Now" : "Save as Fallback"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Existing injections list */}
+            {injLoading ? (
+              <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+            ) : injectedFeeds.length === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center text-[#444] text-sm">
+                No injected feeds yet. Use the form above to inject content.
+              </div>
+            ) : (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
+                {injectedFeeds.map((feed, i) => (
+                  <div
+                    key={feed.id}
+                    className={`flex items-start gap-3 px-4 py-3 ${i !== injectedFeeds.length - 1 ? "border-b border-[#1a1a1a]" : ""}`}
+                    data-testid={`row-injection-${feed.id}`}
+                  >
+                    <div className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${feed.status === "active" ? "bg-green-500/15" : "bg-[#1a1a1a]"}`}>
+                      {feed.status === "active" ? <Wifi className="h-3.5 w-3.5 text-green-400" /> : <WifiOff className="h-3.5 w-3.5 text-[#444]" />}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-semibold text-white">{feed.displayTitle || feed.platform + " Feed"}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${feed.status === "active" ? "bg-green-500/20 text-green-400" : "bg-[#1e1e1e] text-[#555]"}`}>
+                          {feed.status}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#ff2b2b]/10 text-[#ff6666]">
+                          {feed.injectMode}
+                        </span>
+                        <span className="text-[10px] text-[#555]">{feed.platform}</span>
+                      </div>
+                      <p className="text-[10px] text-[#444] truncate max-w-sm">{feed.sourceUrl}</p>
+                      {feed.endsAt && (
+                        <p className="text-[10px] text-amber-500/70">Expires: {new Date(feed.endsAt).toLocaleString()}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => window.open(feed.sourceUrl, "_blank")}
+                        className="h-7 w-7 rounded-lg bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center text-[#666] hover:text-white transition-colors"
+                        title="Open source URL"
+                        data-testid={`btn-inj-open-${feed.id}`}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => updateInjMutation.mutate({ id: feed.id, data: { status: feed.status === "active" ? "inactive" : "active" } })}
+                        className={`h-7 px-2 rounded-lg text-[10px] font-bold transition-colors ${feed.status === "active" ? "bg-red-500/15 hover:bg-red-500/25 text-red-400" : "bg-green-500/15 hover:bg-green-500/25 text-green-400"}`}
+                        data-testid={`btn-inj-toggle-${feed.id}`}
+                      >
+                        {feed.status === "active" ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingInj(feed);
+                          setInjPlatform(feed.platform);
+                          setInjUrl(feed.sourceUrl);
+                          setInjTitle(feed.displayTitle ?? "");
+                          setInjCategory(feed.category ?? "");
+                          setInjMode(feed.injectMode as "immediate" | "fallback");
+                          setInjStatus(feed.status as "active" | "inactive");
+                          setInjEndsAt(feed.endsAt ? new Date(feed.endsAt).toISOString().slice(0,16) : "");
+                        }}
+                        className="h-7 w-7 rounded-lg bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center text-[#666] hover:text-white transition-colors"
+                        data-testid={`btn-inj-edit-${feed.id}`}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => deleteInjMutation.mutate(feed.id)}
+                        className="h-7 w-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors"
+                        data-testid={`btn-inj-delete-${feed.id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Priority reminder */}
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 space-y-1.5 text-xs text-[#555]">
+              <p className="text-[#777] font-semibold flex items-center gap-1.5"><Shield className="h-3 w-3" /> Content Priority Order</p>
+              <ol className="space-y-0.5 pl-4 list-decimal marker:text-[#444]">
+                <li>Scheduled live event</li>
+                <li>Active GigJack event</li>
+                <li>Admin injected — immediate mode</li>
+                <li>Admin injected — fallback mode</li>
+              </ol>
+            </div>
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, auditLogs, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack } from "@shared/schema";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -71,6 +71,13 @@ export interface IStorage {
   markMfaCodeUsed(id: number): Promise<void>;
   incrementMfaResend(id: number): Promise<void>;
   deleteOldMfaCodes(userId: number): Promise<void>;
+
+  // Injected Feeds
+  getInjectedFeeds(): Promise<InjectedFeed[]>;
+  getActiveInjectedFeed(): Promise<InjectedFeed | null>;
+  createInjectedFeed(data: CreateInjectedFeedRequest & { createdBy?: number }): Promise<InjectedFeed>;
+  updateInjectedFeed(id: number, data: UpdateInjectedFeedRequest): Promise<InjectedFeed | undefined>;
+  deleteInjectedFeed(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -861,6 +868,58 @@ export class DatabaseStorage implements IStorage {
 
   async deleteOldMfaCodes(userId: number): Promise<void> {
     await db.delete(mfaCodes).where(eq(mfaCodes.userId, userId));
+  }
+
+  async getInjectedFeeds(): Promise<InjectedFeed[]> {
+    return db.select().from(injectedFeeds).orderBy(desc(injectedFeeds.createdAt));
+  }
+
+  async getActiveInjectedFeed(): Promise<InjectedFeed | null> {
+    const now = new Date();
+    const rows = await db
+      .select()
+      .from(injectedFeeds)
+      .where(eq(injectedFeeds.status, "active"))
+      .orderBy(desc(injectedFeeds.createdAt));
+    const valid = rows.filter((f) => {
+      if (f.endsAt && f.endsAt < now) return false;
+      if (f.startsAt && f.startsAt > now) return false;
+      return true;
+    });
+    return valid[0] ?? null;
+  }
+
+  async createInjectedFeed(data: CreateInjectedFeedRequest & { createdBy?: number }): Promise<InjectedFeed> {
+    const [row] = await db.insert(injectedFeeds).values({
+      platform: data.platform,
+      sourceUrl: data.sourceUrl,
+      displayTitle: data.displayTitle ?? null,
+      category: data.category ?? null,
+      injectMode: data.injectMode,
+      status: data.status ?? "inactive",
+      startsAt: data.startsAt ? new Date(data.startsAt) : null,
+      endsAt: data.endsAt ? new Date(data.endsAt) : null,
+      createdBy: data.createdBy ?? null,
+    }).returning();
+    return row;
+  }
+
+  async updateInjectedFeed(id: number, data: UpdateInjectedFeedRequest): Promise<InjectedFeed | undefined> {
+    const updates: Partial<typeof injectedFeeds.$inferInsert> = { updatedAt: new Date() };
+    if (data.platform !== undefined) updates.platform = data.platform;
+    if (data.sourceUrl !== undefined) updates.sourceUrl = data.sourceUrl;
+    if (data.displayTitle !== undefined) updates.displayTitle = data.displayTitle ?? null;
+    if (data.category !== undefined) updates.category = data.category ?? null;
+    if (data.injectMode !== undefined) updates.injectMode = data.injectMode;
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.startsAt !== undefined) updates.startsAt = data.startsAt ? new Date(data.startsAt) : null;
+    if (data.endsAt !== undefined) updates.endsAt = data.endsAt ? new Date(data.endsAt) : null;
+    const [row] = await db.update(injectedFeeds).set(updates).where(eq(injectedFeeds.id, id)).returning();
+    return row;
+  }
+
+  async deleteInjectedFeed(id: number): Promise<void> {
+    await db.delete(injectedFeeds).where(eq(injectedFeeds.id, id));
   }
 }
 

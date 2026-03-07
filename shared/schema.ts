@@ -361,6 +361,39 @@ export type ListingsFilter = {
   vertical?: VerticalKey | "ALL" | "GIG_BLITZ" | "FLASH_COUPONS" | "INFLUENCERS";
 };
 
+// === INJECTED FEEDS TABLE ===
+export const injectedFeeds = pgTable("injected_feeds", {
+  id: serial("id").primaryKey(),
+  platform: text("platform").notNull(), // "TikTok" | "Instagram" | "Facebook" | "YouTube"
+  sourceUrl: text("source_url").notNull(),
+  displayTitle: text("display_title"),
+  category: text("category"),
+  injectMode: text("inject_mode").notNull().default("fallback"), // "immediate" | "fallback"
+  status: text("status").notNull().default("inactive"), // "active" | "inactive"
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertInjectedFeedSchema = createInsertSchema(injectedFeeds).omit({ id: true, createdAt: true, updatedAt: true });
+export type InjectedFeed = typeof injectedFeeds.$inferSelect;
+export type InsertInjectedFeed = z.infer<typeof insertInjectedFeedSchema>;
+
+export type CreateInjectedFeedRequest = {
+  platform: string;
+  sourceUrl: string;
+  displayTitle?: string;
+  category?: string;
+  injectMode: "immediate" | "fallback";
+  status?: "active" | "inactive";
+  startsAt?: string | null;
+  endsAt?: string | null;
+};
+
+export type UpdateInjectedFeedRequest = Partial<CreateInjectedFeedRequest>;
+
 // === AUDIT LOGS TABLE ===
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),

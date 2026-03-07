@@ -963,5 +963,46 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(logs);
   });
 
+  // === INJECTED FEEDS (PUBLIC) ===
+  app.get("/api/injected-feed/active", async (req, res) => {
+    const feed = await storage.getActiveInjectedFeed();
+    return res.json(feed ?? null);
+  });
+
+  // === INJECTED FEEDS (ADMIN) ===
+  app.get("/api/admin/injected-feeds", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const feeds = await storage.getInjectedFeeds();
+    return res.json(feeds);
+  });
+
+  app.post("/api/admin/injected-feeds", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const createdBy = (req.session as any).userId as number | undefined;
+    const { platform, sourceUrl, displayTitle, category, injectMode, status, startsAt, endsAt } = req.body;
+    if (!platform || !sourceUrl || !injectMode) {
+      return res.status(400).json({ message: "platform, sourceUrl, and injectMode are required" });
+    }
+    const feed = await storage.createInjectedFeed({ platform, sourceUrl, displayTitle, category, injectMode, status: status ?? "inactive", startsAt: startsAt ?? null, endsAt: endsAt ?? null, createdBy });
+    return res.json(feed);
+  });
+
+  app.patch("/api/admin/injected-feeds/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const feed = await storage.updateInjectedFeed(id, req.body);
+    if (!feed) return res.status(404).json({ message: "Not found" });
+    return res.json(feed);
+  });
+
+  app.delete("/api/admin/injected-feeds/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deleteInjectedFeed(id);
+    return res.json({ success: true });
+  });
+
   return httpServer;
 }

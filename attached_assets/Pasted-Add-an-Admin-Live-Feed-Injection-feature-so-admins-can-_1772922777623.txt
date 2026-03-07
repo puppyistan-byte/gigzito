@@ -1,0 +1,195 @@
+Add an Admin Live Feed Injection feature so admins can manually inject live or fallback content from supported external platforms when no scheduled content is active.
+
+==================================================
+ADMIN LIVE FEED INJECTION SYSTEM
+==================================================
+
+Create a feature inside the Admin Panel that allows Admin / Super Admin to inject a live or fallback feed source into the platform when there is no scheduled live event or no scheduled GigJack / featured content.
+
+This is a content continuity tool.
+
+Goal:
+If there is no active scheduled content, admin can inject a source feed manually so the platform still feels alive.
+
+==================================================
+SUPPORTED SOURCE TYPES
+==================================================
+
+Admin should be able to inject content from:
+
+• TikTok
+• Instagram
+• Facebook
+• YouTube
+
+These should be supported as source types in the admin injection tool.
+
+If full platform embedding is not possible due to API/embed limitations, support link-based or approved embed-compatible methods.
+
+==================================================
+ADMIN PANEL SECTION
+==================================================
+
+Add a dedicated section in the Admin Panel called:
+
+Live Feed Injection
+
+This section should only be visible to:
+• admin
+• super_admin
+
+==================================================
+ADMIN INJECTION FORM
+==================================================
+
+Create a form with the following fields:
+
+1. Source Platform
+   Options:
+   - TikTok
+   - Instagram
+   - Facebook
+   - YouTube
+
+2. Source URL
+   - allow admin to paste the video URL, reel URL, short URL, post URL, or approved embed URL
+
+3. Display Title
+   - optional custom title for internal display
+
+4. Category
+   - optional category assignment
+   - examples:
+     music
+     marketing
+     courses
+     crypto
+     events
+     influencers
+
+5. Inject Mode
+   Options:
+   - immediate
+   - fallback only
+
+6. Duration
+   - optional
+   - how long the injected feed remains active before reverting
+
+7. Status
+   - active
+   - inactive
+
+==================================================
+INJECT MODE BEHAVIOR
+==================================================
+
+Immediate:
+- injected content becomes active right away
+
+Fallback Only:
+- injected content only appears when there is no scheduled live content active
+
+This allows admin to keep the platform populated during quiet periods.
+
+==================================================
+FALLBACK LOGIC
+==================================================
+
+If there is:
+- no scheduled GigJack active
+- no live event active
+- no priority scheduled broadcast active
+
+then the system may display the admin-injected fallback feed automatically.
+
+If scheduled content starts later:
+- scheduled content must take priority
+- fallback feed should gracefully step aside
+
+Priority order should be:
+
+1. scheduled live event
+2. active GigJack event
+3. admin injected immediate content
+4. admin injected fallback content
+
+==================================================
+ADMIN ACTIONS
+==================================================
+
+Admin / Super Admin must be able to:
+
+• inject a source
+• activate it
+• deactivate it
+• edit it
+• remove it
+• schedule expiration
+• replace current injected content
+
+Buttons:
+[Inject Now]
+[Save as Fallback]
+[Deactivate]
+[Edit]
+[Remove]
+
+==================================================
+DISPLAY BEHAVIOR
+==================================================
+
+Injected content should appear in the main feed or designated live content area when active.
+
+It should feel native to the Gigzito platform styling.
+
+If the source is external and cannot be fully embedded:
+- show a styled preview card
+- show title / platform / thumbnail
+- provide click-through behavior
+
+If embedding is supported:
+- display the embed cleanly in the feed
+
+==================================================
+SOURCE DISCLOSURE
+==================================================
+
+When injected content is shown, label it clearly as:
+
+Injected Live Feed
+
+or
+
+Admin Live Feed
+
+This helps distinguish it from user-submitted native content if needed.
+
+==================================================
+DATABASE / STORAGE
+==================================================
+
+Add a table or storage structure for injected feeds.
+
+Suggested fields:
+
+- id
+- platform
+- sourceUrl
+- displayTitle
+- category
+- injectMode
+- status
+- startsAt
+- endsAt
+- createdBy
+- createdAt
+- updatedAt
+
+==================================================
+ADMIN GOAL
+==================================================
+
+The admin must always have the ability to keep the platform active and visually alive, even when there is no scheduled content.
+
+This feature should act as a manual content continuity system.
