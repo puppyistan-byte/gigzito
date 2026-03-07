@@ -90,6 +90,20 @@ function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+const SEEDED_ADMIN_EMAIL = "admin@gigzito.com";
+
+async function ensureAdminUser() {
+  try {
+    const existing = await storage.getUserByEmail(SEEDED_ADMIN_EMAIL);
+    if (existing) return;
+    const hashed = await hashPassword("L3tsgoBrandon22");
+    await storage.createUser({ email: SEEDED_ADMIN_EMAIL, password: hashed, role: "ADMIN" });
+    console.log("Admin account created: admin@gigzito.com");
+  } catch (err) {
+    console.error("ensureAdminUser error:", err);
+  }
+}
+
 async function seedDatabase() {
   try {
     const count = await storage.getTodayListingCount();
@@ -154,10 +168,6 @@ async function seedDatabase() {
       await storage.createListing({ ...listing, dropDate: getTodayDate(), pricePaidCents: 300 });
     }
 
-    // Create admin user
-    const adminPass = await hashPassword("admin123");
-    await storage.createUser({ email: "admin@gigzito.com", password: adminPass, role: "ADMIN" });
-
     console.log("Database seeded with sample data");
   } catch (err) {
     console.error("Seed error:", err);
@@ -166,6 +176,7 @@ async function seedDatabase() {
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   await seedDatabase();
+  await ensureAdminUser();
 
   // === AUTH ===
   app.post(api.auth.register.path, async (req, res) => {
@@ -680,6 +691,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const adminUserId = (req.session as any).userId;
     if (id === adminUserId) return res.status(400).json({ message: "Cannot delete your own admin account" });
+    const targetUser = await storage.getUserById(id);
+    if (targetUser?.email === SEEDED_ADMIN_EMAIL) return res.status(400).json({ message: "The seeded admin account cannot be deleted" });
     await storage.deleteUser(id);
     return res.json({ success: true });
   });

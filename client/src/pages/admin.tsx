@@ -90,14 +90,17 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [gjTab, setGjTab] = useState<GJStatusTab>("PENDING_REVIEW");
 
-  // Redirect non-admins
-  if (!authLoading && (!user || user.user?.role !== "ADMIN")) {
+  // Redirect non-admins (inside effect to avoid setState-during-render warning)
+  const isAdmin = !authLoading && !!user && user.user?.role === "ADMIN";
+  const shouldRedirect = !authLoading && !isAdmin;
+
+  if (shouldRedirect) {
     navigate("/");
     return null;
   }
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const enabled = !!user && user.user?.role === "ADMIN";
+  const enabled = isAdmin;
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
@@ -190,7 +193,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!user || user.user?.role !== "ADMIN") return null;
+  if (!isAdmin) return null;
 
   // ── Derived data ─────────────────────────────────────────────────────────
   const filteredGigJacks = (gigJacks ?? []).filter((gj) => gjTab === "ALL" || gj.status === gjTab);
