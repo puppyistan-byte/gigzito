@@ -1,0 +1,226 @@
+Create a full ADMIN OVERRIDE / SUPER ADMIN CONTROL SYSTEM for Gigzito.
+
+==================================================
+ADMIN OVERRIDE / SUPER ADMIN ROLE
+==================================================
+
+Create a true Super Admin role with full control over platform data, scheduling, approvals, and user management.
+
+Role names:
+- super_admin
+- admin
+- marketer
+- influencer
+- coordinator
+- user
+
+Only SUPER ADMIN should have unrestricted override power.
+
+==================================================
+SUPER ADMIN CAPABILITIES
+==================================================
+
+Super Admin must be able to:
+
+1. Approve / deny / remove Gig Jacks
+2. Edit Gig Jack dates and times
+3. Override normal scheduling restrictions for testing purposes
+4. Edit user profiles
+5. Remove user profiles
+6. Change user roles
+7. Activate / deactivate accounts
+8. View all users by role
+9. Search users by name, email, or role
+10. Reset or force-change account status if needed
+
+==================================================
+ADMIN OVERRIDE MODE
+==================================================
+
+Add an "Override Mode" toggle for Super Admin.
+
+When Override Mode is ON:
+- Super Admin can schedule Gig Jacks even if they conflict
+- Super Admin can bypass the 15-minute rule
+- Super Admin can bypass the 2-per-hour rule
+- Super Admin can manually approve any Gig Jack for testing
+- Super Admin can edit protected records
+
+When Override Mode is OFF:
+- Normal rules apply
+
+Important:
+Override actions should be clearly labeled in the admin UI as:
+"Override Action"
+
+==================================================
+USER / PROFILE MANAGEMENT
+==================================================
+
+In the admin dashboard, add a full USER MANAGEMENT section.
+
+For every user profile, Super Admin must be able to:
+
+- Edit full name
+- Edit display name
+- Edit email
+- Edit bio
+- Edit category/role
+- Edit profile image
+- Activate account
+- Suspend account
+- Delete account
+- Soft-delete account
+- Restore deleted account if using soft delete
+
+Add buttons:
+[Edit Profile]
+[Change Role]
+[Deactivate]
+[Delete]
+[Restore]
+
+==================================================
+ROLE MANAGEMENT
+==================================================
+
+Super Admin must be able to assign and change these roles:
+
+- user
+- marketer
+- influencer
+- coordinator
+- admin
+- super_admin
+
+Role behavior:
+- marketer: platform/marketing permissions only
+- influencer: creator/influencer permissions
+- coordinator: scheduling/support permissions
+- admin: standard admin moderation permissions
+- super_admin: unrestricted full control
+
+==================================================
+PROTECTED ADMINISTRATIVE PROFILES
+==================================================
+
+Administrative profiles such as:
+- marketers
+- influencers
+- coordinators
+- admins
+
+must be editable and removable by Super Admin.
+
+Normal Admin should NOT be able to remove Super Admin accounts.
+
+==================================================
+GIG JACK MANAGEMENT
+==================================================
+
+Super Admin can:
+- approve
+- deny
+- edit
+- remove
+- override schedule restrictions
+
+Admin can:
+- approve
+- deny
+- edit
+- remove
+
+But Admin cannot bypass platform restrictions unless specifically granted permission.
+
+==================================================
+AUDIT LOG
+==================================================
+
+Create an audit log for all administrative actions.
+
+Track:
+- who made the change
+- what action was taken
+- target user or target Gig Jack
+- old value
+- new value
+- timestamp
+- whether override mode was used
+
+Examples:
+- Super Admin changed role from marketer to coordinator
+- Super Admin deleted profile
+- Super Admin approved Gig Jack using override mode
+- Admin denied Gig Jack
+
+==================================================
+DATABASE / FIELDS
+==================================================
+
+Users table should include or confirm:
+- id
+- fullName
+- displayName
+- email
+- passwordHash
+- role
+- bio
+- profileImage
+- status (active, suspended, deleted)
+- createdAt
+- updatedAt
+- deletedAt
+
+Gig Jacks table should include:
+- id
+- userId
+- scheduledAt
+- status
+- createdAt
+- approvedAt
+- approvedBy
+- deniedAt
+- deniedBy
+- removedAt
+- removedBy
+- updatedAt
+
+Audit Log table:
+- id
+- actorUserId
+- actionType
+- targetType
+- targetId
+- oldValue
+- newValue
+- usedOverride
+- createdAt
+
+==================================================
+ADMIN DASHBOARD UI
+==================================================
+
+Add these sections:
+1. User Management
+2. Gig Jack Management
+3. Roles & Permissions
+4. Audit Log
+
+In User Management:
+- filter by role
+- filter by status
+- search by name/email
+- edit/remove buttons
+
+In Gig Jack Management:
+- filter by date
+- filter by status
+- approve/deny/edit/remove buttons
+- override toggle visible only to Super Admin
+
+==================================================
+GOAL
+==================================================
+
+Gigzito must have a true Super Admin system with unrestricted override power for testing and platform management, including the ability to edit/remove profiles and manage administrative roles such as marketers, influencers, coordinators, and admins.

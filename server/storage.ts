@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest } from "@shared/schema";
-import { eq, and, sql, inArray, ne, gte, lte, or, between } from "drizzle-orm";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, auditLogs, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest } from "@shared/schema";
+import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -31,7 +31,14 @@ export interface IStorage {
   updateUserStatus(id: number, status: "active" | "disabled"): Promise<User | undefined>;
   updateUserRole(id: number, role: string): Promise<User | undefined>;
   deleteUser(id: number): Promise<void>;
+  softDeleteUser(id: number): Promise<void>;
+  restoreUser(id: number): Promise<void>;
+  editUserProfile(userId: number, data: EditUserProfileRequest): Promise<ProviderProfile | undefined>;
   deleteListing(id: number): Promise<void>;
+
+  // Audit logs
+  createAuditLog(data: CreateAuditLogRequest): Promise<AuditLog>;
+  getAuditLogs(limit?: number): Promise<AuditLog[]>;
 
   // Leads
   createLead(data: CreateLeadRequest): Promise<Lead>;
@@ -48,8 +55,8 @@ export interface IStorage {
   getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]>;
   getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
   getAllGigJacks(): Promise<GigJackWithProvider[]>;
-  reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
-  editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
+  reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number, override?: boolean): Promise<{ gj: GigJack | undefined; error?: string }>;
+  editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number, override?: boolean): Promise<{ gj: GigJack | undefined; error?: string }>;
   deleteGigJack(id: number, removedBy?: number): Promise<void>;
   getActiveGigJack(): Promise<GigJackWithProvider | null>;
   getAvailableSlots(): Promise<GigJackSlot[]>;
@@ -280,6 +287,44 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(eq(users.id, id));
   }
 
+  async softDeleteUser(id: number): Promise<void> {
+    await db.update(users).set({ deletedAt: new Date(), status: "disabled" }).where(eq(users.id, id));
+  }
+
+  async restoreUser(id: number): Promise<void> {
+    await db.update(users).set({ deletedAt: null, status: "active" }).where(eq(users.id, id));
+  }
+
+  async editUserProfile(userId: number, data: EditUserProfileRequest): Promise<ProviderProfile | undefined> {
+    const setData: any = {};
+    if (data.displayName !== undefined) setData.displayName = data.displayName;
+    if (data.bio !== undefined) setData.bio = data.bio;
+    if (data.avatarUrl !== undefined) setData.avatarUrl = data.avatarUrl;
+    if (data.contactEmail !== undefined) setData.contactEmail = data.contactEmail;
+    if (data.location !== undefined) setData.location = data.location;
+    if (data.primaryCategory !== undefined) setData.primaryCategory = data.primaryCategory;
+    if (data.username !== undefined) setData.username = data.username;
+    const [profile] = await db.update(providerProfiles).set(setData).where(eq(providerProfiles.userId, userId)).returning();
+    return profile;
+  }
+
+  async createAuditLog(data: CreateAuditLogRequest): Promise<AuditLog> {
+    const [row] = await db.insert(auditLogs).values({
+      actorUserId: data.actorUserId ?? null,
+      actionType: data.actionType,
+      targetType: data.targetType,
+      targetId: data.targetId ?? null,
+      oldValue: data.oldValue ?? null,
+      newValue: data.newValue ?? null,
+      usedOverride: data.usedOverride ?? false,
+    }).returning();
+    return row;
+  }
+
+  async getAuditLogs(limit = 100): Promise<AuditLog[]> {
+    return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit);
+  }
+
   async deleteListing(id: number): Promise<void> {
     await db.delete(videoListings).where(eq(videoListings.id, id));
   }
@@ -455,8 +500,8 @@ export class DatabaseStorage implements IStorage {
     return this.enrichGigJacks(rows);
   }
 
-  async reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }> {
-    if (status === "APPROVED") {
+  async reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number, override = false): Promise<{ gj: GigJack | undefined; error?: string }> {
+    if (status === "APPROVED" && !override) {
       const [target] = await db.select().from(gigJacks).where(eq(gigJacks.id, id)).limit(1);
       if (target?.scheduledAt) {
         const spacingError = await this.check15MinSpacing(new Date(target.scheduledAt), id);
@@ -594,12 +639,12 @@ export class DatabaseStorage implements IStorage {
     return slots;
   }
 
-  async editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }> {
+  async editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number, override = false): Promise<{ gj: GigJack | undefined; error?: string }> {
     const setData: any = { updatedAt: new Date() };
 
     if (data.scheduledAt !== undefined) {
       const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
-      if (scheduledAt) {
+      if (scheduledAt && !override) {
         const spacingError = await this.check15MinSpacing(scheduledAt, id);
         if (spacingError) return { gj: undefined, error: spacingError };
         const capError = await this.check2PerHourCap(scheduledAt, id);

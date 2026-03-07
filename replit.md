@@ -1,6 +1,31 @@
 # Gigzito
 
-A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) across 11 categories. Includes Live streaming, guest access control, Zito TV public page, and calendar-based GigJack flash event system.
+A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) across 11 categories. Includes Live streaming, guest access control, Zito TV public page, calendar-based GigJack flash event system, MFA email verification, admin console with user management, and Super Admin Override Control System.
+
+## Roles
+
+| Role | Level | Notes |
+|------|-------|-------|
+| VISITOR | 0 | Default on signup |
+| MEMBER | 1 | |
+| MARKETER | 1 | |
+| INFLUENCER | 1 | |
+| PROVIDER | 1 | Can list videos |
+| CORPORATE | 2 | |
+| COORDINATOR | 2 | New — content coordination |
+| ADMIN | 3 | Content moderation + user management |
+| SUPER_ADMIN | 4 | All admin + Override Control System |
+
+Seeded super admin: `admin@gigzito.com` / `Arizona22` (auto-upgraded to SUPER_ADMIN on startup)
+
+## Super Admin Override Control System
+
+- **Override Mode toggle** on admin console (SUPER_ADMIN only): bypasses 15-min GigJack spacing and 2-per-hour cap
+- **Soft-delete / restore users**: sets `deletedAt` timestamp; restorable via restore button
+- **Edit user profile**: modal to edit displayName, bio, avatarUrl, contactEmail, location
+- **Audit Log tab**: records all privileged actions (role changes, soft-delete, restore, override actions)
+- **Extended roles**: SUPER_ADMIN can assign SUPER_ADMIN and COORDINATOR roles
+- **User search/filter**: search by name/email; filter by role, status (All/Active/Disabled/Deleted)
 
 ## Tech Stack
 

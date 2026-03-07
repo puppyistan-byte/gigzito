@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === ENUMS ===
-export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN"]);
+export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN", "SUPER_ADMIN", "COORDINATOR"]);
 export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   status: text("status").notNull().default("active"),
   disclaimerAccepted: boolean("disclaimer_accepted").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const providerProfiles = pgTable("provider_profiles", {
@@ -159,6 +160,16 @@ export interface GigJackWithProvider extends GigJack {
 }
 
 export type UserWithProfile = User & { profile: ProviderProfile | null };
+
+export type EditUserProfileRequest = {
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string;
+  contactEmail?: string;
+  location?: string;
+  primaryCategory?: string;
+  username?: string;
+};
 
 // Auth types
 export type LoginRequest = { email: string; password: string };
@@ -339,6 +350,31 @@ export type UpdateListingStatusRequest = { status: "ACTIVE" | "PAUSED" | "REMOVE
 // Filters
 export type ListingsFilter = {
   vertical?: VerticalKey | "ALL" | "GIG_BLITZ" | "FLASH_COUPONS" | "INFLUENCERS";
+};
+
+// === AUDIT LOGS TABLE ===
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  actorUserId: integer("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+  actionType: text("action_type").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: integer("target_id"),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  usedOverride: boolean("used_override").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+export type CreateAuditLogRequest = {
+  actorUserId?: number | null;
+  actionType: string;
+  targetType: "USER" | "GIGJACK" | "LISTING";
+  targetId?: number;
+  oldValue?: string;
+  newValue?: string;
+  usedOverride?: boolean;
 };
 
 // === MFA CODES TABLE ===

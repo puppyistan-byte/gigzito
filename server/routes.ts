@@ -80,8 +80,16 @@ function requireAuth(req: any, res: any): boolean {
 }
 
 function requireAdmin(req: any, res: any): boolean {
-  if (!req.session?.userId || req.session?.role !== "ADMIN") {
+  if (!req.session?.userId || !["ADMIN", "SUPER_ADMIN"].includes(req.session?.role)) {
     res.status(401).json({ message: "Admin only" });
+    return false;
+  }
+  return true;
+}
+
+function requireSuperAdmin(req: any, res: any): boolean {
+  if (!req.session?.userId || req.session?.role !== "SUPER_ADMIN") {
+    res.status(403).json({ message: "Super Admin only" });
     return false;
   }
   return true;
@@ -98,8 +106,11 @@ async function ensureAdminUser() {
     let adminUser = await storage.getUserByEmail(SEEDED_ADMIN_EMAIL);
     if (!adminUser) {
       const hashed = await hashPassword("Arizona22");
-      adminUser = await storage.createUser({ email: SEEDED_ADMIN_EMAIL, password: hashed, role: "ADMIN" });
-      console.log("Admin account created: admin@gigzito.com");
+      adminUser = await storage.createUser({ email: SEEDED_ADMIN_EMAIL, password: hashed, role: "SUPER_ADMIN" });
+      console.log("Super Admin account created: admin@gigzito.com");
+    } else if (adminUser.role === "ADMIN") {
+      await storage.updateUserRole(adminUser.id, "SUPER_ADMIN");
+      console.log("Admin upgraded to SUPER_ADMIN");
     }
     // Ensure a minimal profile exists (username only, no social media)
     const existingProfile = await storage.getProfileByUserId(adminUser.id);
@@ -384,7 +395,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const currentUser = await storage.getUserById(userId);
     if (currentUser?.status === "disabled") return res.status(403).json({ message: "Your account has been disabled." });
 
-    const isAdmin = currentUser?.role === "ADMIN";
+    const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
 
     if (!isAdmin) {
       const todayCount = await storage.getTodayListingCount();
@@ -666,7 +677,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       quantityLimit: z.coerce.number().int().min(1).max(100000).optional().nullable(),
     });
 
-    const isAdminGj = currentUser?.role === "ADMIN";
+    const isAdminGj = currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
 
     try {
       const data = schema.parse(req.body);
@@ -793,7 +804,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const { role } = req.body;
-    const validRoles = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN"];
+    const validRoles = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN", "COORDINATOR"];
+    const actorRole = (req.session as any).role;
+    if (actorRole === "SUPER_ADMIN") validRoles.push("SUPER_ADMIN");
     if (!validRoles.includes(role)) return res.status(400).json({ message: "Invalid role" });
     const user = await storage.updateUserRole(id, role);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -825,11 +838,76 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const adminUserId = (req.session as any).userId;
-    const { scheduledAt, status, providerId } = req.body;
-    const result = await storage.editGigJack(id, { scheduledAt, status, providerId }, adminUserId);
+    const actorRole = (req.session as any).role;
+    const { scheduledAt, status, providerId, override } = req.body;
+    const useOverride = override === true && actorRole === "SUPER_ADMIN";
+    const result = await storage.editGigJack(id, { scheduledAt, status, providerId }, adminUserId, useOverride);
     if (result.error) return res.status(409).json({ message: result.error });
     if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
+    if (useOverride) {
+      await storage.createAuditLog({ actorUserId: adminUserId, actionType: "GIGJACK_EDIT_OVERRIDE", targetType: "GIGJACK", targetId: id, usedOverride: true });
+    }
     return res.json(result.gj);
+  });
+
+  // Update review route to support override
+  app.patch("/api/admin/gigjacks/:id/review-override", async (req, res) => {
+    if (!requireSuperAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const adminUserId = (req.session as any).userId;
+    const { status, reviewNote } = req.body;
+    if (!["APPROVED", "DENIED", "NEEDS_IMPROVEMENT"].includes(status)) return res.status(400).json({ message: "Invalid status" });
+    const result = await storage.reviewGigJack(id, status, reviewNote, adminUserId, true);
+    if (result.error) return res.status(409).json({ message: result.error });
+    if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
+    await storage.createAuditLog({ actorUserId: adminUserId, actionType: `GIGJACK_${status}_OVERRIDE`, targetType: "GIGJACK", targetId: id, usedOverride: true });
+    return res.json(result.gj);
+  });
+
+  // === SUPER ADMIN: USER MANAGEMENT ===
+  app.post("/api/admin/users/:id/soft-delete", async (req, res) => {
+    if (!requireSuperAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const actorUserId = (req.session as any).userId;
+    if (id === actorUserId) return res.status(400).json({ message: "Cannot delete your own account" });
+    const targetUser = await storage.getUserById(id);
+    if (!targetUser) return res.status(404).json({ message: "User not found" });
+    await storage.softDeleteUser(id);
+    await storage.createAuditLog({ actorUserId, actionType: "USER_SOFT_DELETE", targetType: "USER", targetId: id, newValue: "deleted", usedOverride: false });
+    return res.json({ success: true });
+  });
+
+  app.post("/api/admin/users/:id/restore", async (req, res) => {
+    if (!requireSuperAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const actorUserId = (req.session as any).userId;
+    const targetUser = await storage.getUserById(id);
+    if (!targetUser) return res.status(404).json({ message: "User not found" });
+    await storage.restoreUser(id);
+    await storage.createAuditLog({ actorUserId, actionType: "USER_RESTORE", targetType: "USER", targetId: id, newValue: "active", usedOverride: false });
+    return res.json({ success: true });
+  });
+
+  app.patch("/api/admin/users/:id/profile", async (req, res) => {
+    if (!requireSuperAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const actorUserId = (req.session as any).userId;
+    const { displayName, bio, avatarUrl, contactEmail, location, primaryCategory, username } = req.body;
+    const profile = await storage.editUserProfile(id, { displayName, bio, avatarUrl, contactEmail, location, primaryCategory, username });
+    await storage.createAuditLog({ actorUserId, actionType: "USER_PROFILE_EDIT", targetType: "USER", targetId: id, usedOverride: false });
+    return res.json(profile ?? { success: true });
+  });
+
+  // === SUPER ADMIN: AUDIT LOG ===
+  app.get("/api/admin/audit-log", async (req, res) => {
+    if (!requireSuperAdmin(req, res)) return;
+    const limit = parseInt((req.query.limit as string) ?? "100");
+    const logs = await storage.getAuditLogs(isNaN(limit) ? 100 : limit);
+    return res.json(logs);
   });
 
   return httpServer;

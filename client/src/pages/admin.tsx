@@ -13,11 +13,10 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Shield, DollarSign, BarChart2, Eye, EyeOff, Trash2, Zap,
   Users, Video, UserCheck, UserX, LayoutDashboard, CalendarDays, Clock,
-  CheckCircle, XCircle, AlertCircle, Pencil, X,
+  CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
+  ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
 } from "lucide-react";
-import type { GigJackWithProvider, UserWithProfile } from "@shared/schema";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import type { GigJackWithProvider, UserWithProfile, AuditLog } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -37,7 +36,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ROLE_LABELS: Record<string, string> = {
   VISITOR: "Visitor", PROVIDER: "Provider", MEMBER: "Member",
-  MARKETER: "Marketer", INFLUENCER: "Influencer", CORPORATE: "Corporate", ADMIN: "Admin",
+  MARKETER: "Marketer", INFLUENCER: "Influencer", CORPORATE: "Corporate",
+  ADMIN: "Admin", SUPER_ADMIN: "Super Admin", COORDINATOR: "Coordinator",
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -48,27 +48,30 @@ const ROLE_COLORS: Record<string, string> = {
   INFLUENCER: "bg-pink-500/20 text-pink-400",
   CORPORATE: "bg-amber-500/20 text-amber-400",
   ADMIN: "bg-red-500/20 text-red-400",
+  SUPER_ADMIN: "bg-violet-500/20 text-violet-300",
+  COORDINATOR: "bg-cyan-500/20 text-cyan-400",
 };
 
-const ALL_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN"];
+const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN", "COORDINATOR"];
+const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "users" | "content" | "gigjacks";
+type AdminTab = "overview" | "users" | "content" | "gigjacks" | "audit";
 
-// ─── Tab Button ──────────────────────────────────────────────────────────────
-
-function TabBtn({ label, icon: Icon, active, onClick, badge }: {
-  label: string; icon: any; active: boolean; onClick: () => void; badge?: number;
+function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
+  label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
         active
-          ? "bg-[#ff2b2b]/15 text-[#ff2b2b] border border-[#ff2b2b]/30"
+          ? superOnly
+            ? "bg-violet-500/15 text-violet-300 border border-violet-500/30"
+            : "bg-[#ff2b2b]/15 text-[#ff2b2b] border border-[#ff2b2b]/30"
           : "text-[#666] hover:text-white border border-transparent"
       }`}
-      data-testid={`tab-admin-${label.toLowerCase()}`}
+      data-testid={`tab-admin-${label.toLowerCase().replace(/ /g, "-")}`}
     >
       <Icon className="h-4 w-4" />
       {label}
@@ -81,13 +84,12 @@ function TabBtn({ label, icon: Icon, active, onClick, badge }: {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [gjTab, setGjTab] = useState<GJStatusTab>("PENDING_REVIEW");
   const [gjDateFilter, setGjDateFilter] = useState("");
@@ -95,17 +97,29 @@ export default function AdminPage() {
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editStatus, setEditStatus] = useState<"PENDING_REVIEW" | "APPROVED" | "DENIED">("PENDING_REVIEW");
+  const [overrideMode, setOverrideMode] = useState(false);
 
-  // Redirect non-admins (inside effect to avoid setState-during-render warning)
-  const isAdmin = !authLoading && !!user && user.user?.role === "ADMIN";
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("ALL");
+  const [userStatusFilter, setUserStatusFilter] = useState("ALL");
+
+  const [editingUser, setEditingUser] = useState<UserWithProfile | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editContactEmail, setEditContactEmail] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+
+  const userRole = user?.user?.role ?? "";
+  const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN");
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+
   const shouldRedirect = !authLoading && !isAdmin;
-
   if (shouldRedirect) {
     navigate("/");
     return null;
   }
 
-  // ── Queries ──────────────────────────────────────────────────────────────
   const enabled = isAdmin;
 
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
@@ -124,7 +138,11 @@ export default function AdminPage() {
     enabled,
   });
 
-  // ── Mutations ────────────────────────────────────────────────────────────
+  const { data: auditLogs, isLoading: auditLoading } = useQuery<AuditLog[]>({
+    queryKey: ["/api/admin/audit-log"],
+    enabled: enabled && isSuperAdmin && activeTab === "audit",
+  });
+
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       const res = await fetch(`/api/admin/listings/${id}/status`, {
@@ -150,14 +168,17 @@ export default function AdminPage() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ id, status, reviewNote }: { id: number; status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT"; reviewNote?: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/review`, { status, reviewNote });
+      const endpoint = overrideMode && isSuperAdmin
+        ? `/api/admin/gigjacks/${id}/review-override`
+        : `/api/admin/gigjacks/${id}/review`;
+      const res = await apiRequest("PATCH", endpoint, { status, reviewNote });
       if (!res.ok) {
         const e = await res.json();
         throw new Error(e.message ?? "Failed to update GigJack");
       }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] }); toast({ title: "GigJack updated" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] }); toast({ title: overrideMode ? "GigJack updated (Override)" : "GigJack updated" }); },
     onError: (err: any) => toast({ title: "Error updating GigJack", description: err.message ?? "", variant: "destructive" }),
   });
 
@@ -173,7 +194,10 @@ export default function AdminPage() {
 
   const editGigJackMutation = useMutation({
     mutationFn: async ({ id, scheduledAt, status }: { id: number; scheduledAt?: string | null; status?: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/edit`, { scheduledAt, status });
+      const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/edit`, {
+        scheduledAt, status,
+        override: overrideMode && isSuperAdmin,
+      });
       if (!res.ok) {
         const e = await res.json();
         throw new Error(e.message ?? "Failed to save changes");
@@ -183,7 +207,7 @@ export default function AdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] });
       setEditingGj(null);
-      toast({ title: "GigJack updated" });
+      toast({ title: overrideMode ? "GigJack updated (Override)" : "GigJack updated" });
     },
     onError: (err: any) => toast({ title: "Conflict", description: err.message, variant: "destructive" }),
   });
@@ -230,11 +254,59 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] }); toast({ title: "User deleted" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] }); toast({ title: "User permanently deleted" }); },
     onError: (e: any) => toast({ title: e.message || "Error deleting user", variant: "destructive" }),
   });
 
-  // ── Loading ──────────────────────────────────────────────────────────────
+  const softDeleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("POST", `/api/admin/users/${id}/soft-delete`, {});
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "User soft-deleted (restorable)" });
+    },
+    onError: (e: any) => toast({ title: e.message || "Error", variant: "destructive" }),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("POST", `/api/admin/users/${id}/restore`, {});
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "User restored" });
+    },
+    onError: (e: any) => toast({ title: e.message || "Error", variant: "destructive" }),
+  });
+
+  const editUserProfileMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${id}/profile`, data);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setEditingUser(null);
+      toast({ title: "User profile updated" });
+    },
+    onError: (e: any) => toast({ title: e.message || "Error updating profile", variant: "destructive" }),
+  });
+
+  const openUserEdit = (u: UserWithProfile) => {
+    setEditingUser(u);
+    setEditDisplayName(u.profile?.displayName ?? "");
+    setEditBio(u.profile?.bio ?? "");
+    setEditAvatarUrl(u.profile?.avatarUrl ?? "");
+    setEditContactEmail(u.profile?.contactEmail ?? "");
+    setEditLocation(u.profile?.location ?? "");
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -250,14 +322,25 @@ export default function AdminPage() {
 
   if (!isAdmin) return null;
 
-  // ── Derived data ─────────────────────────────────────────────────────────
   const filteredGigJacks = (gigJacks ?? []).filter((gj) => {
     const statusMatch = gjTab === "ALL" || gj.status === gjTab || (gjTab === "DENIED" && gj.status === "REJECTED");
     const dateMatch = !gjDateFilter || (gj.scheduledAt && new Date(gj.scheduledAt).toISOString().slice(0, 10) === gjDateFilter);
     return statusMatch && dateMatch;
   });
+
   const pendingCount = (gigJacks ?? []).filter((gj) => gj.status === "PENDING_REVIEW").length;
   const disabledCount = (adminUsers ?? []).filter((u) => u.status === "disabled").length;
+
+  const filteredUsers = (adminUsers ?? []).filter((u) => {
+    const q = userSearch.toLowerCase();
+    const nameMatch = !q || u.email.toLowerCase().includes(q) || (u.profile?.displayName ?? "").toLowerCase().includes(q) || (u.profile?.username ?? "").toLowerCase().includes(q);
+    const roleMatch = userRoleFilter === "ALL" || u.role === userRoleFilter;
+    const statusMatch = userStatusFilter === "ALL" ||
+      (userStatusFilter === "DELETED" ? !!u.deletedAt : userStatusFilter === "active" ? !u.deletedAt && u.status === "active" : !u.deletedAt && u.status === userStatusFilter);
+    return nameMatch && roleMatch && statusMatch;
+  });
+
+  const availableRoles = isSuperAdmin ? SUPER_ROLES : BASE_ROLES;
 
   return (
     <div className="min-h-screen bg-background">
@@ -265,11 +348,51 @@ export default function AdminPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
 
         {/* Header */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Shield className="h-5 w-5 text-[#ff2b2b]" />
-          <h1 className="text-xl font-bold" data-testid="text-admin-title">Admin Console</h1>
-          <span className="ml-auto text-xs text-[#555] font-mono">{user.user?.email}</span>
+          <h1 className="text-xl font-bold" data-testid="text-admin-title">
+            {isSuperAdmin ? "Super Admin Console" : "Admin Console"}
+          </h1>
+          {isSuperAdmin && (
+            <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+              SUPER ADMIN
+            </span>
+          )}
+          <span className="ml-auto text-xs text-[#555] font-mono">{user?.user?.email}</span>
         </div>
+
+        {/* Override Mode Banner (SUPER_ADMIN only) */}
+        {isSuperAdmin && (
+          <div
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-all ${
+              overrideMode
+                ? "bg-violet-500/10 border-violet-500/40"
+                : "bg-[#0b0b0b] border-[#1e1e1e]"
+            }`}
+            data-testid="panel-override-mode"
+          >
+            <ShieldAlert className={`h-4 w-4 shrink-0 ${overrideMode ? "text-violet-300" : "text-[#555]"}`} />
+            <div className="flex-1">
+              <p className={`text-sm font-semibold ${overrideMode ? "text-violet-300" : "text-[#777]"}`}>
+                Override Mode {overrideMode ? "ACTIVE" : "Off"}
+              </p>
+              <p className="text-[11px] text-[#555]">
+                {overrideMode
+                  ? "Scheduling rules bypassed. Actions are audit-logged."
+                  : "Enable to bypass 15-min spacing and 2-per-hour GigJack caps."}
+              </p>
+            </div>
+            <button
+              onClick={() => setOverrideMode((v) => !v)}
+              className="shrink-0"
+              data-testid="toggle-override-mode"
+            >
+              {overrideMode
+                ? <ToggleRight className="h-7 w-7 text-violet-400" />
+                : <ToggleLeft className="h-7 w-7 text-[#444]" />}
+            </button>
+          </div>
+        )}
 
         {/* Tab nav */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -277,6 +400,9 @@ export default function AdminPage() {
           <TabBtn label="Users" icon={Users} active={activeTab === "users"} onClick={() => setActiveTab("users")} badge={disabledCount} />
           <TabBtn label="Content" icon={Video} active={activeTab === "content"} onClick={() => setActiveTab("content")} />
           <TabBtn label="GigJacks" icon={Zap} active={activeTab === "gigjacks"} onClick={() => setActiveTab("gigjacks")} badge={pendingCount} />
+          {isSuperAdmin && (
+            <TabBtn label="Audit Log" icon={ClipboardList} active={activeTab === "audit"} onClick={() => setActiveTab("audit")} superOnly />
+          )}
         </div>
 
         {/* ═══════════════════════════════ OVERVIEW ═══════════════════════════════ */}
@@ -330,101 +456,216 @@ export default function AdminPage() {
         {/* ═══════════════════════════════ USERS ═══════════════════════════════ */}
         {activeTab === "users" && (
           <div className="space-y-3" data-testid="section-admin-users">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-[#555]">{adminUsers?.length ?? 0} users total · {disabledCount} disabled</p>
+            {/* Search + Filters */}
+            <div className="flex flex-col gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#555]" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email…"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 text-sm bg-[#0b0b0b] border border-[#1e1e1e] rounded-xl text-white placeholder:text-[#444] focus:outline-none focus:border-[#ff2b2b]/40"
+                  data-testid="input-user-search"
+                />
+              </div>
+
+              <div className="flex gap-2 flex-wrap">
+                {/* Role filter */}
+                <div className="flex gap-1 flex-wrap">
+                  {["ALL", ...availableRoles].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setUserRoleFilter(r)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                        userRoleFilter === r
+                          ? "bg-[#ff2b2b]/15 text-[#ff2b2b] border-[#ff2b2b]/30"
+                          : "text-[#555] border-[#2a2a2a] hover:text-white"
+                      }`}
+                      data-testid={`filter-role-${r.toLowerCase()}`}
+                    >
+                      {r === "ALL" ? "All Roles" : ROLE_LABELS[r] ?? r}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Status filter */}
+                <div className="flex gap-1 ml-auto">
+                  {["ALL", "active", "disabled", ...(isSuperAdmin ? ["DELETED"] : [])].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setUserStatusFilter(s)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                        userStatusFilter === s
+                          ? "bg-[#ff2b2b]/15 text-[#ff2b2b] border-[#ff2b2b]/30"
+                          : "text-[#555] border-[#2a2a2a] hover:text-white"
+                      }`}
+                      data-testid={`filter-status-${s.toLowerCase()}`}
+                    >
+                      {s === "ALL" ? "All Status" : s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-xs text-[#444]">{filteredUsers.length} of {adminUsers?.length ?? 0} users</p>
             </div>
 
             {usersLoading ? (
               <div className="space-y-2">{[1,2,3,4].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-            ) : (adminUsers ?? []).map((u) => (
-              <div
-                key={u.id}
-                className={`rounded-xl border p-3 flex items-center gap-3 ${u.status === "disabled" ? "bg-red-500/5 border-red-500/20" : "bg-[#0b0b0b] border-[#1e1e1e]"}`}
-                data-testid={`row-user-${u.id}`}
-              >
-                {/* Status indicator */}
-                <div className={`w-2 h-2 rounded-full shrink-0 ${u.status === "disabled" ? "bg-red-500" : "bg-green-500"}`} />
+            ) : filteredUsers.map((u) => {
+              const isDeleted = !!u.deletedAt;
+              const cardBg = isDeleted
+                ? "bg-zinc-900/50 border-zinc-800/50 opacity-70"
+                : u.status === "disabled"
+                  ? "bg-red-500/5 border-red-500/20"
+                  : "bg-[#0b0b0b] border-[#1e1e1e]";
 
-                {/* User info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-white truncate" data-testid={`text-user-name-${u.id}`}>
-                      {u.profile?.displayName || u.profile?.username || "—"}
-                    </span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ROLE_COLORS[u.role] ?? "bg-zinc-500/20 text-zinc-400"}`}>
-                      {ROLE_LABELS[u.role] ?? u.role}
-                    </span>
-                    {u.status === "disabled" && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">DISABLED</span>
-                    )}
+              return (
+                <div
+                  key={u.id}
+                  className={`rounded-xl border p-3 flex items-center gap-3 ${cardBg}`}
+                  data-testid={`row-user-${u.id}`}
+                >
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${isDeleted ? "bg-zinc-600" : u.status === "disabled" ? "bg-red-500" : "bg-green-500"}`} />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-white truncate" data-testid={`text-user-name-${u.id}`}>
+                        {u.profile?.displayName || u.profile?.username || "—"}
+                      </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ROLE_COLORS[u.role] ?? "bg-zinc-500/20 text-zinc-400"}`}>
+                        {ROLE_LABELS[u.role] ?? u.role}
+                      </span>
+                      {u.status === "disabled" && !isDeleted && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">DISABLED</span>
+                      )}
+                      {isDeleted && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-500/20 text-zinc-400">DELETED</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#555] truncate" data-testid={`text-user-email-${u.id}`}>{u.email}</p>
+                    <p className="text-[10px] text-[#444]">
+                      Joined {new Date(u.createdAt).toLocaleDateString()}
+                      {u.profile?.primaryCategory && ` · ${u.profile.primaryCategory}`}
+                      {isDeleted && u.deletedAt && ` · Deleted ${new Date(u.deletedAt).toLocaleDateString()}`}
+                    </p>
                   </div>
-                  <p className="text-xs text-[#555] truncate" data-testid={`text-user-email-${u.id}`}>{u.email}</p>
-                  <p className="text-[10px] text-[#444]">
-                    Joined {new Date(u.createdAt).toLocaleDateString()}
-                    {u.profile?.primaryCategory && ` · ${u.profile.primaryCategory}`}
-                  </p>
+
+                  {/* Role selector (not for deleted) */}
+                  {!isDeleted && (
+                    <Select
+                      value={u.role}
+                      onValueChange={(role) => userRoleMutation.mutate({ id: u.id, role })}
+                    >
+                      <SelectTrigger className="w-[110px] h-7 text-xs bg-[#111] border-[#2a2a2a] text-white" data-testid={`select-role-${u.id}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableRoles.map((r) => (
+                          <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r] ?? r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {/* Action buttons */}
+                  {!isDeleted && (
+                    <>
+                      {u.status === "disabled" ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-green-400 hover:text-green-300 h-7 px-2 text-xs border border-green-500/20"
+                          onClick={() => userStatusMutation.mutate({ id: u.id, status: "active" })}
+                          disabled={userStatusMutation.isPending}
+                          data-testid={`button-enable-user-${u.id}`}
+                        >
+                          <UserCheck className="h-3.5 w-3.5 mr-1" /> Enable
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-amber-400 hover:text-amber-300 h-7 px-2 text-xs border border-amber-500/20"
+                          onClick={() => userStatusMutation.mutate({ id: u.id, status: "disabled" })}
+                          disabled={userStatusMutation.isPending}
+                          data-testid={`button-disable-user-${u.id}`}
+                        >
+                          <UserX className="h-3.5 w-3.5 mr-1" /> Disable
+                        </Button>
+                      )}
+
+                      {isSuperAdmin && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-[#555] hover:text-blue-400 h-7 px-2 text-xs border border-[#2a2a2a]"
+                          onClick={() => openUserEdit(u)}
+                          data-testid={`button-edit-profile-${u.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                        </Button>
+                      )}
+
+                      {isSuperAdmin ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-[#555] hover:text-amber-400 h-7 w-7"
+                          title="Soft-delete (restorable)"
+                          onClick={() => {
+                            if (confirm(`Soft-delete ${u.email}? They can be restored later.`)) {
+                              softDeleteMutation.mutate(u.id);
+                            }
+                          }}
+                          disabled={softDeleteMutation.isPending}
+                          data-testid={`button-soft-delete-user-${u.id}`}
+                        >
+                          <Archive className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
+
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-[#555] hover:text-red-400 h-7 w-7"
+                        title="Delete permanently"
+                        onClick={() => {
+                          if (confirm(`Permanently delete ${u.email}? This cannot be undone.`)) {
+                            deleteUserMutation.mutate(u.id);
+                          }
+                        }}
+                        disabled={deleteUserMutation.isPending}
+                        data-testid={`button-delete-user-${u.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Restore button for deleted users */}
+                  {isDeleted && isSuperAdmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-green-400 hover:text-green-300 h-7 px-2 text-xs border border-green-500/20"
+                      onClick={() => restoreMutation.mutate(u.id)}
+                      disabled={restoreMutation.isPending}
+                      data-testid={`button-restore-user-${u.id}`}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Restore
+                    </Button>
+                  )}
                 </div>
+              );
+            })}
 
-                {/* Role selector */}
-                <Select
-                  value={u.role}
-                  onValueChange={(role) => userRoleMutation.mutate({ id: u.id, role })}
-                >
-                  <SelectTrigger
-                    className="w-[110px] h-7 text-xs bg-[#111] border-[#2a2a2a] text-white"
-                    data-testid={`select-role-${u.id}`}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ALL_ROLES.map((r) => (
-                      <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* Enable/Disable */}
-                {u.status === "disabled" ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-green-400 hover:text-green-300 h-7 px-2 text-xs border border-green-500/20"
-                    onClick={() => userStatusMutation.mutate({ id: u.id, status: "active" })}
-                    disabled={userStatusMutation.isPending}
-                    data-testid={`button-enable-user-${u.id}`}
-                  >
-                    <UserCheck className="h-3.5 w-3.5 mr-1" /> Enable
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-amber-400 hover:text-amber-300 h-7 px-2 text-xs border border-amber-500/20"
-                    onClick={() => userStatusMutation.mutate({ id: u.id, status: "disabled" })}
-                    disabled={userStatusMutation.isPending}
-                    data-testid={`button-disable-user-${u.id}`}
-                  >
-                    <UserX className="h-3.5 w-3.5 mr-1" /> Disable
-                  </Button>
-                )}
-
-                {/* Delete */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-[#555] hover:text-red-400 h-7 w-7"
-                  onClick={() => {
-                    if (confirm(`Delete user ${u.email}? This is permanent.`)) {
-                      deleteUserMutation.mutate(u.id);
-                    }
-                  }}
-                  disabled={deleteUserMutation.isPending}
-                  data-testid={`button-delete-user-${u.id}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+            {!usersLoading && filteredUsers.length === 0 && (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center text-[#444] text-sm">
+                No users match your filters.
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -497,6 +738,14 @@ export default function AdminPage() {
         {/* ═══════════════════════════════ GIGJACKS ═══════════════════════════════ */}
         {activeTab === "gigjacks" && (
           <div className="space-y-3" data-testid="section-admin-gigjacks">
+            {/* Override indicator */}
+            {overrideMode && isSuperAdmin && (
+              <div className="flex items-center gap-2 rounded-lg bg-violet-500/10 border border-violet-500/30 px-3 py-2">
+                <ShieldAlert className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+                <p className="text-xs text-violet-300 font-semibold">Override Mode Active — scheduling rules bypassed</p>
+              </div>
+            )}
+
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-2">
               {GJ_STATUS_TABS.map((tab) => {
@@ -558,7 +807,6 @@ export default function AdminPage() {
 
                   return (
                     <div key={gj.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3" data-testid={`card-admin-gigjack-${gj.id}`}>
-                      {/* Header row */}
                       <div className="flex items-start gap-3">
                         {gj.artworkUrl && (
                           <img src={gj.artworkUrl} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0 border border-[#222]" />
@@ -583,7 +831,6 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      {/* Scheduled datetime */}
                       <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${scheduledLabel ? "bg-[#ff2b2b]/06 border border-[#ff2b2b]/15" : "bg-[#111] border border-[#1e1e1e]"}`}>
                         {scheduledLabel ? (
                           <>
@@ -607,7 +854,6 @@ export default function AdminPage() {
                         </p>
                       )}
 
-                      {/* Action buttons */}
                       <div className="flex gap-2 pt-1 flex-wrap">
                         {gj.status === "PENDING_REVIEW" && (
                           <>
@@ -615,10 +861,10 @@ export default function AdminPage() {
                               size="sm"
                               disabled={reviewMutation.isPending}
                               onClick={() => reviewMutation.mutate({ id: gj.id, status: "APPROVED" })}
-                              className="flex-1 gap-1.5 bg-green-600 hover:bg-green-500 border-0 text-white"
+                              className={`flex-1 gap-1.5 border-0 text-white ${overrideMode && isSuperAdmin ? "bg-violet-600 hover:bg-violet-500" : "bg-green-600 hover:bg-green-500"}`}
                               data-testid={`btn-approve-gigjack-${gj.id}`}
                             >
-                              <CheckCircle className="h-3.5 w-3.5" /> Approve
+                              <CheckCircle className="h-3.5 w-3.5" /> {overrideMode && isSuperAdmin ? "Override Approve" : "Approve"}
                             </Button>
                             <Button
                               size="sm"
@@ -636,10 +882,10 @@ export default function AdminPage() {
                           size="sm"
                           onClick={() => openEditModal(gj)}
                           variant="outline"
-                          className="gap-1.5 border-[#2a2a2a] text-[#888] hover:border-[#ff2b2b]/30 hover:text-[#ff2b2b]"
+                          className={`gap-1.5 ${overrideMode && isSuperAdmin ? "border-violet-500/30 text-violet-300 hover:bg-violet-500/10" : "border-[#2a2a2a] text-[#888] hover:border-[#ff2b2b]/30 hover:text-[#ff2b2b]"}`}
                           data-testid={`btn-edit-gigjack-${gj.id}`}
                         >
-                          <Pencil className="h-3.5 w-3.5" /> Edit
+                          <Pencil className="h-3.5 w-3.5" /> {overrideMode && isSuperAdmin ? "Override Edit" : "Edit"}
                         </Button>
                         <Button
                           size="sm"
@@ -660,30 +906,91 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ═══════════════════════════════ AUDIT LOG ═══════════════════════════════ */}
+        {activeTab === "audit" && isSuperAdmin && (
+          <div className="space-y-3" data-testid="section-admin-audit">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-violet-400" />
+              <h2 className="text-sm font-semibold text-white">Audit Log</h2>
+              <span className="ml-auto text-xs text-[#444]">{auditLogs?.length ?? 0} entries</span>
+            </div>
+
+            {auditLoading ? (
+              <div className="space-y-2">{[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+            ) : (auditLogs?.length ?? 0) === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center text-[#444] text-sm">
+                No audit log entries yet.
+              </div>
+            ) : (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
+                {(auditLogs ?? []).map((log, i) => (
+                  <div
+                    key={log.id}
+                    className={`flex items-start gap-3 px-4 py-3 text-xs ${i !== (auditLogs!.length - 1) ? "border-b border-[#1a1a1a]" : ""} ${log.usedOverride ? "bg-violet-500/05" : ""}`}
+                    data-testid={`row-audit-${log.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className={`font-mono font-semibold text-[11px] ${log.usedOverride ? "text-violet-300" : "text-[#ff2b2b]"}`}>
+                          {log.actionType}
+                        </span>
+                        {log.usedOverride && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300">
+                            OVERRIDE
+                          </span>
+                        )}
+                        <span className="text-[#444]">·</span>
+                        <span className="text-[#666]">{log.targetType} #{log.targetId ?? "—"}</span>
+                      </div>
+                      <div className="flex gap-3 text-[10px] text-[#444]">
+                        {log.oldValue && <span>from: <span className="text-[#666]">{log.oldValue}</span></span>}
+                        {log.newValue && <span>to: <span className="text-[#666]">{log.newValue}</span></span>}
+                        <span className="ml-auto">actor: <span className="text-[#666]">user #{log.actorUserId ?? "—"}</span></span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-[#444] shrink-0 mt-0.5 whitespace-nowrap">
+                      {new Date(log.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* ─── Edit GigJack Modal ─────────────────────────────────────────────── */}
       {editingGj && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" data-testid="modal-edit-gigjack">
           <div className="w-full max-w-md rounded-2xl bg-[#0b0b0b] border border-[#222] shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e1e]">
+            <div className={`flex items-center justify-between px-5 py-4 border-b border-[#1e1e1e] ${overrideMode && isSuperAdmin ? "bg-violet-500/10" : ""}`}>
               <div className="flex items-center gap-2">
-                <Pencil className="h-4 w-4 text-[#ff2b2b]" />
-                <h3 className="font-semibold text-white text-sm">Edit GigJack</h3>
+                {overrideMode && isSuperAdmin
+                  ? <ShieldAlert className="h-4 w-4 text-violet-400" />
+                  : <Pencil className="h-4 w-4 text-[#ff2b2b]" />}
+                <h3 className="font-semibold text-white text-sm">
+                  {overrideMode && isSuperAdmin ? "Override Edit GigJack" : "Edit GigJack"}
+                </h3>
               </div>
               <button onClick={() => setEditingGj(null)} className="text-[#555] hover:text-white transition-colors" data-testid="btn-close-edit-modal">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Body */}
             <div className="px-5 py-4 space-y-4">
               <div>
                 <p className="text-xs text-[#555] mb-1 font-medium uppercase tracking-wider">Offer</p>
                 <p className="text-sm text-white font-semibold line-clamp-2">{editingGj.offerTitle}</p>
                 <p className="text-xs text-[#555] mt-0.5">by {editingGj.provider?.displayName ?? editingGj.provider?.username ?? "Unknown"}</p>
               </div>
+
+              {overrideMode && isSuperAdmin && (
+                <div className="flex items-center gap-2 rounded-lg bg-violet-500/10 border border-violet-500/30 px-3 py-2">
+                  <ShieldAlert className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+                  <p className="text-xs text-violet-300">Override active — scheduling rules bypassed</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -711,51 +1018,106 @@ export default function AdminPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs text-[#666] font-medium">Status</label>
-                <div className="flex gap-2">
-                  {(["PENDING_REVIEW", "APPROVED", "DENIED"] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setEditStatus(s)}
-                      data-testid={`btn-edit-status-${s.toLowerCase()}`}
-                      className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                        editStatus === s
-                          ? s === "APPROVED" ? "bg-green-600/20 border-green-500/40 text-green-400"
-                            : s === "DENIED" ? "bg-red-600/20 border-red-500/40 text-red-400"
-                            : "bg-blue-600/20 border-blue-500/40 text-blue-400"
-                          : "border-[#2a2a2a] text-[#555] hover:text-white hover:border-[#444]"
-                      }`}
-                    >
-                      {s === "PENDING_REVIEW" ? "Pending" : s.charAt(0) + s.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-lg bg-amber-500/06 border border-amber-500/15 px-3 py-2.5">
-                <p className="text-xs text-amber-400/80">
-                  <span className="font-semibold">Note:</span> System rules still apply — max 2 approved GigJacks per hour, 15-minute spacing required. Conflicts will be shown as an error.
-                </p>
+                <Select value={editStatus} onValueChange={(v) => setEditStatus(v as any)}>
+                  <SelectTrigger className="w-full bg-[#111] border-[#2a2a2a] text-white h-9" data-testid="select-edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
+                    <SelectItem value="APPROVED">Approved</SelectItem>
+                    <SelectItem value="DENIED">Denied</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex gap-3 px-5 py-4 border-t border-[#1e1e1e]">
+            <div className="px-5 pb-5 flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1 border-[#2a2a2a] text-[#555] hover:text-white"
+                className="flex-1 border-[#2a2a2a] text-[#666] hover:text-white"
                 onClick={() => setEditingGj(null)}
                 data-testid="btn-cancel-edit"
               >
                 Cancel
               </Button>
               <Button
-                className="flex-1 bg-[#ff2b2b] hover:bg-[#e52222] border-0 text-white"
-                disabled={editGigJackMutation.isPending}
+                className={`flex-1 text-white border-0 ${overrideMode && isSuperAdmin ? "bg-violet-600 hover:bg-violet-500" : "bg-[#ff2b2b] hover:bg-[#e02222]"}`}
                 onClick={handleEditSave}
+                disabled={editGigJackMutation.isPending}
                 data-testid="btn-save-edit"
               >
-                {editGigJackMutation.isPending ? <span className="animate-spin mr-1">⏳</span> : null}
-                Save Changes
+                {editGigJackMutation.isPending ? "Saving…" : overrideMode && isSuperAdmin ? "Override Save" : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Edit User Profile Modal (SUPER_ADMIN) ──────────────────────────── */}
+      {editingUser && isSuperAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" data-testid="modal-edit-user-profile">
+          <div className="w-full max-w-md rounded-2xl bg-[#0b0b0b] border border-[#222] shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e1e] bg-violet-500/10">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-violet-400" />
+                <h3 className="font-semibold text-white text-sm">Edit User Profile</h3>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="text-[#555] hover:text-white transition-colors" data-testid="btn-close-user-edit-modal">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <p className="text-xs text-[#555] mb-1">Editing: <span className="text-white">{editingUser.email}</span></p>
+              </div>
+
+              {[
+                { label: "Display Name", value: editDisplayName, onChange: setEditDisplayName, testid: "input-edit-display-name" },
+                { label: "Bio", value: editBio, onChange: setEditBio, testid: "input-edit-bio" },
+                { label: "Avatar URL", value: editAvatarUrl, onChange: setEditAvatarUrl, testid: "input-edit-avatar-url" },
+                { label: "Contact Email", value: editContactEmail, onChange: setEditContactEmail, testid: "input-edit-contact-email" },
+                { label: "Location", value: editLocation, onChange: setEditLocation, testid: "input-edit-location" },
+              ].map(({ label, value, onChange, testid }) => (
+                <div key={label} className="space-y-1">
+                  <label className="text-xs text-[#666] font-medium">{label}</label>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-full bg-[#111] border border-[#2a2a2a] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-violet-500/40"
+                    data-testid={testid}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="px-5 pb-5 flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 border-[#2a2a2a] text-[#666] hover:text-white"
+                onClick={() => setEditingUser(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-violet-600 hover:bg-violet-500 text-white border-0"
+                onClick={() => {
+                  editUserProfileMutation.mutate({
+                    id: editingUser.id,
+                    data: {
+                      displayName: editDisplayName,
+                      bio: editBio,
+                      avatarUrl: editAvatarUrl,
+                      contactEmail: editContactEmail,
+                      location: editLocation,
+                    },
+                  });
+                }}
+                disabled={editUserProfileMutation.isPending}
+                data-testid="btn-save-user-profile"
+              >
+                {editUserProfileMutation.isPending ? "Saving…" : "Save Profile"}
               </Button>
             </div>
           </div>
