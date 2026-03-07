@@ -20,6 +20,8 @@ export interface IStorage {
   getListingsByProvider(providerId: number): Promise<ListingWithProvider[]>;
   createListing(data: CreateListingRequest & { providerId: number; dropDate: string; pricePaidCents: number }): Promise<VideoListing>;
   updateListingStatus(id: number, status: "ACTIVE" | "PAUSED" | "REMOVED"): Promise<VideoListing | undefined>;
+  triageListing(id: number, adminUserId: number, reason: string): Promise<VideoListing | undefined>;
+  getTriagedListings(): Promise<ListingWithProvider[]>;
 
   // Daily cap
   getTodayListingCount(): Promise<number>;
@@ -237,6 +239,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(videoListings.id, id))
       .returning();
     return listing;
+  }
+
+  async triageListing(id: number, adminUserId: number, reason: string): Promise<VideoListing | undefined> {
+    const [listing] = await db
+      .update(videoListings)
+      .set({ status: "TRIAGED", triagedAt: new Date(), triagedBy: adminUserId, triagedReason: reason, updatedAt: new Date() })
+      .where(eq(videoListings.id, id))
+      .returning();
+    return listing;
+  }
+
+  async getTriagedListings(): Promise<ListingWithProvider[]> {
+    const rows = await db
+      .select()
+      .from(videoListings)
+      .where(eq(videoListings.status, "TRIAGED"))
+      .orderBy(sql`${videoListings.createdAt} DESC`);
+    return this.enrichListings(rows);
   }
 
   async getTodayListingCount(): Promise<number> {

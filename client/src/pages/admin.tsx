@@ -15,7 +15,7 @@ import {
   Users, Video, UserCheck, UserX, LayoutDashboard, CalendarDays, Clock,
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
-  Radio, PlusCircle, ExternalLink, Wifi, WifiOff,
+  Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -35,6 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
   PAUSED:   "bg-amber-500/20 text-amber-400",
   REMOVED:  "bg-red-500/20 text-red-400",
   PENDING:  "bg-blue-500/20 text-blue-400",
+  TRIAGED:  "bg-orange-500/20 text-orange-400",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -127,6 +128,10 @@ export default function AdminPage() {
 
   // Delete confirmation dialog state
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string } | null>(null);
+
+  // Triage dialog state
+  const [confirmTriage, setConfirmTriage] = useState<{ id: number; title: string } | null>(null);
+  const [triagedReason, setTriagedReason] = useState("Non-video format — static image detected");
 
   const userRole = user?.user?.role ?? "";
   const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN");
@@ -231,6 +236,21 @@ export default function AdminPage() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }); toast({ title: "Listing deleted" }); },
     onError: () => toast({ title: "Error deleting listing", variant: "destructive" }),
+  });
+
+  const triageMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/listings/${id}/triage`, { reason });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gigcard-directory"] });
+      toast({ title: "Listing triaged", description: "Moved to GigCard Directory. Provider has been notified." });
+      setConfirmTriage(null);
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const reviewMutation = useMutation({
@@ -780,12 +800,12 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  {listing.status !== "ACTIVE" && (
+                  {listing.status !== "ACTIVE" && listing.status !== "TRIAGED" && (
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-white"
                       onClick={() => statusMutation.mutate({ id: listing.id, status: "ACTIVE" })}
                       disabled={statusMutation.isPending}
                       data-testid={`button-admin-activate-${listing.id}`}
-                      title="Activate">
+                      title="Restore to feed">
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
                   )}
@@ -794,17 +814,19 @@ export default function AdminPage() {
                       onClick={() => statusMutation.mutate({ id: listing.id, status: "PAUSED" })}
                       disabled={statusMutation.isPending}
                       data-testid={`button-admin-pause-${listing.id}`}
-                      title="Disable">
+                      title="Pause">
                       <EyeOff className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-red-400"
-                    onClick={() => statusMutation.mutate({ id: listing.id, status: "REMOVED" })}
-                    disabled={statusMutation.isPending || listing.status === "REMOVED"}
-                    data-testid={`button-admin-remove-${listing.id}`}
-                    title="Remove">
-                    <EyeOff className="h-3.5 w-3.5 opacity-50" />
-                  </Button>
+                  {listing.status !== "TRIAGED" && (
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-orange-400"
+                      onClick={() => { setConfirmTriage({ id: listing.id, title: listing.title }); setTriagedReason("Non-video format — static image detected"); }}
+                      disabled={triageMutation.isPending}
+                      data-testid={`button-admin-triage-${listing.id}`}
+                      title="Triage — move to GigCard Directory">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-red-500"
                     onClick={() => setConfirmDelete({ id: listing.id, title: listing.title })}
                     disabled={deleteListingMutation.isPending}
@@ -1508,6 +1530,78 @@ export default function AdminPage() {
           }}
           onCancel={() => setConfirmDelete(null)}
         />
+      )}
+
+      {/* Triage dialog */}
+      {confirmTriage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setConfirmTriage(null)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-md rounded-2xl bg-[#0d0d0d] border border-orange-500/30 overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="triage-confirm-dialog"
+          >
+            <div className="h-1 w-full bg-gradient-to-r from-orange-500 to-amber-500" />
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/15">
+                  <AlertTriangle className="h-5 w-5 text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-base" data-testid="triage-dialog-heading">Move to GigCard Directory</h3>
+                  <p className="text-xs text-[#555]">The poster will be notified by email</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-[#0a0a0a] border border-[#1e1e1e] px-4 py-3">
+                <p className="text-xs text-[#555] mb-1">Listing being triaged</p>
+                <p className="text-sm font-semibold text-white" data-testid="triage-dialog-title">{confirmTriage.title}</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs text-[#888] font-semibold uppercase tracking-wider">Reason (sent to provider)</label>
+                <Input
+                  value={triagedReason}
+                  onChange={(e) => setTriagedReason(e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                  placeholder="e.g. Non-video format — static image detected"
+                  data-testid="input-triage-reason"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {["Non-video format — static image detected", "PDF or document file — not a video", "Low quality / unplayable video"].map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setTriagedReason(preset)}
+                      className="text-[10px] px-2 py-1 rounded-md bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-orange-400 hover:border-orange-500/40 transition-colors"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 px-4 py-3">
+                <p className="text-xs text-orange-300/80">
+                  This listing will be removed from the video feed and added to the public GigCard Directory. The provider will receive an automatic email explaining why.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <Button variant="ghost" className="flex-1 text-[#666] hover:text-white border border-[#2a2a2a]" onClick={() => setConfirmTriage(null)} data-testid="triage-confirm-cancel">
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+                  onClick={() => triageMutation.mutate({ id: confirmTriage.id, reason: triagedReason })}
+                  disabled={triageMutation.isPending || !triagedReason.trim()}
+                  data-testid="triage-confirm-yes"
+                >
+                  {triageMutation.isPending ? "Triaging…" : "Move to GigCard Directory"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

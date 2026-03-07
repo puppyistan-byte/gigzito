@@ -10,7 +10,7 @@ export const verticalEnum = pgEnum("vertical", [
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
   "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
 ]);
-export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED"]);
+export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED", "TRIAGED"]);
 export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT", "DENIED"]);
 
 // === TABLES ===
@@ -66,6 +66,9 @@ export const videoListings = pgTable("video_listings", {
   dropDate: date("drop_date").notNull(),
   pricePaidCents: integer("price_paid_cents").notNull().default(300),
   stripeSessionId: text("stripe_session_id"),
+  triagedAt: timestamp("triaged_at"),
+  triagedBy: integer("triaged_by").references(() => users.id, { onDelete: "set null" }),
+  triagedReason: text("triaged_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -354,7 +357,8 @@ export type AdminStatsResponse = {
   listings: ListingWithProvider[];
 };
 
-export type UpdateListingStatusRequest = { status: "ACTIVE" | "PAUSED" | "REMOVED" };
+export type UpdateListingStatusRequest = { status: "ACTIVE" | "PAUSED" | "REMOVED" | "TRIAGED" };
+export type TriageListingRequest = { reason: string };
 
 // Filters
 export type ListingsFilter = {

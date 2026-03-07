@@ -31,6 +31,61 @@ export interface SendMfaCodeResult {
   previewCode?: string;
 }
 
+export async function sendTriageNotification(
+  toEmail: string,
+  providerName: string,
+  listingTitle: string,
+  reason: string,
+): Promise<{ devMode: boolean }> {
+  const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+      <h2 style="color:#f59e0b;font-size:20px;margin:0 0 8px;">Listing Pulled from Rotation</h2>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${providerName},</p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
+        Your listing has been moved out of the Gigzito video feed by our moderation team and placed in the 
+        <strong style="color:#fff;">GigCard Directory</strong> for static ads.
+      </p>
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Listing</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${listingTitle}</p>
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Reason</p>
+        <p style="color:#f59e0b;font-size:13px;margin:0;">${reason}</p>
+      </div>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
+        Gigzito's video feed is designed for short-form video content only. If your listing contains a 
+        static image or non-video media, it will appear in the GigCard business directory instead.
+      </p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 4px;">
+        You can re-submit a video version at any time via your provider dashboard.
+      </p>
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
+      <p style="color:#555;font-size:12px;margin:0;">Questions? Reply to this email or visit gigzito.com/support.</p>
+    </div>
+  `;
+
+  if (DEV_MODE) {
+    console.log("\n");
+    console.log("=".repeat(60));
+    console.log("  [DEV MODE] Triage notification for:", toEmail);
+    console.log("  Listing:", listingTitle);
+    console.log("  Reason:", reason);
+    console.log("=".repeat(60));
+    console.log("\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: toEmail,
+    subject: `Your Gigzito listing "${listingTitle}" has been moved to GigCard Directory`,
+    html,
+    text: `Hi ${providerName}, your listing "${listingTitle}" has been moved out of the video feed. Reason: ${reason}. It now appears in the GigCard business directory.`,
+  });
+
+  return { devMode: false };
+}
+
 export async function sendMfaCode(toEmail: string, code: string): Promise<SendMfaCodeResult> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">

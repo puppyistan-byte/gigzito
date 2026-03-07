@@ -5,7 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { sendMfaCode } from "./email";
+import { sendMfaCode, sendTriageNotification } from "./email";
 
 // === BOT CHECKS ===
 function runBotChecks(data: {
@@ -501,6 +501,42 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const listing = await storage.updateListingStatus(id, status);
     if (!listing) return res.status(404).json({ message: "Listing not found" });
     return res.json(listing);
+  });
+
+  // Triage a listing (pull from video feed → GigCard Directory) + notify provider
+  app.patch("/api/admin/listings/:id/triage", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    const schema = z.object({ reason: z.string().min(1).max(300) });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Reason required" });
+
+    const listing = await storage.triageListing(id, (req as any).session?.userId, parsed.data.reason);
+    if (!listing) return res.status(404).json({ message: "Listing not found" });
+
+    // Look up the provider's email and name to send the notification
+    try {
+      const fullListing = await storage.getListingById(id);
+      if (fullListing?.provider?.contactEmail) {
+        await sendTriageNotification(
+          fullListing.provider.contactEmail,
+          fullListing.provider.displayName || "Provider",
+          fullListing.title,
+          parsed.data.reason,
+        );
+      }
+    } catch (err) {
+      console.error("[triage] email notification failed:", err);
+    }
+
+    return res.json(listing);
+  });
+
+  // GigCard Directory — publicly browsable triaged listings
+  app.get("/api/gigcard-directory", async (_req, res) => {
+    const listings = await storage.getTriagedListings();
+    return res.json(listings);
   });
 
   // === LEADS ===

@@ -18,6 +18,16 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 
 Seeded super admin: `admin@gigzito.com` / `Arizona22` (auto-upgraded to SUPER_ADMIN on startup)
 
+## Triage System & GigCard Directory
+
+- **Triage action** (admin Content tab): Orange triangle button per listing pulls it from the video feed and moves it to TRIAGED status
+- **Triage dialog**: Admin selects a reason (pre-filled "Non-video format") with 3 quick-select presets; the reason is included in the notification
+- **Auto-email notification**: On triage, the provider is automatically emailed explaining why their listing was moved (uses same SMTP infrastructure as MFA; logs to console in dev mode)
+- **GigCard Directory** at `/gigcard-directory`: Public page showing all TRIAGED listings as static business-card-style ads with provider contact info, tags, and CTA button
+- `listing_status` enum now includes `TRIAGED` alongside `ACTIVE | PAUSED | REMOVED | PENDING`
+- Main video feed (`GET /api/listings`) remains filtered to `ACTIVE` only — TRIAGED listings are fully excluded
+- TRIAGED listings can be restored to ACTIVE via the Eye icon in the admin Content tab
+
 ## Super Admin Override Control System
 
 - **Override Mode toggle** on admin console (SUPER_ADMIN only): bypasses 15-min GigJack spacing and 2-per-hour cap
