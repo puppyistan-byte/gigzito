@@ -294,12 +294,12 @@ html, body, #root {
     box-shadow: none;
     display: flex;
     align-items: center;
-    height: 110px;
+    height: 440px;
     overflow: visible;
   }
 
   .gigzito-logo img {
-    height: 110px;
+    height: 440px;
     width: auto;
     object-fit: contain;
     display: block;
@@ -307,8 +307,8 @@ html, body, #root {
   }
 
   @media (max-width: 640px) {
-    .gigzito-logo { height: 70px; }
-    .gigzito-logo img { height: 70px; }
+    .gigzito-logo { height: 280px; }
+    .gigzito-logo img { height: 280px; }
   }
 
   .gigzito-logo svg path {
