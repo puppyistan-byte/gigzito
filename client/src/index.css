@@ -289,20 +289,26 @@ html, body, #root {
     left: 36px;
     z-index: 9999;
     pointer-events: none;
-    padding: 12px 18px;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    height: 110px;
     overflow: visible;
   }
 
   .gigzito-logo img {
-    height: 70px;
+    height: 110px;
     width: auto;
     object-fit: contain;
     display: block;
-    filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.5));
+    filter: none;
   }
 
   @media (max-width: 640px) {
-    .gigzito-logo img { height: 56px; }
+    .gigzito-logo { height: 70px; }
+    .gigzito-logo img { height: 70px; }
   }
 
   .gigzito-logo svg path {
