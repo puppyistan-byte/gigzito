@@ -2055,7 +2055,7 @@ html, body, #root {
 .gigjack-siren-title {
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: #ff2b2b;
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2065,7 +2065,7 @@ html, body, #root {
 
 .gigjack-siren-brand {
   font-size: 9px;
-  color: #555;
+  color: rgba(255, 43, 43, 0.55);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -2077,13 +2077,15 @@ html, body, #root {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   color: #ff2b2b;
-  background: rgba(255, 43, 43, 0.08);
-  border: 1px solid rgba(255, 43, 43, 0.2);
+  background: rgba(255, 43, 43, 0.1);
+  border: 1px solid rgba(255, 43, 43, 0.3);
   border-radius: 8px;
   padding: 4px 8px;
   margin-bottom: 6px;
+  text-shadow: 0 0 8px rgba(255, 43, 43, 0.6);
+  letter-spacing: 0.05em;
 }
 
 .gigjack-siren-clock {
@@ -2108,7 +2110,7 @@ html, body, #root {
 
 .gigjack-expired-msg {
   font-size: 10px;
-  color: #555;
+  color: rgba(255, 43, 43, 0.5);
   padding: 4px 0 2px;
 }
 
@@ -2153,8 +2155,8 @@ html, body, #root {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255,43,43,0.05);
-  border: 1px solid rgba(255,43,43,0.08);
+  background: rgba(255,43,43,0.08);
+  border: 1px solid rgba(255,43,43,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2164,13 +2166,15 @@ html, body, #root {
 .gigjack-idle-title {
   font-size: 10px;
   font-weight: 700;
-  color: #333;
+  color: #ff2b2b;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .gigjack-idle-sub {
   font-size: 9px;
-  color: #272727;
+  color: rgba(255, 43, 43, 0.55);
   text-align: center;
   line-height: 1.4;
 }

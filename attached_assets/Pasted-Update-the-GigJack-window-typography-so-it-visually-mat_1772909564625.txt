@@ -1,0 +1,92 @@
+Update the GigJack window typography so it visually matches the ZitoTV alert styling.
+
+==================================================
+GIGJACK FONT COLOR
+==================================================
+
+All text inside the GigJack window must use a bright red color similar to the ZitoTV alert styling.
+
+The current GigJack text appears dim and low contrast.
+
+This must be corrected.
+
+Use a strong branded red color that matches the ZitoTV aesthetic.
+
+Example styling:
+
+color: #ff2a2a (or the existing brand red used in the Gigzito logo)
+
+==================================================
+TEXT ELEMENTS THAT MUST BE BRIGHT RED
+==================================================
+
+Apply the bright red color to:
+
+• GigJack title text
+• "GigJack" label
+• placeholder text
+• offer titles
+• countdown timer
+• alert labels
+• CTA text if appropriate
+• idle state messages
+
+Example idle state text:
+
+NO ACTIVE GIGJACK  
+Next network takeover will appear here
+
+All of this text should be bright red, not gray or dim.
+
+==================================================
+COUNTDOWN TIMER
+==================================================
+
+The countdown timer must also use bright red text.
+
+Add slight emphasis such as:
+
+• bold weight
+• subtle glow
+• increased contrast
+
+It should visually read like an urgent countdown.
+
+==================================================
+SIREN INDICATOR
+==================================================
+
+When the GigJack is active:
+
+• the siren icon should flash in bright red
+• the text around it should remain bright red
+• the card frame should also glow subtly
+
+==================================================
+IDLE STATE
+==================================================
+
+Even when no GigJack is active:
+
+• keep the text bright red
+• keep the red frame visible
+• keep the module visually present
+
+Do not dim the UI.
+
+This module should always feel like a live alert console.
+
+==================================================
+VISUAL GOAL
+==================================================
+
+The GigJack module should visually match the ZitoTV alert energy.
+
+Both modules should share the same design language:
+
+• bright red typography
+• high contrast
+• strong alert styling
+• clear visibility on dark background
+
+The GigJack should feel like a live broadcast alert, not a background widget.

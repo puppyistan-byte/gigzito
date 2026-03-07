@@ -220,7 +220,7 @@ export function GigJackFlashOverlay() {
         <div className="gigjack-siren-inner">
           <div className="gigjack-siren-header">
             <Zap className="gigjack-siren-zap" size={12} />
-            <span className="gigjack-siren-label" style={{ color: "#555" }}>OFFER ENDED</span>
+            <span className="gigjack-siren-label" style={{ color: "rgba(255,43,43,0.45)" }}>OFFER ENDED</span>
           </div>
           <p className="gigjack-expired-msg">This GigJack offer has expired.</p>
         </div>
@@ -233,13 +233,13 @@ export function GigJackFlashOverlay() {
     <div className="gigjack-siren-widget gigjack-siren-idle" data-testid="widget-gigjack-idle">
       <div className="gigjack-siren-inner">
         <div className="gigjack-siren-header">
-          <Zap className="gigjack-siren-zap" size={12} style={{ color: "#333" }} />
-          <span className="gigjack-siren-label" style={{ color: "#333" }}>GIG JACK</span>
+          <Zap className="gigjack-siren-zap" size={12} />
+          <span className="gigjack-siren-label">GIG JACK</span>
           <div className="gigjack-beacon gigjack-beacon-idle" aria-hidden="true" />
         </div>
         <div className="gigjack-idle-body" data-testid="gigjack-idle-placeholder">
           <div className="gigjack-idle-icon" aria-hidden="true">
-            <Zap size={18} style={{ color: "#2a2a2a" }} />
+            <Zap size={18} style={{ color: "#ff2b2b" }} />
           </div>
           <p className="gigjack-idle-title">No Active Offers</p>
           <p className="gigjack-idle-sub">Next GigJack will appear here</p>
