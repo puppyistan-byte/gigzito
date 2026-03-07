@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, auditLogs, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, auditLogs, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -59,6 +59,9 @@ export interface IStorage {
   editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number, override?: boolean): Promise<{ gj: GigJack | undefined; error?: string }>;
   deleteGigJack(id: number, removedBy?: number): Promise<void>;
   getActiveGigJack(): Promise<GigJackWithProvider | null>;
+  getLiveGigJackState(): Promise<GigJackLiveState>;
+  getTodaysGigJacks(): Promise<TodayGigJack[]>;
+  forceExpireGigJack(id: number, adminUserId?: number): Promise<void>;
   getAvailableSlots(): Promise<GigJackSlot[]>;
   getSlotAvailability(date: string): Promise<TimeSlot[]>;
 
@@ -466,6 +469,7 @@ export class DatabaseStorage implements IStorage {
         bookedDate: scheduledAt ? scheduledAt.toISOString().slice(0, 10) : null,
         bookedHour: scheduledAt ? scheduledAt.getHours() : null,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
+        offerDurationMinutes: data.offerDurationMinutes ?? 60,
         status: (data.initialStatus as any) ?? "PENDING_REVIEW",
         botWarning: data.botWarning,
         botWarningMessage: data.botWarningMessage,
@@ -671,8 +675,150 @@ export class DatabaseStorage implements IStorage {
       setData.providerId = data.providerId;
     }
 
+    if (data.offerDurationMinutes !== undefined) {
+      setData.offerDurationMinutes = data.offerDurationMinutes;
+    }
+
+    if (data.flashDurationSeconds !== undefined) {
+      setData.flashDurationSeconds = data.flashDurationSeconds;
+    }
+
     const [gj] = await db.update(gigJacks).set(setData).where(eq(gigJacks.id, id)).returning();
     return { gj };
+  }
+
+  async getLiveGigJackState(): Promise<GigJackLiveState> {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const rows = await db
+      .select()
+      .from(gigJacks)
+      .where(
+        and(
+          eq(gigJacks.status, "APPROVED"),
+          lte(gigJacks.scheduledAt, now),
+          gte(gigJacks.scheduledAt, todayStart)
+        )
+      )
+      .orderBy(sql`${gigJacks.scheduledAt} DESC`)
+      .limit(5);
+
+    for (const row of rows) {
+      if (!row.scheduledAt) continue;
+      const displayState = row.displayState as string;
+
+      if (displayState === "expired" || displayState === "removed") continue;
+
+      if (displayState === "hidden") {
+        const [updated] = await db
+          .update(gigJacks)
+          .set({ displayState: "flash", flashStartedAt: now, updatedAt: now })
+          .where(eq(gigJacks.id, row.id))
+          .returning();
+        const enriched = await this.enrichGigJacks([updated]);
+        return {
+          phase: "flash",
+          gj: enriched[0] ?? null,
+          flashSecondsRemaining: updated.flashDurationSeconds ?? 7,
+          offerEndsAt: null,
+        };
+      }
+
+      if (displayState === "flash") {
+        const flashStart = row.flashStartedAt ? new Date(row.flashStartedAt) : new Date(row.scheduledAt);
+        const elapsed = (now.getTime() - flashStart.getTime()) / 1000;
+        const flashDuration = row.flashDurationSeconds ?? 7;
+        if (elapsed >= flashDuration) {
+          const offerDuration = (row.offerDurationMinutes ?? 60) * 60 * 1000;
+          const offerEndsAt = new Date(now.getTime() + offerDuration);
+          const [updated] = await db
+            .update(gigJacks)
+            .set({ displayState: "siren", flashEndedAt: now, offerStartedAt: now, offerEndsAt, updatedAt: now })
+            .where(eq(gigJacks.id, row.id))
+            .returning();
+          const enriched = await this.enrichGigJacks([updated]);
+          return {
+            phase: "siren",
+            gj: enriched[0] ?? null,
+            flashSecondsRemaining: null,
+            offerEndsAt: offerEndsAt.toISOString(),
+          };
+        }
+        const enriched = await this.enrichGigJacks([row]);
+        return {
+          phase: "flash",
+          gj: enriched[0] ?? null,
+          flashSecondsRemaining: Math.max(0, Math.ceil(flashDuration - elapsed)),
+          offerEndsAt: null,
+        };
+      }
+
+      if (displayState === "siren") {
+        const offerEndsAt = row.offerEndsAt ? new Date(row.offerEndsAt) : null;
+        if (offerEndsAt && now >= offerEndsAt) {
+          const [updated] = await db
+            .update(gigJacks)
+            .set({ displayState: "expired", completedAt: now, updatedAt: now })
+            .where(eq(gigJacks.id, row.id))
+            .returning();
+          const enriched = await this.enrichGigJacks([updated]);
+          return { phase: "expired", gj: enriched[0] ?? null, flashSecondsRemaining: null, offerEndsAt: null };
+        }
+        const enriched = await this.enrichGigJacks([row]);
+        return {
+          phase: "siren",
+          gj: enriched[0] ?? null,
+          flashSecondsRemaining: null,
+          offerEndsAt: offerEndsAt ? offerEndsAt.toISOString() : null,
+        };
+      }
+    }
+
+    return { phase: "hidden", gj: null, flashSecondsRemaining: null, offerEndsAt: null };
+  }
+
+  async getTodaysGigJacks(): Promise<TodayGigJack[]> {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const rows = await db
+      .select()
+      .from(gigJacks)
+      .where(
+        and(
+          eq(gigJacks.status, "APPROVED"),
+          gte(gigJacks.scheduledAt, todayStart),
+          lte(gigJacks.scheduledAt, todayEnd),
+          sql`${gigJacks.displayState} IN ('flash', 'siren', 'expired')`
+        )
+      )
+      .orderBy(sql`${gigJacks.scheduledAt} ASC`);
+
+    const enriched = await this.enrichGigJacks(rows);
+    return enriched.map((gj) => ({
+      id: gj.id,
+      offerTitle: gj.offerTitle,
+      artworkUrl: gj.artworkUrl,
+      ctaLink: gj.ctaLink,
+      category: gj.category,
+      displayName: gj.provider?.displayName ?? gj.provider?.username ?? "Unknown",
+      scheduledAt: gj.scheduledAt ? gj.scheduledAt.toISOString() : null,
+      displayState: gj.displayState as any,
+      offerEndsAt: gj.offerEndsAt ? gj.offerEndsAt.toISOString() : null,
+    }));
+  }
+
+  async forceExpireGigJack(id: number, adminUserId?: number): Promise<void> {
+    const now = new Date();
+    await db
+      .update(gigJacks)
+      .set({ displayState: "expired", completedAt: now, updatedAt: now })
+      .where(eq(gigJacks.id, id));
   }
 
   // MFA methods

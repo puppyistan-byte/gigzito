@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Zap, CalendarDays, Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Info } from "lucide-react";
@@ -49,6 +50,8 @@ const formSchema = z.object({
   description: z.string().min(10, "At least 10 characters").max(500),
   ctaLink: z.string().url("Must be a valid URL"),
   countdownMinutes: z.coerce.number().int().min(1).max(30),
+  flashDurationSeconds: z.coerce.number().int().min(5).max(60).default(7),
+  offerDurationMinutes: z.coerce.number().int().min(10).max(1440).default(60),
   couponCode: z.string().max(40).or(z.literal("")).optional(),
   quantityLimit: z.coerce.number().int().min(1).max(100000).optional().or(z.literal("")),
 });
@@ -439,6 +442,8 @@ export default function GigJackNewPage() {
       description: "",
       ctaLink: "",
       countdownMinutes: 10,
+      flashDurationSeconds: 7,
+      offerDurationMinutes: 60,
       couponCode: "",
       quantityLimit: "",
     },
@@ -684,6 +689,47 @@ export default function GigJackNewPage() {
                       <FormMessage />
                     </FormItem>
                   )} />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField control={form.control} name="flashDurationSeconds" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Flash Duration</FormLabel>
+                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                          <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-gigjack-flash-duration">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[5, 7, 10, 15, 30, 60].map((s) => (
+                              <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="offerDurationMinutes" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Offer Duration</FormLabel>
+                        <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)}>
+                          <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-gigjack-offer-duration">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10 min</SelectItem>
+                            <SelectItem value="30">30 min</SelectItem>
+                            <SelectItem value="60">1 hour</SelectItem>
+                            <SelectItem value="120">2 hours</SelectItem>
+                            <SelectItem value="180">3 hours</SelectItem>
+                            <SelectItem value="360">6 hours</SelectItem>
+                            <SelectItem value="720">12 hours</SelectItem>
+                            <SelectItem value="1440">24 hours</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
                 </div>
 
                 <div className="rounded-xl bg-white/[0.02] border border-white/[0.07] p-4 space-y-4">

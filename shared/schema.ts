@@ -87,7 +87,10 @@ export const gigJacks = pgTable("gig_jacks", {
   bookedDate: text("booked_date"),
   bookedHour: integer("booked_hour"),
   flashDurationSeconds: integer("flash_duration_seconds").default(7),
+  offerDurationMinutes: integer("offer_duration_minutes").default(10),
   status: gigJackStatusEnum("status").notNull().default("PENDING_REVIEW"),
+  displayState: text("display_state").notNull().default("hidden"),
+  sirenEnabled: boolean("siren_enabled").notNull().default(true),
   reviewNote: text("review_note"),
   botWarning: boolean("bot_warning").notNull().default(false),
   botWarningMessage: text("bot_warning_message"),
@@ -97,6 +100,11 @@ export const gigJacks = pgTable("gig_jacks", {
   deniedBy: integer("denied_by"),
   removedAt: timestamp("removed_at"),
   removedBy: integer("removed_by"),
+  flashStartedAt: timestamp("flash_started_at"),
+  flashEndedAt: timestamp("flash_ended_at"),
+  offerStartedAt: timestamp("offer_started_at"),
+  offerEndsAt: timestamp("offer_ends_at"),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -136,7 +144,7 @@ export const gigJacksRelations = relations(gigJacks, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertProfileSchema = createInsertSchema(providerProfiles).omit({ id: true });
 export const insertListingSchema = createInsertSchema(videoListings).omit({ id: true, createdAt: true, updatedAt: true, dropDate: true, pricePaidCents: true, stripeSessionId: true, status: true });
-export const insertGigJackSchema = createInsertSchema(gigJacks).omit({ id: true, createdAt: true, updatedAt: true, status: true, reviewNote: true, botWarning: true, botWarningMessage: true });
+export const insertGigJackSchema = createInsertSchema(gigJacks).omit({ id: true, createdAt: true, updatedAt: true, status: true, displayState: true, reviewNote: true, botWarning: true, botWarningMessage: true, flashStartedAt: true, flashEndedAt: true, offerStartedAt: true, offerEndsAt: true, completedAt: true });
 
 // === API CONTRACT TYPES ===
 export type User = typeof users.$inferSelect;
@@ -290,6 +298,7 @@ export type CreateGigJackRequest = {
   category?: string | null;
   scheduledAt?: string | null;
   flashDurationSeconds?: number | null;
+  offerDurationMinutes?: number | null;
   companyUrl?: string;
   description?: string;
   countdownMinutes?: number;
@@ -401,4 +410,28 @@ export type EditGigJackRequest = {
   scheduledAt?: string | null;
   status?: "PENDING_REVIEW" | "APPROVED" | "DENIED";
   providerId?: number;
+  offerDurationMinutes?: number | null;
+  flashDurationSeconds?: number | null;
+};
+
+// GigJack live event state
+export type GigJackDisplayState = "hidden" | "flash" | "siren" | "expired";
+
+export type GigJackLiveState = {
+  phase: GigJackDisplayState;
+  gj: GigJackWithProvider | null;
+  flashSecondsRemaining: number | null;
+  offerEndsAt: string | null;
+};
+
+export type TodayGigJack = {
+  id: number;
+  offerTitle: string;
+  artworkUrl: string;
+  ctaLink: string;
+  category: string | null;
+  displayName: string;
+  scheduledAt: string | null;
+  displayState: GigJackDisplayState;
+  offerEndsAt: string | null;
 };

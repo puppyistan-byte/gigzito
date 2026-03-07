@@ -669,7 +669,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       scheduledAt: z.string().datetime({ message: "A valid date and time is required" }),
       tagline: z.string().max(120).optional().nullable(),
       category: z.string().max(60).optional().nullable(),
-      flashDurationSeconds: z.coerce.number().int().min(5).max(10).optional().nullable(),
+      flashDurationSeconds: z.coerce.number().int().min(5).max(60).optional().nullable(),
+      offerDurationMinutes: z.coerce.number().int().min(10).max(1440).optional().nullable(),
       companyUrl: z.string().url().optional().or(z.literal("")),
       description: z.string().optional(),
       countdownMinutes: z.coerce.number().int().optional(),
@@ -700,6 +701,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         category: data.category ?? null,
         scheduledAt: data.scheduledAt,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
+        offerDurationMinutes: data.offerDurationMinutes ?? 60,
         companyUrl: data.companyUrl || data.ctaLink,
         description: data.description ?? data.tagline ?? data.offerTitle,
         countdownMinutes: data.countdownMinutes ?? 0,
@@ -839,15 +841,45 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const adminUserId = (req.session as any).userId;
     const actorRole = (req.session as any).role;
-    const { scheduledAt, status, providerId, override } = req.body;
+    const { scheduledAt, status, providerId, override, offerDurationMinutes, flashDurationSeconds } = req.body;
     const useOverride = override === true && actorRole === "SUPER_ADMIN";
-    const result = await storage.editGigJack(id, { scheduledAt, status, providerId }, adminUserId, useOverride);
+    const result = await storage.editGigJack(id, { scheduledAt, status, providerId, offerDurationMinutes, flashDurationSeconds }, adminUserId, useOverride);
     if (result.error) return res.status(409).json({ message: result.error });
     if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
     if (useOverride) {
       await storage.createAuditLog({ actorUserId: adminUserId, actionType: "GIGJACK_EDIT_OVERRIDE", targetType: "GIGJACK", targetId: id, usedOverride: true });
     }
     return res.json(result.gj);
+  });
+
+  app.get("/api/gigjacks/live-state", async (req, res) => {
+    try {
+      const state = await storage.getLiveGigJackState();
+      return res.json(state);
+    } catch (err) {
+      console.error("live-state error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/gigjacks/today", async (req, res) => {
+    try {
+      const list = await storage.getTodaysGigJacks();
+      return res.json(list);
+    } catch (err) {
+      console.error("today gigjacks error:", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/admin/gigjacks/:id/force-expire", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const adminUserId = (req.session as any).userId;
+    await storage.forceExpireGigJack(id, adminUserId);
+    await storage.createAuditLog({ actorUserId: adminUserId, actionType: "GIGJACK_FORCE_EXPIRE", targetType: "GIGJACK", targetId: id, usedOverride: false });
+    return res.json({ success: true });
   });
 
   // Update review route to support override

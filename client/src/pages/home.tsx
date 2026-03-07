@@ -5,6 +5,7 @@ import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
 import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
+import { TodaysGigJacks } from "@/components/todays-gigjacks";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -150,6 +151,9 @@ export default function HomePage() {
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
+
+      {/* Today's GigJacks collapsible queue */}
+      <TodaysGigJacks />
 
       {/* GigJack flash overlay — fires platform-wide when a scheduled event is active */}
       <GigJackFlashOverlay />

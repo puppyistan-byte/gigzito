@@ -97,6 +97,8 @@ export default function AdminPage() {
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editStatus, setEditStatus] = useState<"PENDING_REVIEW" | "APPROVED" | "DENIED">("PENDING_REVIEW");
+  const [editOfferDurationMinutes, setEditOfferDurationMinutes] = useState<number>(60);
+  const [editFlashDurationSeconds, setEditFlashDurationSeconds] = useState<number>(7);
   const [overrideMode, setOverrideMode] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
@@ -193,9 +195,9 @@ export default function AdminPage() {
   });
 
   const editGigJackMutation = useMutation({
-    mutationFn: async ({ id, scheduledAt, status }: { id: number; scheduledAt?: string | null; status?: string }) => {
+    mutationFn: async ({ id, scheduledAt, status, offerDurationMinutes, flashDurationSeconds }: { id: number; scheduledAt?: string | null; status?: string; offerDurationMinutes?: number; flashDurationSeconds?: number }) => {
       const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/edit`, {
-        scheduledAt, status,
+        scheduledAt, status, offerDurationMinutes, flashDurationSeconds,
         override: overrideMode && isSuperAdmin,
       });
       if (!res.ok) {
@@ -212,6 +214,19 @@ export default function AdminPage() {
     onError: (err: any) => toast({ title: "Conflict", description: err.message, variant: "destructive" }),
   });
 
+  const forceExpireMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("POST", `/api/admin/gigjacks/${id}/force-expire`, {});
+      if (!res.ok) throw new Error("Failed to force expire");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] });
+      toast({ title: "GigJack force-expired" });
+    },
+    onError: () => toast({ title: "Failed to force expire", variant: "destructive" }),
+  });
+
   const openEditModal = (gj: GigJackWithProvider) => {
     setEditingGj(gj);
     const dt = gj.scheduledAt ? new Date(gj.scheduledAt) : null;
@@ -219,6 +234,8 @@ export default function AdminPage() {
     setEditTime(dt ? `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}` : "");
     const s = gj.status === "REJECTED" ? "DENIED" : gj.status as any;
     setEditStatus(s === "NEEDS_IMPROVEMENT" ? "PENDING_REVIEW" : s);
+    setEditOfferDurationMinutes((gj as any).offerDurationMinutes ?? 60);
+    setEditFlashDurationSeconds((gj as any).flashDurationSeconds ?? 7);
   };
 
   const handleEditSave = () => {
@@ -227,7 +244,7 @@ export default function AdminPage() {
     if (editDate && editTime) {
       scheduledAt = new Date(`${editDate}T${editTime}:00`).toISOString();
     }
-    editGigJackMutation.mutate({ id: editingGj.id, scheduledAt, status: editStatus });
+    editGigJackMutation.mutate({ id: editingGj.id, scheduledAt, status: editStatus, offerDurationMinutes: editOfferDurationMinutes, flashDurationSeconds: editFlashDurationSeconds });
   };
 
   const userStatusMutation = useMutation({
@@ -816,6 +833,20 @@ export default function AdminPage() {
                             <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusColor}`}>
                               {statusLabel}
                             </span>
+                            {(() => {
+                              const ds = (gj as any).displayState as string | undefined;
+                              if (!ds || ds === "hidden") return null;
+                              const dsColors: Record<string, string> = {
+                                flash: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+                                siren: "bg-red-500/20 text-red-300 border-red-500/30",
+                                expired: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
+                              };
+                              return (
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${dsColors[ds] ?? ""}`}>
+                                  {ds}
+                                </span>
+                              );
+                            })()}
                             {gj.botWarning && (
                               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border text-amber-400 bg-amber-400/10 border-amber-400/20">
                                 Bot Flag
@@ -887,6 +918,23 @@ export default function AdminPage() {
                         >
                           <Pencil className="h-3.5 w-3.5" /> {overrideMode && isSuperAdmin ? "Override Edit" : "Edit"}
                         </Button>
+                        {(() => {
+                          const ds = (gj as any).displayState as string | undefined;
+                          const canExpire = ds === "flash" || ds === "siren";
+                          if (!canExpire) return null;
+                          return (
+                            <Button
+                              size="sm"
+                              disabled={forceExpireMutation.isPending}
+                              onClick={() => { if (confirm("Force expire this live GigJack?")) forceExpireMutation.mutate(gj.id); }}
+                              variant="outline"
+                              className="gap-1.5 border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300"
+                              data-testid={`btn-force-expire-gigjack-${gj.id}`}
+                            >
+                              <Zap className="h-3.5 w-3.5" /> Force Expire
+                            </Button>
+                          );
+                        })()}
                         <Button
                           size="sm"
                           disabled={removeGigJackMutation.isPending}
@@ -1028,6 +1076,40 @@ export default function AdminPage() {
                     <SelectItem value="DENIED">Denied</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#666] font-medium">Flash Duration</label>
+                  <Select value={String(editFlashDurationSeconds)} onValueChange={(v) => setEditFlashDurationSeconds(Number(v))}>
+                    <SelectTrigger className="w-full bg-[#111] border-[#2a2a2a] text-white h-9" data-testid="select-edit-flash-duration">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 7, 10, 15, 30, 60].map((s) => (
+                        <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#666] font-medium">Offer Duration</label>
+                  <Select value={String(editOfferDurationMinutes)} onValueChange={(v) => setEditOfferDurationMinutes(Number(v))}>
+                    <SelectTrigger className="w-full bg-[#111] border-[#2a2a2a] text-white h-9" data-testid="select-edit-offer-duration">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 min</SelectItem>
+                      <SelectItem value="30">30 min</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="180">3 hours</SelectItem>
+                      <SelectItem value="360">6 hours</SelectItem>
+                      <SelectItem value="720">12 hours</SelectItem>
+                      <SelectItem value="1440">24 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 

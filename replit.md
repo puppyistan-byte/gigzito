@@ -86,19 +86,26 @@ vertical, title, videoUrl, durationSeconds, description, tags, ctaLabel, ctaUrl,
 providerId, title, description, category, mode, platform, streamUrl, thumbnailUrl, viewerCount, tierMinutes, tierPriceCents, status, startedAt, endedAt
 
 ### gig_jacks
-providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, description, countdownMinutes, couponCode, quantityLimit, scheduledAt (timestamp), bookedDate (text YYYY-MM-DD), bookedHour (integer 0–23), flashDurationSeconds (5–10, default 7), status (PENDING_REVIEW/APPROVED/REJECTED/NEEDS_IMPROVEMENT), reviewNote, botWarning, botWarningMessage, approvedAt, approvedBy
+providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, description, countdownMinutes, couponCode, quantityLimit, scheduledAt, bookedDate, bookedHour, flashDurationSeconds (default 7), offerDurationMinutes (default 60), status (PENDING_REVIEW/APPROVED/DENIED), displayState (hidden/flash/siren/expired), sirenEnabled, reviewNote, botWarning, botWarningMessage, approvedAt, approvedBy, flashStartedAt, flashEndedAt, offerStartedAt, offerEndsAt, completedAt
 
 ## GigJack Flash Event System
 
 - **Submission page** — `/gigjack/new` — 3-step flow:
   1. **Date picker** — 14-day grid showing next 14 days; week-by-week navigation with prev/next
   2. **Hour picker** — 8am–9pm grid; per-slot shows approved count (capped at 2), pending count, availability; past hours hidden for today
-  3. **Offer form** — Company URL, artwork URL, offer title, description, CTA link, countdown duration, optional coupon code + quantity limit
-- **2-per-hour cap** — Max 2 APPROVED GigJacks per bookedDate+bookedHour slot; enforced at submit time and at admin approval time
-- **Approval flow** — Admin reviews via `/admin` GigJacks tab; status: PENDING_REVIEW → APPROVED / REJECTED / NEEDS_IMPROVEMENT; approving enforces 2-per-hour cap
+  3. **Offer form** — Company URL, artwork URL, offer title, description, CTA link, countdown duration, flash duration (5s/7s/10s/15s/30s/60s), offer duration (10m–24h), optional coupon + quantity limit
+- **2-per-hour cap** — Max 2 APPROVED GigJacks per hour slot; 15-min spacing enforced
+- **Approval flow** — Admin reviews via `/admin` GigJacks tab; status: PENDING_REVIEW → APPROVED / DENIED
 - **Admin bypass** — Admin role skips daily cap + bot detection; admin-submitted GigJacks auto-APPROVED
-- **Availability API** — `GET /api/gigjacks/availability?date=YYYY-MM-DD` returns per-hour slot status
-- **Flash overlay** — `GigJackFlashOverlay` component on home feed polls `GET /api/gigjacks/active` every 5s; when an APPROVED GigJack fires (scheduledAt within last 10s), shows full-screen card with screen-shake animation
+- **Availability API** — `GET /api/gigjacks/availability?date=YYYY-MM-DD` returns per-slot status
+- **Live Event Lifecycle** (auto-advancing state machine via `GET /api/gigjacks/live-state` polled every 3s):
+  1. **Flash phase** — Full-screen overlay fires when scheduledAt ≤ now; counts down flashDurationSeconds; plays screen-shake animation
+  2. **Collapse animation** — Overlay shrinks and flies to top-right over 0.55s
+  3. **Siren phase** — Persistent 240px top-right widget with red glow pulse, thumbnail, title, brand, live HH:MM:SS countdown from offerEndsAt, Claim Offer CTA
+  4. **Expired phase** — Widget fades out with "Offer Ended" message
+- **Today's GigJacks Queue** — `TodaysGigJacks` component (collapsible at bottom of home feed); polls every 15s; shows all today's flash/siren/expired events chronologically with Active/Expired badges
+- **Admin force-expire** — `POST /api/admin/gigjacks/:id/force-expire` instantly sets displayState=expired; button shown on flash/siren cards
+- **Admin edit** — Modal now includes Flash Duration + Offer Duration selects alongside date/time/status
 - **billingEnabled = false** — in `server/config.ts`; slot reservations are free during beta
 
 ## Key Components

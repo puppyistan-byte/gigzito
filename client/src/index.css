@@ -1920,3 +1920,266 @@ html, body, #root {
   align-items: center;
   gap: 3px;
 }
+
+/* ─── GigJack: Collapsing transition ──────────────────────────────────────── */
+.gigjack-collapsing {
+  animation: gigJackCollapse 0.55s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  pointer-events: none;
+}
+
+@keyframes gigJackCollapse {
+  0%   { transform: translateX(-50%) scale(1); opacity: 1; }
+  40%  { transform: translateX(-50%) scale(0.95, 1.05); opacity: 1; }
+  100% { transform: translate(calc(50vw - 155px), calc(-50vh + 80px)) scale(0.25); opacity: 0; }
+}
+
+/* ─── GigJack: Siren Widget (top-right persistent) ───────────────────────── */
+.gigjack-siren-widget {
+  position: fixed;
+  top: 72px;
+  right: 12px;
+  width: 240px;
+  z-index: 9998;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0a0a0a;
+  border: 1.5px solid rgba(255, 43, 43, 0.5);
+  box-shadow: 0 0 20px rgba(255, 43, 43, 0.25), 0 4px 16px rgba(0,0,0,0.6);
+  animation: sirenSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.gigjack-siren-expired {
+  animation: sirenFadeOut 1s ease forwards;
+  border-color: rgba(100, 100, 100, 0.3);
+  box-shadow: none;
+}
+
+.gigjack-siren-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  animation: sirenPulse 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes sirenSlideIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes sirenFadeOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(110%); }
+}
+
+@keyframes sirenPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 43, 43, 0.5); }
+  50%  { box-shadow: 0 0 0 8px rgba(255, 43, 43, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 43, 43, 0); }
+}
+
+.gigjack-siren-inner {
+  position: relative;
+  z-index: 1;
+  padding: 8px;
+}
+
+.gigjack-siren-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.gigjack-siren-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ff2b2b;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.gigjack-siren-zap {
+  color: #ff2b2b;
+  flex-shrink: 0;
+}
+
+.gigjack-siren-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  color: #555;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gigjack-siren-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+.gigjack-siren-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.gigjack-siren-thumb {
+  width: 44px;
+  height: 36px;
+  border-radius: 7px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.gigjack-siren-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gigjack-siren-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gigjack-siren-brand {
+  font-size: 9px;
+  color: #555;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gigjack-siren-countdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff2b2b;
+  background: rgba(255, 43, 43, 0.08);
+  border: 1px solid rgba(255, 43, 43, 0.2);
+  border-radius: 8px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+}
+
+.gigjack-siren-clock {
+  color: #ff2b2b;
+  flex-shrink: 0;
+}
+
+.gigjack-siren-cta {
+  display: block;
+  text-align: center;
+  background: rgba(255, 43, 43, 0.15);
+  border: 1px solid rgba(255, 43, 43, 0.3);
+  color: #ff2b2b;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 5px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.gigjack-siren-cta:hover { background: rgba(255, 43, 43, 0.25); }
+
+.gigjack-expired-msg {
+  font-size: 10px;
+  color: #555;
+  padding: 4px 0 2px;
+}
+
+/* ─── Today's GigJacks Section ───────────────────────────────────────────── */
+.todays-gigjacks-section {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  z-index: 9000;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.todays-gigjacks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 43, 43, 0.15);
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.todays-gigjacks-header:hover { background: rgba(18, 18, 18, 0.97); }
+
+.todays-gigjacks-list {
+  background: rgba(8, 8, 8, 0.97);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.todays-gigjack-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.12s;
+}
+.todays-gigjack-row:hover { background: rgba(255,255,255,0.03); }
+.todays-gigjack-row:last-child { border-bottom: none; }
+
+.todays-gigjack-thumb {
+  width: 40px;
+  height: 32px;
+  border-radius: 7px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.todays-gigjack-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.todays-gigjack-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todays-gigjack-brand {
+  font-size: 9px;
+  color: #555;
+  margin-top: 1px;
+}
+
+.todays-gigjack-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
