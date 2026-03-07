@@ -15,11 +15,13 @@ function getVideoEmbedUrl(url: string): string {
   try {
     const u = new URL(url);
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      let id = "";
       if (u.pathname.includes("/embed/")) return url;
-      if (u.hostname === "youtu.be") id = u.pathname.slice(1);
+      let id = "";
+      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
+      else if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("?")[0];
       else id = u.searchParams.get("v") ?? "";
-      return `https://www.youtube.com/embed/${id}?rel=0`;
+      if (!id) return url;
+      return `https://www.youtube.com/embed/${id}?rel=0&playsinline=1`;
     }
     if (u.hostname.includes("vimeo.com")) {
       const id = u.pathname.split("/").pop();

@@ -20,6 +20,8 @@ function getInjectedEmbedUrl(feed: InjectedFeed): string | null {
       else if (u.hostname === "youtu.be") id = u.pathname.slice(1);
       else id = u.searchParams.get("v") ?? u.pathname.split("/").pop() ?? "";
       if (!id) return null;
+      const isShorts = u.pathname.includes("/shorts/");
+      if (isShorts) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&modestbranding=1&rel=0&playsinline=1`;
       return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
     }
     return null;
@@ -39,7 +41,10 @@ function getEmbedUrl(url: string, muted: boolean): string | null {
         eu.searchParams.set("rel", "0");
         return eu.toString();
       }
-      let id = u.hostname === "youtu.be" ? u.pathname.slice(1) : (u.searchParams.get("v") ?? u.pathname.split("/").pop() ?? "");
+      let id = "";
+      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
+      else if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("?")[0];
+      else id = u.searchParams.get("v") ?? "";
       return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0`;
     }
     if (u.hostname.includes("twitch.tv")) {

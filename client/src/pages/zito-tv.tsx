@@ -11,8 +11,12 @@ function getVideoEmbedUrl(url: string): string {
     const u = new URL(url);
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
       if (u.pathname.includes("/embed/")) return url;
-      let id = u.hostname === "youtu.be" ? u.pathname.slice(1) : u.searchParams.get("v") ?? "";
-      return `https://www.youtube.com/embed/${id}?autoplay=0&controls=0&modestbranding=1&rel=0`;
+      let id = "";
+      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
+      else if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("?")[0];
+      else id = u.searchParams.get("v") ?? "";
+      if (!id) return url;
+      return `https://www.youtube.com/embed/${id}?autoplay=0&controls=0&modestbranding=1&rel=0&playsinline=1`;
     }
     return url;
   } catch { return url; }

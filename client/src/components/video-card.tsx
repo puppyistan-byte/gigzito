@@ -51,8 +51,13 @@ const SPECIAL_GLOW: Record<string, string> = {
 function getYouTubeId(url: string): string {
   const u = new URL(url);
   if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1].split("?")[0];
-  if (u.hostname === "youtu.be") return u.pathname.slice(1);
+  if (u.pathname.includes("/shorts/")) return u.pathname.split("/shorts/")[1].split("?")[0];
+  if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0];
   return u.searchParams.get("v") ?? "";
+}
+
+function isYouTubeShorts(url: string): boolean {
+  try { return new URL(url).pathname.includes("/shorts/"); } catch { return false; }
 }
 
 function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
@@ -63,6 +68,20 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
 
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
       const id = getYouTubeId(url);
+      if (!id) return url; // guard against empty ID
+      const shorts = isYouTubeShorts(url);
+      if (shorts) {
+        // Shorts: minimal params — loop/playlist/controls=0 break Shorts playback
+        return [
+          `https://www.youtube.com/embed/${id}`,
+          `?autoplay=${ap}`,
+          `&mute=${mt}`,
+          `&enablejsapi=1`,
+          `&rel=0`,
+          `&playsinline=1`,
+          `&modestbranding=1`,
+        ].join("");
+      }
       return [
         `https://www.youtube.com/embed/${id}`,
         `?autoplay=${ap}`,
