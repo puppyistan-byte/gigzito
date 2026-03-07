@@ -340,3 +340,29 @@ export type UpdateListingStatusRequest = { status: "ACTIVE" | "PAUSED" | "REMOVE
 export type ListingsFilter = {
   vertical?: VerticalKey | "ALL" | "GIG_BLITZ" | "FLASH_COUPONS" | "INFLUENCERS";
 };
+
+// === MFA CODES TABLE ===
+export const mfaCodes = pgTable("mfa_codes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  resendCount: integer("resend_count").notNull().default(0),
+  lastResendAt: timestamp("last_resend_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type MfaCode = typeof mfaCodes.$inferSelect;
+
+// MFA API types
+export type MfaRequiredResponse = { mfaRequired: true; email: string };
+export type MfaVerifyRequest = { email: string; code: string };
+export type MfaResendRequest = { email: string };
+
+// Admin GigJack edit
+export type EditGigJackRequest = {
+  scheduledAt?: string | null;
+  status?: "PENDING_REVIEW" | "APPROVED" | "DENIED";
+  providerId?: number;
+};

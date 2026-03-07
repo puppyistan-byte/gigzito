@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck, Mail, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
+
+const RESEND_COOLDOWN = 30;
 
 export default function AuthPage() {
   const [, navigate] = useLocation();
@@ -17,12 +19,45 @@ export default function AuthPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Login / register state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // MFA state
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaEmail, setMfaEmail] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const codeInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (mfaStep) {
+      setTimeout(() => codeInputRef.current?.focus(), 100);
+    }
+  }, [mfaStep]);
+
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+  }, []);
+
+  const startCooldown = () => {
+    setResendCooldown(RESEND_COOLDOWN);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   if (user) {
     navigate("/provider/me");
@@ -41,6 +76,13 @@ export default function AuthPage() {
       const data = await res.json();
       if (!res.ok) {
         toast({ title: "Login failed", description: data.message, variant: "destructive" });
+      } else if (data.mfaRequired) {
+        setMfaEmail(data.email);
+        setDevCode(data.devCode ?? null);
+        setMfaCode("");
+        setMfaStep(true);
+        startCooldown();
+        toast({ title: "Code sent", description: "Check your email for a 6-digit verification code." });
       } else {
         queryClient.setQueryData(["/api/auth/me"], data);
         refetch();
@@ -48,6 +90,55 @@ export default function AuthPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mfaCode.length !== 6) {
+      toast({ title: "Enter the 6-digit code", variant: "destructive" });
+      return;
+    }
+    setMfaLoading(true);
+    try {
+      const res = await fetch("/api/auth/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mfaEmail, code: mfaCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Verification failed", description: data.message, variant: "destructive" });
+      } else {
+        queryClient.setQueryData(["/api/auth/me"], data);
+        refetch();
+        navigate("/provider/me");
+      }
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+    setResendLoading(true);
+    try {
+      const res = await fetch("/api/auth/mfa/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mfaEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Could not resend", description: data.message, variant: "destructive" });
+      } else {
+        setDevCode(data.devCode ?? null);
+        setMfaCode("");
+        startCooldown();
+        toast({ title: "Code resent", description: "A new verification code was sent to your email." });
+      }
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -78,6 +169,97 @@ export default function AuthPage() {
     }
   };
 
+  // ─── MFA Step ─────────────────────────────────────────────────────────────────
+  if (mfaStep) {
+    return (
+      <div className="auth-page min-h-screen flex flex-col items-center justify-center px-4">
+        <Link href="/">
+          <a className="auth-brand" data-testid="link-auth-home">
+            <img src="/gigzito-logo-v3.png" alt="Gigzito" className="auth-logo" />
+          </a>
+        </Link>
+
+        <Card className="w-full max-w-sm p-6">
+          <div className="flex flex-col items-center gap-2 mb-5">
+            <div className="w-12 h-12 rounded-full bg-[#ff2b2b]/10 border border-[#ff2b2b]/20 flex items-center justify-center">
+              <ShieldCheck className="h-6 w-6 text-[#ff2b2b]" />
+            </div>
+            <h2 className="text-lg font-bold text-white text-center">Verify your identity</h2>
+            <p className="text-xs text-[#666] text-center leading-relaxed">
+              Enter the 6-digit code sent to<br />
+              <span className="text-[#999] font-medium">{mfaEmail}</span>
+            </p>
+          </div>
+
+          {devCode && (
+            <div className="mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-amber-400 shrink-0" />
+              <div>
+                <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Dev mode — no SMTP configured</p>
+                <p className="text-sm text-amber-300 font-mono font-bold tracking-widest mt-0.5">{devCode}</p>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleMfaVerify} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="mfa-code">Verification code</Label>
+              <Input
+                ref={codeInputRef}
+                id="mfa-code"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="000000"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="text-center text-2xl font-mono tracking-[0.5em] h-14"
+                autoComplete="one-time-code"
+                required
+                data-testid="input-mfa-code"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={mfaLoading || mfaCode.length !== 6}
+              data-testid="button-mfa-verify"
+            >
+              {mfaLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Verify & Sign in
+            </Button>
+          </form>
+
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendCooldown > 0 || resendLoading}
+              className={`flex items-center gap-1.5 text-xs transition-colors ${resendCooldown > 0 ? "text-[#444] cursor-not-allowed" : "text-[#ff2b2b] hover:text-[#ff5555]"}`}
+              data-testid="button-mfa-resend"
+            >
+              {resendLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMfaStep(false); setMfaCode(""); setDevCode(null); }}
+              className="text-xs text-[#444] hover:text-[#888] transition-colors"
+              data-testid="button-mfa-back"
+            >
+              Back to login
+            </button>
+          </div>
+        </Card>
+
+        <p className="text-xs text-muted-foreground mt-4">Code expires in 10 minutes.</p>
+      </div>
+    );
+  }
+
+  // ─── Login / Register ─────────────────────────────────────────────────────────
   return (
     <div className="auth-page min-h-screen flex flex-col items-center justify-center px-4">
       <Link href="/">
@@ -160,7 +342,6 @@ export default function AuthPage() {
                 />
               </div>
 
-              {/* Participation disclaimer */}
               <div
                 style={{
                   background: "rgba(255,43,43,0.05)",

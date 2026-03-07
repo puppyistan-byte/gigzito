@@ -13,7 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Shield, DollarSign, BarChart2, Eye, EyeOff, Trash2, Zap,
   Users, Video, UserCheck, UserX, LayoutDashboard, CalendarDays, Clock,
-  CheckCircle, XCircle, AlertCircle,
+  CheckCircle, XCircle, AlertCircle, Pencil, X,
 } from "lucide-react";
 import type { GigJackWithProvider, UserWithProfile } from "@shared/schema";
 
@@ -91,6 +91,10 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [gjTab, setGjTab] = useState<GJStatusTab>("PENDING_REVIEW");
   const [gjDateFilter, setGjDateFilter] = useState("");
+  const [editingGj, setEditingGj] = useState<GigJackWithProvider | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editStatus, setEditStatus] = useState<"PENDING_REVIEW" | "APPROVED" | "DENIED">("PENDING_REVIEW");
 
   // Redirect non-admins (inside effect to avoid setState-during-render warning)
   const isAdmin = !authLoading && !!user && user.user?.role === "ADMIN";
@@ -166,6 +170,41 @@ export default function AdminPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] }); toast({ title: "GigJack removed" }); },
     onError: () => toast({ title: "Failed to remove GigJack", variant: "destructive" }),
   });
+
+  const editGigJackMutation = useMutation({
+    mutationFn: async ({ id, scheduledAt, status }: { id: number; scheduledAt?: string | null; status?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/edit`, { scheduledAt, status });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.message ?? "Failed to save changes");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] });
+      setEditingGj(null);
+      toast({ title: "GigJack updated" });
+    },
+    onError: (err: any) => toast({ title: "Conflict", description: err.message, variant: "destructive" }),
+  });
+
+  const openEditModal = (gj: GigJackWithProvider) => {
+    setEditingGj(gj);
+    const dt = gj.scheduledAt ? new Date(gj.scheduledAt) : null;
+    setEditDate(dt ? dt.toISOString().slice(0, 10) : "");
+    setEditTime(dt ? `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}` : "");
+    const s = gj.status === "REJECTED" ? "DENIED" : gj.status as any;
+    setEditStatus(s === "NEEDS_IMPROVEMENT" ? "PENDING_REVIEW" : s);
+  };
+
+  const handleEditSave = () => {
+    if (!editingGj) return;
+    let scheduledAt: string | null = null;
+    if (editDate && editTime) {
+      scheduledAt = new Date(`${editDate}T${editTime}:00`).toISOString();
+    }
+    editGigJackMutation.mutate({ id: editingGj.id, scheduledAt, status: editStatus });
+  };
 
   const userStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: "active" | "disabled" }) => {
@@ -595,6 +634,15 @@ export default function AdminPage() {
                         )}
                         <Button
                           size="sm"
+                          onClick={() => openEditModal(gj)}
+                          variant="outline"
+                          className="gap-1.5 border-[#2a2a2a] text-[#888] hover:border-[#ff2b2b]/30 hover:text-[#ff2b2b]"
+                          data-testid={`btn-edit-gigjack-${gj.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Edit
+                        </Button>
+                        <Button
+                          size="sm"
                           disabled={removeGigJackMutation.isPending}
                           onClick={() => { if (confirm("Remove this GigJack permanently?")) removeGigJackMutation.mutate(gj.id); }}
                           variant="outline"
@@ -613,6 +661,106 @@ export default function AdminPage() {
         )}
 
       </div>
+
+      {/* ─── Edit GigJack Modal ─────────────────────────────────────────────── */}
+      {editingGj && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" data-testid="modal-edit-gigjack">
+          <div className="w-full max-w-md rounded-2xl bg-[#0b0b0b] border border-[#222] shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e1e]">
+              <div className="flex items-center gap-2">
+                <Pencil className="h-4 w-4 text-[#ff2b2b]" />
+                <h3 className="font-semibold text-white text-sm">Edit GigJack</h3>
+              </div>
+              <button onClick={() => setEditingGj(null)} className="text-[#555] hover:text-white transition-colors" data-testid="btn-close-edit-modal">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <p className="text-xs text-[#555] mb-1 font-medium uppercase tracking-wider">Offer</p>
+                <p className="text-sm text-white font-semibold line-clamp-2">{editingGj.offerTitle}</p>
+                <p className="text-xs text-[#555] mt-0.5">by {editingGj.provider?.displayName ?? editingGj.provider?.username ?? "Unknown"}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#666] font-medium">Scheduled Date</label>
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full bg-[#111] border border-[#2a2a2a] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#ff2b2b]/40"
+                    data-testid="input-edit-date"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#666] font-medium">Scheduled Time</label>
+                  <input
+                    type="time"
+                    value={editTime}
+                    onChange={(e) => setEditTime(e.target.value)}
+                    step="900"
+                    className="w-full bg-[#111] border border-[#2a2a2a] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#ff2b2b]/40"
+                    data-testid="input-edit-time"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#666] font-medium">Status</label>
+                <div className="flex gap-2">
+                  {(["PENDING_REVIEW", "APPROVED", "DENIED"] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setEditStatus(s)}
+                      data-testid={`btn-edit-status-${s.toLowerCase()}`}
+                      className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                        editStatus === s
+                          ? s === "APPROVED" ? "bg-green-600/20 border-green-500/40 text-green-400"
+                            : s === "DENIED" ? "bg-red-600/20 border-red-500/40 text-red-400"
+                            : "bg-blue-600/20 border-blue-500/40 text-blue-400"
+                          : "border-[#2a2a2a] text-[#555] hover:text-white hover:border-[#444]"
+                      }`}
+                    >
+                      {s === "PENDING_REVIEW" ? "Pending" : s.charAt(0) + s.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-amber-500/06 border border-amber-500/15 px-3 py-2.5">
+                <p className="text-xs text-amber-400/80">
+                  <span className="font-semibold">Note:</span> System rules still apply — max 2 approved GigJacks per hour, 15-minute spacing required. Conflicts will be shown as an error.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 px-5 py-4 border-t border-[#1e1e1e]">
+              <Button
+                variant="outline"
+                className="flex-1 border-[#2a2a2a] text-[#555] hover:text-white"
+                onClick={() => setEditingGj(null)}
+                data-testid="btn-cancel-edit"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-[#ff2b2b] hover:bg-[#e52222] border-0 text-white"
+                disabled={editGigJackMutation.isPending}
+                onClick={handleEditSave}
+                data-testid="btn-save-edit"
+              >
+                {editGigJackMutation.isPending ? <span className="animate-spin mr-1">⏳</span> : null}
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

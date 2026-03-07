@@ -7,7 +7,8 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 - **Frontend:** React + TypeScript + Tailwind CSS + shadcn/ui (via Vite)
 - **Backend:** Express.js (Node.js)
 - **Database:** PostgreSQL (Replit built-in) via Drizzle ORM
-- **Auth:** Session-based (express-session + connect-pg-simple)
+- **Auth:** Session-based (express-session + connect-pg-simple) + email MFA (nodemailer)
+- **Email:** nodemailer — configure SMTP via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. Without SMTP, codes are logged to the server console and shown in a dev banner in the UI.
 - **Payments:** Simulated — Stripe can be wired in via `STRIPE_SECRET_KEY` env var
 
 ## Architecture
@@ -19,6 +20,7 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 - `server/storage.ts` — DatabaseStorage class (all DB queries)
 - `server/routes.ts` — Express route handlers + seed data
 - `server/config.ts` — `billingEnabled` flag + `LIVE_TIERS` config
+- `server/email.ts` — MFA email sending via nodemailer (dev: logs to console + UI banner)
 - `client/src/` — React frontend (pages, components, hooks)
 
 ## Pages

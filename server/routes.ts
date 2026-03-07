@@ -5,6 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { sendMfaCode } from "./email";
 
 // === BOT CHECKS ===
 function runBotChecks(data: {
@@ -230,10 +231,66 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const valid = await verifyPassword(password, user.password);
       if (!valid) return res.status(401).json({ message: "Invalid credentials" });
       if (user.status === "disabled") return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
+      // Generate MFA code
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await storage.deleteOldMfaCodes(user.id);
+      await storage.createMfaCode(user.id, code, expiresAt);
+      const emailResult = await sendMfaCode(user.email, code);
+      const resp: any = { mfaRequired: true, email: user.email };
+      if (emailResult.devMode) resp.devCode = emailResult.previewCode;
+      return res.json(resp);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/auth/mfa/verify", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) return res.status(400).json({ message: "Email and code required" });
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(401).json({ message: "Invalid verification code." });
+      const mfa = await storage.getLatestMfaCode(user.id);
+      if (!mfa) return res.status(401).json({ message: "Invalid verification code." });
+      if (mfa.usedAt) return res.status(401).json({ message: "This code has already been used." });
+      if (new Date() > new Date(mfa.expiresAt)) return res.status(401).json({ message: "This code has expired. Please log in again." });
+      if (mfa.code !== String(code).trim()) return res.status(401).json({ message: "Invalid verification code." });
+      await storage.markMfaCodeUsed(mfa.id);
       const profile = await storage.getProfileByUserId(user.id);
       (req.session as any).userId = user.id;
       (req.session as any).role = user.role;
       return res.json({ user: { ...user, password: undefined }, profile: profile ?? null });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/auth/mfa/resend", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email required" });
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(200).json({ message: "If the email exists, a new code was sent." });
+      const existing = await storage.getLatestMfaCode(user.id);
+      if (existing) {
+        const RESEND_COOLDOWN_MS = 30 * 1000;
+        const lastResend = existing.lastResendAt ?? existing.createdAt;
+        if (Date.now() - new Date(lastResend).getTime() < RESEND_COOLDOWN_MS) {
+          const waitSec = Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - new Date(lastResend).getTime())) / 1000);
+          return res.status(429).json({ message: `Please wait ${waitSec} seconds before resending.` });
+        }
+      }
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await storage.deleteOldMfaCodes(user.id);
+      await storage.createMfaCode(user.id, code, expiresAt);
+      const emailResult = await sendMfaCode(user.email, code);
+      const resp: any = { message: "Code resent." };
+      if (emailResult.devMode) resp.devCode = emailResult.previewCode;
+      return res.json(resp);
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
@@ -761,6 +818,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     await storage.deleteListing(id);
     return res.json({ success: true });
+  });
+
+  app.patch("/api/admin/gigjacks/:id/edit", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const adminUserId = (req.session as any).userId;
+    const { scheduledAt, status, providerId } = req.body;
+    const result = await storage.editGigJack(id, { scheduledAt, status, providerId }, adminUserId);
+    if (result.error) return res.status(409).json({ message: result.error });
+    if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
+    return res.json(result.gj);
   });
 
   return httpServer;

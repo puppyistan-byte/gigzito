@@ -1,0 +1,101 @@
+Add Multi-Factor Authentication (MFA) and Admin Editing Controls for Gig Jacks.
+
+--------------------------------
+MULTI-FACTOR AUTHENTICATION
+--------------------------------
+
+1. When a user logs in successfully with username/email and password, require a second verification step.
+
+2. Generate a 6-digit numeric verification code.
+
+3. Send the verification code to the user's registered email address.
+
+4. Display a screen that says:
+   "Enter the verification code sent to your email."
+
+5. The user must enter the 6-digit code to complete login.
+
+6. Verification code rules:
+   - 6 digits
+   - expires after 10 minutes
+   - can only be used once
+
+7. Add a button:
+   "Resend Code"
+
+8. Limit resends to prevent spam (example: once every 30 seconds).
+
+9. If the code is correct:
+   - login completes
+   - user enters the platform
+
+10. If incorrect:
+   - show error message:
+     "Invalid verification code."
+
+11. Store verification attempts securely.
+
+--------------------------------
+ADMIN CONTROLS FOR GIG JACKS
+--------------------------------
+
+Admin must be able to manage Gig Jack bookings.
+
+Add an ADMIN GIG JACK MANAGEMENT PANEL with the following abilities:
+
+Admin can:
+
+1. APPROVE a pending Gig Jack
+2. DENY a Gig Jack
+3. REMOVE a Gig Jack
+4. EDIT a Gig Jack for testing purposes
+
+--------------------------------
+ADMIN EDIT FUNCTION
+--------------------------------
+
+Admin must be able to modify:
+
+- scheduled date
+- scheduled time
+- status (pending / approved / denied)
+- user assignment if needed
+
+Admin editing must still respect system rules:
+
+• Maximum 2 approved Gig Jacks per hour
+• Gig Jacks must be at least 15 minutes apart
+
+If admin attempts to save a conflicting time:
+
+Display error:
+"This time conflicts with an existing Gig Jack."
+
+--------------------------------
+ADMIN VIEW PANEL
+--------------------------------
+
+Admin dashboard should show:
+
+- user
+- scheduled date
+- scheduled time
+- status
+- created date
+
+Buttons per entry:
+
+[Approve]
+[Deny]
+[Edit]
+[Remove]
+
+--------------------------------
+GOAL
+--------------------------------
+
+Security:
+All accounts must complete email MFA before accessing the platform.
+
+Admin Control:
+Admins must be able to approve, deny, remove, or edit Gig Jack schedules while enforcing the 2-per-hour and 15-minute spacing rules.

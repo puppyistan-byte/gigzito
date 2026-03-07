@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile } from "@shared/schema";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between } from "drizzle-orm";
 
 export interface IStorage {
@@ -49,10 +49,18 @@ export interface IStorage {
   getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
   getAllGigJacks(): Promise<GigJackWithProvider[]>;
   reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
+  editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
   deleteGigJack(id: number, removedBy?: number): Promise<void>;
   getActiveGigJack(): Promise<GigJackWithProvider | null>;
   getAvailableSlots(): Promise<GigJackSlot[]>;
   getSlotAvailability(date: string): Promise<TimeSlot[]>;
+
+  // MFA
+  createMfaCode(userId: number, code: string, expiresAt: Date): Promise<MfaCode>;
+  getLatestMfaCode(userId: number): Promise<MfaCode | undefined>;
+  markMfaCodeUsed(id: number): Promise<void>;
+  incrementMfaResend(id: number): Promise<void>;
+  deleteOldMfaCodes(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -584,6 +592,73 @@ export class DatabaseStorage implements IStorage {
       }
     }
     return slots;
+  }
+
+  async editGigJack(id: number, data: EditGigJackRequest, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }> {
+    const setData: any = { updatedAt: new Date() };
+
+    if (data.scheduledAt !== undefined) {
+      const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
+      if (scheduledAt) {
+        const spacingError = await this.check15MinSpacing(scheduledAt, id);
+        if (spacingError) return { gj: undefined, error: spacingError };
+        const capError = await this.check2PerHourCap(scheduledAt, id);
+        if (capError) return { gj: undefined, error: capError };
+      }
+      setData.scheduledAt = scheduledAt;
+      setData.bookedDate = scheduledAt ? scheduledAt.toISOString().slice(0, 10) : null;
+      setData.bookedHour = scheduledAt ? scheduledAt.getHours() : null;
+    }
+
+    if (data.status !== undefined) {
+      setData.status = data.status;
+      const now = new Date();
+      if (data.status === "APPROVED") {
+        setData.approvedAt = now;
+        setData.approvedBy = adminUserId ?? null;
+      } else if (data.status === "DENIED") {
+        setData.deniedAt = now;
+        setData.deniedBy = adminUserId ?? null;
+      }
+    }
+
+    if (data.providerId !== undefined) {
+      setData.providerId = data.providerId;
+    }
+
+    const [gj] = await db.update(gigJacks).set(setData).where(eq(gigJacks.id, id)).returning();
+    return { gj };
+  }
+
+  // MFA methods
+  async createMfaCode(userId: number, code: string, expiresAt: Date): Promise<MfaCode> {
+    const [row] = await db.insert(mfaCodes).values({ userId, code, expiresAt }).returning();
+    return row;
+  }
+
+  async getLatestMfaCode(userId: number): Promise<MfaCode | undefined> {
+    const [row] = await db
+      .select()
+      .from(mfaCodes)
+      .where(eq(mfaCodes.userId, userId))
+      .orderBy(sql`${mfaCodes.createdAt} DESC`)
+      .limit(1);
+    return row;
+  }
+
+  async markMfaCodeUsed(id: number): Promise<void> {
+    await db.update(mfaCodes).set({ usedAt: new Date() }).where(eq(mfaCodes.id, id));
+  }
+
+  async incrementMfaResend(id: number): Promise<void> {
+    await db
+      .update(mfaCodes)
+      .set({ resendCount: sql`${mfaCodes.resendCount} + 1`, lastResendAt: new Date() })
+      .where(eq(mfaCodes.id, id));
+  }
+
+  async deleteOldMfaCodes(userId: number): Promise<void> {
+    await db.delete(mfaCodes).where(eq(mfaCodes.userId, userId));
   }
 }
 
