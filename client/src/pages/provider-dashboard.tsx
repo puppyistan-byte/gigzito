@@ -18,7 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider } from "@shared/schema";
@@ -409,6 +409,14 @@ export default function ProviderDashboard() {
     <div className="min-h-screen bg-black">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Return to Main */}
+        <Link href="/">
+          <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Return to Main
+          </button>
+        </Link>
 
         {/* Header */}
         <div className="flex items-center justify-between gap-2">

@@ -31,9 +31,9 @@ export default function ProviderPublicPage() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
-        <Link href="/" className="inline-flex items-center gap-2 text-[#555] hover:text-white transition-colors text-sm" data-testid="link-back">
-          <ArrowLeft className="h-4 w-4" />
-          Back to feed
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="link-back-to-main">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Return to Main
         </Link>
 
         {profileLoading ? (

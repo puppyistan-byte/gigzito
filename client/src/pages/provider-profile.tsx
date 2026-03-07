@@ -160,12 +160,20 @@ export default function ProviderProfilePage() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         <div className="space-y-3">
-          <Link href="/provider/me">
-            <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Return to Profile
-            </button>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Return to Main
+              </button>
+            </Link>
+            <Link href="/provider/me">
+              <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Return to Profile
+              </button>
+            </Link>
+          </div>
           <h1 className="text-xl font-bold text-white" data-testid="text-page-title">Creator Profile</h1>
         </div>
 
