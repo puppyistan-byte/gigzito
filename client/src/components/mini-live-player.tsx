@@ -64,7 +64,7 @@ export function MiniLivePlayer() {
   return (
     <div
       className="fixed z-50"
-      style={{ top: "10px", right: "10px" }}
+      style={{ bottom: "84px", left: "12px" }}
       data-testid="mini-live-player"
     >
       <div

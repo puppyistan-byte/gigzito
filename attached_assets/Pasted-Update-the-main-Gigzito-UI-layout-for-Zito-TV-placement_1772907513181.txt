@@ -1,0 +1,118 @@
+Update the main Gigzito UI layout for Zito TV placement and GigJack placement/animation behavior.
+
+==================================================
+LAYOUT CHANGES
+==================================================
+
+1. Move the Zito TV box to the bottom-left corner of the screen.
+2. Place it snugly in the corner with clean padding, not floating awkwardly in open space.
+3. It should feel anchored to the lower-left edge of the UI.
+4. Keep enough margin so it does not touch the browser edge directly, but make it tight and intentional.
+
+Recommended style:
+- fixed position
+- bottom-left
+- small consistent margin
+- visually balanced with the main feed
+
+==================================================
+GIGJACK WINDOW PLACEMENT
+==================================================
+
+1. Move the GigJack / Live Offer window snugly into the top-right corner.
+2. It should sit cleanly in the corner, not floating too far inward.
+3. Keep enough spacing from the edge so it looks premium and not cramped.
+4. Make sure it does not interfere with the top navigation or other top-right UI elements.
+5. The GigJack window should feel locked into that corner as a persistent alert module.
+
+Recommended style:
+- fixed position
+- top-right
+- tight but clean padding
+- strong visual hierarchy
+
+==================================================
+LIVE OFFER ATTENTION EFFECT
+==================================================
+
+The GigJack offer window must visually flash/pulse to grab attention while active.
+
+Add an animated attention effect such as:
+- soft red pulse
+- border glow
+- subtle flashing highlight
+- urgency shimmer
+
+Do NOT make it cheap or obnoxious.
+It should feel premium, urgent, and impossible to ignore.
+
+Goal:
+The live GigJack should clearly communicate:
+"This is active right now."
+
+Recommended behavior:
+- pulsing red border
+- subtle glow cycle
+- countdown area also emphasized
+- CTA button can have a gentle pulse as well
+
+==================================================
+COUNTDOWN EXPIRATION BEHAVIOR
+==================================================
+
+When the GigJack countdown reaches zero:
+
+1. Remove the active GigJack window from the top-right corner.
+2. Do NOT delete the GigJack.
+3. Automatically move it into the "Today's GigJacks" list.
+4. In that list, mark it as:
+   EXPIRED
+5. The expired GigJack should remain visible in Today’s GigJacks for the rest of the day.
+
+==================================================
+TODAY'S GIGJACKS
+==================================================
+
+Create or update the "Today's GigJacks" section so it acts as the post-live queue/archive.
+
+Behavior:
+- active GigJacks can appear there if desired
+- expired GigJacks must appear there after countdown ends
+- list entries in vertical order
+- most recent first or chronological order depending on current UX choice
+- each entry should be clickable
+
+Each entry should show:
+- artwork/logo
+- offer title
+- brand/user
+- time launched
+- status (ACTIVE / EXPIRED)
+- link to offer
+
+==================================================
+STATE FLOW
+==================================================
+
+GigJack lifecycle should behave like this:
+
+approved
+→ scheduled
+→ live on main UI
+→ collapsed into top-right live offer widget
+→ countdown runs
+→ countdown expires
+→ moved to Today's GigJacks as expired
+
+==================================================
+VISUAL GOAL
+==================================================
+
+The UI should feel sharp and intentional:
+
+- Zito TV anchored bottom-left
+- GigJack anchored top-right
+- GigJack flashes/pulses while active
+- expired GigJacks roll into Today’s GigJacks automatically
+
+The experience should feel like a real live-alert system, not a temporary floating card.
