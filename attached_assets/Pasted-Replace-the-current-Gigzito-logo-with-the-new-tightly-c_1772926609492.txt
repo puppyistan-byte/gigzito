@@ -1,0 +1,93 @@
+Replace the current Gigzito logo with the new tightly cropped version and update the layout so the logo never overlaps other UI elements.
+
+==================================================
+REPLACE LOGO FILE
+==================================================
+
+1. Replace the current logo asset with the new file:
+
+gigzito-logo-tight.png
+
+2. Upload the file into the assets or public images directory used for site graphics.
+
+Example path:
+
+/public/assets/gigzito-logo-tight.png
+
+3. Update the logo reference in the header UI so it uses the new image.
+
+Example:
+
+<img src="/assets/gigzito-logo-tight.png" alt="Gigzito" class="gigzito-logo">
+
+==================================================
+LOGO CONTAINER FIX
+==================================================
+
+Ensure the logo sits inside its own container so it cannot overlap the video feed or other UI modules.
+
+Add or update a container such as:
+
+<div class="gigzito-logo-container">
+  <img src="/assets/gigzito-logo-tight.png" class="gigzito-logo">
+</div>
+
+==================================================
+LOGO POSITIONING
+==================================================
+
+The logo should remain positioned in the top-left of the interface.
+
+Apply styling similar to:
+
+.gigzito-logo-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 50;
+}
+
+This ensures the logo always stays above background elements without overlapping content improperly.
+
+==================================================
+LOGO SIZE CONTROL
+==================================================
+
+Control scaling with CSS rather than relying on image padding.
+
+Example:
+
+.gigzito-logo {
+  width: 240px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+This allows the logo to scale correctly without pushing into other elements.
+
+==================================================
+RESPONSIVE SAFETY
+==================================================
+
+Make sure the logo scales slightly on smaller screens.
+
+Example:
+
+@media (max-width: 768px) {
+  .gigzito-logo {
+    width: 160px;
+  }
+}
+
+==================================================
+FINAL GOAL
+==================================================
+
+The Gigzito logo should:
+
+• sit cleanly in the top-left corner
+• have no excess padding
+• never overlap the video feed
+• scale properly across devices
+• remain visually crisp and centered inside its container

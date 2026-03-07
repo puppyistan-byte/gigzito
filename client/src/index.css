@@ -284,36 +284,32 @@ html, body, #root {
     --bottom-nav-height: 64px;
   }
 
-  .gigzito-logo {
+  .gigzito-logo-container {
     position: fixed;
-    top: 36px;
-    left: 36px;
-    z-index: 9999;
+    top: 20px;
+    left: 20px;
+    z-index: 50;
     pointer-events: none;
     padding: 0;
     background: none;
     box-shadow: none;
-    display: flex;
-    align-items: center;
-    height: 293px;
-    overflow: visible;
   }
 
-  .gigzito-logo img {
-    height: 293px;
-    width: auto;
-    object-fit: contain;
+  .gigzito-logo-img {
+    width: 200px;
+    height: auto;
     display: block;
-    filter: none;
+    object-fit: contain;
   }
 
-  @media (max-width: 640px) {
-    .gigzito-logo { height: 187px; }
-    .gigzito-logo img { height: 187px; }
+  @media (max-width: 768px) {
+    .gigzito-logo-img {
+      width: 140px;
+    }
   }
 
-  .gigzito-logo svg path {
-    fill: #d10f0f;
+  .gigzito-logo {
+    display: none;
   }
 
   .branding-zone, .brand-logo {
@@ -1283,10 +1279,36 @@ html, body, #root {
   }
 
   .auth-logo {
-    width: 280px;
+    width: 220px;
     height: auto;
     display: block;
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.18));
+  }
+
+  .splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease;
+  }
+
+  .splash-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .splash-logo {
+    width: 260px;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+
+  @media (max-width: 480px) {
+    .splash-logo { width: 180px; }
   }
 
   .auth-page .card,

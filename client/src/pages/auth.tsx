@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldCheck, Mail, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
+import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
 
 const RESEND_COOLDOWN = 30;
 
@@ -175,7 +176,7 @@ export default function AuthPage() {
       <div className="auth-page min-h-screen flex flex-col items-center justify-center px-4">
         <Link href="/">
           <a className="auth-brand" data-testid="link-auth-home">
-            <img src="/gigzito-logo-v3.png" alt="Gigzito" className="auth-logo" />
+            <img src={logoImg} alt="Gigzito" className="auth-logo" />
           </a>
         </Link>
 
@@ -264,7 +265,7 @@ export default function AuthPage() {
     <div className="auth-page min-h-screen flex flex-col items-center justify-center px-4">
       <Link href="/">
         <a className="auth-brand" data-testid="link-auth-home">
-          <img src="/gigzito-logo-v3.png" alt="Gigzito" className="auth-logo" />
+          <img src={logoImg} alt="Gigzito" className="auth-logo" />
         </a>
       </Link>
 

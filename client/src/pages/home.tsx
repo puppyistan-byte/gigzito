@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown, Zap } from "lucide-react";
 
-import logoImg from "@assets/gigzito_1772574609697.jpg";
+import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
 
 function readPersistedMuted(): boolean {
   try { return localStorage.getItem("gz_muted") !== "false"; } catch { return true; }
@@ -170,8 +170,8 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="gigzito-logo">
-        <img src="/gigzito-logo.png" alt="Gigzito" />
+      <div className="gigzito-logo-container">
+        <img src={logoImg} alt="Gigzito" className="gigzito-logo-img" />
       </div>
 
       <MiniLivePlayer />
