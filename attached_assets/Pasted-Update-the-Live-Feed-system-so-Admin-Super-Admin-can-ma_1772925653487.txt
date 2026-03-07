@@ -1,0 +1,153 @@
+Update the Live Feed system so Admin / Super Admin can manually inject a live URL directly from the Live frame interface, and add controls for minimizing and focusing the live broadcast.
+
+==================================================
+LIVE FRAME ADMIN TOGGLE
+==================================================
+
+The manual live injection toggle should exist inside the Live frame itself.
+
+This control should only appear when the viewer has elevated permissions.
+
+Visible to:
+• admin
+• super_admin
+
+Hidden completely for:
+• normal visitors
+• standard users
+• creators
+• marketers
+• influencers
+
+Normal visitors should never see the administrative controls.
+
+When an Admin or Super Admin opens the Live frame, they should see a small control panel inside the frame.
+
+==================================================
+ADMIN LIVE INJECTION CONTROL
+==================================================
+
+Inside the Live frame add:
+
+Toggle:
+Enable Manual Live Source
+
+When enabled, show the following input field:
+
+Live Source URL
+
+Supported platforms:
+• TikTok
+• Instagram
+• Facebook
+• YouTube
+• Approved embed URL
+
+Buttons inside the Live frame:
+
+Go Live
+Stop Live
+Clear Source
+
+Behavior:
+
+Go Live
+• immediately activates the injected source
+• the live frame begins displaying that source
+
+Stop Live
+• stops the injected stream
+• the frame returns to idle or fallback content
+
+Clear Source
+• removes the URL from the system
+
+==================================================
+MINIMIZE LIVE BUTTON
+==================================================
+
+Add a Minimize button to the Live frame.
+
+This control should be visible to all users.
+
+Behavior when clicked:
+
+• the Live frame collapses or hides
+• any audio from the live broadcast stops immediately
+• the user returns to the normal scrolling video feed
+• autoplay feed resumes
+
+This allows users to exit a live broadcast quickly and continue browsing.
+
+==================================================
+FOCUS / POP-OUT LIVE MODE
+==================================================
+
+Add a Focus or Pop-Out button to the Live frame.
+
+Label suggestion:
+Focus Live
+or
+Pop Out Live
+
+Behavior when activated:
+
+• the live broadcast moves to the center of the screen
+• it expands to become the dominant UI element
+• the live content temporarily takes over the user’s viewing experience
+• background feed interaction pauses
+
+This is essentially a temporary live broadcast viewing mode.
+
+The expanded live frame should appear centered on screen and larger than the standard live window.
+
+==================================================
+EXIT FOCUS MODE
+==================================================
+
+When in Focus / Pop-Out mode, provide an exit control.
+
+Options:
+
+Return to Feed
+or
+Minimize Live
+
+When clicked:
+
+• the live broadcast collapses back to its standard frame location
+• the normal scrolling video feed resumes
+• autoplay feed continues
+
+==================================================
+AUDIO BEHAVIOR
+==================================================
+
+Audio should behave consistently.
+
+Rules:
+
+If a live broadcast is minimized:
+• audio must stop immediately
+
+If the live broadcast is focused:
+• audio should continue normally
+
+When returning to the feed:
+• the feed videos resume with the current audio preference state
+
+==================================================
+VISUAL GOAL
+==================================================
+
+The Live frame should act as a small persistent broadcast window.
+
+Admins can inject a live source directly inside that frame.
+
+Users should be able to:
+
+• minimize the live broadcast
+• continue scrolling the feed
+• pop out the live broadcast for full focus viewing
+
+This creates a flexible live viewing experience without disrupting the main video feed.
