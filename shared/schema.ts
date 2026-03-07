@@ -78,6 +78,10 @@ export const gigJacks = pgTable("gig_jacks", {
   countdownMinutes: integer("countdown_minutes").notNull(),
   couponCode: text("coupon_code"),
   quantityLimit: integer("quantity_limit"),
+  tagline: text("tagline"),
+  category: text("category"),
+  scheduledAt: timestamp("scheduled_at"),
+  flashDurationSeconds: integer("flash_duration_seconds").default(7),
   status: gigJackStatusEnum("status").notNull().default("PENDING_REVIEW"),
   reviewNote: text("review_note"),
   botWarning: boolean("bot_warning").notNull().default(false),
@@ -253,14 +257,24 @@ export type CreateLiveSessionRequest = {
 
 // GigJack submission
 export type CreateGigJackRequest = {
-  companyUrl: string;
   artworkUrl: string;
   offerTitle: string;
-  description: string;
   ctaLink: string;
-  countdownMinutes: number;
+  tagline?: string | null;
+  category?: string | null;
+  scheduledAt?: string | null;
+  flashDurationSeconds?: number | null;
+  companyUrl?: string;
+  description?: string;
+  countdownMinutes?: number;
   couponCode?: string | null;
   quantityLimit?: number | null;
+};
+
+export type GigJackSlot = {
+  dateLabel: string;
+  iso: string;
+  available: boolean;
 };
 
 export type ReviewGigJackRequest = {

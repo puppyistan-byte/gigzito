@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest } from "@shared/schema";
-import { eq, and, sql, inArray, ne } from "drizzle-orm";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest } from "@shared/schema";
+import { eq, and, sql, inArray, ne, gte, lte, or } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -44,6 +44,8 @@ export interface IStorage {
   getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
   getAllGigJacks(): Promise<GigJackWithProvider[]>;
   reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string): Promise<GigJack | undefined>;
+  getActiveGigJack(): Promise<GigJackWithProvider | null>;
+  getAvailableSlots(): Promise<GigJackSlot[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -309,14 +311,18 @@ export class DatabaseStorage implements IStorage {
       .insert(gigJacks)
       .values({
         providerId: data.providerId,
-        companyUrl: data.companyUrl,
+        companyUrl: data.companyUrl ?? data.ctaLink,
         artworkUrl: data.artworkUrl,
         offerTitle: data.offerTitle,
-        description: data.description,
+        description: data.description ?? data.offerTitle,
         ctaLink: data.ctaLink,
-        countdownMinutes: data.countdownMinutes,
+        countdownMinutes: data.countdownMinutes ?? 0,
         couponCode: data.couponCode ?? null,
         quantityLimit: data.quantityLimit ?? null,
+        tagline: data.tagline ?? null,
+        category: data.category ?? null,
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+        flashDurationSeconds: data.flashDurationSeconds ?? 7,
         status: "PENDING_REVIEW",
         botWarning: data.botWarning,
         botWarningMessage: data.botWarningMessage,
@@ -358,6 +364,59 @@ export class DatabaseStorage implements IStorage {
       .where(eq(gigJacks.id, id))
       .returning();
     return gj;
+  }
+
+  async getActiveGigJack(): Promise<GigJackWithProvider | null> {
+    const now = new Date();
+    const rows = await db
+      .select()
+      .from(gigJacks)
+      .where(
+        and(
+          eq(gigJacks.status, "APPROVED"),
+          lte(gigJacks.scheduledAt, now),
+          gte(gigJacks.scheduledAt, new Date(now.getTime() - 10_000))
+        )
+      )
+      .orderBy(sql`${gigJacks.scheduledAt} DESC`)
+      .limit(1);
+    if (rows.length === 0) return null;
+    const enriched = await this.enrichGigJacks(rows);
+    return enriched[0] ?? null;
+  }
+
+  async getAvailableSlots(): Promise<GigJackSlot[]> {
+    const now = new Date();
+    const booked = await db
+      .select({ scheduledAt: gigJacks.scheduledAt })
+      .from(gigJacks)
+      .where(
+        and(
+          or(eq(gigJacks.status, "PENDING_REVIEW"), eq(gigJacks.status, "APPROVED")),
+          gte(gigJacks.scheduledAt, now)
+        )
+      );
+    const bookedSet = new Set(
+      booked
+        .filter((r) => r.scheduledAt)
+        .map((r) => r.scheduledAt!.toISOString().slice(0, 16))
+    );
+    const slots: GigJackSlot[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(now);
+      day.setDate(day.getDate() + d);
+      day.setSeconds(0, 0);
+      const dateLabel = day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      for (let h = 8; h <= 21; h++) {
+        const slot = new Date(day);
+        slot.setHours(h, 0, 0, 0);
+        if (slot <= now) continue;
+        const iso = slot.toISOString();
+        const key = iso.slice(0, 16);
+        slots.push({ dateLabel, iso, available: !bookedSet.has(key) });
+      }
+    }
+    return slots;
   }
 }
 

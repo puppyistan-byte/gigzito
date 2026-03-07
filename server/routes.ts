@@ -528,6 +528,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // === GIGJACKS ===
+  app.get("/api/gigjacks/active", async (req, res) => {
+    const active = await storage.getActiveGigJack();
+    return res.json(active ?? null);
+  });
+
+  app.get("/api/gigjacks/slots", async (req, res) => {
+    const slots = await storage.getAvailableSlots();
+    return res.json(slots);
+  });
+
   app.post("/api/gigjacks/submit", async (req, res) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId;
@@ -536,12 +546,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!profile) return res.status(400).json({ message: "Provider profile not found" });
 
     const schema = z.object({
-      companyUrl: z.string().url(),
       artworkUrl: z.string().url(),
       offerTitle: z.string().min(5).max(120),
-      description: z.string().min(10).max(500),
       ctaLink: z.string().url(),
-      countdownMinutes: z.coerce.number().int().min(1).max(30),
+      tagline: z.string().max(120).optional().nullable(),
+      category: z.string().max(60).optional().nullable(),
+      scheduledAt: z.string().datetime().optional().nullable(),
+      flashDurationSeconds: z.coerce.number().int().min(5).max(10).optional().nullable(),
+      companyUrl: z.string().url().optional(),
+      description: z.string().optional(),
+      countdownMinutes: z.coerce.number().int().optional(),
       couponCode: z.string().max(40).optional().nullable(),
       quantityLimit: z.coerce.number().int().min(1).max(100000).optional().nullable(),
     });
@@ -550,13 +564,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const data = schema.parse(req.body);
       const botResult = runBotChecks({
         offerTitle: data.offerTitle,
-        description: data.description,
+        description: data.tagline ?? data.offerTitle,
         couponCode: data.couponCode,
         ctaLink: data.ctaLink,
-        companyUrl: data.companyUrl,
+        companyUrl: data.companyUrl ?? data.ctaLink,
       });
       const gj = await storage.createGigJack({
-        ...data,
+        artworkUrl: data.artworkUrl,
+        offerTitle: data.offerTitle,
+        ctaLink: data.ctaLink,
+        tagline: data.tagline ?? null,
+        category: data.category ?? null,
+        scheduledAt: data.scheduledAt ?? null,
+        flashDurationSeconds: data.flashDurationSeconds ?? 7,
+        companyUrl: data.companyUrl ?? data.ctaLink,
+        description: data.description ?? data.tagline ?? data.offerTitle,
+        countdownMinutes: data.countdownMinutes ?? 0,
+        couponCode: data.couponCode ?? null,
+        quantityLimit: data.quantityLimit ?? null,
         providerId: profile.id,
         botWarning: botResult.warning,
         botWarningMessage: botResult.message,
