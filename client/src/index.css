@@ -239,6 +239,7 @@ html, body, #root {
     width: 100%;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
 
   .feed-item {
@@ -331,10 +332,10 @@ html, body, #root {
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
     gap: 72px;
+    touch-action: pan-y;
   }
 
   .video-card,
-  .feed-item,
   .card {
     position: relative;
     width: 100%;
@@ -352,6 +353,19 @@ html, body, #root {
     padding: 8px;
     margin-bottom: 72px;
     transition: border-color 0.18s ease;
+  }
+
+  /* feed-item must NOT have overflow:hidden so swipe events propagate to the scroll container */
+  .feed-item {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    height: calc(100vh - 140px);
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+    overflow: visible;
+    margin-bottom: 72px;
+    touch-action: pan-y;
   }
   .video-card:hover,
   .feed-item:hover,
