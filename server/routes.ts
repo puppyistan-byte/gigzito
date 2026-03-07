@@ -94,11 +94,34 @@ const SEEDED_ADMIN_EMAIL = "admin@gigzito.com";
 
 async function ensureAdminUser() {
   try {
-    const existing = await storage.getUserByEmail(SEEDED_ADMIN_EMAIL);
-    if (existing) return;
-    const hashed = await hashPassword("Arizona22");
-    await storage.createUser({ email: SEEDED_ADMIN_EMAIL, password: hashed, role: "ADMIN" });
-    console.log("Admin account created: admin@gigzito.com");
+    let adminUser = await storage.getUserByEmail(SEEDED_ADMIN_EMAIL);
+    if (!adminUser) {
+      const hashed = await hashPassword("Arizona22");
+      adminUser = await storage.createUser({ email: SEEDED_ADMIN_EMAIL, password: hashed, role: "ADMIN" });
+      console.log("Admin account created: admin@gigzito.com");
+    }
+    // Ensure a minimal profile exists (username only, no social media)
+    const existingProfile = await storage.getProfileByUserId(adminUser.id);
+    if (!existingProfile) {
+      await storage.createProfile({
+        userId: adminUser.id,
+        username: "admin",
+        displayName: "Admin",
+        bio: "",
+        avatarUrl: "",
+        thumbUrl: "",
+        contactEmail: null,
+        contactPhone: null,
+        contactTelegram: null,
+        websiteUrl: null,
+        primaryCategory: null,
+        location: null,
+        instagramUrl: null,
+        youtubeUrl: null,
+        tiktokUrl: null,
+      });
+      console.log("Admin profile created");
+    }
   } catch (err) {
     console.error("ensureAdminUser error:", err);
   }
