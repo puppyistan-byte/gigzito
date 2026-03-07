@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info, Volume2 } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info, Volume2, VolumeX } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { VideoInfoModal } from "@/components/video-info-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
@@ -233,6 +233,20 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   const endCalledRef = useRef(false);
   const iframeRef    = useRef<HTMLIFrameElement>(null);
   const [iframeSrc,  setIframeSrc]  = useState("about:blank");
+  const [isMuted,    setIsMuted]    = useState(true);
+
+  const toggleMute = () => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    const next = !isMuted;
+    try {
+      iframe.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
+        "*"
+      );
+    } catch (_) {}
+    setIsMuted(next);
+  };
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
 
@@ -241,6 +255,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
       // Stop video immediately via postMessage then blank the src
       stopIframe(iframeRef.current);
       setIframeSrc("about:blank");
+      setIsMuted(true);
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       setTimeLeft(null);
@@ -325,12 +340,26 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
             <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
           </div>
 
-          {/* Muted indicator — shown when actively playing */}
+          {/* Mute / Unmute toggle — tap to hear sound */}
           {isActive && (
-            <div className="absolute top-3 left-3 z-20 flex items-center gap-1 bg-black/55 backdrop-blur-sm rounded-full px-2 py-0.5" data-testid={`badge-muted-${listing.id}`}>
-              <Volume2 className="w-2.5 h-2.5 text-white/60" />
-              <span className="text-white/60 text-[10px] font-medium">muted</span>
-            </div>
+            <button
+              onClick={toggleMute}
+              className="absolute top-3 left-3 z-30 flex items-center gap-1.5 bg-black/65 hover:bg-black/80 backdrop-blur-sm rounded-full px-2.5 py-1 transition-colors cursor-pointer"
+              data-testid={`button-mute-${listing.id}`}
+              title={isMuted ? "Tap to unmute" : "Tap to mute"}
+            >
+              {isMuted ? (
+                <>
+                  <VolumeX className="w-3 h-3 text-white/70" />
+                  <span className="text-white/70 text-[10px] font-semibold">Tap for sound</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3 h-3 text-white" />
+                  <span className="text-white text-[10px] font-semibold">Sound on</span>
+                </>
+              )}
+            </button>
           )}
 
           {/* FLOATING CREATOR AVATAR */}
