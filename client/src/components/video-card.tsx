@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info, Volume2 } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { VideoInfoModal } from "@/components/video-info-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
@@ -46,20 +46,50 @@ const SPECIAL_GLOW: Record<string, string> = {
   FLASH_COUPON: "ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(0,200,83,0.5)]",
 };
 
-function getVideoEmbedUrl(url: string): string {
+function getVideoEmbedUrl(url: string, autoplay = false): string {
   try {
     const u = new URL(url);
+    const ap = autoplay ? "1" : "0";
+
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      if (u.pathname.includes("/embed/")) return url;
-      let id = u.hostname === "youtu.be" ? u.pathname.slice(1) : u.searchParams.get("v") ?? "";
-      return `https://www.youtube.com/embed/${id}?autoplay=0&controls=0&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0`;
+      let id = "";
+      if (u.pathname.includes("/embed/")) {
+        id = u.pathname.split("/embed/")[1].split("?")[0];
+      } else if (u.hostname === "youtu.be") {
+        id = u.pathname.slice(1);
+      } else {
+        id = u.searchParams.get("v") ?? "";
+      }
+      return [
+        `https://www.youtube.com/embed/${id}`,
+        `?autoplay=${ap}`,
+        `&mute=${ap}`,
+        `&controls=0`,
+        `&modestbranding=1`,
+        `&rel=0`,
+        `&iv_load_policy=3`,
+        `&showinfo=0`,
+        `&playsinline=1`,
+        `&loop=1`,
+        `&playlist=${id}`,
+      ].join("");
     }
+
     if (u.hostname.includes("vimeo.com")) {
-      const id = u.pathname.split("/").pop();
-      return `https://player.vimeo.com/video/${id}`;
+      const id = u.pathname.split("/").filter(Boolean).pop();
+      return [
+        `https://player.vimeo.com/video/${id}`,
+        `?autoplay=${ap}`,
+        `&muted=${ap}`,
+        `&loop=1`,
+        `&background=${autoplay ? "1" : "0"}`,
+      ].join("");
     }
+
     return url;
-  } catch { return url; }
+  } catch {
+    return url;
+  }
 }
 
 function handleShare(listing: ListingWithProvider) {
@@ -151,7 +181,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
     ? provider.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "P";
 
-  const embedUrl = getVideoEmbedUrl(listing.videoUrl);
   const badgeInfo = BADGE[listing.vertical] ?? { bg: "bg-gray-600", label: listing.vertical };
   const glowClass = SPECIAL_GLOW[listing.vertical] ?? "";
 
@@ -160,9 +189,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   const isProduct     = listing.vertical === "PRODUCTS";
   const flashEndsAt   = listing.flashSaleEndsAt ? new Date(listing.flashSaleEndsAt) : null;
 
-  const [showInquire,   setShowInquire]   = useState(false);
-  const [showInfo,      setShowInfo]      = useState(false);
+  const [showInquire,    setShowInquire]    = useState(false);
+  const [showInfo,       setShowInfo]       = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [autoplayFailed, setAutoplayFailed] = useState(false);
 
   const ctaType = listing.ctaType ?? null;
   const ctaUrl  = listing.ctaUrl ?? null;
@@ -182,9 +212,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
     setShowInquire(true);
   };
 
-  const [timeLeft,    setTimeLeft]    = useState<number | null>(null);
-  const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
-  const endCalledRef  = useRef(false);
+  const [timeLeft,   setTimeLeft]   = useState<number | null>(null);
+  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
+  const endCalledRef = useRef(false);
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
 
@@ -215,17 +245,50 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
     };
   }, [isActive, listing.id]);
 
+  const posterUrl = provider.thumbUrl || provider.avatarUrl || null;
+
+  const iframeSrc = isActive
+    ? getVideoEmbedUrl(listing.videoUrl, true)
+    : "about:blank";
+
   return (
     <>
       <div
         data-testid={`card-listing-${listing.id}`}
         className={`video-card relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
       >
-        <div className={`relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden group ${glowClass}`}>
+        <div className={`relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden ${glowClass}`}>
 
-          {/* Video */}
+          {/* Poster thumbnail shown when video is not active */}
+          {!isActive && posterUrl && (
+            <img
+              src={posterUrl}
+              alt={listing.title}
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              data-testid={`img-poster-${listing.id}`}
+            />
+          )}
+
+          {/* Dark background fallback when no poster */}
+          {!isActive && !posterUrl && (
+            <div className="absolute inset-0 bg-[#0b0b0b] z-0" />
+          )}
+
+          {/* Autoplay fallback play button — only shown if autoplay failed */}
+          {!isActive && autoplayFailed && (
+            <button
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30 transition-opacity"
+              aria-label="Play video"
+              data-testid={`button-play-${listing.id}`}
+            >
+              <Play className="w-10 h-10 fill-white text-white ml-1" />
+            </button>
+          )}
+
+          {/* Iframe — loaded with autoplay when active, blank when inactive */}
           <iframe
-            src={embedUrl}
+            key={isActive ? `active-${listing.id}` : `idle-${listing.id}`}
+            src={iframeSrc}
             title={listing.title}
             className="absolute inset-0 w-full h-full border-0 z-0 pointer-events-none"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -236,13 +299,21 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
           {/* Gradient overlays */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/10 z-10 pointer-events-none" />
 
-          {/* ── TOP OVERLAY: Duration badge only ── */}
+          {/* TOP: Duration badge */}
           <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-black/55 backdrop-blur-sm rounded-full px-2 py-0.5" data-testid={`badge-duration-${listing.id}`}>
             <Clock className="w-2.5 h-2.5 text-white/70" />
             <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
           </div>
 
-          {/* ── FLOATING CREATOR AVATAR: bottom-right, clickable ── */}
+          {/* Muted indicator — shown when actively playing */}
+          {isActive && (
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1 bg-black/55 backdrop-blur-sm rounded-full px-2 py-0.5" data-testid={`badge-muted-${listing.id}`}>
+              <Volume2 className="w-2.5 h-2.5 text-white/60" />
+              <span className="text-white/60 text-[10px] font-medium">muted</span>
+            </div>
+          )}
+
+          {/* FLOATING CREATOR AVATAR */}
           <Link href={`/provider/${listing.provider.id}`}>
             <div
               className="absolute bottom-[76px] right-4 z-30 cursor-pointer"
@@ -275,14 +346,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
             </div>
           </Link>
 
-          {/* ── CENTER: Hover play ── */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 pointer-events-none">
-            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30">
-              <Play className="w-8 h-8 fill-white text-white ml-1" />
-            </div>
-          </div>
-
-          {/* ── BOTTOM: Info & CTAs ── */}
+          {/* BOTTOM: Info & CTAs */}
           <div className="absolute bottom-0 left-0 right-0 p-4 pt-12 z-20 space-y-2.5">
 
             {/* Category badge */}

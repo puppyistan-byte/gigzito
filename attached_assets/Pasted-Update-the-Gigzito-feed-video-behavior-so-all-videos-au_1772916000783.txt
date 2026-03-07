@@ -1,0 +1,107 @@
+Update the Gigzito feed video behavior so all videos automatically play when they appear in the viewport.
+
+==================================================
+AUTOPLAY VIDEO BEHAVIOR
+==================================================
+
+Videos in the main Gigzito feed should automatically play when the user scrolls to them.
+
+Users should NOT need to press a play button.
+
+The experience should behave similarly to TikTok, Instagram Reels, or YouTube Shorts.
+
+==================================================
+REQUIRED VIDEO SETTINGS
+==================================================
+
+All feed videos should load with the following settings:
+
+autoplay = true
+muted = true
+loop = true
+playsInline = true
+
+Muting is required for autoplay to work properly in modern browsers.
+
+Example video element configuration:
+
+<video
+ autoplay
+ muted
+ loop
+ playsinline
+ preload="metadata"
+>
+
+==================================================
+VIEWPORT DETECTION
+==================================================
+
+Videos should only play when they are visible on screen.
+
+When the video enters the viewport:
+• start playback automatically
+
+When the video leaves the viewport:
+• pause playback
+
+Use an IntersectionObserver or equivalent viewport detection.
+
+Recommended behavior:
+
+video enters center of screen
+→ video plays
+
+user scrolls away
+→ video pauses
+
+==================================================
+REMOVE PLAY BUTTON
+==================================================
+
+The large red YouTube-style play button should be removed from feed videos.
+
+It should only appear if a video fails to autoplay.
+
+The normal user experience should not show a play button.
+
+==================================================
+SINGLE VIDEO PLAYBACK
+==================================================
+
+Only one video should play at a time.
+
+When a new video becomes active in the viewport:
+
+• pause the previous video
+• play the new video
+
+This prevents multiple videos from playing simultaneously.
+
+==================================================
+INITIAL LOAD BEHAVIOR
+==================================================
+
+When the user first opens the Gigzito feed:
+
+• the first visible video should autoplay immediately
+
+==================================================
+PERFORMANCE NOTES
+==================================================
+
+Use lazy loading or preload="metadata" to avoid loading full videos unnecessarily.
+
+Only load video data when the video approaches the viewport.
+
+==================================================
+FINAL GOAL
+==================================================
+
+The Gigzito feed should behave like a vertical short-form video platform.
+
+Users scroll.
+
+Videos automatically play.
+
+No manual play interaction required.
