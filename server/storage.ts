@@ -183,6 +183,7 @@ export class DatabaseStorage implements IStorage {
         tags: data.tags ?? [],
         ctaLabel: data.ctaLabel ?? null,
         ctaUrl: data.ctaUrl ?? null,
+        ctaType: data.ctaType ?? null,
         flashSaleEndsAt: data.flashSaleEndsAt ? new Date(data.flashSaleEndsAt) : null,
         couponCode: data.couponCode ?? null,
         productPrice: data.productPrice ?? null,

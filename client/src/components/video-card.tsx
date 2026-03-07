@@ -11,6 +11,14 @@ import type { ListingWithProvider } from "@shared/schema";
 
 const MAX_PLAY_SECONDS = 20;
 
+const CTA_LABELS: Record<string, string> = {
+  "Visit Offer":  "Visit Offer",
+  "Shop Product": "Shop Now",
+  "Join Event":   "Join Event",
+  "Book Service": "Book Now",
+  "Join Guild":   "Join Guild",
+};
+
 interface VideoCardProps {
   listing: ListingWithProvider;
   className?: string;
@@ -156,6 +164,20 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   const [showInfo,      setShowInfo]      = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
 
+  const ctaType = listing.ctaType ?? null;
+  const ctaUrl  = listing.ctaUrl ?? null;
+  const isShopProduct = ctaType === "Shop Product";
+  const ctaButtonLabel = ctaType ? (CTA_LABELS[ctaType] ?? ctaType) : "Inquire";
+
+  const handleCtaClick = () => {
+    if (isShopProduct && ctaUrl) {
+      window.open(ctaUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (!user) { setShowGuestModal(true); return; }
+    setShowInquire(true);
+  };
+
   const handleInquireClick = () => {
     if (!user) { setShowGuestModal(true); return; }
     setShowInquire(true);
@@ -295,15 +317,15 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
               )}
             </div>
 
-            {/* Action Row: Inquire · Info · Share */}
+            {/* Action Row: CTA · Info · Share */}
             <div className="flex items-center gap-2">
               <button
-                onClick={handleInquireClick}
+                onClick={handleCtaClick}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-[#c41414] hover:bg-[#a51010] text-white h-8 rounded-full font-bold text-xs transition-colors"
                 data-testid={`button-inquire-${listing.id}`}
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Inquire
+                {isShopProduct ? <ShoppingCart className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                {ctaButtonLabel}
               </button>
               <button
                 onClick={() => setShowInfo(true)}

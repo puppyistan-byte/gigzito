@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart } from "lucide-react";
-import type { ProfileCompletionStatus, ProviderProfile } from "@shared/schema";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap } from "lucide-react";
+import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
   { value: "INFLUENCER",      label: "Influencer",      icon: "⭐" },
@@ -27,6 +27,25 @@ const VERTICALS = [
   { value: "CORPORATE_DEALS", label: "Corporate Deals", icon: "🏢" },
 ];
 
+const CTA_TYPES: { value: CtaType; label: string; description: string }[] = [
+  { value: "Visit Offer",  label: "Visit Offer",  description: "Link to an offer or landing page" },
+  { value: "Shop Product", label: "Shop Now",     description: "Direct product link — no email required" },
+  { value: "Join Event",   label: "Join Event",   description: "Link to an event or registration page" },
+  { value: "Book Service", label: "Book Now",     description: "Link to a booking or scheduling page" },
+  { value: "Join Guild",   label: "Join Guild",   description: "Link to a community or membership" },
+];
+
+const TIKTOK_DOMAINS = ["tiktok.com", "tiktokshop.com"];
+
+function isTikTokShopUrl(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return TIKTOK_DOMAINS.some((d) => hostname === d || hostname.endsWith("." + d));
+  } catch {
+    return false;
+  }
+}
+
 type Vertical = typeof VERTICALS[number]["value"];
 
 type FormState = {
@@ -36,13 +55,10 @@ type FormState = {
   durationSeconds: string;
   description: string;
   tags: string;
-  ctaLabel: string;
+  ctaType: CtaType | "";
   ctaUrl: string;
-  // Flash Sale
   flashSaleEndsAt: string;
-  // Flash Coupon
   couponCode: string;
-  // Products
   productPrice: string;
   productPurchaseUrl: string;
   productStock: string;
@@ -50,7 +66,7 @@ type FormState = {
 
 const EMPTY: FormState = {
   vertical: "", title: "", videoUrl: "", durationSeconds: "",
-  description: "", tags: "", ctaLabel: "", ctaUrl: "",
+  description: "", tags: "", ctaType: "", ctaUrl: "",
   flashSaleEndsAt: "", couponCode: "",
   productPrice: "", productPurchaseUrl: "", productStock: "",
 };
@@ -81,6 +97,8 @@ export default function NewListingPage() {
     queryKey: ["/api/stats/daily"],
   });
 
+  const isTikTokLink = useMemo(() => form.ctaUrl ? isTikTokShopUrl(form.ctaUrl) : false, [form.ctaUrl]);
+
   const mutation = useMutation({
     mutationFn: async () => {
       const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
@@ -91,7 +109,7 @@ export default function NewListingPage() {
         durationSeconds: parseInt(form.durationSeconds, 10),
         description: form.description || undefined,
         tags,
-        ctaLabel: form.ctaLabel || undefined,
+        ctaType: form.ctaType || undefined,
         ctaUrl: form.ctaUrl || undefined,
       };
       if (form.vertical === "FLASH_SALE" && form.flashSaleEndsAt) {
@@ -141,6 +159,10 @@ export default function NewListingPage() {
       toast({ title: "Invalid duration", description: "Video must be 1–20 seconds.", variant: "destructive" });
       return;
     }
+    if (form.ctaType && !form.ctaUrl) {
+      toast({ title: "CTA URL required", description: "Please enter a URL for your CTA button.", variant: "destructive" });
+      return;
+    }
     mutation.mutate();
   };
 
@@ -149,6 +171,7 @@ export default function NewListingPage() {
 
   const canSubmit = completion?.isComplete && !dailyStats?.capReached;
   const v = form.vertical;
+  const selectedCta = CTA_TYPES.find((c) => c.value === form.ctaType);
 
   return (
     <div className="min-h-screen bg-black">
@@ -369,29 +392,56 @@ export default function NewListingPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* CTA section */}
+            <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label className="text-[#aaa] text-sm">CTA Button Label</Label>
-                <Input
-                  placeholder="Get the guide"
-                  value={form.ctaLabel}
-                  onChange={(e) => set("ctaLabel", e.target.value)}
-                  maxLength={60}
-                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                  data-testid="input-cta-label"
-                />
+                <Label className="text-[#aaa] text-sm">CTA Type</Label>
+                <Select value={form.ctaType} onValueChange={(val) => set("ctaType", val === "none" ? "" : val)}>
+                  <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff1a1a]" data-testid="select-cta-type">
+                    <SelectValue placeholder="No CTA (optional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                    <SelectItem value="none" className="text-[#666] focus:bg-[#222]">No CTA</SelectItem>
+                    {CTA_TYPES.map((c) => (
+                      <SelectItem key={c.value} value={c.value} className="text-white focus:bg-[#222]">
+                        {c.value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedCta && (
+                  <p className="text-xs text-[#555]">
+                    Button will show: <span className="text-white font-semibold">"{selectedCta.label}"</span> — {selectedCta.description}
+                  </p>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[#aaa] text-sm">CTA URL</Label>
-                <Input
-                  type="url"
-                  placeholder="https://yoursite.com/offer"
-                  value={form.ctaUrl}
-                  onChange={(e) => set("ctaUrl", e.target.value)}
-                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                  data-testid="input-cta-url"
-                />
-              </div>
+
+              {form.ctaType && (
+                <div className="space-y-1.5">
+                  <Label className="text-[#aaa] text-sm">CTA URL {form.ctaType ? "*" : ""}</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://yoursite.com/offer"
+                    value={form.ctaUrl}
+                    onChange={(e) => set("ctaUrl", e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
+                    data-testid="input-cta-url"
+                  />
+                  {isTikTokLink && (
+                    <div
+                      className="flex items-center gap-2 mt-1.5 px-3 py-2 rounded-lg bg-black border border-[#2a2a2a] text-xs"
+                      data-testid="alert-tiktok-shop-detected"
+                    >
+                      <Zap className="h-3.5 w-3.5 text-[#ff2b2b] shrink-0" />
+                      <span className="text-[#ff2b2b] font-semibold">TikTok Shop Link Detected</span>
+                      <span className="text-[#555]">– affiliate tracking handled by TikTok.</span>
+                    </div>
+                  )}
+                  {form.ctaType === "Shop Product" && !isTikTokLink && (
+                    <p className="text-xs text-[#555]">Viewers will go directly to this URL — no email required.</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

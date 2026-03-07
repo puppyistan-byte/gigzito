@@ -54,6 +54,7 @@ export const videoListings = pgTable("video_listings", {
   tags: text("tags").array().notNull().default([]),
   ctaLabel: text("cta_label"),
   ctaUrl: text("cta_url"),
+  ctaType: text("cta_type"),
   flashSaleEndsAt: timestamp("flash_sale_ends_at"),
   couponCode: text("coupon_code"),
   productPrice: text("product_price"),
@@ -166,6 +167,8 @@ export type VerticalKey =
   | "INFLUENCER" | "PRODUCTS" | "FLASH_SALE" | "FLASH_COUPON"
   | "MUSIC_GIGS" | "EVENTS" | "CORPORATE_DEALS";
 
+export type CtaType = "Visit Offer" | "Shop Product" | "Join Event" | "Book Service" | "Join Guild";
+
 // Listing submission
 export type CreateListingRequest = {
   vertical: VerticalKey;
@@ -176,6 +179,7 @@ export type CreateListingRequest = {
   tags?: string[];
   ctaLabel?: string;
   ctaUrl?: string;
+  ctaType?: CtaType | null;
   flashSaleEndsAt?: string | null;
   couponCode?: string | null;
   productPrice?: string | null;
