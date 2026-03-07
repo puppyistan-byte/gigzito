@@ -170,12 +170,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // === AUTH ===
   app.post(api.auth.register.path, async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, disclaimerAccepted } = req.body;
       if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+      if (!disclaimerAccepted) return res.status(400).json({ message: "You must accept the participation disclaimer to register." });
       const existing = await storage.getUserByEmail(email);
       if (existing) return res.status(409).json({ message: "Email already registered" });
       const hashed = await hashPassword(password);
-      const user = await storage.createUser({ email, password: hashed, role: "PROVIDER" });
+      const user = await storage.createUser({ email, password: hashed, role: "PROVIDER", disclaimerAccepted: true });
       const profile = await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null, username: null, primaryCategory: null, location: null, instagramUrl: null, youtubeUrl: null, tiktokUrl: null });
       (req.session as any).userId = user.id;
       (req.session as any).role = user.role;

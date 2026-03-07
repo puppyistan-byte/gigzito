@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: roleEnum("role").notNull().default("VISITOR"),
+  disclaimerAccepted: boolean("disclaimer_accepted").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -223,6 +224,8 @@ export const liveSessions = pgTable("live_sessions", {
   streamUrl: text("stream_url").notNull(),
   thumbnailUrl: text("thumbnail_url"),
   viewerCount: integer("viewer_count").notNull().default(0),
+  tierMinutes: integer("tier_minutes").notNull().default(60),
+  tierPriceCents: integer("tier_price_cents").notNull().default(2500),
   status: text("status").notNull().default("active"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   endedAt: timestamp("ended_at"),

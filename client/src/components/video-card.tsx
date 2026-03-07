@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { VideoInfoModal } from "@/components/video-info-modal";
+import { GuestCtaModal } from "@/components/guest-cta-modal";
+import { useAuth } from "@/lib/auth";
 import type { ListingWithProvider } from "@shared/schema";
 
 const MAX_PLAY_SECONDS = 20;
@@ -108,7 +110,7 @@ function CouponCodeBlock({ code }: { code: string }) {
   );
 }
 
-function ProductBlock({ price, purchaseUrl, stock }: { price?: string | null; purchaseUrl?: string | null; stock?: string | null }) {
+function ProductBlock({ price, purchaseUrl, stock, onGuestAction }: { price?: string | null; purchaseUrl?: string | null; stock?: string | null; onGuestAction?: () => void }) {
   return (
     <div className="flex items-center gap-2 flex-wrap" data-testid="product-block">
       {price && (
@@ -118,17 +120,24 @@ function ProductBlock({ price, purchaseUrl, stock }: { price?: string | null; pu
         <span className="bg-white/10 border border-white/20 text-white/70 text-xs px-2 py-1 rounded-lg" data-testid="text-product-stock">{stock}</span>
       )}
       {purchaseUrl && (
-        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1" asChild data-testid="button-buy-product">
-          <a href={purchaseUrl} target="_blank" rel="noopener noreferrer">
+        onGuestAction ? (
+          <Button size="sm" onClick={onGuestAction} className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1" data-testid="button-buy-product">
             <ShoppingCart className="w-3 h-3" /> Buy Now
-          </a>
-        </Button>
+          </Button>
+        ) : (
+          <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1" asChild data-testid="button-buy-product">
+            <a href={purchaseUrl} target="_blank" rel="noopener noreferrer">
+              <ShoppingCart className="w-3 h-3" /> Buy Now
+            </a>
+          </Button>
+        )
       )}
     </div>
   );
 }
 
 export function VideoCard({ listing, className = "", isActive = false, onEnd }: VideoCardProps) {
+  const { user } = useAuth();
   const provider = listing.provider;
   const initials = provider.displayName
     ? provider.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -143,8 +152,15 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   const isProduct     = listing.vertical === "PRODUCTS";
   const flashEndsAt   = listing.flashSaleEndsAt ? new Date(listing.flashSaleEndsAt) : null;
 
-  const [showInquire, setShowInquire] = useState(false);
-  const [showInfo,    setShowInfo]    = useState(false);
+  const [showInquire,   setShowInquire]   = useState(false);
+  const [showInfo,      setShowInfo]      = useState(false);
+  const [showGuestModal, setShowGuestModal] = useState(false);
+
+  const handleInquireClick = () => {
+    if (!user) { setShowGuestModal(true); return; }
+    setShowInquire(true);
+  };
+
   const [timeLeft,    setTimeLeft]    = useState<number | null>(null);
   const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const endCalledRef  = useRef(false);
@@ -261,7 +277,12 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
 
             {/* Product extras */}
             {isProduct && (
-              <ProductBlock price={listing.productPrice} purchaseUrl={listing.productPurchaseUrl} stock={listing.productStock} />
+              <ProductBlock
+                price={listing.productPrice}
+                purchaseUrl={listing.productPurchaseUrl}
+                stock={listing.productStock}
+                onGuestAction={!user ? () => setShowGuestModal(true) : undefined}
+              />
             )}
 
             {/* Title + Description */}
@@ -277,7 +298,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
             {/* Action Row: Inquire · Info · Share */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowInquire(true)}
+                onClick={handleInquireClick}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-[#c41414] hover:bg-[#a51010] text-white h-8 rounded-full font-bold text-xs transition-colors"
                 data-testid={`button-inquire-${listing.id}`}
               >
@@ -316,7 +337,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
         <InquireLeadModal listing={listing} onClose={() => setShowInquire(false)} />
       )}
       {showInfo && (
-        <VideoInfoModal listing={listing} onClose={() => setShowInfo(false)} onInquire={() => setShowInquire(true)} />
+        <VideoInfoModal listing={listing} onClose={() => setShowInfo(false)} onInquire={handleInquireClick} />
+      )}
+      {showGuestModal && (
+        <GuestCtaModal reason="cta" onClose={() => setShowGuestModal(false)} />
       )}
     </>
   );

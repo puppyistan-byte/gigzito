@@ -18,6 +18,7 @@ import LiveNowPage from "@/pages/live-now";
 import GoLivePage from "@/pages/go-live";
 import LiveViewPage from "@/pages/live-view";
 import BuyLivePage from "@/pages/buy-live";
+import ZitoTVPage from "@/pages/zito-tv";
 
 function Router() {
   return (
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/live/go" component={GoLivePage} />
       <Route path="/live/:id" component={LiveViewPage} />
       <Route path="/buy-live" component={BuyLivePage} />
+      <Route path="/zito-tv" component={ZitoTVPage} />
       <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />

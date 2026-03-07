@@ -21,6 +21,7 @@ export default function AuthPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   if (user) {
@@ -52,12 +53,16 @@ export default function AuthPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!disclaimerChecked) {
+      toast({ title: "Agreement required", description: "Please accept the participation disclaimer to continue.", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: regEmail, password: regPassword }),
+        body: JSON.stringify({ email: regEmail, password: regPassword, disclaimerAccepted: true }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -154,7 +159,39 @@ export default function AuthPage() {
                   data-testid="input-reg-password"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-register-submit">
+
+              {/* Participation disclaimer */}
+              <div
+                style={{
+                  background: "rgba(255,43,43,0.05)",
+                  border: "1px solid rgba(255,43,43,0.2)",
+                  borderRadius: "10px",
+                  padding: "12px",
+                }}
+              >
+                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", lineHeight: "1.6", marginBottom: "10px" }}>
+                  This platform does not provide medical, financial, or legal advice. All interactions are voluntary promotional communications.
+                </p>
+                <label className="flex items-start gap-2.5 cursor-pointer" data-testid="label-disclaimer">
+                  <input
+                    type="checkbox"
+                    checked={disclaimerChecked}
+                    onChange={(e) => setDisclaimerChecked(e.target.checked)}
+                    className="mt-0.5 accent-[#ff2b2b] w-3.5 h-3.5 flex-shrink-0"
+                    data-testid="checkbox-disclaimer"
+                  />
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", lineHeight: "1.5" }}>
+                    I understand and agree to the participation disclaimer above
+                  </span>
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || !disclaimerChecked}
+                data-testid="button-register-submit"
+              >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create account
               </Button>

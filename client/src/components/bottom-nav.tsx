@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { Home, PlusSquare, User, Radio } from "lucide-react";
+import { Home, PlusSquare, User, Radio, Tv } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export function BottomNav({ activeVertical, onVerticalChange }: {
@@ -67,6 +67,15 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
       >
         <PlusSquare size={22} />
         <span className="nav-label">Create Post</span>
+      </button>
+
+      <button
+        onClick={() => window.location.href = "/zito-tv"}
+        className={`nav-item transition-colors ${location === "/zito-tv" ? "active" : ""}`}
+        data-testid="nav-zito-tv"
+      >
+        <Tv size={20} />
+        <span className="nav-label">Zito TV</span>
       </button>
 
       <button

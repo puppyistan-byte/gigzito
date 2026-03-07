@@ -1,0 +1,100 @@
+Add the Gigzito Live event system with tier structure and membership access control.
+
+1. Live Events
+
+Allow creators to start a Live session.
+
+Live sessions should support:
+- music performances
+- product demonstrations
+- influencer streams
+- coaching sessions
+- corporate announcements
+- flash sales
+- general broadcasts
+
+Do not restrict Live events to music only.
+
+2. Live Pricing Tiers
+
+Add three Live tiers:
+
+Tier 1:
+- duration: 15 minutes
+- price: $10
+
+Tier 2:
+- duration: 30 minutes
+- price: $20
+
+Tier 3:
+- duration: 60 minutes
+- price: $25
+
+3. Monetization Toggle
+
+Add a global configuration variable:
+
+billingEnabled = false
+
+When billingEnabled is false:
+- Live events are free
+- pricing is not charged
+- system still records selected tier
+
+When billingEnabled is true:
+- Live tiers require payment before broadcasting.
+
+4. Live Player Behavior
+
+The Live mini player should:
+- appear in the top-right of the interface
+- display LIVE badge
+- start muted by default
+- allow users to tap to enable sound
+- allow users to mute again to continue browsing
+
+5. Membership Access Control
+
+Visitors should only be able to access:
+
+Zito TV public feed.
+
+Visitors cannot:
+- click CTA buttons
+- join Live events
+- inquire
+- interact with creators
+
+All CTA buttons should be disabled for visitors.
+
+6. Member Registration Requirement
+
+Before interacting with the platform users must:
+
+- create an account
+- accept a participation disclaimer
+
+Disclaimer text should include:
+
+"This platform does not provide medical, financial, or legal advice. All interactions are voluntary promotional communications."
+
+User must check an agreement box before account activation.
+
+7. Guest CTA Lock
+
+If a visitor clicks a CTA button:
+
+Show a modal:
+
+"Create a free Gigzito account to unlock offers and live events."
+
+8. Zito TV
+
+Create a public page called:
+
+Zito TV
+
+This page shows public content but does not allow interaction.
+
+All interactive features require membership login.
