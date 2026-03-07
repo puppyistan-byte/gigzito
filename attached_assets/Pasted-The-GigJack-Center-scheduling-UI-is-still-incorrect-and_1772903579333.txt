@@ -1,0 +1,47 @@
+The GigJack Center scheduling UI is still incorrect and must be replaced.
+
+PROBLEM
+Right now the Schedule Slot area is showing static date buttons for only one week.
+That is not acceptable.
+We do NOT want fixed buttons like:
+Sat, Mar 7 / Sun, Mar 8 / etc.
+
+REQUIRED CHANGE
+Replace the static Schedule Slot buttons with a true calendar-based scheduler.
+
+NEW SCHEDULING BEHAVIOR
+1. Add a real calendar picker that allows the user to choose:
+   - month
+   - day
+   - year
+2. Add a time picker so the user can choose the exact time for the Gig Jack.
+3. Users must be able to schedule Gig Jacks more than 1 week in advance.
+4. Allow advance scheduling for at least 90 days into the future.
+5. Do not limit the interface to one week of visible dates.
+6. The user should be able to navigate forward and backward by month in the calendar.
+
+BOOKING RULES
+1. Gig Jacks cannot be within 15 minutes of each other.
+2. Maximum approved Gig Jacks per hour = 2.
+3. If a time is unavailable, block that time from being selected or show it as unavailable.
+4. New Gig Jacks should still submit as PENDING until admin approves them.
+
+UI REQUIREMENTS
+1. Remove the current horizontal date pill buttons completely.
+2. Replace them with:
+   - a calendar date selector
+   - a time selector
+3. Show the selected scheduled date/time clearly before submission.
+4. If a selected time conflicts with existing Gig Jacks, show:
+   - “That time is unavailable.”
+   - “Gig Jacks must be at least 15 minutes apart.”
+   - “This hour already has 2 approved Gig Jacks.”
+5. Keep the scheduling UI clean, modern, and mobile-friendly.
+
+ADMIN REQUIREMENTS
+1. Admin and Super Admin must be able to view Gig Jacks on a calendar basis.
+2. Admin must be able to approve, deny, edit, or remove Gig Jacks.
+3. Super Admin must still have override capability for testing.
+
+GOAL
+The GigJack Center must use a true date/time scheduling calendar, not static one-week buttons, and must allow users to schedule Gig Jacks well in advance.

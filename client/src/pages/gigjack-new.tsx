@@ -12,13 +12,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Zap, CalendarDays, Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Zap, CalendarDays, Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import type { TimeSlot, SlotAvailabilityResponse } from "@shared/schema";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+const ADVANCE_DAYS = 90;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10);
@@ -27,6 +31,13 @@ function toDateStr(d: Date) {
 function formatDateFull(dateStr: string) {
   const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+}
+
+function formatTime12(hour: number, minute: number) {
+  const h = hour % 12 === 0 ? 12 : hour % 12;
+  const m = String(minute).padStart(2, "0");
+  const ampm = hour < 12 ? "AM" : "PM";
+  return `${h}:${m} ${ampm}`;
 }
 
 // ─── Form schema ──────────────────────────────────────────────────────────────
@@ -78,7 +89,7 @@ function MonthCalendar({ selected, onSelect }: { selected: string | null; onSele
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const maxDate = new Date(today);
-  maxDate.setDate(today.getDate() + 60);
+  maxDate.setDate(today.getDate() + ADVANCE_DAYS);
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -101,41 +112,59 @@ function MonthCalendar({ selected, onSelect }: { selected: string | null; onSele
   const canPrev = new Date(viewYear, viewMonth, 1) > new Date(today.getFullYear(), today.getMonth(), 1);
   const canNext = new Date(viewYear, viewMonth + 1, 1) <= new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
 
+  const prevMonth = () => {
+    if (!canPrev) return;
+    if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); }
+    else setViewMonth(viewMonth - 1);
+  };
+
+  const nextMonth = () => {
+    if (!canNext) return;
+    if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); }
+    else setViewMonth(viewMonth + 1);
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      {/* Month/Year nav */}
+      <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => { if (!canPrev) return; if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); } else setViewMonth(viewMonth - 1); }}
+          onClick={prevMonth}
           disabled={!canPrev}
-          className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] disabled:opacity-20"
+          className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] disabled:opacity-20 transition-colors"
           data-testid="btn-prev-month"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-sm font-semibold text-white">{MONTHS[viewMonth]} {viewYear}</span>
+        <div className="text-center">
+          <span className="text-sm font-semibold text-white">{MONTHS[viewMonth]} {viewYear}</span>
+          <p className="text-[10px] text-[#444] mt-0.5">Up to {ADVANCE_DAYS} days ahead</p>
+        </div>
         <button
-          onClick={() => { if (!canNext) return; if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); } else setViewMonth(viewMonth + 1); }}
+          onClick={nextMonth}
           disabled={!canNext}
-          className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] disabled:opacity-20"
+          className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] disabled:opacity-20 transition-colors"
           data-testid="btn-next-month"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
+      {/* Day labels */}
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAYS.map((d) => (
           <div key={d} className="text-center text-[10px] font-semibold text-[#444] py-1">{d}</div>
         ))}
       </div>
 
+      {/* Day cells */}
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
           const ds = toDateStr(d);
           const isPast = d < today;
-          const isFuture = d > maxDate;
-          const isDisabled = isPast || isFuture;
+          const isBeyond = d > maxDate;
+          const isDisabled = isPast || isBeyond;
           const isSelected = selected === ds;
           const isToday = toDateStr(d) === toDateStr(today);
 
@@ -149,7 +178,7 @@ function MonthCalendar({ selected, onSelect }: { selected: string | null; onSele
                 isDisabled
                   ? "text-[#2a2a2a] cursor-not-allowed"
                   : isSelected
-                  ? "bg-[#ff2b2b] text-white"
+                  ? "bg-[#ff2b2b] text-white shadow-md"
                   : isToday
                   ? "bg-[#1e1e1e] text-[#ff2b2b] border border-[#ff2b2b]/30"
                   : "text-[#999] hover:bg-[#1e1e1e] hover:text-white"
@@ -159,6 +188,221 @@ function MonthCalendar({ selected, onSelect }: { selected: string | null; onSele
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Time Picker ──────────────────────────────────────────────────────────────
+
+interface TimePickerProps {
+  selectedDate: string;
+  slots: TimeSlot[];
+  loading: boolean;
+  selectedSlot: TimeSlot | null;
+  onSelect: (slot: TimeSlot | null) => void;
+}
+
+function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect }: TimePickerProps) {
+  const [pickedHour, setPickedHour] = useState<number | null>(null);
+  const [pickedMinute, setPickedMinute] = useState<number | null>(null);
+  const [conflictMsg, setConflictMsg] = useState<string | null>(null);
+
+  const slotMap = useMemo(() => {
+    const m = new Map<string, TimeSlot>();
+    for (const s of slots) m.set(s.time, s);
+    return m;
+  }, [slots]);
+
+  const handleTimeChange = (hour: number, minute: number) => {
+    setPickedHour(hour);
+    setPickedMinute(minute);
+
+    const timeKey = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    const slot = slotMap.get(timeKey);
+
+    if (!slot) {
+      setConflictMsg("That time is outside available scheduling hours.");
+      onSelect(null);
+      return;
+    }
+
+    if (!slot.available) {
+      if (slot.approvedInHour >= 2) {
+        setConflictMsg("This hour already has 2 approved GigJacks. Please choose a different hour.");
+      } else {
+        setConflictMsg("GigJacks must be at least 15 minutes apart. That time is unavailable.");
+      }
+      onSelect(null);
+    } else {
+      setConflictMsg(null);
+      onSelect(slot);
+    }
+  };
+
+  const availableCount = slots.filter((s) => s.available).length;
+  const allBlocked = slots.length > 0 && availableCount === 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-14 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />
+          <div className="h-14 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {Array.from({ length: 16 }).map((_, i) => (
+            <div key={i} className="h-10 rounded-lg bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (allBlocked) {
+    return (
+      <div className="rounded-xl bg-amber-500/08 border border-amber-500/20 p-4 flex items-start gap-3 text-sm text-amber-400">
+        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold mb-1">No available times on this date</p>
+          <p className="text-xs text-amber-400/70">All time slots are blocked by the 2-per-hour cap or 15-minute spacing rule. Please go back and choose a different date.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Manual time selectors */}
+      <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3">
+        <p className="text-xs font-semibold text-[#555] uppercase tracking-wider">Choose a time</p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Hour selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-[#666]">Hour</label>
+            <select
+              value={pickedHour ?? ""}
+              onChange={(e) => {
+                const h = parseInt(e.target.value);
+                if (!isNaN(h)) {
+                  const m = pickedMinute ?? 0;
+                  handleTimeChange(h, m);
+                }
+              }}
+              className="w-full bg-[#111] border border-[#2a2a2a] text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#ff2b2b]/40 appearance-none"
+              data-testid="select-hour"
+            >
+              <option value="">Select hour</option>
+              {Array.from({ length: 24 }, (_, h) => {
+                const label = h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`;
+                return <option key={h} value={h}>{label}</option>;
+              })}
+            </select>
+          </div>
+
+          {/* Minute selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-[#666]">Minute</label>
+            <select
+              value={pickedMinute ?? ""}
+              onChange={(e) => {
+                const m = parseInt(e.target.value);
+                if (!isNaN(m)) {
+                  const h = pickedHour ?? 0;
+                  handleTimeChange(h, m);
+                }
+              }}
+              className="w-full bg-[#111] border border-[#2a2a2a] text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#ff2b2b]/40 appearance-none"
+              data-testid="select-minute"
+            >
+              <option value="">Select minute</option>
+              {[0, 15, 30, 45].map((m) => (
+                <option key={m} value={m}>{String(m).padStart(2, "0")}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Conflict / selection feedback */}
+        {conflictMsg && (
+          <div className="flex items-start gap-2 rounded-lg bg-red-500/08 border border-red-500/25 px-3 py-2.5" data-testid="msg-time-conflict">
+            <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-red-400 leading-relaxed">{conflictMsg}</div>
+          </div>
+        )}
+
+        {selectedSlot && !conflictMsg && (
+          <div className="flex items-center gap-2 rounded-lg bg-green-500/08 border border-green-500/25 px-3 py-2.5" data-testid="msg-time-selected">
+            <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
+            <span className="text-xs text-green-400 font-medium">
+              {selectedSlot.label} is available
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Quick-pick available slots by hour group */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-semibold text-[#555] uppercase tracking-wider">Or pick from available slots</p>
+          <span className="text-[10px] text-[#444]">({availableCount} open)</span>
+        </div>
+
+        {/* Group by hour */}
+        {Array.from({ length: 24 }, (_, h) => {
+          const hourSlots = slots.filter((s) => {
+            const [sh] = s.time.split(":").map(Number);
+            return sh === h;
+          });
+          const hasAvailable = hourSlots.some((s) => s.available);
+          if (!hasAvailable) return null;
+          return (
+            <div key={h} className="space-y-1">
+              <p className="text-[10px] text-[#444] font-medium pl-1">
+                {h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {hourSlots.map((slot) => {
+                  const isBlocked = !slot.available;
+                  const isSelected = selectedSlot?.time === slot.time;
+                  return (
+                    <button
+                      key={slot.time}
+                      disabled={isBlocked}
+                      onClick={() => {
+                        const [sh, sm] = slot.time.split(":").map(Number);
+                        setPickedHour(sh);
+                        setPickedMinute(sm);
+                        setConflictMsg(null);
+                        onSelect(isSelected ? null : slot);
+                      }}
+                      data-testid={`btn-slot-${slot.time.replace(":", "")}`}
+                      title={isBlocked ? (slot.approvedInHour >= 2 ? "Hour full (2 GigJacks)" : "Too close to another GigJack") : undefined}
+                      className={`flex flex-col items-center py-2 px-1 rounded-lg border transition-all text-center ${
+                        isBlocked
+                          ? "bg-[#0a0a0a] border-[#1a1a1a] text-[#2a2a2a] cursor-not-allowed"
+                          : isSelected
+                          ? "bg-[#ff2b2b]/20 border-[#ff2b2b]/70 text-white ring-1 ring-[#ff2b2b]/40"
+                          : "bg-[#ff2b2b]/06 border-[#ff2b2b]/20 text-[#ccc] hover:bg-[#ff2b2b]/12 hover:border-[#ff2b2b]/40 hover:text-white"
+                      }`}
+                    >
+                      <span className="text-xs font-semibold leading-tight">{slot.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rules info */}
+      <div className="flex items-start gap-2 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] px-3 py-2.5">
+        <Info className="h-3.5 w-3.5 text-[#444] shrink-0 mt-0.5" />
+        <p className="text-[11px] text-[#444] leading-relaxed">
+          GigJacks must be <span className="text-[#666]">at least 15 minutes apart</span> and a maximum of <span className="text-[#666]">2 per hour</span> can be approved. Slots available in 15-minute intervals.
+        </p>
       </div>
     </div>
   );
@@ -275,8 +519,6 @@ export default function GigJackNewPage() {
   }
 
   const slots = availability?.slots ?? [];
-  const availableSlots = slots.filter((s) => s.available);
-  const blockedSlots = slots.filter((s) => !s.available);
 
   return (
     <div className="min-h-screen bg-background">
@@ -297,7 +539,6 @@ export default function GigJackNewPage() {
         {step === 1 && (
           <div className="space-y-4" data-testid="step-date-picker">
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4">
-              <p className="text-sm font-semibold text-white mb-4">Select a date</p>
               <MonthCalendar
                 selected={selectedDate}
                 onSelect={(d) => { setSelectedDate(d); setSelectedSlot(null); }}
@@ -305,8 +546,9 @@ export default function GigJackNewPage() {
             </div>
 
             {selectedDate && (
-              <div className="text-center text-sm text-[#888]">
-                Selected: <span className="text-white font-medium">{formatDateFull(selectedDate)}</span>
+              <div className="flex items-center gap-2 rounded-xl bg-[#ff2b2b]/06 border border-[#ff2b2b]/20 px-4 py-3">
+                <CalendarDays className="h-4 w-4 text-[#ff2b2b] shrink-0" />
+                <span className="text-sm text-white font-medium">{formatDateFull(selectedDate)}</span>
               </div>
             )}
 
@@ -325,78 +567,28 @@ export default function GigJackNewPage() {
         {/* ═══════════ STEP 2: TIME ═══════════ */}
         {step === 2 && selectedDate && (
           <div className="space-y-4" data-testid="step-time-picker">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setStep(1)} className="text-[#555] hover:text-white">
+            {/* Header with back + date */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] transition-colors"
+                data-testid="btn-back-to-date"
+              >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div>
-                <p className="text-sm font-semibold text-white">Select a time slot</p>
-                <p className="text-xs text-[#555]">{formatDateFull(selectedDate)} · 15-min intervals · max 2/hr · 15-min spacing</p>
+                <p className="text-sm font-semibold text-white">Select a time</p>
+                <p className="text-xs text-[#555]">{formatDateFull(selectedDate)}</p>
               </div>
             </div>
 
-            <div className="flex gap-4 text-xs text-[#555] flex-wrap">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#ff2b2b]/25 border border-[#ff2b2b]/40" />Available</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#1a1a1a] border border-[#2a2a2a]" />Blocked</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#ff2b2b]/60 border border-[#ff2b2b]" />Selected</span>
-            </div>
-
-            {availLoading ? (
-              <div className="grid grid-cols-4 gap-1.5">
-                {Array.from({ length: 28 }).map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />
-                ))}
-              </div>
-            ) : slots.length === 0 ? (
-              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-8 text-center text-[#444] text-sm">
-                No available slots for this date (all past or fully booked).
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {slots.map((slot) => {
-                    const isBlocked = !slot.available;
-                    const isSelected = selectedSlot?.time === slot.time;
-                    return (
-                      <button
-                        key={slot.time}
-                        disabled={isBlocked}
-                        onClick={() => setSelectedSlot(isSelected ? null : slot)}
-                        data-testid={`btn-slot-${slot.time.replace(":", "")}`}
-                        title={isBlocked ? slot.reason : undefined}
-                        className={`flex flex-col items-center py-2 px-1 rounded-lg border transition-all text-center ${
-                          isBlocked
-                            ? "bg-[#0a0a0a] border-[#1a1a1a] text-[#2a2a2a] cursor-not-allowed"
-                            : isSelected
-                            ? "bg-[#ff2b2b]/20 border-[#ff2b2b]/70 text-white ring-1 ring-[#ff2b2b]/40"
-                            : "bg-[#ff2b2b]/06 border-[#ff2b2b]/20 text-[#ccc] hover:bg-[#ff2b2b]/12 hover:border-[#ff2b2b]/40 hover:text-white"
-                        }`}
-                      >
-                        <span className="text-xs font-semibold leading-tight">{slot.label}</span>
-                        {isBlocked && (
-                          <span className="text-[8px] text-[#333] mt-0.5 leading-tight">
-                            {slot.approvedInHour >= 2 ? "Full" : "Buffered"}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {availableSlots.length === 0 && (
-                  <div className="rounded-xl bg-amber-500/08 border border-amber-500/20 p-3 flex items-center gap-2 text-xs text-amber-400">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    All time slots for this date are blocked. Please choose a different date.
-                  </div>
-                )}
-
-                {blockedSlots.length > 0 && availableSlots.length > 0 && (
-                  <p className="text-xs text-[#444]">
-                    {blockedSlots.length} slot{blockedSlots.length !== 1 ? "s" : ""} blocked by 15-min buffer or hour cap · {availableSlots.length} available
-                  </p>
-                )}
-              </>
-            )}
+            <TimePicker
+              selectedDate={selectedDate}
+              slots={slots}
+              loading={availLoading}
+              selectedSlot={selectedSlot}
+              onSelect={setSelectedSlot}
+            />
 
             <Button
               className="w-full"
@@ -413,6 +605,7 @@ export default function GigJackNewPage() {
         {/* ═══════════ STEP 3: FORM ═══════════ */}
         {step === 3 && (
           <div className="space-y-5" data-testid="step-offer-form">
+            {/* Selected slot summary */}
             <div className="rounded-xl bg-[#0b0b0b] border border-[#ff2b2b]/20 p-3 flex items-center gap-3">
               <Zap className="h-4 w-4 text-[#ff2b2b] shrink-0" />
               <div className="flex-1 min-w-0 text-sm">
@@ -499,7 +692,7 @@ export default function GigJackNewPage() {
                   <FormField control={form.control} name="couponCode" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Coupon Code <span className="text-[#555] font-normal">(optional)</span></FormLabel>
-                      <FormControl><Input placeholder="e.g. LAUNCH50" data-testid="input-gigjack-coupon-code" {...field} /></FormControl>
+                      <FormControl><Input placeholder="SAVE20" data-testid="input-gigjack-coupon" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -507,26 +700,23 @@ export default function GigJackNewPage() {
                   <FormField control={form.control} name="quantityLimit" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Quantity Limit <span className="text-[#555] font-normal">(optional)</span></FormLabel>
-                      <FormControl><Input type="number" min={1} placeholder="e.g. 50" data-testid="input-gigjack-quantity-limit" {...field} /></FormControl>
+                      <FormControl><Input type="number" min={1} placeholder="e.g. 100" data-testid="input-gigjack-quantity" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                 </div>
 
-                <div className="flex gap-3">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)} className="shrink-0">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1"
-                    disabled={submitMutation.isPending}
-                    data-testid="button-submit-gigjack"
-                    style={{ background: "#ff2b2b", color: "#fff", border: "none" }}
-                  >
-                    {submitMutation.isPending ? "Submitting…" : "Submit GigJack Request"}
-                  </Button>
-                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={submitMutation.isPending}
+                  style={{ background: "#ff2b2b", border: "none" }}
+                  data-testid="btn-submit-gigjack"
+                >
+                  {submitMutation.isPending ? "Submitting…" : "Submit GigJack for Review"}
+                </Button>
+
+                <p className="text-center text-xs text-[#444]">Your GigJack will be reviewed by our team before going live.</p>
               </form>
             </Form>
           </div>
