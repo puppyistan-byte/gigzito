@@ -1,15 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
 import { ProfileCard } from "@/components/profile-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, AlertCircle, CheckCircle2, ExternalLink, Pause, Play, Trash2, Download, Mail, Phone, MessageSquare, Inbox } from "lucide-react";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
+  Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
+  Inbox, Zap, Clock, ChevronUp, Calendar,
+} from "lucide-react";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, GigJackSlot } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -17,6 +28,431 @@ const STATUS_COLORS: Record<string, string> = {
   REMOVED: "bg-red-500/15 text-red-400 border border-red-500/25",
   PENDING: "bg-blue-500/15 text-blue-400 border border-blue-500/25",
 };
+
+const GJ_STATUS: Record<string, { label: string; color: string }> = {
+  PENDING_REVIEW:    { label: "Pending Review", color: "#f59e0b" },
+  APPROVED:          { label: "Approved",        color: "#22c55e" },
+  REJECTED:          { label: "Rejected",         color: "#ef4444" },
+  NEEDS_IMPROVEMENT: { label: "Needs Work",       color: "#3b82f6" },
+};
+
+const CATEGORIES = [
+  "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
+  "INFLUENCER", "PRODUCTS", "FLASH_SALE", "EVENTS", "MUSIC_GIGS", "CORPORATE_DEALS",
+];
+
+const gjFormSchema = z.object({
+  artworkUrl:          z.string().url("Must be a valid image URL (include https://)"),
+  offerTitle:          z.string().min(5, "Min 5 characters").max(120, "Max 120 characters"),
+  tagline:             z.string().max(120, "Max 120 characters").optional().or(z.literal("")),
+  category:            z.string().min(1, "Select a category"),
+  ctaLink:             z.string().url("Must be a valid URL (include https://)"),
+  scheduledAt:         z.string().min(1, "Select a time slot"),
+  flashDurationSeconds: z.coerce.number().int().min(5).max(10),
+});
+
+type GJFormValues = z.infer<typeof gjFormSchema>;
+
+function GigJackCenter() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  const { data: myGigJacks = [], isLoading: gjLoading } = useQuery<GigJackWithProvider[]>({
+    queryKey: ["/api/gigjacks/mine"],
+  });
+
+  const { data: slots = [], isLoading: slotsLoading } = useQuery<GigJackSlot[]>({
+    queryKey: ["/api/gigjacks/slots"],
+    enabled: showForm,
+  });
+
+  const uniqueDates = [...new Set(slots.map((s) => s.dateLabel))];
+  const slotsForDate = slots.filter((s) => s.dateLabel === selectedDate && s.available);
+
+  const form = useForm<GJFormValues>({
+    resolver: zodResolver(gjFormSchema),
+    defaultValues: {
+      artworkUrl: "",
+      offerTitle: "",
+      tagline: "",
+      category: "",
+      ctaLink: "",
+      scheduledAt: "",
+      flashDurationSeconds: 7,
+    },
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: async (data: GJFormValues) => {
+      const res = await apiRequest("POST", "/api/gigjacks/submit", {
+        ...data,
+        tagline: data.tagline || null,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "GigJack submitted!", description: "Pending admin review before it goes live." });
+      queryClient.invalidateQueries({ queryKey: ["/api/gigjacks/mine"] });
+      setShowForm(false);
+      form.reset();
+      setSelectedDate("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Submission failed", description: err.message ?? "Please try again.", variant: "destructive" });
+    },
+  });
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Zap size={15} style={{ color: "#ff2b2b" }} />
+          <h2 className="text-sm font-semibold text-white" data-testid="text-gigjack-center-title">GigJack Center</h2>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setShowForm((v) => !v)}
+          className="text-xs border border-[#2a2a2a] hover:border-[#444] rounded-lg h-7 px-2.5 text-[#888] hover:text-white"
+          data-testid="button-toggle-gigjack-form"
+        >
+          {showForm ? <><ChevronUp className="h-3 w-3 mr-1" /> Cancel</> : <><PlusCircle className="h-3 w-3 mr-1" /> New GigJack</>}
+        </Button>
+      </div>
+
+      {/* Submission form */}
+      {showForm && (
+        <div
+          style={{
+            background: "rgba(255,43,43,0.03)",
+            border: "1px solid rgba(255,43,43,0.18)",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "12px",
+          }}
+          data-testid="form-gigjack-center"
+        >
+          <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", marginBottom: "14px", lineHeight: "1.5" }}>
+            GigJacks are 5–10 second flash events that appear platform-wide when scheduled. Submit for review and pick a calendar slot.
+          </p>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((d) => submitMutation.mutate(d))} className="space-y-4">
+
+              <FormField control={form.control} name="artworkUrl" render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ fontSize: "12px" }}>Logo / Artwork URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://..."
+                      data-testid="input-gj-artwork-url"
+                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
+                      {...field}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground mt-1">Paste a direct image link (e.g. from Imgur). Square images work best.</p>
+                  <FormMessage />
+                  {field.value && (
+                    <img
+                      src={field.value}
+                      alt="preview"
+                      style={{ width: "72px", height: "72px", borderRadius: "8px", objectFit: "cover", marginTop: "6px" }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="offerTitle" render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ fontSize: "12px" }}>Offer Title</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. 50% off — today only!"
+                      data-testid="input-gj-offer-title"
+                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="tagline" render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ fontSize: "12px" }}>Tagline <span style={{ color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>(optional)</span></FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Short punchy description…"
+                      data-testid="input-gj-tagline"
+                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <FormField control={form.control} name="category" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel style={{ fontSize: "12px" }}>Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger
+                          data-testid="select-gj-category"
+                          style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
+                        >
+                          <SelectValue placeholder="Pick one" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent style={{ background: "#0b0b0b", border: "1px solid #2a2a2a" }}>
+                        {CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c} style={{ fontSize: "13px" }}>
+                            {c.replace(/_/g, " ")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="flashDurationSeconds" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel style={{ fontSize: "12px" }}>Flash Duration</FormLabel>
+                    <Select onValueChange={(v) => field.onChange(parseInt(v))} value={String(field.value)}>
+                      <FormControl>
+                        <SelectTrigger
+                          data-testid="select-gj-duration"
+                          style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent style={{ background: "#0b0b0b", border: "1px solid #2a2a2a" }}>
+                        {[5, 6, 7, 8, 9, 10].map((n) => (
+                          <SelectItem key={n} value={String(n)} style={{ fontSize: "13px" }}>{n} seconds</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+
+              <FormField control={form.control} name="ctaLink" render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ fontSize: "12px" }}>Offer URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://yoursite.com/deal"
+                      data-testid="input-gj-cta-link"
+                      style={{ background: "#0b0b0b", border: "1px solid #2a2a2a", fontSize: "13px" }}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              {/* Slot picker */}
+              <FormField control={form.control} name="scheduledAt" render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ fontSize: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
+                    <Calendar size={12} />
+                    Schedule Slot
+                  </FormLabel>
+                  {slotsLoading ? (
+                    <div style={{ height: "48px", background: "#111", borderRadius: "8px", border: "1px solid #222" }} />
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Date row */}
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                        {uniqueDates.map((d) => {
+                          const hasAvail = slots.some((s) => s.dateLabel === d && s.available);
+                          return (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => { setSelectedDate(d); field.onChange(""); }}
+                              data-testid={`button-gj-date-${d.replace(/\s/g, "-")}`}
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: "500",
+                                padding: "4px 10px",
+                                borderRadius: "999px",
+                                border: selectedDate === d ? "1px solid rgba(255,43,43,0.6)" : "1px solid #2a2a2a",
+                                background: selectedDate === d ? "rgba(255,43,43,0.12)" : "#0b0b0b",
+                                color: selectedDate === d ? "#ff2b2b" : hasAvail ? "#888" : "#444",
+                                cursor: hasAvail ? "pointer" : "not-allowed",
+                                opacity: hasAvail ? 1 : 0.4,
+                              }}
+                            >
+                              {d}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {/* Time slots */}
+                      {selectedDate && (
+                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
+                          {slotsForDate.length === 0 ? (
+                            <p style={{ fontSize: "12px", color: "#555" }}>No available slots on this date.</p>
+                          ) : slotsForDate.map((s) => {
+                            const t = new Date(s.iso).toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
+                            const isSelected = field.value === s.iso;
+                            return (
+                              <button
+                                key={s.iso}
+                                type="button"
+                                onClick={() => field.onChange(s.iso)}
+                                data-testid={`button-gj-slot-${s.iso}`}
+                                style={{
+                                  fontSize: "12px",
+                                  fontWeight: "500",
+                                  padding: "4px 12px",
+                                  borderRadius: "999px",
+                                  border: isSelected ? "1px solid rgba(255,43,43,0.6)" : "1px solid #2a2a2a",
+                                  background: isSelected ? "rgba(255,43,43,0.12)" : "#0b0b0b",
+                                  color: isSelected ? "#ff2b2b" : "#888",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {t}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <div
+                style={{
+                  background: "rgba(255,43,43,0.05)",
+                  border: "1px solid rgba(255,43,43,0.12)",
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  fontSize: "11px",
+                  color: "rgba(255,255,255,0.4)",
+                  lineHeight: "1.5",
+                }}
+              >
+                Billing is currently disabled. Slot reservations are free during the beta period.
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={submitMutation.isPending}
+                data-testid="button-submit-gigjack"
+                style={{ background: "#ff2b2b", color: "#fff", border: "none", fontWeight: 700 }}
+              >
+                <Zap size={14} style={{ marginRight: "6px" }} />
+                {submitMutation.isPending ? "Submitting…" : "Submit GigJack for Review"}
+              </Button>
+            </form>
+          </Form>
+        </div>
+      )}
+
+      {/* Existing GigJacks */}
+      {gjLoading ? (
+        <div className="space-y-2">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full bg-[#111] rounded-xl" />)}
+        </div>
+      ) : myGigJacks.length === 0 ? (
+        <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-gigjacks">
+          <Zap className="h-5 w-5 text-[#333] mx-auto mb-2" />
+          <p className="text-[#555] text-sm">No GigJacks yet. Submit one above to schedule a flash event.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {myGigJacks.map((gj) => {
+            const st = GJ_STATUS[gj.status] ?? { label: gj.status, color: "#888" };
+            return (
+              <div
+                key={gj.id}
+                className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5"
+                data-testid={`card-gigjack-${gj.id}`}
+              >
+                <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  {gj.artworkUrl && (
+                    <img
+                      src={gj.artworkUrl}
+                      alt={gj.offerTitle}
+                      style={{ width: "48px", height: "48px", borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
+                      data-testid={`img-gj-artwork-${gj.id}`}
+                    />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                      <p className="text-sm font-semibold text-white truncate" data-testid={`text-gj-title-${gj.id}`}>
+                        {gj.offerTitle}
+                      </p>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 600,
+                          color: st.color,
+                          background: `${st.color}18`,
+                          border: `1px solid ${st.color}44`,
+                          borderRadius: "999px",
+                          padding: "2px 7px",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                        }}
+                        data-testid={`badge-gj-status-${gj.id}`}
+                      >
+                        {st.label}
+                      </span>
+                    </div>
+                    {gj.tagline && (
+                      <p className="text-xs text-[#555] mt-0.5" data-testid={`text-gj-tagline-${gj.id}`}>{gj.tagline}</p>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "5px", flexWrap: "wrap" }}>
+                      {gj.category && (
+                        <span style={{ fontSize: "10px", color: "#555", background: "#111", border: "1px solid #222", borderRadius: "4px", padding: "1px 6px" }}>
+                          {gj.category.replace(/_/g, " ")}
+                        </span>
+                      )}
+                      {gj.scheduledAt && (
+                        <span style={{ display: "flex", alignItems: "center", gap: "3px", fontSize: "10px", color: "#555" }}>
+                          <Clock size={9} />
+                          {new Date(gj.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", hour12: true })}
+                        </span>
+                      )}
+                      {gj.flashDurationSeconds && (
+                        <span style={{ fontSize: "10px", color: "#444" }}>{gj.flashDurationSeconds}s flash</span>
+                      )}
+                      <a
+                        href={gj.ctaLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "flex", alignItems: "center", gap: "2px", fontSize: "10px", color: "#ff2b2b" }}
+                        data-testid={`link-gj-cta-${gj.id}`}
+                      >
+                        <ExternalLink size={9} /> View offer
+                      </a>
+                    </div>
+                    {gj.reviewNote && (
+                      <p style={{ fontSize: "11px", color: "#f59e0b", marginTop: "5px" }}>Note: {gj.reviewNote}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ProviderDashboard() {
   const { user, isLoading: authLoading } = useAuth();
@@ -246,6 +682,10 @@ export default function ProviderDashboard() {
             </div>
           )}
         </div>
+
+        {/* ─── GigJack Center ─── */}
+        <GigJackCenter />
+
         {/* Leads section */}
         <div>
           <div className="flex items-center justify-between mb-3">

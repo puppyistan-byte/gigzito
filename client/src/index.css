@@ -1746,3 +1746,172 @@ html, body, #root {
     }
   }
 }
+
+/* ═══════════════════════════════════════════
+   GIGJACK FLASH EVENT SYSTEM
+═══════════════════════════════════════════ */
+
+@keyframes gigJackShake {
+  0%  { transform: translateX(0) translateY(0) rotate(0deg); }
+  10% { transform: translateX(-5px) translateY(-2px) rotate(-0.5deg); }
+  20% { transform: translateX(5px) translateY(2px) rotate(0.5deg); }
+  30% { transform: translateX(-4px) translateY(0) rotate(-0.3deg); }
+  40% { transform: translateX(4px) translateY(-1px) rotate(0.3deg); }
+  50% { transform: translateX(-3px) translateY(1px) rotate(0deg); }
+  60% { transform: translateX(3px) translateY(0) rotate(0.2deg); }
+  70% { transform: translateX(-2px) translateY(-1px) rotate(-0.1deg); }
+  80% { transform: translateX(2px) translateY(1px) rotate(0.1deg); }
+  90% { transform: translateX(-1px) translateY(0) rotate(0deg); }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+}
+
+@keyframes gigJackSlideUp {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gigJackPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 43, 43, 0.6); }
+  50%       { box-shadow: 0 0 0 12px rgba(255, 43, 43, 0); }
+}
+
+.gigjack-shake-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  animation: gigJackShake 0.55s ease-in-out;
+}
+
+.gigjack-flash-overlay {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 24px));
+  z-index: 9999;
+  background: #0b0b0b;
+  border: 1.5px solid rgba(255, 43, 43, 0.55);
+  border-radius: 16px;
+  overflow: hidden;
+  animation: gigJackSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards, gigJackPulse 1.2s ease-in-out 0.4s 2;
+  box-shadow: 0 8px 40px rgba(255, 43, 43, 0.35), 0 2px 12px rgba(0,0,0,0.7);
+}
+
+.gigjack-flash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(255, 43, 43, 0.2);
+  background: rgba(255, 43, 43, 0.08);
+}
+
+.gigjack-flash-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #ff2b2b;
+  text-transform: uppercase;
+}
+
+.gigjack-flash-zap {
+  width: 14px;
+  height: 14px;
+  color: #ff2b2b;
+  flex-shrink: 0;
+}
+
+.gigjack-flash-timer {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 43, 43, 0.8);
+  background: rgba(255, 43, 43, 0.1);
+  border: 1px solid rgba(255, 43, 43, 0.25);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gigjack-flash-close {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gigjack-flash-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.gigjack-flash-body {
+  display: flex;
+  gap: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+.gigjack-flash-body:hover .gigjack-flash-info {
+  background: rgba(255, 43, 43, 0.04);
+}
+
+.gigjack-flash-artwork {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
+.gigjack-flash-info {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: background 0.15s;
+}
+
+.gigjack-flash-provider {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.gigjack-flash-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.gigjack-flash-tagline {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.gigjack-flash-cta {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff2b2b;
+  margin-top: auto;
+  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}

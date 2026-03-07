@@ -1,6 +1,6 @@
 # Gigzito
 
-A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) across 11 categories. Includes Live streaming (YouTube/Twitch embeds, native video), guest access control, Zito TV public page, and GigJack submission workflow.
+A TikTok-style vertical scrolling video directory for providers. Providers pay $3 to list a short promo video (20s max) across 11 categories. Includes Live streaming, guest access control, Zito TV public page, and calendar-based GigJack flash event system.
 
 ## Tech Stack
 
@@ -57,6 +57,18 @@ vertical, title, videoUrl, durationSeconds, description, tags, ctaLabel, ctaUrl,
 
 ### live_sessions
 providerId, title, description, category, mode, platform, streamUrl, thumbnailUrl, viewerCount, tierMinutes, tierPriceCents, status, startedAt, endedAt
+
+### gig_jacks
+providerId, artworkUrl, offerTitle, tagline, category, ctaLink, scheduledAt (timestamp), flashDurationSeconds (5–10, default 7), status (PENDING_REVIEW/APPROVED/REJECTED/NEEDS_IMPROVEMENT), reviewNote, botWarning
+
+## GigJack Flash Event System
+
+- **GigJack Center** — Section inside `/provider/me` creator dashboard (not a separate page)
+- **Submission form** — Artwork URL, offer title, tagline, category, offer URL, flash duration (5–10s), and calendar slot picker (hourly slots, 8am–9pm, 7 days ahead)
+- **Slot system** — Platform-wide; one GigJack fires at a time; slots are hourly; booked by any PENDING_REVIEW or APPROVED GigJack
+- **Approval flow** — Admin reviews via `/admin` panel; status: PENDING_REVIEW → APPROVED / REJECTED
+- **Flash overlay** — `GigJackFlashOverlay` component on home feed polls `GET /api/gigjacks/active` every 5s; when an APPROVED GigJack fires (scheduledAt within last 10s), shows full-screen card with screen-shake animation, "GIG JACK" badge, artwork, offer title, tagline, and clickable CTA link; auto-dismisses after `flashDurationSeconds`
+- **billingEnabled = false** — in `server/config.ts`; slot reservations are free during beta
 
 ## Key Components
 

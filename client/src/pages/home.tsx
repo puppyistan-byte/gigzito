@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
+import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown } from "lucide-react";
@@ -149,6 +150,9 @@ export default function HomePage() {
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
+
+      {/* GigJack flash overlay — fires platform-wide when a scheduled event is active */}
+      <GigJackFlashOverlay />
 
       {/* Nav arrows (desktop helper) */}
       {listings.length > 1 && (
