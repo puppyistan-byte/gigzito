@@ -44,7 +44,7 @@ export interface IStorage {
   endLiveSession(id: number): Promise<void>;
 
   // GigJacks
-  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack>;
+  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string }): Promise<GigJack>;
   getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]>;
   getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
   getAllGigJacks(): Promise<GigJackWithProvider[]>;
@@ -348,7 +348,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(liveSessions.id, id));
   }
 
-  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null }): Promise<GigJack> {
+  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string }): Promise<GigJack> {
     const [gj] = await db
       .insert(gigJacks)
       .values({
@@ -365,7 +365,7 @@ export class DatabaseStorage implements IStorage {
         category: data.category ?? null,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
-        status: "PENDING_REVIEW",
+        status: (data.initialStatus as any) ?? "PENDING_REVIEW",
         botWarning: data.botWarning,
         botWarningMessage: data.botWarningMessage,
       })

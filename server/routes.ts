@@ -327,18 +327,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const currentUser = await storage.getUserById(userId);
     if (currentUser?.status === "disabled") return res.status(403).json({ message: "Your account has been disabled." });
 
-    const todayCount = await storage.getTodayListingCount();
-    if (todayCount >= DAILY_CAP) {
-      return res.status(429).json({ message: "Daily cap of 100 listings reached. Try again tomorrow.", count: todayCount, max: DAILY_CAP });
+    const isAdmin = currentUser?.role === "ADMIN";
+
+    if (!isAdmin) {
+      const todayCount = await storage.getTodayListingCount();
+      if (todayCount >= DAILY_CAP) {
+        return res.status(429).json({ message: "Daily cap of 100 listings reached. Try again tomorrow.", count: todayCount, max: DAILY_CAP });
+      }
     }
 
     const profile = await storage.getProfileByUserId(userId);
     if (!profile) return res.status(400).json({ message: "Provider profile not found" });
 
-    const hasContact = profile.contactEmail || profile.contactPhone || profile.contactTelegram || profile.websiteUrl;
-    const isProfileComplete = profile.displayName && profile.bio && profile.avatarUrl && profile.primaryCategory && hasContact;
-    if (!isProfileComplete) {
-      return res.status(400).json({ message: "Please complete your provider profile before submitting a listing" });
+    if (!isAdmin) {
+      const hasContact = profile.contactEmail || profile.contactPhone || profile.contactTelegram || profile.websiteUrl;
+      const isProfileComplete = profile.displayName && profile.bio && profile.avatarUrl && profile.primaryCategory && hasContact;
+      if (!isProfileComplete) {
+        return res.status(400).json({ message: "Please complete your provider profile before submitting a listing" });
+      }
     }
 
     const schema = z.object({
@@ -603,15 +609,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       quantityLimit: z.coerce.number().int().min(1).max(100000).optional().nullable(),
     });
 
+    const isAdminGj = currentUser?.role === "ADMIN";
+
     try {
       const data = schema.parse(req.body);
-      const botResult = runBotChecks({
-        offerTitle: data.offerTitle,
-        description: data.tagline ?? data.offerTitle,
-        couponCode: data.couponCode,
-        ctaLink: data.ctaLink,
-        companyUrl: data.companyUrl ?? data.ctaLink,
-      });
+      const botResult = isAdminGj
+        ? { warning: false, message: null }
+        : runBotChecks({
+            offerTitle: data.offerTitle,
+            description: data.tagline ?? data.offerTitle,
+            couponCode: data.couponCode,
+            ctaLink: data.ctaLink,
+            companyUrl: data.companyUrl ?? data.ctaLink,
+          });
       const gj = await storage.createGigJack({
         artworkUrl: data.artworkUrl,
         offerTitle: data.offerTitle,
@@ -628,6 +638,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         providerId: profile.id,
         botWarning: botResult.warning,
         botWarningMessage: botResult.message,
+        initialStatus: isAdminGj ? "APPROVED" : "PENDING_REVIEW",
       });
       return res.status(201).json({ success: true, gigJackId: gj.id, botWarning: botResult.warning, botWarningMessage: botResult.message });
     } catch (err) {
