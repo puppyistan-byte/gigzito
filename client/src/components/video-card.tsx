@@ -325,10 +325,20 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
             key={`video-${listing.id}`}
             src={iframeSrc}
             title={listing.title}
-            className="absolute inset-0 w-full h-full border-0 z-0 pointer-events-none"
+            className="absolute inset-0 w-full h-full border-0 z-0"
+            style={{ pointerEvents: "none" }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             loading="lazy"
+          />
+
+          {/* Transparent event interceptor — sits above the iframe so wheel/touch
+              events reach the parent document instead of the iframe's browsing context.
+              z-1 keeps it below all interactive overlays (z-10+). */}
+          <div
+            className="absolute inset-0 z-[1]"
+            style={{ touchAction: "pan-y" }}
+            aria-hidden="true"
           />
 
           {/* Gradient overlays */}
