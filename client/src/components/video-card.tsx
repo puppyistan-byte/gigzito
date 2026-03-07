@@ -46,24 +46,25 @@ const SPECIAL_GLOW: Record<string, string> = {
   FLASH_COUPON: "ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(0,200,83,0.5)]",
 };
 
+function getYouTubeId(url: string): string {
+  const u = new URL(url);
+  if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1].split("?")[0];
+  if (u.hostname === "youtu.be") return u.pathname.slice(1);
+  return u.searchParams.get("v") ?? "";
+}
+
 function getVideoEmbedUrl(url: string, autoplay = false): string {
   try {
     const u = new URL(url);
     const ap = autoplay ? "1" : "0";
 
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      let id = "";
-      if (u.pathname.includes("/embed/")) {
-        id = u.pathname.split("/embed/")[1].split("?")[0];
-      } else if (u.hostname === "youtu.be") {
-        id = u.pathname.slice(1);
-      } else {
-        id = u.searchParams.get("v") ?? "";
-      }
+      const id = getYouTubeId(url);
       return [
         `https://www.youtube.com/embed/${id}`,
         `?autoplay=${ap}`,
         `&mute=${ap}`,
+        `&enablejsapi=1`,
         `&controls=0`,
         `&modestbranding=1`,
         `&rel=0`,
@@ -90,6 +91,21 @@ function getVideoEmbedUrl(url: string, autoplay = false): string {
   } catch {
     return url;
   }
+}
+
+function stopIframe(iframe: HTMLIFrameElement | null) {
+  if (!iframe) return;
+  try {
+    iframe.contentWindow?.postMessage(
+      JSON.stringify({ event: "command", func: "stopVideo", args: [] }),
+      "*"
+    );
+    iframe.contentWindow?.postMessage(
+      JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
+      "*"
+    );
+  } catch (_) {}
+  iframe.src = "about:blank";
 }
 
 function handleShare(listing: ListingWithProvider) {
@@ -215,17 +231,24 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   const [timeLeft,   setTimeLeft]   = useState<number | null>(null);
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
   const endCalledRef = useRef(false);
+  const iframeRef    = useRef<HTMLIFrameElement>(null);
+  const [iframeSrc,  setIframeSrc]  = useState("about:blank");
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
 
   useEffect(() => {
     if (!isActive) {
+      // Stop video immediately via postMessage then blank the src
+      stopIframe(iframeRef.current);
+      setIframeSrc("about:blank");
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       setTimeLeft(null);
       endCalledRef.current = false;
       return;
     }
+    // Activate: load the autoplay URL
+    setIframeSrc(getVideoEmbedUrl(listing.videoUrl, true));
     endCalledRef.current = false;
     setTimeLeft(playSeconds);
     const start = Date.now();
@@ -246,10 +269,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   }, [isActive, listing.id]);
 
   const posterUrl = provider.thumbUrl || provider.avatarUrl || null;
-
-  const iframeSrc = isActive
-    ? getVideoEmbedUrl(listing.videoUrl, true)
-    : "about:blank";
 
   return (
     <>
@@ -285,9 +304,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
             </button>
           )}
 
-          {/* Iframe — loaded with autoplay when active, blank when inactive */}
+          {/* Iframe — src is controlled via state; ref used to send stop commands */}
           <iframe
-            key={isActive ? `active-${listing.id}` : `idle-${listing.id}`}
+            ref={iframeRef}
+            key={`video-${listing.id}`}
             src={iframeSrc}
             title={listing.title}
             className="absolute inset-0 w-full h-full border-0 z-0 pointer-events-none"
