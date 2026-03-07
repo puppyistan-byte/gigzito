@@ -287,8 +287,9 @@ html, body, #root {
   .gigzito-logo-container {
     position: fixed;
     left: 0;
-    width: 322px;
-    top: calc(50vh - 130px);
+    width: 309px;
+    top: 42px;
+    bottom: 287px;
     z-index: 50;
     pointer-events: none;
     padding: 0;
@@ -309,8 +310,10 @@ html, body, #root {
   @media (max-width: 768px) {
     .gigzito-logo-container {
       left: 0;
-      width: 224px;
-      top: calc(50vh - 120px);
+      width: 100vw;
+      top: 42px;
+      bottom: auto;
+      height: 120px;
     }
     .gigzito-logo-img {
       width: 180px;
