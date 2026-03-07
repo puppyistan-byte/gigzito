@@ -195,6 +195,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!user) return res.status(401).json({ message: "Invalid credentials" });
       const valid = await verifyPassword(password, user.password);
       if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+      if (user.status === "disabled") return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
       const profile = await storage.getProfileByUserId(user.id);
       (req.session as any).userId = user.id;
       (req.session as any).role = user.role;
@@ -289,6 +290,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post(api.listings.submitWithPayment.path, async (req, res) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId;
+    const currentUser = await storage.getUserById(userId);
+    if (currentUser?.status === "disabled") return res.status(403).json({ message: "Your account has been disabled." });
 
     const todayCount = await storage.getTodayListingCount();
     if (todayCount >= DAILY_CAP) {
@@ -485,6 +488,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/live/start", async (req, res) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId;
+    const currentUser = await storage.getUserById(userId);
+    if (currentUser?.status === "disabled") return res.status(403).json({ message: "Your account has been disabled." });
     const profile = await storage.getProfileById(userId);
     if (!profile) return res.status(400).json({ message: "Creator profile required" });
 
@@ -543,6 +548,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/gigjacks/submit", async (req, res) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId;
+    const currentUser = await storage.getUserById(userId);
+    if (currentUser?.status === "disabled") return res.status(403).json({ message: "Your account has been disabled." });
 
     const profile = await storage.getProfileByUserId(userId);
     if (!profile) return res.status(400).json({ message: "Provider profile not found" });
@@ -635,6 +642,54 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
+  });
+
+  // === ADMIN: USER MANAGEMENT ===
+  app.get("/api/admin/users", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const allUsers = await storage.getAllUsers();
+    return res.json(allUsers.map((u) => ({ ...u, password: undefined })));
+  });
+
+  app.patch("/api/admin/users/:id/status", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { status } = req.body;
+    if (!["active", "disabled"].includes(status)) return res.status(400).json({ message: "Invalid status" });
+    const user = await storage.updateUserStatus(id, status);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ ...user, password: undefined });
+  });
+
+  app.patch("/api/admin/users/:id/role", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { role } = req.body;
+    const validRoles = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN"];
+    if (!validRoles.includes(role)) return res.status(400).json({ message: "Invalid role" });
+    const user = await storage.updateUserRole(id, role);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ ...user, password: undefined });
+  });
+
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const adminUserId = (req.session as any).userId;
+    if (id === adminUserId) return res.status(400).json({ message: "Cannot delete your own admin account" });
+    await storage.deleteUser(id);
+    return res.json({ success: true });
+  });
+
+  app.delete("/api/admin/listings/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deleteListing(id);
+    return res.json({ success: true });
   });
 
   return httpServer;

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or } from "drizzle-orm";
 
 export interface IStorage {
@@ -27,6 +27,11 @@ export interface IStorage {
   // Admin
   getAllListingsWithProviders(): Promise<ListingWithProvider[]>;
   getTodayRevenue(): Promise<number>;
+  getAllUsers(): Promise<UserWithProfile[]>;
+  updateUserStatus(id: number, status: "active" | "disabled"): Promise<User | undefined>;
+  updateUserRole(id: number, role: string): Promise<User | undefined>;
+  deleteUser(id: number): Promise<void>;
+  deleteListing(id: number): Promise<void>;
 
   // Leads
   createLead(data: CreateLeadRequest): Promise<Lead>;
@@ -231,6 +236,42 @@ export class DatabaseStorage implements IStorage {
       .from(videoListings)
       .where(and(eq(videoListings.dropDate, today), eq(videoListings.status, "ACTIVE")));
     return result?.total ?? 0;
+  }
+
+  async getAllUsers(): Promise<UserWithProfile[]> {
+    const rows = await db
+      .select()
+      .from(users)
+      .orderBy(sql`${users.createdAt} DESC`);
+    const profiles = await db.select().from(providerProfiles);
+    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    return rows.map((u) => ({ ...u, profile: profileMap.get(u.id) ?? null }));
+  }
+
+  async updateUserStatus(id: number, status: "active" | "disabled"): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ status })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserRole(id: number, role: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ role: role as any })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async deleteListing(id: number): Promise<void> {
+    await db.delete(videoListings).where(eq(videoListings.id, id));
   }
 
   async createLead(data: CreateLeadRequest): Promise<Lead> {

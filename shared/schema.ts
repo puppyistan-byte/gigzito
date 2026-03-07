@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === ENUMS ===
-export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "ADMIN"]);
+export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN"]);
 export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: roleEnum("role").notNull().default("VISITOR"),
+  status: text("status").notNull().default("active"),
   disclaimerAccepted: boolean("disclaimer_accepted").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -148,6 +149,8 @@ export interface ListingWithProvider extends VideoListing {
 export interface GigJackWithProvider extends GigJack {
   provider: ProviderProfile & { user: User };
 }
+
+export type UserWithProfile = User & { profile: ProviderProfile | null };
 
 // Auth types
 export type LoginRequest = { email: string; password: string };
