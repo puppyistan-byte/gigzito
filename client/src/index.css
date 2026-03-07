@@ -286,9 +286,9 @@ html, body, #root {
 
   .gigzito-logo-container {
     position: fixed;
-    left: 12px;
-    width: 298px;
-    top: calc(50vh - 160px);
+    left: 0;
+    width: 322px;
+    top: calc(50vh - 130px);
     z-index: 50;
     pointer-events: none;
     padding: 0;
@@ -300,7 +300,7 @@ html, body, #root {
   }
 
   .gigzito-logo-img {
-    width: 220px;
+    width: 248px;
     height: auto;
     display: block;
     object-fit: contain;
@@ -308,12 +308,12 @@ html, body, #root {
 
   @media (max-width: 768px) {
     .gigzito-logo-container {
-      left: 12px;
-      width: 200px;
-      top: calc(50vh - 140px);
+      left: 0;
+      width: 224px;
+      top: calc(50vh - 120px);
     }
     .gigzito-logo-img {
-      width: 160px;
+      width: 180px;
     }
   }
 
