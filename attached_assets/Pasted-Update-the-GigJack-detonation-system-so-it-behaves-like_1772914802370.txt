@@ -1,0 +1,168 @@
+Update the GigJack detonation system so it behaves like a seismic broadcast event that interrupts the platform before collapsing into the persistent Live Offer module.
+
+==================================================
+SEISMIC GIGJACK DETONATION EVENT
+==================================================
+
+A GigJack detonation should feel like a seismic event across the platform.
+
+When a GigJack launches, it should trigger a noticeable shake or "earthquake" effect across the UI to signal that a network takeover has begun.
+
+This is not a small notification.
+
+It is a broadcast interruption event.
+
+The entire page should briefly shake as if a seismic impact just occurred.
+
+The effect should be dramatic enough to get attention but not chaotic or disruptive to the user’s device.
+
+Recommended behavior:
+
+• quick seismic shake across the page container
+• slight horizontal and vertical vibration
+• subtle intensity ramp at the start
+• short duration impact effect
+
+The shake should last roughly 0.5 to 1 second before stabilizing.
+
+This signals that a GigJack takeover has begun.
+
+==================================================
+PAGE TAKEOVER OFFER
+==================================================
+
+Immediately after the seismic shake begins, the GigJack offer should take over the page visually.
+
+This takeover is a temporary broadcast interruption.
+
+The GigJack should display:
+
+• brand artwork or logo
+• the offer title
+• the offer description
+• call-to-action button
+• creator/brand identity
+
+The offer should appear prominently on the page and command full attention.
+
+==================================================
+FLASH DURATION (CREATOR METRIC)
+==================================================
+
+The GigJack takeover duration must match the exact flash metric chosen during creation.
+
+Example:
+If the creator selected a flash duration of 7 seconds,
+then the takeover remains visible for exactly 7 seconds.
+
+This flash duration is controlled by the creator during the GigJack creation process.
+
+Possible flash durations may include short intervals such as:
+
+5 seconds  
+7 seconds  
+10 seconds  
+15 seconds
+
+The system must respect the exact selected duration.
+
+==================================================
+COLLAPSE INTO LIVE OFFER MODULE
+==================================================
+
+When the flash duration ends:
+
+The full-page GigJack takeover must collapse theatrically.
+
+The collapse effect should visually shrink or resolve away from the page takeover state.
+
+After collapsing, the active offer moves into the persistent Live Offer window.
+
+Important:
+
+The Live Offer window does NOT move.
+
+It remains anchored in its fixed position on the interface.
+
+The takeover animation simply resolves into that module.
+
+==================================================
+LIVE OFFER WINDOW BEHAVIOR
+==================================================
+
+The Live Offer window is a persistent UI module.
+
+It must always exist in the interface even when there are no active GigJacks.
+
+When a GigJack collapses into the Live Offer state:
+
+• the offer becomes visible inside the Live Offer window
+• the module should blink or pulse to indicate the offer is active
+• a countdown timer should begin for the offer duration
+
+The Live Offer window should display:
+
+• offer title
+• brand name
+• countdown timer
+• clickable offer
+
+==================================================
+LIVE OFFER ALERT EFFECT
+==================================================
+
+When a Live Offer is active:
+
+• the Live Offer window should blink or pulse
+• the siren icon inside the module should flash
+• the border should glow or pulse red
+
+This visually communicates that a live offer is active on the network.
+
+The module must remain anchored and never move around the screen.
+
+==================================================
+SEPARATION OF SYSTEMS
+==================================================
+
+There are two separate components in the system.
+
+1. GigJack Detonation Event
+
+• seismic page shake
+• full-page takeover
+• temporary broadcast interruption
+• lasts for the creator’s selected flash duration
+
+2. Live Offer Window
+
+• persistent UI module
+• fixed location on the page
+• receives the offer after the takeover collapses
+• pulses while the offer is active
+
+These two systems must remain separate components.
+
+==================================================
+LIFECYCLE OF A GIGJACK
+==================================================
+
+Correct GigJack lifecycle:
+
+scheduled  
+→ GigJack detonation begins  
+→ seismic page shake occurs  
+→ page takeover shows the offer  
+→ takeover remains for the selected flash duration  
+→ takeover collapses theatrically  
+→ offer resolves into the Live Offer window  
+→ Live Offer blinks while active  
+→ when the offer countdown ends, the offer moves to Today’s GigJacks list as expired
+
+==================================================
+FINAL GOAL
+==================================================
+
+A GigJack should feel like a seismic broadcast event across the Gigzito network.
+
+It interrupts the page, shakes the UI, briefly takes over the screen, and then collapses into the persistent Live Offer module where the offer continues to run.

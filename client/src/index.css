@@ -1756,23 +1756,45 @@ html, body, #root {
    GIGJACK FLASH EVENT SYSTEM
 ═══════════════════════════════════════════ */
 
-@keyframes gigJackShake {
-  0%  { transform: translateX(0) translateY(0) rotate(0deg); }
-  10% { transform: translateX(-5px) translateY(-2px) rotate(-0.5deg); }
-  20% { transform: translateX(5px) translateY(2px) rotate(0.5deg); }
-  30% { transform: translateX(-4px) translateY(0) rotate(-0.3deg); }
-  40% { transform: translateX(4px) translateY(-1px) rotate(0.3deg); }
-  50% { transform: translateX(-3px) translateY(1px) rotate(0deg); }
-  60% { transform: translateX(3px) translateY(0) rotate(0.2deg); }
-  70% { transform: translateX(-2px) translateY(-1px) rotate(-0.1deg); }
-  80% { transform: translateX(2px) translateY(1px) rotate(0.1deg); }
-  90% { transform: translateX(-1px) translateY(0) rotate(0deg); }
-  100% { transform: translateX(0) translateY(0) rotate(0deg); }
+/* ─── Seismic shake — applied to .app-shell ──────────────────────────────── */
+@keyframes seismicShake {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  4%   { transform: translate(-4px, -3px) rotate(-0.4deg); }
+  8%   { transform: translate(-8px,  4px) rotate( 0.7deg); }
+  12%  { transform: translate( 7px, -5px) rotate(-0.6deg); }
+  16%  { transform: translate(-9px,  4px) rotate( 0.8deg); }
+  20%  { transform: translate( 9px, -5px) rotate(-0.7deg); }
+  24%  { transform: translate(-8px,  3px) rotate( 0.6deg); }
+  28%  { transform: translate( 7px, -3px) rotate(-0.5deg); }
+  32%  { transform: translate(-6px,  3px) rotate( 0.4deg); }
+  36%  { transform: translate( 5px, -2px) rotate(-0.3deg); }
+  42%  { transform: translate(-4px,  2px) rotate( 0.2deg); }
+  50%  { transform: translate( 3px, -1px) rotate(-0.15deg); }
+  60%  { transform: translate(-2px,  1px) rotate( 0.1deg); }
+  72%  { transform: translate( 1px, -1px) rotate(-0.05deg); }
+  84%  { transform: translate(-1px,  0)   rotate(0); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }
 
-@keyframes gigJackSlideUp {
-  from { opacity: 0; transform: translateY(40px) scale(0.95); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+.app-shell.gigjack-seismic-active {
+  animation: seismicShake 0.85s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+
+/* ─── Takeover entrance & card pulse ─────────────────────────────────────── */
+@keyframes gigJackTakeoverIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to   { opacity: 1; backdrop-filter: blur(6px); }
+}
+
+@keyframes gigJackCardIn {
+  0%   { transform: scale(0.82) translateY(24px); opacity: 0; }
+  60%  { transform: scale(1.02) translateY(-4px);  opacity: 1; }
+  100% { transform: scale(1)    translateY(0);      opacity: 1; }
+}
+
+@keyframes gigJackCardPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,43,43,0.5), 0 0 60px rgba(255,43,43,0.4), 0 8px 48px rgba(0,0,0,0.9); }
+  50%       { box-shadow: 0 0 0 14px rgba(255,43,43,0), 0 0 90px rgba(255,43,43,0.6), 0 8px 48px rgba(0,0,0,0.9); }
 }
 
 @keyframes gigJackPulse {
@@ -1780,70 +1802,71 @@ html, body, #root {
   50%       { box-shadow: 0 0 0 12px rgba(255, 43, 43, 0); }
 }
 
-.gigjack-shake-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-  pointer-events: none;
-  animation: gigJackShake 0.55s ease-in-out;
-}
-
+/* ─── Full-page takeover overlay ─────────────────────────────────────────── */
 .gigjack-flash-overlay {
   position: fixed;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(420px, calc(100vw - 24px));
+  inset: 0;
   z-index: 9999;
-  background: #0b0b0b;
-  border: 1.5px solid rgba(255, 43, 43, 0.55);
-  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: gigJackTakeoverIn 0.35s ease forwards;
+}
+
+/* Inner card */
+.gigjack-flash-card {
+  width: min(460px, 100%);
+  background: #080808;
+  border: 2px solid rgba(255, 43, 43, 0.7);
+  border-radius: 22px;
   overflow: hidden;
-  animation: gigJackSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards, gigJackPulse 1.2s ease-in-out 0.4s 2;
-  box-shadow: 0 8px 40px rgba(255, 43, 43, 0.35), 0 2px 12px rgba(0,0,0,0.7);
+  box-shadow: 0 0 0 1px rgba(255,43,43,0.1), 0 0 70px rgba(255,43,43,0.5), 0 0 140px rgba(255,43,43,0.2), 0 8px 48px rgba(0,0,0,0.95);
+  animation: gigJackCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards, gigJackCardPulse 1.4s ease-in-out 0.5s 2;
 }
 
 .gigjack-flash-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 8px;
+  padding: 12px 16px 10px;
   border-bottom: 1px solid rgba(255, 43, 43, 0.2);
-  background: rgba(255, 43, 43, 0.08);
+  background: rgba(255, 43, 43, 0.09);
 }
 
 .gigjack-flash-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   color: #ff2b2b;
   text-transform: uppercase;
 }
 
 .gigjack-flash-zap {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   color: #ff2b2b;
   flex-shrink: 0;
 }
 
 .gigjack-flash-timer {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: rgba(255, 43, 43, 0.8);
-  background: rgba(255, 43, 43, 0.1);
-  border: 1px solid rgba(255, 43, 43, 0.25);
+  color: rgba(255, 43, 43, 0.9);
+  background: rgba(255, 43, 43, 0.12);
+  border: 1px solid rgba(255, 43, 43, 0.3);
   border-radius: 999px;
-  padding: 1px 8px;
+  padding: 2px 10px;
   font-variant-numeric: tabular-nums;
 }
 
 .gigjack-flash-close {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1853,84 +1876,89 @@ html, body, #root {
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  margin-left: 8px;
 }
 .gigjack-flash-close:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff;
 }
 
-.gigjack-flash-body {
-  display: flex;
-  gap: 0;
-  text-decoration: none;
-  cursor: pointer;
-}
-.gigjack-flash-body:hover .gigjack-flash-info {
-  background: rgba(255, 43, 43, 0.04);
-}
-
+/* Artwork — full width banner */
 .gigjack-flash-artwork {
-  width: 100px;
-  height: 100px;
+  width: 100%;
+  height: 200px;
   object-fit: cover;
-  flex-shrink: 0;
   display: block;
 }
 
+/* Info block */
 .gigjack-flash-info {
-  flex: 1;
-  padding: 12px 14px;
+  padding: 18px 20px 14px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  transition: background 0.15s;
+  gap: 6px;
 }
 
 .gigjack-flash-provider {
   font-size: 10px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.38);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   margin: 0;
 }
 
 .gigjack-flash-title {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   color: #fff;
-  line-height: 1.3;
+  line-height: 1.25;
   margin: 0;
 }
 
 .gigjack-flash-tagline {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
-  line-height: 1.4;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.58);
+  line-height: 1.45;
   margin: 0;
 }
 
-.gigjack-flash-cta {
-  font-size: 11px;
-  font-weight: 600;
-  color: #ff2b2b;
-  margin-top: auto;
-  padding-top: 4px;
+/* Big red CTA button */
+.gigjack-flash-cta-btn {
   display: flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 20px 20px;
+  padding: 14px 20px;
+  background: #ff2b2b;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.12s;
+  box-shadow: 0 4px 20px rgba(255, 43, 43, 0.45);
+}
+.gigjack-flash-cta-btn:hover {
+  background: #ff3c3c;
+  transform: translateY(-1px);
+}
+.gigjack-flash-cta-btn:active {
+  transform: translateY(0);
 }
 
-/* ─── GigJack: Collapsing transition ──────────────────────────────────────── */
+/* ─── GigJack: Collapsing transition (toward top-right siren widget) ──────── */
 .gigjack-collapsing {
-  animation: gigJackCollapse 0.55s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  animation: gigJackCollapse 0.6s cubic-bezier(0.55, 0, 1, 0.45) forwards;
   pointer-events: none;
 }
 
 @keyframes gigJackCollapse {
-  0%   { transform: translateX(-50%) scale(1); opacity: 1; }
-  40%  { transform: translateX(-50%) scale(0.95, 1.05); opacity: 1; }
-  100% { transform: translate(calc(50vw - 155px), calc(-50vh + 80px)) scale(0.25); opacity: 0; }
+  0%   { opacity: 1; transform: scale(1); }
+  25%  { opacity: 1; transform: scale(0.94); }
+  100% { opacity: 0; transform: scale(0.05) translate(44vw, -44vh); }
 }
 
 /* ─── GigJack: Siren Widget (top-right persistent) ───────────────────────── */

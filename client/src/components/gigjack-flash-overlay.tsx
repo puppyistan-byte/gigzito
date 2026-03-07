@@ -12,6 +12,15 @@ function formatCountdown(ms: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function triggerSeismicShake() {
+  const shell = document.querySelector(".app-shell");
+  if (!shell) return;
+  shell.classList.remove("gigjack-seismic-active");
+  void (shell as HTMLElement).offsetWidth;
+  shell.classList.add("gigjack-seismic-active");
+  setTimeout(() => shell.classList.remove("gigjack-seismic-active"), 900);
+}
+
 export function GigJackFlashOverlay() {
   const [phase, setPhase] = useState<"hidden" | "flash" | "collapsing" | "siren" | "expired">("hidden");
   const [flashCount, setFlashCount] = useState(0);
@@ -45,13 +54,15 @@ export function GigJackFlashOverlay() {
       setPhase("flash");
       setFlashCount(duration);
 
+      triggerSeismicShake();
+
       if (flashTimerRef.current) clearInterval(flashTimerRef.current);
       flashTimerRef.current = setInterval(() => {
         setFlashCount((c) => {
           if (c <= 1) {
             if (flashTimerRef.current) clearInterval(flashTimerRef.current);
             setPhase("collapsing");
-            setTimeout(() => setPhase("siren"), 600);
+            setTimeout(() => setPhase("siren"), 650);
             return 0;
           }
           return c - 1;
@@ -96,36 +107,34 @@ export function GigJackFlashOverlay() {
   const gj = state?.gj;
   const isIdle = !gj || dismissed || phase === "hidden";
 
+  /* ── Full-page takeover (flash phase) ──────────────────────────────────── */
   if ((phase === "flash" || phase === "collapsing") && gj) {
     return (
       <div
-        className={`gigjack-flash-overlay ${phase === "collapsing" ? "gigjack-collapsing" : ""}`}
+        className={`gigjack-flash-overlay${phase === "collapsing" ? " gigjack-collapsing" : ""}`}
         data-testid="overlay-gigjack-flash"
       >
-        <div className="gigjack-flash-header">
-          <div className="gigjack-flash-badge" data-testid="text-gigjack-badge">
-            <Zap className="gigjack-flash-zap" />
-            <span>GIG JACK</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span className="gigjack-flash-timer" data-testid="text-gigjack-countdown">{flashCount}s</span>
-            <button
-              className="gigjack-flash-close"
-              onClick={() => setDismissed(true)}
-              data-testid="button-gigjack-dismiss"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
+        <div className="gigjack-flash-card" data-testid="card-gigjack-takeover">
 
-        <a
-          href={gj.ctaLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="gigjack-flash-body"
-          data-testid="link-gigjack-offer"
-        >
+          {/* Header bar */}
+          <div className="gigjack-flash-header">
+            <div className="gigjack-flash-badge" data-testid="text-gigjack-badge">
+              <Zap className="gigjack-flash-zap" />
+              <span>GIG JACK</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span className="gigjack-flash-timer" data-testid="text-gigjack-countdown">{flashCount}s</span>
+              <button
+                className="gigjack-flash-close"
+                onClick={() => setDismissed(true)}
+                data-testid="button-gigjack-dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Brand artwork — full width banner */}
           {gj.artworkUrl && (
             <img
               src={gj.artworkUrl}
@@ -134,6 +143,8 @@ export function GigJackFlashOverlay() {
               data-testid="img-gigjack-flash-artwork"
             />
           )}
+
+          {/* Offer info */}
           <div className="gigjack-flash-info">
             {gj.provider?.displayName && (
               <p className="gigjack-flash-provider">{gj.provider.displayName}</p>
@@ -142,15 +153,25 @@ export function GigJackFlashOverlay() {
             {gj.tagline && (
               <p className="gigjack-flash-tagline" data-testid="text-gigjack-flash-tagline">{gj.tagline}</p>
             )}
-            <span className="gigjack-flash-cta">
-              Tap to claim <ExternalLink size={11} style={{ display: "inline" }} />
-            </span>
           </div>
-        </a>
+
+          {/* Big red CTA */}
+          <a
+            href={gj.ctaLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gigjack-flash-cta-btn"
+            data-testid="link-gigjack-offer"
+          >
+            Claim This Offer <ExternalLink size={14} />
+          </a>
+
+        </div>
       </div>
     );
   }
 
+  /* ── Siren widget — persistent Live Offer module ────────────────────────── */
   if (phase === "siren" && gj && !dismissed) {
     return (
       <div className="gigjack-siren-widget" data-testid="widget-gigjack-siren">
@@ -214,6 +235,7 @@ export function GigJackFlashOverlay() {
     );
   }
 
+  /* ── Expired state ──────────────────────────────────────────────────────── */
   if (phase === "expired" && !isIdle) {
     return (
       <div className="gigjack-siren-widget gigjack-siren-expired" data-testid="widget-gigjack-expired">
@@ -228,7 +250,7 @@ export function GigJackFlashOverlay() {
     );
   }
 
-  /* ── Idle / always-visible placeholder ────────────────────────────────── */
+  /* ── Idle / always-visible placeholder ─────────────────────────────────── */
   return (
     <div className="gigjack-siren-widget gigjack-siren-idle" data-testid="widget-gigjack-idle">
       <div className="gigjack-siren-inner">
