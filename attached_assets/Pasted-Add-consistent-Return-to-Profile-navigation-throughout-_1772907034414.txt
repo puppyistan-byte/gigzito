@@ -1,0 +1,113 @@
+Add consistent "Return to Profile" navigation throughout all Profile-related UI flows, including the GigJack interface.
+
+==================================================
+GLOBAL PROFILE NAVIGATION RULE
+==================================================
+
+Any screen that originates from the user's Profile Dashboard must include a visible "Return to Profile" button.
+
+Users must never be trapped inside a workflow.
+
+This includes:
+
+• GigJack creation flow
+• GigJack scheduling flow
+• Offer editing screens
+• Profile offering management
+• Assessment requests
+• Any page entered from the Profile Dashboard
+
+==================================================
+BUTTON LABEL
+==================================================
+
+Use the label:
+
+⬅ Return to Profile
+
+Do not use browser-style back navigation.
+
+This must be a dedicated UI button.
+
+==================================================
+BUTTON PLACEMENT
+==================================================
+
+The Return to Profile button should appear:
+
+• top-left of the page
+• above the main content area
+• visually consistent with platform styling
+• accessible on both desktop and mobile
+
+The button should remain visible during all multi-step flows.
+
+==================================================
+GIGJACK FLOW REQUIREMENT
+==================================================
+
+The GigJack booking flow has multiple stages:
+
+1. Choose Date
+2. Pick Time
+3. Offer Details
+4. Review / Submit
+
+Each stage must include the "Return to Profile" button.
+
+If clicked:
+
+• user exits the GigJack flow
+• user is returned to their Profile Dashboard
+
+No form submission should occur automatically when leaving.
+
+==================================================
+PROFILE OFFERING MANAGEMENT
+==================================================
+
+Inside the Profile Offering Management interface:
+
+Any screens used to:
+
+• create an offer
+• edit an offer
+• view an offer
+• schedule a GigJack
+• submit for review
+
+must include the same "Return to Profile" button.
+
+==================================================
+NAVIGATION BEHAVIOR
+==================================================
+
+When clicked:
+
+Return to Profile should route the user to:
+
+/profile/dashboard
+
+or the user's main profile management page.
+
+==================================================
+UI CONSISTENCY
+==================================================
+
+The Return to Profile button should match the platform style and remain visually consistent across:
+
+• GigJack UI
+• Profile Offerings UI
+• Scheduling UI
+• Assessment forms
+• Profile tools
+
+The goal is to create predictable navigation across the entire Profile experience.
+
+==================================================
+FINAL GOAL
+==================================================
+
+Every stage of the Profile experience must provide a clear exit path that returns the user to their main profile dashboard.
+
+Users should always feel in control of navigation and able to back out of workflows at any time.

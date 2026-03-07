@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -490,7 +490,15 @@ export default function GigJackNewPage() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-5">
+        <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
+          <Link href="/provider/me">
+            <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile-success">
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Return to Profile
+            </button>
+          </Link>
+        </div>
+        <div className="max-w-lg mx-auto px-4 pb-16 text-center space-y-5">
           <div className="w-14 h-14 rounded-full bg-green-500/15 border border-green-500/40 flex items-center justify-center mx-auto">
             <CheckCircle2 className="h-7 w-7 text-green-400" />
           </div>
@@ -529,6 +537,13 @@ export default function GigJackNewPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
+
+        <Link href="/provider/me">
+          <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile">
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Return to Profile
+          </button>
+        </Link>
 
         <div className="flex items-center gap-2">
           <Zap className="h-5 w-5 text-[#ff2b2b]" />

@@ -177,9 +177,12 @@ export default function NewListingPage() {
     <div className="min-h-screen bg-black">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-        <div className="flex items-center gap-3">
-          <Link href="/provider/me" className="text-[#555] hover:text-white transition-colors" data-testid="link-back">
-            <ArrowLeft className="h-5 w-5" />
+        <div className="space-y-3">
+          <Link href="/provider/me">
+            <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Return to Profile
+            </button>
           </Link>
           <h1 className="text-xl font-bold text-white" data-testid="text-page-title">Post a Video</h1>
         </div>
