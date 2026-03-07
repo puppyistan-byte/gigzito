@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile } from "@shared/schema";
-import { eq, and, sql, inArray, ne, gte, lte, or } from "drizzle-orm";
+import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile } from "@shared/schema";
+import { eq, and, sql, inArray, ne, gte, lte, or, between } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -44,14 +44,15 @@ export interface IStorage {
   endLiveSession(id: number): Promise<void>;
 
   // GigJacks
-  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string; bookedDate?: string; bookedHour?: number }): Promise<GigJack>;
+  createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string; scheduledAt?: string | null }): Promise<{ gj: GigJack | undefined; error?: string }>;
   getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]>;
   getAllPendingGigJacks(): Promise<GigJackWithProvider[]>;
   getAllGigJacks(): Promise<GigJackWithProvider[]>;
-  reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string, approvedBy?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
+  reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }>;
+  deleteGigJack(id: number, removedBy?: number): Promise<void>;
   getActiveGigJack(): Promise<GigJackWithProvider | null>;
   getAvailableSlots(): Promise<GigJackSlot[]>;
-  getSlotAvailability(date: string): Promise<import("@shared/schema").HourSlot[]>;
+  getSlotAvailability(date: string): Promise<TimeSlot[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -349,14 +350,51 @@ export class DatabaseStorage implements IStorage {
       .where(eq(liveSessions.id, id));
   }
 
-  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string; bookedDate?: string; bookedHour?: number }): Promise<GigJack> {
-    // Build scheduledAt from bookedDate + bookedHour if provided
-    let scheduledAt: Date | null = null;
-    if (data.bookedDate && data.bookedHour !== undefined) {
-      scheduledAt = new Date(`${data.bookedDate}T${String(data.bookedHour).padStart(2, "0")}:00:00`);
-    } else if (data.scheduledAt) {
-      scheduledAt = new Date(data.scheduledAt);
+  private async check15MinSpacing(scheduledAt: Date, excludeId?: number): Promise<string | null> {
+    const windowStart = new Date(scheduledAt.getTime() - 15 * 60 * 1000);
+    const windowEnd = new Date(scheduledAt.getTime() + 15 * 60 * 1000);
+    const conditions = [
+      eq(gigJacks.status, "APPROVED"),
+      gte(gigJacks.scheduledAt, windowStart),
+      lte(gigJacks.scheduledAt, windowEnd),
+    ];
+    if (excludeId !== undefined) conditions.push(sql`${gigJacks.id} != ${excludeId}` as any);
+    const conflicts = await db.select({ id: gigJacks.id, scheduledAt: gigJacks.scheduledAt }).from(gigJacks).where(and(...conditions));
+    if (conflicts.length > 0) {
+      const c = conflicts[0];
+      const cTime = c.scheduledAt ? new Date(c.scheduledAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "another GigJack";
+      return `GigJacks must be at least 15 minutes apart. Conflicts with one at ${cTime}.`;
     }
+    return null;
+  }
+
+  private async check2PerHourCap(scheduledAt: Date, excludeId?: number): Promise<string | null> {
+    const hourStart = new Date(scheduledAt);
+    hourStart.setMinutes(0, 0, 0);
+    const hourEnd = new Date(scheduledAt);
+    hourEnd.setMinutes(59, 59, 999);
+    const conditions = [
+      eq(gigJacks.status, "APPROVED"),
+      gte(gigJacks.scheduledAt, hourStart),
+      lte(gigJacks.scheduledAt, hourEnd),
+    ];
+    if (excludeId !== undefined) conditions.push(sql`${gigJacks.id} != ${excludeId}` as any);
+    const existing = await db.select({ id: gigJacks.id }).from(gigJacks).where(and(...conditions));
+    if (existing.length >= 2) return "This hour already has 2 approved GigJacks. Please choose a different time.";
+    return null;
+  }
+
+  async createGigJack(data: CreateGigJackRequest & { providerId: number; botWarning: boolean; botWarningMessage: string | null; initialStatus?: string; scheduledAt?: string | null }): Promise<{ gj: GigJack | undefined; error?: string }> {
+    const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
+    const isAdmin = data.initialStatus === "APPROVED";
+
+    if (scheduledAt && !isAdmin) {
+      const spacingError = await this.check15MinSpacing(scheduledAt);
+      if (spacingError) return { gj: undefined, error: spacingError };
+      const capError = await this.check2PerHourCap(scheduledAt);
+      if (capError) return { gj: undefined, error: capError };
+    }
+
     const [gj] = await db
       .insert(gigJacks)
       .values({
@@ -372,15 +410,15 @@ export class DatabaseStorage implements IStorage {
         tagline: data.tagline ?? null,
         category: data.category ?? null,
         scheduledAt,
-        bookedDate: data.bookedDate ?? null,
-        bookedHour: data.bookedHour ?? null,
+        bookedDate: scheduledAt ? scheduledAt.toISOString().slice(0, 10) : null,
+        bookedHour: scheduledAt ? scheduledAt.getHours() : null,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
         status: (data.initialStatus as any) ?? "PENDING_REVIEW",
         botWarning: data.botWarning,
         botWarningMessage: data.botWarningMessage,
       })
       .returning();
-    return gj;
+    return { gj };
   }
 
   async getGigJacksByProvider(providerId: number): Promise<GigJackWithProvider[]> {
@@ -409,39 +447,32 @@ export class DatabaseStorage implements IStorage {
     return this.enrichGigJacks(rows);
   }
 
-  async reviewGigJack(id: number, status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT", reviewNote?: string, approvedBy?: number): Promise<{ gj: GigJack | undefined; error?: string }> {
+  async reviewGigJack(id: number, status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT", reviewNote?: string, adminUserId?: number): Promise<{ gj: GigJack | undefined; error?: string }> {
     if (status === "APPROVED") {
-      // Enforce 2-per-hour cap: check how many approved GigJacks share the same bookedDate + bookedHour
-      const target = await db.select().from(gigJacks).where(eq(gigJacks.id, id)).limit(1);
-      if (target.length > 0 && target[0].bookedDate && target[0].bookedHour !== null) {
-        const { bookedDate, bookedHour } = target[0];
-        const approvedInSlot = await db
-          .select()
-          .from(gigJacks)
-          .where(
-            and(
-              eq(gigJacks.bookedDate, bookedDate!),
-              eq(gigJacks.bookedHour, bookedHour!),
-              eq(gigJacks.status, "APPROVED"),
-              sql`${gigJacks.id} != ${id}`
-            )
-          );
-        if (approvedInSlot.length >= 2) {
-          return { gj: undefined, error: `This hour slot already has 2 approved GigJacks. Cannot approve more.` };
-        }
+      const [target] = await db.select().from(gigJacks).where(eq(gigJacks.id, id)).limit(1);
+      if (target?.scheduledAt) {
+        const spacingError = await this.check15MinSpacing(new Date(target.scheduledAt), id);
+        if (spacingError) return { gj: undefined, error: spacingError };
+        const capError = await this.check2PerHourCap(new Date(target.scheduledAt), id);
+        if (capError) return { gj: undefined, error: capError };
       }
     }
-    const setData: any = { status, reviewNote: reviewNote ?? null, updatedAt: new Date() };
+    const now = new Date();
+    const setData: any = { status, reviewNote: reviewNote ?? null, updatedAt: now };
     if (status === "APPROVED") {
-      setData.approvedAt = new Date();
-      setData.approvedBy = approvedBy ?? null;
+      setData.approvedAt = now;
+      setData.approvedBy = adminUserId ?? null;
+    } else if (status === "DENIED") {
+      setData.deniedAt = now;
+      setData.deniedBy = adminUserId ?? null;
     }
-    const [gj] = await db
-      .update(gigJacks)
-      .set(setData)
-      .where(eq(gigJacks.id, id))
-      .returning();
+    const [gj] = await db.update(gigJacks).set(setData).where(eq(gigJacks.id, id)).returning();
     return { gj };
+  }
+
+  async deleteGigJack(id: number, removedBy?: number): Promise<void> {
+    await db.update(gigJacks).set({ status: "REJECTED" as any, removedAt: new Date(), removedBy: removedBy ?? null, updatedAt: new Date() }).where(eq(gigJacks.id, id));
+    await db.delete(gigJacks).where(eq(gigJacks.id, id));
   }
 
   async getActiveGigJack(): Promise<GigJackWithProvider | null> {
@@ -497,42 +528,62 @@ export class DatabaseStorage implements IStorage {
     return slots;
   }
 
-  async getSlotAvailability(date: string): Promise<import("@shared/schema").HourSlot[]> {
-    const rows = await db
-      .select({ bookedHour: gigJacks.bookedHour, status: gigJacks.status })
-      .from(gigJacks)
-      .where(eq(gigJacks.bookedDate, date));
+  async getSlotAvailability(date: string): Promise<TimeSlot[]> {
+    const dayStart = new Date(`${date}T00:00:00`);
+    const dayEnd = new Date(`${date}T23:59:59`);
 
+    const rows = await db
+      .select({ scheduledAt: gigJacks.scheduledAt, status: gigJacks.status })
+      .from(gigJacks)
+      .where(and(gte(gigJacks.scheduledAt, dayStart), lte(gigJacks.scheduledAt, dayEnd)));
+
+    const approvedTimes: Date[] = [];
     const approvedPerHour = new Map<number, number>();
-    const pendingPerHour = new Map<number, number>();
     for (const row of rows) {
-      if (row.bookedHour === null) continue;
-      if (row.status === "APPROVED") {
-        approvedPerHour.set(row.bookedHour, (approvedPerHour.get(row.bookedHour) ?? 0) + 1);
-      } else if (row.status === "PENDING_REVIEW") {
-        pendingPerHour.set(row.bookedHour, (pendingPerHour.get(row.bookedHour) ?? 0) + 1);
+      if (row.scheduledAt && row.status === "APPROVED") {
+        const d = new Date(row.scheduledAt);
+        approvedTimes.push(d);
+        const h = d.getHours();
+        approvedPerHour.set(h, (approvedPerHour.get(h) ?? 0) + 1);
       }
     }
 
-    const hours: import("@shared/schema").HourSlot[] = [];
+    const slots: TimeSlot[] = [];
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+
     for (let h = 8; h <= 21; h++) {
-      // Skip past hours for today
-      if (date === todayStr && h <= now.getHours()) continue;
-      const approvedCount = approvedPerHour.get(h) ?? 0;
-      const pendingCount = pendingPerHour.get(h) ?? 0;
-      const period = h < 12 ? "AM" : "PM";
-      const display = h === 12 ? 12 : h > 12 ? h - 12 : h;
-      hours.push({
-        hour: h,
-        label: `${display}:00 ${period}`,
-        approvedCount,
-        pendingCount,
-        available: approvedCount < 2,
-      });
+      for (let m = 0; m < 60; m += 15) {
+        if (h === 21 && m > 0) continue;
+        const slotDt = new Date(`${date}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);
+        if (slotDt <= now) continue;
+
+        const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        const period = h < 12 ? "AM" : "PM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        const label = `${h12}:${String(m).padStart(2, "0")} ${period}`;
+        const approvedInHour = approvedPerHour.get(h) ?? 0;
+
+        let available = true;
+        let reason: string | undefined;
+
+        if (approvedInHour >= 2) {
+          available = false;
+          reason = "Hour is full (2/2 approved)";
+        } else {
+          for (const at of approvedTimes) {
+            const diff = Math.abs(slotDt.getTime() - at.getTime());
+            if (diff < 15 * 60 * 1000) {
+              available = false;
+              reason = "Within 15-min buffer of another GigJack";
+              break;
+            }
+          }
+        }
+
+        slots.push({ time: timeStr, label, scheduledAt: slotDt.toISOString(), available, reason, approvedInHour });
+      }
     }
-    return hours;
+    return slots;
   }
 }
 

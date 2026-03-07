@@ -598,11 +598,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       artworkUrl: z.string().url(),
       offerTitle: z.string().min(5).max(120),
       ctaLink: z.string().url(),
+      scheduledAt: z.string().datetime({ message: "A valid date and time is required" }),
       tagline: z.string().max(120).optional().nullable(),
       category: z.string().max(60).optional().nullable(),
-      bookedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-      bookedHour: z.coerce.number().int().min(0).max(23).optional().nullable(),
-      scheduledAt: z.string().datetime().optional().nullable(),
       flashDurationSeconds: z.coerce.number().int().min(5).max(10).optional().nullable(),
       companyUrl: z.string().url().optional().or(z.literal("")),
       description: z.string().optional(),
@@ -616,15 +614,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const data = schema.parse(req.body);
 
-      // Validate slot availability (non-admin only) — check 2-per-hour approved cap
-      if (!isAdminGj && data.bookedDate && data.bookedHour !== null && data.bookedHour !== undefined) {
-        const slots = await storage.getSlotAvailability(data.bookedDate);
-        const slot = slots.find((s) => s.hour === data.bookedHour);
-        if (slot && !slot.available) {
-          return res.status(409).json({ message: "This hour slot is fully booked (2 approved GigJacks). Please choose another time." });
-        }
-      }
-
       const botResult = isAdminGj
         ? { warning: false, message: null }
         : runBotChecks({
@@ -634,15 +623,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             ctaLink: data.ctaLink,
             companyUrl: data.companyUrl ?? data.ctaLink,
           });
-      const gj = await storage.createGigJack({
+
+      const result = await storage.createGigJack({
         artworkUrl: data.artworkUrl,
         offerTitle: data.offerTitle,
         ctaLink: data.ctaLink,
         tagline: data.tagline ?? null,
         category: data.category ?? null,
-        bookedDate: data.bookedDate ?? undefined,
-        bookedHour: data.bookedHour ?? undefined,
-        scheduledAt: data.scheduledAt ?? null,
+        scheduledAt: data.scheduledAt,
         flashDurationSeconds: data.flashDurationSeconds ?? 7,
         companyUrl: data.companyUrl || data.ctaLink,
         description: data.description ?? data.tagline ?? data.offerTitle,
@@ -654,7 +642,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         botWarningMessage: botResult.message,
         initialStatus: isAdminGj ? "APPROVED" : "PENDING_REVIEW",
       });
-      return res.status(201).json({ success: true, gigJackId: gj.id, botWarning: botResult.warning, botWarningMessage: botResult.message });
+
+      if (result.error) return res.status(409).json({ message: result.error });
+      return res.status(201).json({ success: true, gigJackId: result.gj!.id, botWarning: botResult.warning, botWarningMessage: botResult.message });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join(".") });
@@ -684,8 +674,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
     }
-    const hours = await storage.getSlotAvailability(date);
-    return res.json({ date, hours });
+    const slots = await storage.getSlotAvailability(date);
+    return res.json({ date, slots });
   });
 
   app.patch("/api/admin/gigjacks/:id/review", async (req, res) => {
@@ -695,7 +685,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const adminUserId = (req.session as any).userId;
 
     const schema = z.object({
-      status: z.enum(["APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"]),
+      status: z.enum(["APPROVED", "DENIED", "NEEDS_IMPROVEMENT"]),
       reviewNote: z.string().max(500).optional(),
     });
 
@@ -712,6 +702,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
+  });
+
+  app.delete("/api/admin/gigjacks/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const adminUserId = (req.session as any).userId;
+    await storage.deleteGigJack(id, adminUserId);
+    return res.json({ success: true });
   });
 
   // === ADMIN: USER MANAGEMENT ===

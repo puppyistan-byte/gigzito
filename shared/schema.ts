@@ -11,7 +11,7 @@ export const verticalEnum = pgEnum("vertical", [
   "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED"]);
-export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"]);
+export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT", "DENIED"]);
 
 // === TABLES ===
 export const users = pgTable("users", {
@@ -92,6 +92,10 @@ export const gigJacks = pgTable("gig_jacks", {
   botWarningMessage: text("bot_warning_message"),
   approvedAt: timestamp("approved_at"),
   approvedBy: integer("approved_by"),
+  deniedAt: timestamp("denied_at"),
+  deniedBy: integer("denied_by"),
+  removedAt: timestamp("removed_at"),
+  removedBy: integer("removed_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -296,13 +300,22 @@ export type HourSlot = {
   available: boolean;
 };
 
+export type TimeSlot = {
+  time: string;
+  label: string;
+  scheduledAt: string;
+  available: boolean;
+  reason?: string;
+  approvedInHour: number;
+};
+
 export type SlotAvailabilityResponse = {
   date: string;
-  hours: HourSlot[];
+  slots: TimeSlot[];
 };
 
 export type ReviewGigJackRequest = {
-  status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT";
+  status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT";
   reviewNote?: string;
 };
 

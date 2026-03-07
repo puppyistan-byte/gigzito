@@ -51,7 +51,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 const ALL_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN"];
-const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT"] as const;
+const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
 type AdminTab = "overview" | "users" | "content" | "gigjacks";
 
@@ -90,6 +90,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [gjTab, setGjTab] = useState<GJStatusTab>("PENDING_REVIEW");
+  const [gjDateFilter, setGjDateFilter] = useState("");
 
   // Redirect non-admins (inside effect to avoid setState-during-render warning)
   const isAdmin = !authLoading && !!user && user.user?.role === "ADMIN";
@@ -144,7 +145,7 @@ export default function AdminPage() {
   });
 
   const reviewMutation = useMutation({
-    mutationFn: async ({ id, status, reviewNote }: { id: number; status: "APPROVED" | "REJECTED" | "NEEDS_IMPROVEMENT"; reviewNote?: string }) => {
+    mutationFn: async ({ id, status, reviewNote }: { id: number; status: "APPROVED" | "DENIED" | "NEEDS_IMPROVEMENT"; reviewNote?: string }) => {
       const res = await apiRequest("PATCH", `/api/admin/gigjacks/${id}/review`, { status, reviewNote });
       if (!res.ok) {
         const e = await res.json();
@@ -154,6 +155,16 @@ export default function AdminPage() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] }); toast({ title: "GigJack updated" }); },
     onError: (err: any) => toast({ title: "Error updating GigJack", description: err.message ?? "", variant: "destructive" }),
+  });
+
+  const removeGigJackMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/gigjacks/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to remove GigJack");
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gigjacks"] }); toast({ title: "GigJack removed" }); },
+    onError: () => toast({ title: "Failed to remove GigJack", variant: "destructive" }),
   });
 
   const userStatusMutation = useMutation({
@@ -201,7 +212,11 @@ export default function AdminPage() {
   if (!isAdmin) return null;
 
   // ── Derived data ─────────────────────────────────────────────────────────
-  const filteredGigJacks = (gigJacks ?? []).filter((gj) => gjTab === "ALL" || gj.status === gjTab);
+  const filteredGigJacks = (gigJacks ?? []).filter((gj) => {
+    const statusMatch = gjTab === "ALL" || gj.status === gjTab || (gjTab === "DENIED" && gj.status === "REJECTED");
+    const dateMatch = !gjDateFilter || (gj.scheduledAt && new Date(gj.scheduledAt).toISOString().slice(0, 10) === gjDateFilter);
+    return statusMatch && dateMatch;
+  });
   const pendingCount = (gigJacks ?? []).filter((gj) => gj.status === "PENDING_REVIEW").length;
   const disabledCount = (adminUsers ?? []).filter((u) => u.status === "disabled").length;
 
@@ -443,9 +458,12 @@ export default function AdminPage() {
         {/* ═══════════════════════════════ GIGJACKS ═══════════════════════════════ */}
         {activeTab === "gigjacks" && (
           <div className="space-y-3" data-testid="section-admin-gigjacks">
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-2">
               {GJ_STATUS_TABS.map((tab) => {
-                const count = tab === "ALL" ? (gigJacks ?? []).length : (gigJacks ?? []).filter((gj) => gj.status === tab).length;
+                const count = tab === "ALL"
+                  ? (gigJacks ?? []).length
+                  : (gigJacks ?? []).filter((gj) => gj.status === tab || (tab === "DENIED" && gj.status === "REJECTED")).length;
                 return (
                   <button
                     key={tab}
@@ -457,36 +475,51 @@ export default function AdminPage() {
                         : "text-[#555] border border-[#2a2a2a] hover:text-white"
                     }`}
                   >
-                    {tab.replace("_", " ")} {count > 0 ? `(${count})` : ""}
+                    {tab === "PENDING_REVIEW" ? "Pending" : tab.charAt(0) + tab.slice(1).toLowerCase()} {count > 0 ? `(${count})` : ""}
                   </button>
                 );
               })}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <CalendarDays className="h-3.5 w-3.5 text-[#555]" />
+                <input
+                  type="date"
+                  value={gjDateFilter}
+                  onChange={(e) => setGjDateFilter(e.target.value)}
+                  className="bg-[#0b0b0b] border border-[#2a2a2a] text-[#999] text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-[#ff2b2b]/40"
+                  data-testid="input-gigjack-date-filter"
+                />
+                {gjDateFilter && (
+                  <button onClick={() => setGjDateFilter("")} className="text-[#555] hover:text-white text-xs">✕</button>
+                )}
+              </div>
             </div>
 
             {gjLoading ? (
-              <div className="space-y-3">{[1, 2].map((i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
+              <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-36 w-full" />)}</div>
             ) : filteredGigJacks.length === 0 ? (
               <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center text-[#444] text-sm" data-testid="text-gigjack-empty">
-                {gjTab === "PENDING_REVIEW" ? "No GigJacks pending review." : `No GigJacks with status "${gjTab.replace("_", " ")}".`}
+                {gjDateFilter ? `No GigJacks found for ${gjDateFilter}.` : gjTab === "PENDING_REVIEW" ? "No GigJacks pending review." : `No ${gjTab === "ALL" ? "" : gjTab} GigJacks.`}
               </div>
             ) : (
               <div className="space-y-3">
                 {filteredGigJacks.map((gj) => {
+                  const isDenied = gj.status === "DENIED" || gj.status === "REJECTED";
+                  const statusLabel = gj.status === "PENDING_REVIEW" ? "Pending" : isDenied ? "Denied" : gj.status.charAt(0) + gj.status.slice(1).toLowerCase();
                   const statusColor =
                     gj.status === "APPROVED" ? "text-green-400 bg-green-400/10 border-green-400/20" :
-                    gj.status === "REJECTED" ? "text-red-400 bg-red-400/10 border-red-400/20" :
-                    gj.status === "NEEDS_IMPROVEMENT" ? "text-amber-400 bg-amber-400/10 border-amber-400/20" :
+                    isDenied ? "text-red-400 bg-red-400/10 border-red-400/20" :
                     "text-blue-400 bg-blue-400/10 border-blue-400/20";
-                  const hourNum = gj.bookedHour;
-                  const hourLabel = hourNum !== null && hourNum !== undefined
-                    ? (() => {
-                        const p = hourNum < 12 ? "AM" : "PM";
-                        const d = hourNum === 12 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
-                        return `${d}:00 ${p}`;
-                      })()
+
+                  const scheduledDt = gj.scheduledAt ? new Date(gj.scheduledAt) : null;
+                  const scheduledLabel = scheduledDt
+                    ? scheduledDt.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })
                     : null;
+
+                  const createdLabel = new Date(gj.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
                   return (
                     <div key={gj.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3" data-testid={`card-admin-gigjack-${gj.id}`}>
+                      {/* Header row */}
                       <div className="flex items-start gap-3">
                         {gj.artworkUrl && (
                           <img src={gj.artworkUrl} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0 border border-[#222]" />
@@ -494,41 +527,34 @@ export default function AdminPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${statusColor}`}>
-                              {gj.status.replace("_", " ")}
+                              {statusLabel}
                             </span>
                             {gj.botWarning && (
                               <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border text-amber-400 bg-amber-400/10 border-amber-400/20">
-                                Bot Warning
+                                Bot Flag
                               </span>
                             )}
                           </div>
                           <p className="font-semibold text-white text-sm leading-snug line-clamp-2">{gj.offerTitle}</p>
                           <p className="text-xs text-[#555] mt-0.5">
-                            {gj.provider?.displayName ?? gj.provider?.username ?? "Unknown provider"}
+                            by <span className="text-[#888]">{gj.provider?.displayName ?? gj.provider?.username ?? "Unknown"}</span>
+                            <span className="mx-1.5 text-[#333]">·</span>
+                            submitted {createdLabel}
                           </p>
                         </div>
                       </div>
 
-                      {/* Booking slot */}
-                      {(gj.bookedDate || hourLabel) && (
-                        <div className="flex items-center gap-4 rounded-lg bg-[#ff2b2b]/06 border border-[#ff2b2b]/15 px-3 py-2">
-                          {gj.bookedDate && (
-                            <span className="flex items-center gap-1.5 text-xs text-[#ccc]">
-                              <CalendarDays className="h-3.5 w-3.5 text-[#ff2b2b]" />
-                              {gj.bookedDate}
-                            </span>
-                          )}
-                          {hourLabel && (
-                            <span className="flex items-center gap-1.5 text-xs text-[#ccc]">
-                              <Clock className="h-3.5 w-3.5 text-[#ff2b2b]" />
-                              {hourLabel}
-                            </span>
-                          )}
-                          {!gj.bookedDate && !hourLabel && (
-                            <span className="text-xs text-[#555]">No slot selected</span>
-                          )}
-                        </div>
-                      )}
+                      {/* Scheduled datetime */}
+                      <div className={`flex items-center gap-3 rounded-lg px-3 py-2 ${scheduledLabel ? "bg-[#ff2b2b]/06 border border-[#ff2b2b]/15" : "bg-[#111] border border-[#1e1e1e]"}`}>
+                        {scheduledLabel ? (
+                          <>
+                            <CalendarDays className="h-3.5 w-3.5 text-[#ff2b2b] shrink-0" />
+                            <span className="text-xs text-white font-medium">{scheduledLabel}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-[#444]">No date/time selected</span>
+                        )}
+                      </div>
 
                       {gj.botWarningMessage && (
                         <p className="text-xs text-amber-400/80 bg-amber-400/06 border border-amber-400/15 rounded-lg px-3 py-2">
@@ -536,39 +562,48 @@ export default function AdminPage() {
                         </p>
                       )}
 
-                      {gj.status === "PENDING_REVIEW" && (
-                        <div className="flex gap-2 pt-1">
-                          <Button
-                            size="sm"
-                            disabled={reviewMutation.isPending}
-                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "APPROVED" })}
-                            className="flex-1 gap-1.5 bg-green-600 hover:bg-green-500 border-0 text-white"
-                            data-testid={`btn-approve-gigjack-${gj.id}`}
-                          >
-                            <CheckCircle className="h-3.5 w-3.5" /> Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={reviewMutation.isPending}
-                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "NEEDS_IMPROVEMENT" })}
-                            variant="outline"
-                            className="flex-1 gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                            data-testid={`btn-needs-improvement-gigjack-${gj.id}`}
-                          >
-                            <AlertCircle className="h-3.5 w-3.5" /> Needs Work
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={reviewMutation.isPending}
-                            onClick={() => reviewMutation.mutate({ id: gj.id, status: "REJECTED" })}
-                            variant="outline"
-                            className="gap-1.5 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                            data-testid={`btn-reject-gigjack-${gj.id}`}
-                          >
-                            <XCircle className="h-3.5 w-3.5" /> Reject
-                          </Button>
-                        </div>
+                      {gj.reviewNote && (
+                        <p className="text-xs text-[#888] bg-[#111] border border-[#1e1e1e] rounded-lg px-3 py-2">
+                          <span className="font-semibold text-[#555]">Note:</span> {gj.reviewNote}
+                        </p>
                       )}
+
+                      {/* Action buttons */}
+                      <div className="flex gap-2 pt-1 flex-wrap">
+                        {gj.status === "PENDING_REVIEW" && (
+                          <>
+                            <Button
+                              size="sm"
+                              disabled={reviewMutation.isPending}
+                              onClick={() => reviewMutation.mutate({ id: gj.id, status: "APPROVED" })}
+                              className="flex-1 gap-1.5 bg-green-600 hover:bg-green-500 border-0 text-white"
+                              data-testid={`btn-approve-gigjack-${gj.id}`}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={reviewMutation.isPending}
+                              onClick={() => reviewMutation.mutate({ id: gj.id, status: "DENIED" })}
+                              variant="outline"
+                              className="flex-1 gap-1.5 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                              data-testid={`btn-deny-gigjack-${gj.id}`}
+                            >
+                              <XCircle className="h-3.5 w-3.5" /> Deny
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          size="sm"
+                          disabled={removeGigJackMutation.isPending}
+                          onClick={() => { if (confirm("Remove this GigJack permanently?")) removeGigJackMutation.mutate(gj.id); }}
+                          variant="outline"
+                          className="gap-1.5 border-[#2a2a2a] text-[#555] hover:border-red-500/30 hover:text-red-400"
+                          data-testid={`btn-remove-gigjack-${gj.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Remove
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}

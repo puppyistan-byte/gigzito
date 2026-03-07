@@ -1,0 +1,95 @@
+Replace the current Gig Jack scheduling system with a calendar-based date and time selector.
+
+GIG JACK BOOKING RULES
+1. Users must click a calendar and choose:
+   - month
+   - day
+   - year
+   - time
+2. Gig Jacks are request-based and require admin approval before going live.
+3. Maximum approved Gig Jacks allowed per hour = 2.
+4. Gig Jacks cannot be scheduled within 15 minutes of each other.
+   - Example:
+     If one Gig Jack is scheduled at 2:00 PM, no other Gig Jack may be scheduled from 1:45 PM through 2:15 PM.
+5. If a requested time conflicts with an existing scheduled Gig Jack inside that 15-minute buffer, the request must be blocked and not go through.
+6. If an hour already contains 2 approved Gig Jacks, no additional Gig Jack may be approved in that hour.
+
+USER EXPERIENCE
+1. In the Gig Jack booking area, add a calendar/date-time picker.
+2. User must select a full date and time.
+3. Before submission, validate:
+   - no other Gig Jack exists within 15 minutes of the selected time
+   - fewer than 2 approved Gig Jacks exist in that same hour
+4. If invalid, show a friendly error message such as:
+   - “That time is unavailable. Please choose another time.”
+   - “Gig Jacks must be at least 15 minutes apart.”
+   - “This hour already has 2 approved Gig Jacks.”
+5. If valid, save the Gig Jack request as:
+   - status = pending
+6. After submission, show:
+   - “Your Gig Jack request has been submitted for admin approval.”
+
+ADMIN CONTROLS
+Create an admin Gig Jack management section with the following actions for each request:
+1. APPROVE
+2. DENY
+3. REMOVE
+
+ADMIN LOGIC
+1. Admin can view all Gig Jack requests with:
+   - username
+   - requested date
+   - requested time
+   - status
+   - created date
+2. Admin can approve a pending Gig Jack only if:
+   - it does not violate the 15-minute spacing rule
+   - that hour does not already contain 2 approved Gig Jacks
+3. Admin can deny a pending Gig Jack.
+4. Admin can remove any Gig Jack entry entirely.
+5. Approved Gig Jacks become active/live.
+6. Denied Gig Jacks remain stored with denied status unless removed.
+7. Removed Gig Jacks are deleted or soft-deleted based on existing app architecture.
+
+DATABASE FIELDS
+Add or confirm these fields exist for Gig Jacks:
+- id
+- userId
+- scheduledAt (full datetime)
+- status (pending, approved, denied)
+- createdAt
+- approvedAt
+- approvedBy
+- deniedAt
+- deniedBy
+- removedAt
+- removedBy
+
+VALIDATION RULES
+When creating or approving a Gig Jack:
+1. Check for any existing approved Gig Jack where scheduledAt is within 15 minutes before or after the requested time.
+2. Count approved Gig Jacks in the same hour block.
+3. If count >= 2, block approval/booking.
+4. If time difference from another approved Gig Jack is less than 15 minutes, block approval/booking.
+
+EXAMPLES
+- Approved at 3:00 PM → block 2:45 PM through 3:15 PM
+- Approved at 3:20 PM → another could still happen in the 3 PM hour only if:
+  - it is not within 15 minutes of the 3:20 PM booking
+  - total approved for 3 PM hour does not exceed 2
+
+UI REQUIREMENTS
+1. Remove the old horizontal Gig Jack time-slot system completely.
+2. Replace it with a modern calendar/date-time selector.
+3. Show statuses with clear badges:
+   - Pending
+   - Approved
+   - Denied
+4. Unavailable times should be disabled or blocked.
+5. Admin dashboard should include:
+   - filter by date
+   - filter by status
+   - approve / deny / remove buttons for each Gig Jack request
+
+GOAL
+Gig Jacks must be scheduled from a real calendar and time picker, must be at least 15 minutes apart, may only have 2 approved bookings per hour, and must support full admin moderation with approve, deny, and remove controls.
