@@ -294,16 +294,15 @@ html, body, #root {
   }
 
   .gigzito-logo img {
-    width: 260px;
-    height: auto;
+    height: 70px;
+    width: auto;
+    object-fit: contain;
     display: block;
-    filter:
-      drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6))
-      drop-shadow(0 0 12px rgba(255, 26, 26, 0.35));
+    filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.5));
   }
 
   @media (max-width: 640px) {
-    .gigzito-logo img { width: 210px; }
+    .gigzito-logo img { height: 56px; }
   }
 
   .gigzito-logo svg path {

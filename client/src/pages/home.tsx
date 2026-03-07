@@ -97,7 +97,7 @@ export default function HomePage() {
       )}
 
       <div className="gigzito-logo">
-        <img src="/gigzito-logo-v3.png" alt="Gigzito" />
+        <img src="/gigzito-logo.png" alt="Gigzito" />
       </div>
 
       <MiniLivePlayer />
