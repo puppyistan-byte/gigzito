@@ -8,7 +8,7 @@ import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
 import { TodaysGigJacks } from "@/components/todays-gigjacks";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap } from "lucide-react";
 
 import logoImg from "@assets/gigzito_1772574609697.jpg";
 
@@ -17,6 +17,7 @@ export default function HomePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [fadeSplash, setFadeSplash] = useState(false);
+  const [showOffers, setShowOffers] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -151,16 +152,31 @@ export default function HomePage() {
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
-
-      {/* Today's GigJacks collapsible queue */}
-      <TodaysGigJacks />
-
       {/* GigJack flash overlay — fires platform-wide when a scheduled event is active */}
       <GigJackFlashOverlay />
 
+      {/* Today's Offers button — bottom-right corner above nav */}
+      <button
+        className="fixed z-[9970] flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95"
+        style={{
+          bottom: "84px",
+          right: "12px",
+          background: "rgba(255,43,43,0.15)",
+          border: "1px solid rgba(255,43,43,0.35)",
+          color: "#ff2b2b",
+          backdropFilter: "blur(8px)",
+          boxShadow: "0 2px 12px rgba(255,43,43,0.15)",
+        }}
+        onClick={() => setShowOffers(true)}
+        data-testid="btn-todays-offers"
+      >
+        <Zap className="h-3 w-3" />
+        Today's Offers
+      </button>
+
       {/* Nav arrows (desktop helper) */}
       {listings.length > 1 && (
-        <div className="fixed right-4 bottom-24 flex flex-col gap-2 z-40">
+        <div className="fixed right-4 bottom-[140px] flex flex-col gap-2 z-40">
           <button
             data-testid="button-scroll-up"
             onClick={() => scrollToIndex(Math.max(0, currentIndex - 1))}
@@ -179,6 +195,9 @@ export default function HomePage() {
           </button>
         </div>
       )}
+
+      {/* Today's GigJacks slide-up panel */}
+      <TodaysGigJacks open={showOffers} onClose={() => setShowOffers(false)} />
 
     </div>
   );

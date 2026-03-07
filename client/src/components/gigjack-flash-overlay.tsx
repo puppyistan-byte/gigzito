@@ -94,9 +94,9 @@ export function GigJackFlashOverlay() {
   }, []);
 
   const gj = state?.gj;
-  if (!gj || dismissed || phase === "hidden") return null;
+  const isIdle = !gj || dismissed || phase === "hidden";
 
-  if (phase === "flash" || phase === "collapsing") {
+  if ((phase === "flash" || phase === "collapsing") && gj) {
     return (
       <div
         className={`gigjack-flash-overlay ${phase === "collapsing" ? "gigjack-collapsing" : ""}`}
@@ -151,7 +151,7 @@ export function GigJackFlashOverlay() {
     );
   }
 
-  if (phase === "siren") {
+  if (phase === "siren" && gj && !dismissed) {
     return (
       <div className="gigjack-siren-widget" data-testid="widget-gigjack-siren">
         <div className="gigjack-siren-pulse" aria-hidden="true" />
@@ -212,7 +212,7 @@ export function GigJackFlashOverlay() {
     );
   }
 
-  if (phase === "expired") {
+  if (phase === "expired" && !isIdle) {
     return (
       <div className="gigjack-siren-widget gigjack-siren-expired" data-testid="widget-gigjack-expired">
         <div className="gigjack-siren-inner">
@@ -226,5 +226,22 @@ export function GigJackFlashOverlay() {
     );
   }
 
-  return null;
+  /* ── Idle / always-visible placeholder ────────────────────────────────── */
+  return (
+    <div className="gigjack-siren-widget gigjack-siren-idle" data-testid="widget-gigjack-idle">
+      <div className="gigjack-siren-inner">
+        <div className="gigjack-siren-header">
+          <Zap className="gigjack-siren-zap" size={12} style={{ color: "#333" }} />
+          <span className="gigjack-siren-label" style={{ color: "#333" }}>GIG JACK</span>
+        </div>
+        <div className="gigjack-idle-body" data-testid="gigjack-idle-placeholder">
+          <div className="gigjack-idle-icon" aria-hidden="true">
+            <Zap size={18} style={{ color: "#2a2a2a" }} />
+          </div>
+          <p className="gigjack-idle-title">No Active Offers</p>
+          <p className="gigjack-idle-sub">Next GigJack will appear here</p>
+        </div>
+      </div>
+    </div>
+  );
 }

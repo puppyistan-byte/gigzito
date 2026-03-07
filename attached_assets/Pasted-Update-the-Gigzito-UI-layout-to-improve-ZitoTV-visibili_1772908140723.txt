@@ -1,0 +1,128 @@
+Update the Gigzito UI layout to improve ZitoTV visibility, restore the GigJack alert system, and add a "Today's Offers" access button.
+
+==================================================
+ZITOTV FRAME ADJUSTMENT
+==================================================
+
+1. Increase the size of the ZitoTV frame by approximately 25%.
+2. Keep the frame anchored in the bottom-left corner of the screen.
+3. Maintain consistent padding from the edges so it remains visually balanced.
+
+Label update:
+Replace the current text with:
+
+ZitoTV
+
+Important:
+The label should appear clearly within or directly under the frame.
+
+Future note:
+This will later be replaced by a ZitoTV logo, but for now use the text "ZitoTV".
+
+The frame should feel like a persistent live broadcast monitor.
+
+==================================================
+GIGJACK UI PERSISTENCE
+==================================================
+
+The GigJack UI must ALWAYS exist in the interface.
+
+Even when there are no active GigJack offers.
+
+If there are no active offers:
+
+Display a placeholder state that says something like:
+
+"No Active GigJack Offers"
+
+or
+
+"Waiting for the next GigJack..."
+
+The system must never hide the GigJack container completely.
+
+Reason:
+Users should always know where GigJack alerts appear.
+
+==================================================
+GIGJACK PLACEMENT
+==================================================
+
+The GigJack alert container should remain anchored in the top-right corner.
+
+It should remain visible even when empty.
+
+States:
+
+1. Idle
+2. Live Offer
+3. Countdown
+4. Expired → moved to Today's GigJacks
+
+==================================================
+TODAY'S OFFERS BUTTON
+==================================================
+
+Add a button in the bottom-right corner of the screen.
+
+Label:
+
+Today's Offers
+
+Behavior:
+
+When clicked:
+Open the "Today's GigJacks" panel.
+
+This panel should display all GigJack offers from the current day.
+
+The list should appear in vertical order.
+
+Each entry should include:
+• offer title
+• artwork/logo
+• brand/creator
+• time launched
+• status (Active / Expired)
+
+Users should be able to click any entry to view the offer.
+
+==================================================
+TODAY'S GIGJACKS PANEL
+==================================================
+
+The panel should function as the daily queue/archive for GigJack events.
+
+Entries move here automatically when:
+
+• their offer countdown expires
+• or when the active widget closes
+
+Expired offers remain visible in the list for the rest of the day.
+
+==================================================
+VISUAL BEHAVIOR
+==================================================
+
+Active GigJack offers should still flash/pulse to draw attention.
+
+The placeholder state should be calm and minimal.
+
+Do not animate when there are no offers.
+
+==================================================
+FINAL GOAL
+==================================================
+
+The layout should include:
+
+Bottom-left
+ZitoTV monitor (25% larger)
+
+Top-right
+GigJack alert container (always visible)
+
+Bottom-right
+Today's Offers button that opens the GigJack daily list
+
+This ensures the GigJack system always feels alive and visible across the platform.

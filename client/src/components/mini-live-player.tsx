@@ -59,7 +59,8 @@ export function MiniLivePlayer() {
     }
   };
 
-  const EMBED_H = 107;
+  const EMBED_H = 134;
+  const CARD_W = 238;
 
   return (
     <div
@@ -70,7 +71,7 @@ export function MiniLivePlayer() {
       <div
         className="relative rounded-xl overflow-hidden"
         style={{
-          width: "190px",
+          width: `${CARD_W}px`,
           background: "rgba(11,11,11,0.97)",
           border: hasSession
             ? "1px solid rgba(255,43,43,0.45)"
@@ -81,21 +82,41 @@ export function MiniLivePlayer() {
           backdropFilter: "blur(12px)",
         }}
       >
-        {hasSession ? (
-          <>
-            {/* Dismiss button */}
+        {/* ZitoTV branding header */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "5px 8px",
+          borderBottom: "1px solid rgba(255,43,43,0.15)",
+          background: "rgba(0,0,0,0.5)",
+        }}>
+          <span style={{
+            fontSize: "10px",
+            fontWeight: "800",
+            letterSpacing: "0.06em",
+            color: "#ff2b2b",
+            textTransform: "uppercase",
+          }}>
+            ZitoTV
+          </span>
+          {hasSession && (
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDismissed(true); }}
-              className="absolute top-1.5 right-1.5 z-20 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
+              className="w-4 h-4 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
               data-testid="button-dismiss-live"
             >
-              <X className="w-2.5 h-2.5 text-white/70" />
+              <X className="w-2 h-2 text-white/70" />
             </button>
+          )}
+        </div>
 
+        {hasSession ? (
+          <>
             {/* Mute toggle */}
             <button
               onClick={toggleMute}
-              className="absolute top-1.5 left-1.5 z-20 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+              className="absolute top-8 left-1.5 z-20 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
               style={{ background: "rgba(0,0,0,0.65)" }}
               data-testid="button-mini-mute"
               title={muted ? "Unmute" : "Mute"}
@@ -189,8 +210,8 @@ export function MiniLivePlayer() {
           /* Off Air */
           <Link href="/live">
             <div className="cursor-pointer" data-testid="mini-live-off-air">
-              <div className="relative w-full flex flex-col items-center justify-center gap-1.5" style={{ height: "90px", background: "#000" }}>
-                <Radio style={{ width: "28px", height: "28px", color: "#ff2b2b" }} strokeWidth={1.5} />
+              <div className="relative w-full flex flex-col items-center justify-center gap-1.5" style={{ height: `${EMBED_H}px`, background: "#000" }}>
+                <Radio style={{ width: "32px", height: "32px", color: "#ff2b2b" }} strokeWidth={1.5} />
                 <span style={{ fontSize: "11px", fontWeight: "700", color: "#ff2b2b", letterSpacing: "0.12em", textTransform: "uppercase" }}>
                   Off Air
                 </span>
