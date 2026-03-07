@@ -763,7 +763,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
     }
-    const slots = await storage.getSlotAvailability(date);
+    const nowMs = req.query.nowMs ? parseInt(req.query.nowMs as string) : undefined;
+    const tzOffset = req.query.tzOffset ? parseInt(req.query.tzOffset as string) : undefined;
+    const slots = await storage.getSlotAvailability(date, nowMs, tzOffset);
     return res.json({ date, slots });
   });
 

@@ -362,63 +362,6 @@ function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect, minL
         )}
       </div>
 
-      {/* Quick-pick available slots by hour group */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <p className="text-xs font-semibold text-[#555] uppercase tracking-wider">Or pick from available slots</p>
-          <span className="text-[10px] text-[#444]">({availableCount} open)</span>
-        </div>
-
-        {/* Group by hour */}
-        {Array.from({ length: 24 }, (_, h) => {
-          const hourSlots = slots.filter((s) => {
-            const [sh] = s.time.split(":").map(Number);
-            return sh === h;
-          });
-          const hasAvailable = hourSlots.some((s) => s.available && !isLeadBlocked(s));
-          if (!hasAvailable) return null;
-          return (
-            <div key={h} className="space-y-1">
-              <p className="text-[10px] text-[#444] font-medium pl-1">
-                {h === 0 ? "12 AM" : h < 12 ? `${h} AM` : h === 12 ? "12 PM" : `${h - 12} PM`}
-              </p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {hourSlots.map((slot) => {
-                  const isBlocked = !slot.available || isLeadBlocked(slot);
-                  const isSelected = selectedSlot?.time === slot.time;
-                  const leadTitle = isLeadBlocked(slot) && slot.available
-                    ? minLeadMinutes === 1 ? "Too soon (1 min lead required)" : minLeadMinutes === 30 ? "Too soon (30 min lead required)" : "Too soon (1 hour lead required)"
-                    : undefined;
-                  return (
-                    <button
-                      key={slot.time}
-                      disabled={isBlocked}
-                      onClick={() => {
-                        const [sh, sm] = slot.time.split(":").map(Number);
-                        setPickedHour(sh);
-                        setPickedMinute(sm);
-                        handleTimeChange(sh, sm);
-                      }}
-                      data-testid={`btn-slot-${slot.time.replace(":", "")}`}
-                      title={leadTitle ?? (isBlocked ? (slot.approvedInHour >= 2 ? "Hour full (2 GigJacks)" : "Too close to another GigJack") : undefined)}
-                      className={`flex flex-col items-center py-2 px-1 rounded-lg border transition-all text-center ${
-                        isBlocked
-                          ? "bg-[#0a0a0a] border-[#1a1a1a] text-[#2a2a2a] cursor-not-allowed"
-                          : isSelected
-                          ? "bg-[#ff2b2b]/20 border-[#ff2b2b]/70 text-white ring-1 ring-[#ff2b2b]/40"
-                          : "bg-[#ff2b2b]/06 border-[#ff2b2b]/20 text-[#ccc] hover:bg-[#ff2b2b]/12 hover:border-[#ff2b2b]/40 hover:text-white"
-                      }`}
-                    >
-                      <span className="text-xs font-semibold leading-tight">{slot.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Rules info */}
       <div className="flex items-start gap-2 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] px-3 py-2.5">
         <Info className="h-3.5 w-3.5 text-[#444] shrink-0 mt-0.5" />
@@ -457,7 +400,7 @@ export default function GigJackNewPage() {
   const { data: availability, isLoading: availLoading } = useQuery<SlotAvailabilityResponse>({
     queryKey: ["/api/gigjacks/availability", selectedDate],
     queryFn: async () => {
-      const res = await fetch(`/api/gigjacks/availability?date=${selectedDate}`);
+      const res = await fetch(`/api/gigjacks/availability?date=${selectedDate}&nowMs=${Date.now()}&tzOffset=${new Date().getTimezoneOffset()}`);
       return res.json();
     },
     enabled: !!selectedDate,

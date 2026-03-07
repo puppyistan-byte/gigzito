@@ -63,7 +63,7 @@ export interface IStorage {
   getTodaysGigJacks(): Promise<TodayGigJack[]>;
   forceExpireGigJack(id: number, adminUserId?: number): Promise<void>;
   getAvailableSlots(): Promise<GigJackSlot[]>;
-  getSlotAvailability(date: string): Promise<TimeSlot[]>;
+  getSlotAvailability(date: string, nowMs?: number, tzOffset?: number): Promise<TimeSlot[]>;
 
   // MFA
   createMfaCode(userId: number, code: string, expiresAt: Date): Promise<MfaCode>;
@@ -585,9 +585,14 @@ export class DatabaseStorage implements IStorage {
     return slots;
   }
 
-  async getSlotAvailability(date: string): Promise<TimeSlot[]> {
-    const dayStart = new Date(`${date}T00:00:00`);
-    const dayEnd = new Date(`${date}T23:59:59`);
+  async getSlotAvailability(date: string, nowMs?: number, tzOffset?: number): Promise<TimeSlot[]> {
+    // tzOffset: minutes west of UTC (JS getTimezoneOffset() convention)
+    // e.g. MST = 420 means UTC-7; UTC = local + tzOffset minutes
+    const offsetMs = (tzOffset ?? 0) * 60 * 1000;
+
+    // Query the full UTC day — add a generous buffer for any timezone
+    const dayStart = new Date(new Date(`${date}T00:00:00Z`).getTime() - 14 * 60 * 60 * 1000);
+    const dayEnd = new Date(new Date(`${date}T23:59:59Z`).getTime() + 14 * 60 * 60 * 1000);
 
     const rows = await db
       .select({ scheduledAt: gigJacks.scheduledAt, status: gigJacks.status })
@@ -595,30 +600,36 @@ export class DatabaseStorage implements IStorage {
       .where(and(gte(gigJacks.scheduledAt, dayStart), lte(gigJacks.scheduledAt, dayEnd)));
 
     const approvedTimes: Date[] = [];
-    const approvedPerHour = new Map<number, number>();
+    // Track approved count by LOCAL hour
+    const approvedPerLocalHour = new Map<number, number>();
     for (const row of rows) {
       if (row.scheduledAt && row.status === "APPROVED") {
         const d = new Date(row.scheduledAt);
         approvedTimes.push(d);
-        const h = d.getHours();
-        approvedPerHour.set(h, (approvedPerHour.get(h) ?? 0) + 1);
+        // Convert UTC to local hour
+        const localMs = d.getTime() - offsetMs;
+        const localH = new Date(localMs).getUTCHours();
+        approvedPerLocalHour.set(localH, (approvedPerLocalHour.get(localH) ?? 0) + 1);
       }
     }
 
     const slots: TimeSlot[] = [];
-    const now = new Date();
+    const now = nowMs ? new Date(nowMs) : new Date();
 
-    for (let h = 8; h <= 21; h++) {
+    // Generate slots in LOCAL hours (0–23 local)
+    for (let localH = 0; localH <= 23; localH++) {
       for (let m = 0; m < 60; m += 15) {
-        if (h === 21 && m > 0) continue;
-        const slotDt = new Date(`${date}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`);
+        // Convert local h:m to UTC for this date
+        const localMs = new Date(`${date}T${String(localH).padStart(2, "0")}:${String(m).padStart(2, "0")}:00Z`).getTime() + offsetMs;
+        const slotDt = new Date(localMs);
         if (slotDt <= now) continue;
 
+        const h = localH;
         const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
         const period = h < 12 ? "AM" : "PM";
         const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
         const label = `${h12}:${String(m).padStart(2, "0")} ${period}`;
-        const approvedInHour = approvedPerHour.get(h) ?? 0;
+        const approvedInHour = approvedPerLocalHour.get(h) ?? 0;
 
         let available = true;
         let reason: string | undefined;
