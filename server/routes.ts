@@ -96,7 +96,7 @@ async function ensureAdminUser() {
   try {
     const existing = await storage.getUserByEmail(SEEDED_ADMIN_EMAIL);
     if (existing) return;
-    const hashed = await hashPassword("L3tsgoBrandon22");
+    const hashed = await hashPassword("Arizona22");
     await storage.createUser({ email: SEEDED_ADMIN_EMAIL, password: hashed, role: "ADMIN" });
     console.log("Admin account created: admin@gigzito.com");
   } catch (err) {
