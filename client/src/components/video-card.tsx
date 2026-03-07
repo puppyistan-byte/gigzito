@@ -174,7 +174,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
       window.open(ctaUrl, "_blank", "noopener,noreferrer");
       return;
     }
-    if (!user) { setShowGuestModal(true); return; }
     setShowInquire(true);
   };
 
@@ -359,7 +358,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
         <InquireLeadModal listing={listing} onClose={() => setShowInquire(false)} />
       )}
       {showInfo && (
-        <VideoInfoModal listing={listing} onClose={() => setShowInfo(false)} onInquire={handleInquireClick} />
+        <VideoInfoModal listing={listing} onClose={() => setShowInfo(false)} onInquire={handleCtaClick} />
       )}
       {showGuestModal && (
         <GuestCtaModal reason="cta" onClose={() => setShowGuestModal(false)} />

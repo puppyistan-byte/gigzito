@@ -686,10 +686,10 @@ export default function ProviderDashboard() {
         {/* ─── GigJack Center ─── */}
         <GigJackCenter />
 
-        {/* Leads section */}
+        {/* CTA Leads section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white" data-testid="text-leads-title">Leads</h2>
+            <h2 className="text-sm font-semibold text-white" data-testid="text-leads-title">CTA Leads</h2>
             {leads.length > 0 && (
               <Button
                 size="sm"
@@ -711,7 +711,7 @@ export default function ProviderDashboard() {
           ) : leads.length === 0 ? (
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-leads">
               <Inbox className="h-6 w-6 text-[#333] mx-auto mb-2" />
-              <p className="text-[#555] text-sm">No leads yet. When viewers click Inquire on your listings, they'll appear here.</p>
+              <p className="text-[#555] text-sm">No CTA leads yet. When visitors click a CTA button on your listings, their contact info will appear here.</p>
             </div>
           ) : (
             <div className="space-y-2">

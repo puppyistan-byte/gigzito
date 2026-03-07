@@ -3,9 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { X, Mail, User, Phone, MessageSquare, ExternalLink } from "lucide-react";
+import { X, Mail, User, Phone, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
@@ -13,10 +12,9 @@ import { apiRequest } from "@/lib/queryClient";
 import type { ListingWithProvider } from "@shared/schema";
 
 const formSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(60),
+  firstName: z.string().min(1, "Name is required").max(60),
   email: z.string().email("Valid email required"),
   phone: z.string().max(30).optional().or(z.literal("")),
-  message: z.string().max(500).optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -26,13 +24,21 @@ interface InquireLeadModalProps {
   onClose: () => void;
 }
 
+const CTA_LABEL_MAP: Record<string, string> = {
+  "Visit Offer":  "Visit Offer",
+  "Shop Product": "Shop Now",
+  "Join Event":   "Join Event",
+  "Book Service": "Book Now",
+  "Join Guild":   "Join Guild",
+};
+
 export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { firstName: "", email: "", phone: "", message: "" },
+    defaultValues: { firstName: "", email: "", phone: "" },
   });
 
   const mutation = useMutation({
@@ -43,7 +49,6 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
         firstName: data.firstName,
         email: data.email,
         phone: data.phone || null,
-        message: data.message || null,
         videoTitle: listing.title,
         category: listing.vertical,
       });
@@ -52,6 +57,10 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
     onSuccess: () => setSubmitted(true),
     onError: () => toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" }),
   });
+
+  const ctaUrl = listing.ctaUrl ?? null;
+  const ctaType = listing.ctaType ?? null;
+  const destinationLabel = ctaType ? (CTA_LABEL_MAP[ctaType] ?? ctaType) : "View Offer";
 
   return (
     <div
@@ -78,71 +87,85 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
           paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
           border: "1px solid rgba(255,255,255,0.1)",
           borderBottom: "none",
-          maxHeight: "92vh",
-          overflowY: "auto",
         }}
       >
+        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-          <div>
-            <h2 style={{ fontSize: "17px", fontWeight: "700", color: "#fff" }}>Inquire</h2>
-            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", marginTop: "2px" }}>{listing.provider.displayName}</p>
-          </div>
+          <h3 style={{ fontSize: "15px", fontWeight: "700", color: "#fff", margin: 0 }}>
+            {submitted ? "You're in!" : "Get Access"}
+          </h3>
           <button
             onClick={onClose}
-            style={{ background: "rgba(255,255,255,0.08)", border: "none", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}
-            data-testid="button-close-inquire-modal"
+            style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", padding: "4px" }}
+            data-testid="button-close-modal"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
         {submitted ? (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <Mail size={22} style={{ color: "#22c55e" }} />
-            </div>
-            <p style={{ fontSize: "16px", fontWeight: "700", color: "#fff", marginBottom: "6px" }}>Inquiry Sent!</p>
-            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", lineHeight: "1.5", marginBottom: "20px" }}>
-              Your details have been submitted. {listing.provider.displayName} will be in touch.
+          /* ── Success state ── */
+          <div style={{ textAlign: "center", padding: "12px 0 8px" }}>
+            <CheckCircle2
+              size={44}
+              style={{ color: "#22c55e", margin: "0 auto 12px" }}
+              data-testid="icon-lead-success"
+            />
+            <p style={{ color: "#fff", fontSize: "15px", fontWeight: "600", marginBottom: "6px" }}>
+              Thanks, {form.getValues("firstName")}!
             </p>
-            {listing.ctaUrl && (
+            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginBottom: "20px" }}>
+              Your details have been sent to {listing.provider.displayName}.
+            </p>
+            {ctaUrl ? (
               <a
-                href={listing.ctaUrl}
+                href={ctaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
-                  gap: "6px",
+                  justifyContent: "center",
+                  gap: "8px",
+                  width: "100%",
+                  padding: "12px",
                   background: "#c41414",
                   color: "#fff",
                   borderRadius: "999px",
-                  padding: "10px 20px",
-                  fontSize: "13px",
                   fontWeight: "700",
+                  fontSize: "14px",
                   textDecoration: "none",
                 }}
-                data-testid="link-inquire-cta-redirect"
+                data-testid="link-cta-destination"
               >
-                <ExternalLink size={14} />
-                {listing.ctaLabel ?? "Visit Website"}
+                <ExternalLink size={15} />
+                {destinationLabel}
               </a>
+            ) : (
+              <Button
+                onClick={onClose}
+                style={{ width: "100%", background: "#222", color: "#fff", border: "1px solid #333", borderRadius: "999px" }}
+              >
+                Close
+              </Button>
             )}
           </div>
         ) : (
+          /* ── Form state ── */
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+            <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+
+              {/* Listing context */}
               <div
                 style={{
                   background: "rgba(255,43,43,0.06)",
                   border: "1px solid rgba(255,43,43,0.2)",
                   borderRadius: "10px",
                   padding: "10px 12px",
-                  marginBottom: "16px",
                 }}
               >
                 <p style={{ fontSize: "12px", fontWeight: "600", color: "#ff2b2b", marginBottom: "2px" }}>{listing.title}</p>
-                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)" }}>{listing.provider.displayName}</p>
+                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)" }}>by {listing.provider.displayName}</p>
               </div>
 
               <FormField control={form.control} name="firstName" render={({ field }) => (
@@ -184,19 +207,6 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="message" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>
-                    <MessageSquare size={11} style={{ display: "inline", marginRight: "5px" }} />
-                    Message <span style={{ color: "rgba(255,255,255,0.35)", fontWeight: 400 }}>(optional)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Tell them what you're interested in…" rows={3} data-testid="input-lead-message" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
               <Button
                 type="submit"
                 className="w-full"
@@ -204,8 +214,12 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
                 data-testid="button-submit-lead"
                 style={{ background: "#c41414", color: "#fff", border: "none", borderRadius: "999px", fontWeight: "700" }}
               >
-                {mutation.isPending ? "Sending…" : "Send Inquiry"}
+                {mutation.isPending ? "Sending…" : ctaUrl ? `Submit & ${destinationLabel}` : "Send Inquiry"}
               </Button>
+
+              <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", textAlign: "center", margin: 0 }}>
+                No account required. Your info goes only to this creator.
+              </p>
             </form>
           </Form>
         )}
