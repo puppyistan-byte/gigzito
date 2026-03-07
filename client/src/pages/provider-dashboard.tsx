@@ -20,6 +20,7 @@ import {
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, Calendar,
 } from "lucide-react";
+import { GigCardSection } from "@/components/gig-card-section";
 import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, GigJackSlot } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -685,6 +686,9 @@ export default function ProviderDashboard() {
 
         {/* ─── GigJack Center ─── */}
         <GigJackCenter />
+
+        {/* ─── Gig Cards ─── */}
+        {profile && <GigCardSection profile={profile} />}
 
         {/* CTA Leads section */}
         <div>
