@@ -311,9 +311,6 @@ export function MiniLivePlayer() {
                     <Radio style={{ width: "48px", height: "48px", color: "#ff2b2b" }} strokeWidth={1.5} />
                   </div>
                 )}
-                <button onClick={toggleMute} className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }} data-testid="button-focused-mute">
-                  {muted ? <VolumeX className="w-4 h-4 text-white/80" /> : <Volume2 className="w-4 h-4 text-white" />}
-                </button>
                 <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full px-2 py-1" style={{ background: "#ff2b2b" }}>
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   <span className="text-white font-bold tracking-widest" style={{ fontSize: "10px" }}>LIVE</span>
@@ -345,6 +342,17 @@ export function MiniLivePlayer() {
                 <Radio style={{ width: "48px", height: "48px", color: "#ff2b2b" }} strokeWidth={1.5} />
                 <span style={{ fontSize: "13px", fontWeight: "700", color: "#ff2b2b", letterSpacing: "0.12em" }}>OFF AIR</span>
               </div>
+            )}
+            {(hasSession || hasInjectedFeed) && (
+              <button
+                onClick={toggleMute}
+                className="absolute top-3 right-3 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.12)" }}
+                data-testid="button-focused-mute"
+                title={muted ? "Unmute" : "Mute"}
+              >
+                {muted ? <VolumeX className="w-4 h-4 text-white/80" /> : <Volume2 className="w-4 h-4 text-white" />}
+              </button>
             )}
           </div>
 
@@ -418,12 +426,13 @@ export function MiniLivePlayer() {
             )}
             <button
               onClick={handleFocus}
-              className="w-5 h-5 rounded flex items-center justify-center hover:bg-white/10 transition-colors"
-              title="Focus Live"
+              className="flex items-center gap-0.5 rounded px-1.5 py-0.5 hover:bg-white/10 transition-colors"
+              title="Pop Out / Focus Live"
               data-testid="button-live-focus"
-              style={{ color: "rgba(255,255,255,0.45)" }}
+              style={{ color: "rgba(255,255,255,0.6)", fontSize: "8px", fontWeight: "600", letterSpacing: "0.04em" }}
             >
-              <Maximize2 style={{ width: "11px", height: "11px" }} />
+              <Maximize2 style={{ width: "10px", height: "10px" }} />
+              POP OUT
             </button>
             <button
               onClick={handleMinimize}
@@ -548,6 +557,15 @@ export function MiniLivePlayer() {
                       style={{ pointerEvents: "none" }}
                     />
                     <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(11,11,11,0.7) 0%, transparent 55%)" }} />
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleMute(e); }}
+                      className="absolute top-1.5 left-1.5 z-20 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                      style={{ background: "rgba(0,0,0,0.65)" }}
+                      data-testid="button-mini-mute-injected"
+                      title={muted ? "Unmute" : "Mute"}
+                    >
+                      {muted ? <VolumeX className="w-3 h-3 text-white/70" /> : <Volume2 className="w-3 h-3 text-white" />}
+                    </button>
                     <div style={{ position: "absolute", bottom: "6px", right: "6px", background: "rgba(0,0,0,0.6)", borderRadius: "6px", padding: "3px 6px", display: "flex", alignItems: "center", gap: "4px" }}>
                       <ExternalLink style={{ width: "8px", height: "8px", color: "rgba(255,255,255,0.6)" }} />
                       <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.6)", fontWeight: "600" }}>Open</span>

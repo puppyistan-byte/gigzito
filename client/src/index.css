@@ -286,25 +286,34 @@ html, body, #root {
 
   .gigzito-logo-container {
     position: fixed;
-    top: 20px;
-    left: 20px;
+    left: 12px;
+    width: 298px;
+    top: calc(50vh - 160px);
     z-index: 50;
     pointer-events: none;
     padding: 0;
     background: none;
     box-shadow: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .gigzito-logo-img {
-    width: 200px;
+    width: 220px;
     height: auto;
     display: block;
     object-fit: contain;
   }
 
   @media (max-width: 768px) {
+    .gigzito-logo-container {
+      left: 12px;
+      width: 200px;
+      top: calc(50vh - 140px);
+    }
     .gigzito-logo-img {
-      width: 140px;
+      width: 160px;
     }
   }
 
