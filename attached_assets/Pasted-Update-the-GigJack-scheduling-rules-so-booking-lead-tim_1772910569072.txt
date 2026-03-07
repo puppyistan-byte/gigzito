@@ -1,0 +1,150 @@
+Update the GigJack scheduling rules so booking lead time depends on user type / role.
+
+==================================================
+ROLE-BASED GIGJACK SCHEDULING RULES
+==================================================
+
+GigJack scheduling must support different minimum lead times depending on the user’s role or approval tier.
+
+--------------------------------------------------
+1. ADMIN / SUPER ADMIN TEST SCHEDULING
+--------------------------------------------------
+
+Admin and Super Admin must be able to schedule test GigJacks at any time.
+
+Rules:
+- allow scheduling even if the launch time is only 1 minute away
+- allow near-immediate scheduling for testing purposes
+- this is specifically for internal testing and admin control
+- admin and super_admin can bypass normal lead-time restrictions
+
+Recommended minimum lead time for admin:
+1 minute
+
+Optional label in UI for admin:
+"Test / Immediate Launch Allowed"
+
+--------------------------------------------------
+2. STANDARD USERS
+--------------------------------------------------
+
+Normal users must schedule GigJacks at least 1 hour in advance.
+
+Rules:
+- minimum lead time = 60 minutes
+- block any time less than 1 hour from now
+- show friendly error if they try to schedule too close
+
+Error message:
+"GigJacks must be scheduled at least 1 hour in advance."
+
+--------------------------------------------------
+3. BIG CORPORATIONS / PREMIUM ENTERPRISE ACCOUNTS
+--------------------------------------------------
+
+Certain approved corporate / enterprise accounts may schedule GigJacks with a shorter lead time.
+
+Rules:
+- minimum lead time = 30 minutes
+- this is only for approved enterprise / corporate users
+- these users still follow all other GigJack rules unless separately overridden
+
+Error message:
+"Corporate GigJacks must be scheduled at least 30 minutes in advance."
+
+--------------------------------------------------
+USER TYPES / ROLES
+--------------------------------------------------
+
+Support scheduling windows for these user types:
+
+- user
+- enterprise
+- admin
+- super_admin
+
+Example lead-time mapping:
+
+user = 60 minutes
+enterprise = 30 minutes
+admin = 1 minute
+super_admin = 1 minute
+
+--------------------------------------------------
+VALIDATION LOGIC
+--------------------------------------------------
+
+When a user selects a GigJack date/time:
+
+1. detect current time
+2. detect user role / account type
+3. calculate minimum allowed lead time
+4. reject scheduling if selected time is too soon for that role
+
+Pseudologic example:
+
+if role == "user":
+    minimumLeadTime = 60 minutes
+
+if role == "enterprise":
+    minimumLeadTime = 30 minutes
+
+if role == "admin" or role == "super_admin":
+    minimumLeadTime = 1 minute
+
+selectedTime must be >= now + minimumLeadTime
+
+--------------------------------------------------
+ADMIN OVERRIDE
+--------------------------------------------------
+
+Admin and Super Admin must still retain override powers for testing.
+
+This means:
+- they can schedule test GigJacks with only 1 minute lead time
+- they can still override conflicts if override mode is enabled
+- they can approve/edit/remove as before
+
+--------------------------------------------------
+UI / UX REQUIREMENTS
+--------------------------------------------------
+
+In the booking UI, show the user’s scheduling window clearly.
+
+Examples:
+
+For standard users:
+"Earliest available booking: 1 hour from now"
+
+For enterprise users:
+"Earliest available booking: 30 minutes from now"
+
+For admin:
+"Test scheduling enabled — immediate booking allowed"
+
+This should make the rules clear before submission.
+
+--------------------------------------------------
+DATABASE / ROLE SUPPORT
+--------------------------------------------------
+
+Add or confirm support for account type / role field such as:
+- role
+or
+- accountTier
+
+Possible values:
+- user
+- enterprise
+- admin
+- super_admin
+
+--------------------------------------------------
+FINAL GOAL
+--------------------------------------------------
+
+GigJack scheduling must enforce different minimum lead times by role:
+
+- standard users: at least 1 hour out
+- enterprise / big corporations: at least 30 minutes out
+- admin / super_admin: can schedule test GigJacks as little as 1 minute out

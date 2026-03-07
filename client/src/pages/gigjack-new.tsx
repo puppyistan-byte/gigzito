@@ -204,12 +204,22 @@ interface TimePickerProps {
   loading: boolean;
   selectedSlot: TimeSlot | null;
   onSelect: (slot: TimeSlot | null) => void;
+  minLeadMinutes: number;
 }
 
-function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect }: TimePickerProps) {
+function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect, minLeadMinutes }: TimePickerProps) {
   const [pickedHour, setPickedHour] = useState<number | null>(null);
   const [pickedMinute, setPickedMinute] = useState<number | null>(null);
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
+
+  const leadBlockedMs = Date.now() + minLeadMinutes * 60 * 1000;
+
+  const leadErrorMsg =
+    minLeadMinutes <= 1
+      ? "Test scheduling requires at least 1 minute lead time."
+      : minLeadMinutes === 30
+        ? "Corporate GigJacks must be scheduled at least 30 minutes in advance."
+        : "GigJacks must be scheduled at least 1 hour in advance.";
 
   const slotMap = useMemo(() => {
     const m = new Map<string, TimeSlot>();
@@ -238,12 +248,19 @@ function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect }: Ti
       }
       onSelect(null);
     } else {
-      setConflictMsg(null);
-      onSelect(slot);
+      const slotMs = new Date(slot.scheduledAt).getTime();
+      if (slotMs < leadBlockedMs) {
+        setConflictMsg(leadErrorMsg);
+        onSelect(null);
+      } else {
+        setConflictMsg(null);
+        onSelect(slot);
+      }
     }
   };
 
-  const availableCount = slots.filter((s) => s.available).length;
+  const isLeadBlocked = (slot: TimeSlot) => new Date(slot.scheduledAt).getTime() < leadBlockedMs;
+  const availableCount = slots.filter((s) => s.available && !isLeadBlocked(s)).length;
   const allBlocked = slots.length > 0 && availableCount === 0;
 
   if (loading) {
@@ -358,7 +375,7 @@ function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect }: Ti
             const [sh] = s.time.split(":").map(Number);
             return sh === h;
           });
-          const hasAvailable = hourSlots.some((s) => s.available);
+          const hasAvailable = hourSlots.some((s) => s.available && !isLeadBlocked(s));
           if (!hasAvailable) return null;
           return (
             <div key={h} className="space-y-1">
@@ -367,8 +384,11 @@ function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect }: Ti
               </p>
               <div className="grid grid-cols-4 gap-1.5">
                 {hourSlots.map((slot) => {
-                  const isBlocked = !slot.available;
+                  const isBlocked = !slot.available || isLeadBlocked(slot);
                   const isSelected = selectedSlot?.time === slot.time;
+                  const leadTitle = isLeadBlocked(slot) && slot.available
+                    ? minLeadMinutes === 1 ? "Too soon (1 min lead required)" : minLeadMinutes === 30 ? "Too soon (30 min lead required)" : "Too soon (1 hour lead required)"
+                    : undefined;
                   return (
                     <button
                       key={slot.time}
@@ -377,11 +397,10 @@ function TimePicker({ selectedDate, slots, loading, selectedSlot, onSelect }: Ti
                         const [sh, sm] = slot.time.split(":").map(Number);
                         setPickedHour(sh);
                         setPickedMinute(sm);
-                        setConflictMsg(null);
-                        onSelect(isSelected ? null : slot);
+                        handleTimeChange(sh, sm);
                       }}
                       data-testid={`btn-slot-${slot.time.replace(":", "")}`}
-                      title={isBlocked ? (slot.approvedInHour >= 2 ? "Hour full (2 GigJacks)" : "Too close to another GigJack") : undefined}
+                      title={leadTitle ?? (isBlocked ? (slot.approvedInHour >= 2 ? "Hour full (2 GigJacks)" : "Too close to another GigJack") : undefined)}
                       className={`flex flex-col items-center py-2 px-1 rounded-lg border transition-all text-center ${
                         isBlocked
                           ? "bg-[#0a0a0a] border-[#1a1a1a] text-[#2a2a2a] cursor-not-allowed"
@@ -418,6 +437,17 @@ export default function GigJackNewPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const role = user?.user?.role ?? "PROVIDER";
+  const minLeadMinutes =
+    (role === "ADMIN" || role === "SUPER_ADMIN") ? 1 :
+    role === "CORPORATE" ? 30 : 60;
+  const leadWindowLabel =
+    minLeadMinutes <= 1
+      ? "Test scheduling enabled — immediate booking allowed"
+      : minLeadMinutes === 30
+        ? "Earliest available booking: 30 minutes from now"
+        : "Earliest available booking: 1 hour from now";
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -602,12 +632,25 @@ export default function GigJackNewPage() {
               </div>
             </div>
 
+            {/* Scheduling window info */}
+            <div className={`flex items-start gap-2 rounded-xl px-3 py-2.5 border ${
+              minLeadMinutes <= 1
+                ? "bg-amber-500/08 border-amber-500/20"
+                : "bg-[#0b0b0b] border-[#1e1e1e]"
+            }`} data-testid="msg-scheduling-window">
+              <Info className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${minLeadMinutes <= 1 ? "text-amber-400" : "text-[#444]"}`} />
+              <p className={`text-[11px] leading-relaxed ${minLeadMinutes <= 1 ? "text-amber-400" : "text-[#444]"}`}>
+                {leadWindowLabel}
+              </p>
+            </div>
+
             <TimePicker
               selectedDate={selectedDate}
               slots={slots}
               loading={availLoading}
               selectedSlot={selectedSlot}
               onSelect={setSelectedSlot}
+              minLeadMinutes={minLeadMinutes}
             />
 
             <Button

@@ -683,6 +683,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const data = schema.parse(req.body);
 
+      // ── Role-based minimum lead time ─────────────────────────────────────
+      const role = currentUser?.role ?? "PROVIDER";
+      const minLeadMinutes =
+        (role === "ADMIN" || role === "SUPER_ADMIN") ? 1 :
+        role === "CORPORATE" ? 30 : 60;
+
+      const scheduledDate = new Date(data.scheduledAt);
+      const earliestAllowed = new Date(Date.now() + minLeadMinutes * 60 * 1000);
+
+      if (scheduledDate < earliestAllowed) {
+        const msg =
+          (role === "ADMIN" || role === "SUPER_ADMIN")
+            ? "GigJacks must be scheduled at least 1 minute in advance."
+            : role === "CORPORATE"
+              ? "Corporate GigJacks must be scheduled at least 30 minutes in advance."
+              : "GigJacks must be scheduled at least 1 hour in advance.";
+        return res.status(400).json({ message: msg });
+      }
+
       const botResult = isAdminGj
         ? { warning: false, message: null }
         : runBotChecks({
