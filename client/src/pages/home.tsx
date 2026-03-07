@@ -68,6 +68,12 @@ export default function HomePage() {
   // iframe / overflow:hidden layers cannot swallow the event.
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
+      // Let the carousel (and any other horizontally-scrollable element) handle its own scroll
+      const target = e.target as Element | null;
+      if (target?.closest(".category-strip") || target?.closest(".category-track")) return;
+      // Also skip if the wheel is primarily horizontal (trackpad side-scroll)
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
       if (wheelCooldown.current) return;
       e.preventDefault();
       wheelCooldown.current = true;
