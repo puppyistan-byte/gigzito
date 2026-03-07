@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
 import { CategoryCarousel } from "@/components/category-carousel";
@@ -12,12 +12,29 @@ import { ChevronUp, ChevronDown, Zap } from "lucide-react";
 
 import logoImg from "@assets/gigzito_1772574609697.jpg";
 
+function readPersistedMuted(): boolean {
+  try { return localStorage.getItem("gz_muted") !== "false"; } catch { return true; }
+}
+function persistMuted(v: boolean) {
+  try { localStorage.setItem("gz_muted", String(v)); } catch {}
+}
+
 export default function HomePage() {
   const [activeVertical, setActiveVertical] = useState("ALL");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [fadeSplash, setFadeSplash] = useState(false);
   const [showOffers, setShowOffers] = useState(false);
+
+  // Global muted state — persisted in localStorage and shared across all cards
+  const [globalMuted, setGlobalMuted] = useState<boolean>(readPersistedMuted);
+  const globalMutedRef = useRef(globalMuted);
+  const handleMuteChange = useCallback((muted: boolean) => {
+    globalMutedRef.current = muted;
+    setGlobalMuted(muted);
+    persistMuted(muted);
+  }, []);
+
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -40,66 +57,85 @@ export default function HomePage() {
     },
   });
 
+  // Refs that are always current — used inside wheel handler without stale closure
   const wheelCooldown   = useRef(false);
-  const currentIdxRef   = useRef(currentIndex);
+  const currentIdxRef   = useRef(0);
   const listingsLenRef  = useRef(0);
+  const isScrollingRef  = useRef(false);
 
-  useEffect(() => { currentIdxRef.current = currentIndex; }, [currentIndex]);
   useEffect(() => { listingsLenRef.current = listings.length; }, [listings]);
 
-  const scrollToIndex = (idx: number) => {
-    const el = itemRefs.current[idx];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setCurrentIndex(idx);
-    }
-  };
+  // Programmatic scroll: set scrollTop directly so the snap math is exact
+  const scrollToIndex = useCallback((idx: number) => {
+    const container = feedRef.current;
+    if (!container) return;
+    const h = container.clientHeight;
+    if (h === 0) return;
+    const clamped = Math.max(0, Math.min(idx, listingsLenRef.current - 1));
+    currentIdxRef.current = clamped;
+    setCurrentIndex(clamped);
+    isScrollingRef.current = true;
+    container.scrollTo({ top: clamped * h, behavior: "smooth" });
+    // Clear the "scrolling" flag after the animation completes
+    setTimeout(() => { isScrollingRef.current = false; }, 600);
+  }, []);
 
-  const handleScroll = () => {
-    if (!feedRef.current) return;
-    const scrollTop = feedRef.current.scrollTop;
-    const height = feedRef.current.clientHeight;
-    if (height === 0) return;
-    const idx = Math.round(scrollTop / height);
-    setCurrentIndex(Math.max(0, Math.min(idx, listings.length - 1)));
-  };
-
-  // Wheel handler — intercepts mouse wheel anywhere on the page so the
-  // iframe / overflow:hidden layers cannot swallow the event.
+  // Wheel handler on window — intercepts before iframes can swallow events
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      // Let the carousel (and any other horizontally-scrollable element) handle its own scroll
       const target = e.target as Element | null;
       if (target?.closest(".category-strip") || target?.closest(".category-track")) return;
-      // Also skip if the wheel is primarily horizontal (trackpad side-scroll)
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 
-      if (wheelCooldown.current) return;
       e.preventDefault();
+
+      if (wheelCooldown.current) return;
       wheelCooldown.current = true;
-      setTimeout(() => { wheelCooldown.current = false; }, 750);
+      // Cooldown slightly longer than the smooth-scroll animation (~600ms)
+      setTimeout(() => { wheelCooldown.current = false; }, 700);
+
       const cur  = currentIdxRef.current;
-      const next = e.deltaY > 0
-        ? Math.min(cur + 1, listingsLenRef.current - 1)
-        : Math.max(cur - 1, 0);
-      if (next !== cur) {
-        const el = itemRefs.current[next];
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-          setCurrentIndex(next);
-        }
-      }
+      const len  = listingsLenRef.current;
+      const next = e.deltaY > 0 ? Math.min(cur + 1, len - 1) : Math.max(cur - 1, 0);
+      if (next !== cur) scrollToIndex(next);
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => window.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [scrollToIndex]);
+
+  // Touch swipe handler for mobile
+  useEffect(() => {
+    let startY = 0;
+    const onTouchStart = (e: TouchEvent) => { startY = e.touches[0].clientY; };
+    const onTouchEnd = (e: TouchEvent) => {
+      const target = e.target as Element | null;
+      if (target?.closest(".category-strip") || target?.closest(".category-track")) return;
+      const diff = startY - e.changedTouches[0].clientY;
+      if (Math.abs(diff) < 40) return; // minimum swipe distance
+      if (wheelCooldown.current) return;
+      wheelCooldown.current = true;
+      setTimeout(() => { wheelCooldown.current = false; }, 700);
+      const cur  = currentIdxRef.current;
+      const len  = listingsLenRef.current;
+      const next = diff > 0 ? Math.min(cur + 1, len - 1) : Math.max(cur - 1, 0);
+      if (next !== cur) scrollToIndex(next);
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [scrollToIndex]);
 
   useEffect(() => {
     document.body.classList.add("feed-active");
     return () => document.body.classList.remove("feed-active");
   }, []);
 
+  // Reset to top whenever the vertical changes
   useEffect(() => {
+    currentIdxRef.current = 0;
     setCurrentIndex(0);
     if (feedRef.current) feedRef.current.scrollTop = 0;
   }, [activeVertical]);
@@ -126,7 +162,6 @@ export default function HomePage() {
 
   return (
     <div className="app-shell flex flex-col h-screen overflow-hidden relative">
-      {/* Dynamic blurred category background */}
       <div className={`category-bg ${activeBgClass}`} aria-hidden="true" />
 
       {showSplash && (
@@ -141,14 +176,13 @@ export default function HomePage() {
 
       <MiniLivePlayer />
 
-      {/* Category Carousel */}
       <CategoryCarousel activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
-      {/* Feed */}
+      {/* Feed — no onScroll handler; index is driven by wheel/touch/button, not scroll position */}
       <div
         ref={feedRef}
         className="feed-wrap feed-container flex-1"
-        onScroll={handleScroll}
+        style={{ overflowY: "scroll", scrollSnapType: "y mandatory" }}
         data-testid="feed-container"
       >
         {isLoading ? (
@@ -172,12 +206,15 @@ export default function HomePage() {
               key={listing.id}
               ref={(el) => { itemRefs.current[idx] = el; }}
               className="feed-item"
+              style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
               data-testid={`listing-item-${idx}`}
             >
               <VideoCard
                 listing={listing}
                 className="w-full h-full"
                 isActive={idx === currentIndex}
+                isMuted={globalMuted}
+                onMuteChange={handleMuteChange}
                 onEnd={() => {
                   if (idx < listings.length - 1) scrollToIndex(idx + 1);
                 }}
@@ -189,10 +226,9 @@ export default function HomePage() {
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
-      {/* GigJack flash overlay — fires platform-wide when a scheduled event is active */}
       <GigJackFlashOverlay />
 
-      {/* Today's Offers button — bottom-right corner above nav */}
+      {/* Today's Offers button */}
       <button
         className="fixed z-[9970] flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95"
         style={{
@@ -211,7 +247,7 @@ export default function HomePage() {
         Today's Offers
       </button>
 
-      {/* Nav arrows (desktop helper) */}
+      {/* Nav arrows (desktop) */}
       {listings.length > 1 && (
         <div className="fixed right-4 bottom-[140px] flex flex-col gap-2 z-40">
           <button
@@ -233,9 +269,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Today's GigJacks slide-up panel */}
       <TodaysGigJacks open={showOffers} onClose={() => setShowOffers(false)} />
-
     </div>
   );
 }

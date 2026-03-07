@@ -24,6 +24,8 @@ interface VideoCardProps {
   className?: string;
   isActive?: boolean;
   onEnd?: () => void;
+  isMuted?: boolean;
+  onMuteChange?: (muted: boolean) => void;
 }
 
 const BADGE: Record<string, { bg: string; label: string }> = {
@@ -53,17 +55,18 @@ function getYouTubeId(url: string): string {
   return u.searchParams.get("v") ?? "";
 }
 
-function getVideoEmbedUrl(url: string, autoplay = false): string {
+function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
   try {
     const u = new URL(url);
     const ap = autoplay ? "1" : "0";
+    const mt = muted ? "1" : "0";
 
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
       const id = getYouTubeId(url);
       return [
         `https://www.youtube.com/embed/${id}`,
         `?autoplay=${ap}`,
-        `&mute=${ap}`,
+        `&mute=${mt}`,
         `&enablejsapi=1`,
         `&controls=0`,
         `&modestbranding=1`,
@@ -81,7 +84,7 @@ function getVideoEmbedUrl(url: string, autoplay = false): string {
       return [
         `https://player.vimeo.com/video/${id}`,
         `?autoplay=${ap}`,
-        `&muted=${ap}`,
+        `&muted=${mt}`,
         `&loop=1`,
         `&background=${autoplay ? "1" : "0"}`,
       ].join("");
@@ -190,7 +193,7 @@ function ProductBlock({ price, purchaseUrl, stock, onGuestAction }: { price?: st
   );
 }
 
-export function VideoCard({ listing, className = "", isActive = false, onEnd }: VideoCardProps) {
+export function VideoCard({ listing, className = "", isActive = false, onEnd, isMuted = true, onMuteChange }: VideoCardProps) {
   const { user } = useAuth();
   const provider = listing.provider;
   const initials = provider.displayName
@@ -233,37 +236,39 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd }: 
   const endCalledRef = useRef(false);
   const iframeRef    = useRef<HTMLIFrameElement>(null);
   const [iframeSrc,  setIframeSrc]  = useState("about:blank");
-  const [isMuted,    setIsMuted]    = useState(true);
+
+  // Keep a ref to the current muted state so the iframe postMessage always uses the latest value
+  const isMutedRef = useRef(isMuted);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
 
   const toggleMute = () => {
     const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
     const next = !isMuted;
-    try {
-      iframe.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
-        "*"
-      );
-    } catch (_) {}
-    setIsMuted(next);
+    if (iframe?.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
+          "*"
+        );
+      } catch (_) {}
+    }
+    onMuteChange?.(next);
   };
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
 
   useEffect(() => {
     if (!isActive) {
-      // Stop video immediately via postMessage then blank the src
       stopIframe(iframeRef.current);
       setIframeSrc("about:blank");
-      setIsMuted(true);
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       setTimeLeft(null);
       endCalledRef.current = false;
       return;
     }
-    // Activate: load the autoplay URL
-    setIframeSrc(getVideoEmbedUrl(listing.videoUrl, true));
+    // Activate: load the autoplay URL, honouring the current global muted preference
+    setIframeSrc(getVideoEmbedUrl(listing.videoUrl, true, isMutedRef.current));
     endCalledRef.current = false;
     setTimeLeft(playSeconds);
     const start = Date.now();

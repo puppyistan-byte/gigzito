@@ -1,0 +1,98 @@
+Repair the Gigzito feed scroll behavior and persistent volume behavior.
+
+==================================================
+1. MOUSE WHEEL SCROLL BEHAVIOR
+==================================================
+
+The mouse wheel scroll in the video feed needs to behave predictably and consistently.
+
+Required behavior:
+
+1. When the user scrolls DOWN with the mouse wheel:
+   - always advance FORWARD to the next video
+   - do not get stuck between videos
+   - do not partially scroll and stop awkwardly
+
+2. When the user scrolls UP with the mouse wheel:
+   - go back to the previous video
+
+3. The feed should snap cleanly to one full video at a time.
+
+4. The scroll interaction should feel like a vertical short-form feed:
+   - one wheel movement = one video transition
+   - clean snapping
+   - smooth but decisive movement
+
+5. If the user reaches the current last loaded video:
+   - automatically continue to the next video in line
+   - load/render the next queued video
+   - do not make the feed feel like it ended unless there is truly no more content
+
+6. If more videos are available:
+   - infinite-scroll style continuation should occur
+   - the user should always be able to continue moving forward through the feed
+
+Recommended implementation:
+- snap-to-item vertical feed
+- normalized wheel handling
+- debounce or throttle wheel events so one scroll gesture triggers one clean transition
+- preload the next few videos for smoother movement
+
+==================================================
+2. VOLUME PERSISTENCE ACROSS VIDEOS
+==================================================
+
+Users should NOT have to turn the volume on every time a new video becomes active.
+
+Current behavior is annoying and must be fixed.
+
+Required behavior:
+
+1. If a user unmutes a video:
+   - remember that preference
+   - keep volume on for the next videos in the feed
+
+2. If a user adjusts volume:
+   - preserve the same volume level as they move to the next video
+
+3. If the user mutes the feed:
+   - preserve muted state across videos until they change it again
+
+4. Volume preference should persist while browsing the session.
+
+Optional:
+- persist volume preference in local storage so it remains the same on refresh/revisit
+
+Example expected behavior:
+- user turns sound on once
+- next video should also play with sound on
+- user should not have to unmute again
+- user lowers volume to 40%
+- next video should inherit 40% volume
+
+==================================================
+3. ACTIVE VIDEO HANDOFF
+==================================================
+
+When moving from one video to the next:
+
+1. pause the previous video
+2. play the next active video automatically
+3. carry over the current global feed audio state:
+   - muted or unmuted
+   - volume level
+
+This should feel like one continuous feed experience.
+
+==================================================
+4. FINAL GOAL
+==================================================
+
+The Gigzito feed should behave like a polished vertical video platform:
+
+- scroll down always moves forward
+- scroll up moves backward
+- one snap per video
+- reaching the last loaded item automatically continues to the next available video
+- audio preference stays consistent across videos
+- users should not need to keep turning volume back on
