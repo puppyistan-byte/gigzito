@@ -40,6 +40,13 @@ export default function HomePage() {
     },
   });
 
+  const wheelCooldown   = useRef(false);
+  const currentIdxRef   = useRef(currentIndex);
+  const listingsLenRef  = useRef(0);
+
+  useEffect(() => { currentIdxRef.current = currentIndex; }, [currentIndex]);
+  useEffect(() => { listingsLenRef.current = listings.length; }, [listings]);
+
   const scrollToIndex = (idx: number) => {
     const el = itemRefs.current[idx];
     if (el) {
@@ -56,6 +63,30 @@ export default function HomePage() {
     const idx = Math.round(scrollTop / height);
     setCurrentIndex(Math.max(0, Math.min(idx, listings.length - 1)));
   };
+
+  // Wheel handler — intercepts mouse wheel anywhere on the page so the
+  // iframe / overflow:hidden layers cannot swallow the event.
+  useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      if (wheelCooldown.current) return;
+      e.preventDefault();
+      wheelCooldown.current = true;
+      setTimeout(() => { wheelCooldown.current = false; }, 750);
+      const cur  = currentIdxRef.current;
+      const next = e.deltaY > 0
+        ? Math.min(cur + 1, listingsLenRef.current - 1)
+        : Math.max(cur - 1, 0);
+      if (next !== cur) {
+        const el = itemRefs.current[next];
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          setCurrentIndex(next);
+        }
+      }
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, []);
 
   useEffect(() => {
     document.body.classList.add("feed-active");
