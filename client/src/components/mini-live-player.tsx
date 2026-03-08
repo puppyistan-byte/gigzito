@@ -28,19 +28,27 @@ function detectPlatform(url: string): string {
   return "YouTube";
 }
 
-function getInjectedEmbedUrl(feed: InjectedFeed): string | null {
+function getYouTubeVideoId(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1].split("?")[0];
+    if (u.pathname.includes("/shorts/")) return u.pathname.split("/shorts/")[1].split("?")[0];
+    if (u.pathname.includes("/live/")) return u.pathname.split("/live/")[1].split("?")[0];
+    if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0];
+    return u.searchParams.get("v") ?? "";
+  } catch { return ""; }
+}
+
+function getInjectedEmbedUrl(feed: InjectedFeed, muted = true): string | null {
   try {
     const u = new URL(feed.sourceUrl);
     if (feed.platform === "YouTube" || u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      let id = "";
-      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
-      else if (u.hostname === "youtu.be") id = u.pathname.slice(1);
-      else if (u.pathname.includes("/embed/")) id = u.pathname.split("/embed/")[1].split("?")[0];
-      else id = u.searchParams.get("v") ?? u.pathname.split("/").pop() ?? "";
+      const id = getYouTubeVideoId(feed.sourceUrl);
       if (!id) return null;
+      const mt = muted ? 1 : 0;
       const isShorts = u.pathname.includes("/shorts/");
-      if (isShorts) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&modestbranding=1&rel=0&playsinline=1`;
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
+      if (isShorts) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&modestbranding=1&rel=0&playsinline=1`;
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
     }
     return null;
   } catch { return null; }
@@ -50,20 +58,10 @@ function getEmbedUrl(url: string, muted: boolean): string | null {
   try {
     const u = new URL(url);
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      if (u.pathname.includes("/embed/")) {
-        const eu = new URL(url);
-        eu.searchParams.set("autoplay", "1");
-        eu.searchParams.set("mute", muted ? "1" : "0");
-        eu.searchParams.set("controls", "0");
-        eu.searchParams.set("modestbranding", "1");
-        eu.searchParams.set("rel", "0");
-        return eu.toString();
-      }
-      let id = "";
-      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
-      else if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("?")[0];
-      else id = u.searchParams.get("v") ?? "";
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&modestbranding=1&rel=0`;
+      const id = getYouTubeVideoId(url);
+      if (!id) return null;
+      const mt = muted ? 1 : 0;
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
     }
     if (u.hostname.includes("twitch.tv")) {
       const channel = u.pathname.slice(1);
@@ -195,13 +193,26 @@ export function MiniLivePlayer() {
     setViewState("normal");
   };
 
+  const focusedIframeRef = useRef<HTMLIFrameElement>(null);
+
+  const sendMuteCmd = (iframe: HTMLIFrameElement | null, nextMuted: boolean) => {
+    if (!iframe?.contentWindow) return;
+    try {
+      iframe.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: nextMuted ? "mute" : "unMute", args: [] }),
+        "*"
+      );
+    } catch (_) {}
+  };
+
   const toggleMute = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (videoRef.current) {
-      videoRef.current.muted = !muted;
-    }
-    setMuted(m => !m);
+    const nextMuted = !muted;
+    if (videoRef.current) videoRef.current.muted = nextMuted;
+    sendMuteCmd(iframeRef.current, nextMuted);
+    sendMuteCmd(focusedIframeRef.current, nextMuted);
+    setMuted(nextMuted);
   };
 
   const CARD_W = 298;
@@ -299,7 +310,7 @@ export function MiniLivePlayer() {
                   />
                 ) : getEmbedUrl(session.streamUrl, muted) ? (
                   <iframe
-                    ref={iframeRef}
+                    ref={focusedIframeRef}
                     key={`focused-${session.id}-${muted}`}
                     src={getEmbedUrl(session.streamUrl, muted)!}
                     title={session.title}
@@ -318,10 +329,12 @@ export function MiniLivePlayer() {
               </>
             ) : hasInjectedFeed && activeInj ? (
               (() => {
-                const embedUrl = getInjectedEmbedUrl(activeInj);
+                const embedUrl = getInjectedEmbedUrl(activeInj, muted);
                 const ps = PLATFORM_COLORS[activeInj.platform] ?? { bg: "#ff2b2b", text: "#fff", label: activeInj.platform };
                 return embedUrl ? (
                   <iframe
+                    ref={focusedIframeRef}
+                    key={`focused-inj-${activeInj.id}-${muted}`}
                     src={embedUrl}
                     title={activeInj.displayTitle ?? "Live Feed"}
                     className="absolute inset-0 w-full h-full border-0"
@@ -534,7 +547,7 @@ export function MiniLivePlayer() {
           </>
         ) : hasInjectedFeed && activeInj ? (
           (() => {
-            const embedUrl = getInjectedEmbedUrl(activeInj);
+            const embedUrl = getInjectedEmbedUrl(activeInj, muted);
             const platformStyle = PLATFORM_COLORS[activeInj.platform] ?? { bg: "#ff2b2b", text: "#fff", label: activeInj.platform };
             return (
               <div data-testid="mini-live-injected">
@@ -550,6 +563,7 @@ export function MiniLivePlayer() {
                   >
                     <iframe
                       ref={iframeRef}
+                      key={`normal-inj-${activeInj.id}-${muted}`}
                       src={embedUrl}
                       title={activeInj.displayTitle ?? "Injected Feed"}
                       className="absolute inset-0 w-full h-full border-0"
