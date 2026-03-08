@@ -35,6 +35,18 @@ export default function HomePage() {
     persistMuted(muted);
   }, []);
 
+  // Pauses the main feed when ZitoTV live audio turns on
+  const [feedPaused, setFeedPaused] = useState(false);
+  const feedPausedRef = useRef(false);
+  useEffect(() => {
+    const handler = () => {
+      feedPausedRef.current = true;
+      setFeedPaused(true);
+    };
+    window.addEventListener("zitotv-unmuted", handler);
+    return () => window.removeEventListener("zitotv-unmuted", handler);
+  }, []);
+
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -76,6 +88,11 @@ export default function HomePage() {
     setCurrentIndex(clamped);
     isScrollingRef.current = true;
     container.scrollTo({ top: clamped * h, behavior: "smooth" });
+    // When user explicitly navigates to a new card, resume the feed
+    if (feedPausedRef.current) {
+      feedPausedRef.current = false;
+      setFeedPaused(false);
+    }
     // Clear the "scrolling" flag after the animation completes
     setTimeout(() => { isScrollingRef.current = false; }, 600);
   }, []);
@@ -212,13 +229,36 @@ export default function HomePage() {
               <VideoCard
                 listing={listing}
                 className="w-full h-full"
-                isActive={idx === currentIndex}
+                isActive={idx === currentIndex && !feedPaused}
                 isMuted={globalMuted}
                 onMuteChange={handleMuteChange}
                 onEnd={() => {
                   if (idx < listings.length - 1) scrollToIndex(idx + 1);
                 }}
               />
+              {feedPaused && idx === currentIndex && (
+                <div
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 pointer-events-none"
+                  style={{ background: "rgba(0,0,0,0.55)" }}
+                  data-testid="feed-paused-overlay"
+                >
+                  <div
+                    className="flex items-center justify-center rounded-full"
+                    style={{ width: 64, height: 64, background: "rgba(255,255,255,0.18)", border: "2px solid rgba(255,255,255,0.45)" }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                      <rect x="5" y="4" width="4" height="16" rx="1" />
+                      <rect x="15" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-sm font-semibold text-center px-6" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+                    Live audio is on
+                  </p>
+                  <p className="text-white/70 text-xs text-center px-8" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+                    Scroll to the next video to resume
+                  </p>
+                </div>
+              )}
             </div>
           ))
         )}

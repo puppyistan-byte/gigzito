@@ -212,6 +212,9 @@ export function MiniLivePlayer() {
     if (videoRef.current) videoRef.current.muted = nextMuted;
     sendMuteCmd(iframeRef.current, nextMuted);
     sendMuteCmd(focusedIframeRef.current, nextMuted);
+    if (!nextMuted) {
+      window.dispatchEvent(new CustomEvent("zitotv-unmuted"));
+    }
     setMuted(nextMuted);
   };
 
