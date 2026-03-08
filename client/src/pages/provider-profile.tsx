@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook } from "lucide-react";
-import { SiTiktok } from "react-icons/si";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images } from "lucide-react";
+import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
 const VERTICALS = [
@@ -43,6 +43,15 @@ type FormState = {
   instagramUrl: string;
   youtubeUrl: string;
   tiktokUrl: string;
+  facebookUrl: string;
+  discordUrl: string;
+  twitterUrl: string;
+  photo1Url: string;
+  photo2Url: string;
+  photo3Url: string;
+  photo4Url: string;
+  photo5Url: string;
+  photo6Url: string;
   webhookUrl: string;
 };
 
@@ -50,8 +59,12 @@ const EMPTY: FormState = {
   displayName: "", username: "", bio: "", avatarUrl: "", thumbUrl: "",
   primaryCategory: "", location: "", contactEmail: "", contactPhone: "",
   contactTelegram: "", websiteUrl: "", instagramUrl: "", youtubeUrl: "", tiktokUrl: "",
+  facebookUrl: "", discordUrl: "", twitterUrl: "",
+  photo1Url: "", photo2Url: "", photo3Url: "", photo4Url: "", photo5Url: "", photo6Url: "",
   webhookUrl: "",
 };
+
+const inputCls = "bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]";
 
 export default function ProviderProfilePage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -86,26 +99,46 @@ export default function ProviderProfilePage() {
         instagramUrl:     profile.instagramUrl ?? "",
         youtubeUrl:       profile.youtubeUrl ?? "",
         tiktokUrl:        profile.tiktokUrl ?? "",
+        facebookUrl:      (profile as any).facebookUrl ?? "",
+        discordUrl:       (profile as any).discordUrl ?? "",
+        twitterUrl:       (profile as any).twitterUrl ?? "",
+        photo1Url:        (profile as any).photo1Url ?? "",
+        photo2Url:        (profile as any).photo2Url ?? "",
+        photo3Url:        (profile as any).photo3Url ?? "",
+        photo4Url:        (profile as any).photo4Url ?? "",
+        photo5Url:        (profile as any).photo5Url ?? "",
+        photo6Url:        (profile as any).photo6Url ?? "",
         webhookUrl:       (profile as any).webhookUrl ?? "",
       });
     }
   }, [profile]);
 
+  const nullify = (v: string) => v.trim() || null;
+
   const mutation = useMutation({
     mutationFn: async (data: FormState) => {
       const payload = {
         ...data,
-        username:        data.username || null,
-        primaryCategory: data.primaryCategory || null,
-        location:        data.location || null,
-        contactEmail:    data.contactEmail || null,
-        contactPhone:    data.contactPhone || null,
-        contactTelegram: data.contactTelegram || null,
-        websiteUrl:      data.websiteUrl || null,
-        instagramUrl:    data.instagramUrl || null,
-        youtubeUrl:      data.youtubeUrl || null,
-        tiktokUrl:       data.tiktokUrl || null,
-        webhookUrl:      data.webhookUrl || null,
+        username:        nullify(data.username),
+        primaryCategory: nullify(data.primaryCategory),
+        location:        nullify(data.location),
+        contactEmail:    nullify(data.contactEmail),
+        contactPhone:    nullify(data.contactPhone),
+        contactTelegram: nullify(data.contactTelegram),
+        websiteUrl:      nullify(data.websiteUrl),
+        instagramUrl:    nullify(data.instagramUrl),
+        youtubeUrl:      nullify(data.youtubeUrl),
+        tiktokUrl:       nullify(data.tiktokUrl),
+        facebookUrl:     nullify(data.facebookUrl),
+        discordUrl:      nullify(data.discordUrl),
+        twitterUrl:      nullify(data.twitterUrl),
+        photo1Url:       nullify(data.photo1Url),
+        photo2Url:       nullify(data.photo2Url),
+        photo3Url:       nullify(data.photo3Url),
+        photo4Url:       nullify(data.photo4Url),
+        photo5Url:       nullify(data.photo5Url),
+        photo6Url:       nullify(data.photo6Url),
+        webhookUrl:      nullify(data.webhookUrl),
       };
       const res = await fetch("/api/profile/me", {
         method: "PUT",
@@ -152,8 +185,19 @@ export default function ProviderProfilePage() {
     instagramUrl:    form.instagramUrl || null,
     youtubeUrl:      form.youtubeUrl || null,
     tiktokUrl:       form.tiktokUrl || null,
+    facebookUrl:     form.facebookUrl || null,
+    discordUrl:      form.discordUrl || null,
+    twitterUrl:      form.twitterUrl || null,
+    photo1Url:       form.photo1Url || null,
+    photo2Url:       form.photo2Url || null,
+    photo3Url:       form.photo3Url || null,
+    photo4Url:       form.photo4Url || null,
+    photo5Url:       form.photo5Url || null,
+    photo6Url:       form.photo6Url || null,
     webhookUrl:      form.webhookUrl || null,
-  };
+  } as any;
+
+  const PHOTOS: (keyof FormState)[] = ["photo1Url", "photo2Url", "photo3Url", "photo4Url", "photo5Url", "photo6Url"];
 
   return (
     <div className="min-h-screen bg-black">
@@ -188,45 +232,20 @@ export default function ProviderProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="displayName" className="text-[#aaa] text-sm">Display Name *</Label>
-                <Input
-                  id="displayName"
-                  placeholder="Jane Smith"
-                  value={form.displayName}
-                  onChange={(e) => set("displayName", e.target.value)}
-                  required
-                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                  data-testid="input-display-name"
-                />
+                <Input id="displayName" placeholder="Jane Smith" value={form.displayName} onChange={(e) => set("displayName", e.target.value)} required className={inputCls} data-testid="input-display-name" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="username" className="text-[#aaa] text-sm">Username</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#555] text-sm">@</span>
-                  <Input
-                    id="username"
-                    placeholder="janesmithpro"
-                    value={form.username}
-                    onChange={(e) => set("username", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a] pl-7"
-                    data-testid="input-username"
-                  />
+                  <Input id="username" placeholder="janesmithpro" value={form.username} onChange={(e) => set("username", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} className={`${inputCls} pl-7`} data-testid="input-username" />
                 </div>
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="bio" className="text-[#aaa] text-sm">Bio *</Label>
-              <Textarea
-                id="bio"
-                placeholder="Tell viewers about yourself and what you create..."
-                value={form.bio}
-                onChange={(e) => set("bio", e.target.value)}
-                required
-                rows={3}
-                maxLength={300}
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a] resize-none"
-                data-testid="input-bio"
-              />
+              <Textarea id="bio" placeholder="Tell viewers about yourself and what you create..." value={form.bio} onChange={(e) => set("bio", e.target.value)} required rows={3} maxLength={300} className={`${inputCls} resize-none`} data-testid="input-bio" />
               <p className="text-xs text-[#444]">{form.bio.length}/300</p>
             </div>
 
@@ -234,31 +253,19 @@ export default function ProviderProfilePage() {
               <div className="space-y-1.5">
                 <Label htmlFor="primaryCategory" className="text-[#aaa] text-sm">Primary Category *</Label>
                 <Select value={form.primaryCategory} onValueChange={(v) => set("primaryCategory", v)}>
-                  <SelectTrigger
-                    className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff1a1a]"
-                    data-testid="select-primary-category"
-                  >
+                  <SelectTrigger className={`${inputCls}`} data-testid="select-primary-category">
                     <SelectValue placeholder="Choose your niche" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#111] border-[#2a2a2a]">
                     {VERTICALS.map((v) => (
-                      <SelectItem key={v.value} value={v.value} className="text-white focus:bg-[#222]">
-                        {v.label}
-                      </SelectItem>
+                      <SelectItem key={v.value} value={v.value} className="text-white focus:bg-[#222]">{v.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="location" className="text-[#aaa] text-sm">Location</Label>
-                <Input
-                  id="location"
-                  placeholder="New York, NY"
-                  value={form.location}
-                  onChange={(e) => set("location", e.target.value)}
-                  className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                  data-testid="input-location"
-                />
+                <Input id="location" placeholder="New York, NY" value={form.location} onChange={(e) => set("location", e.target.value)} className={inputCls} data-testid="input-location" />
               </div>
             </div>
           </div>
@@ -268,28 +275,41 @@ export default function ProviderProfilePage() {
             <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Media</h2>
             <div className="space-y-1.5">
               <Label htmlFor="avatarUrl" className="text-[#aaa] text-sm">Avatar URL * <span className="text-[#555] font-normal">(square image)</span></Label>
-              <Input
-                id="avatarUrl"
-                type="url"
-                placeholder="https://..."
-                value={form.avatarUrl}
-                onChange={(e) => set("avatarUrl", e.target.value)}
-                required
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                data-testid="input-avatar-url"
-              />
+              <Input id="avatarUrl" type="url" placeholder="https://..." value={form.avatarUrl} onChange={(e) => set("avatarUrl", e.target.value)} required className={inputCls} data-testid="input-avatar-url" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="thumbUrl" className="text-[#aaa] text-sm">Thumbnail URL <span className="text-[#555] font-normal">(16:9 image)</span></Label>
-              <Input
-                id="thumbUrl"
-                type="url"
-                placeholder="https://..."
-                value={form.thumbUrl}
-                onChange={(e) => set("thumbUrl", e.target.value)}
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                data-testid="input-thumb-url"
-              />
+              <Input id="thumbUrl" type="url" placeholder="https://..." value={form.thumbUrl} onChange={(e) => set("thumbUrl", e.target.value)} className={inputCls} data-testid="input-thumb-url" />
+            </div>
+          </div>
+
+          {/* Photo Gallery */}
+          <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
+            <div>
+              <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest flex items-center gap-1.5">
+                <Images className="h-3.5 w-3.5" /> Photo Gallery
+              </h2>
+              <p className="text-xs text-[#444] mt-1">Paste up to 6 image URLs — they will display as a gallery on your public profile.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {PHOTOS.map((field, i) => (
+                <div key={field} className="space-y-1.5">
+                  <Label className="text-[#aaa] text-sm">Photo {i + 1}</Label>
+                  <div className="flex gap-2 items-center">
+                    {form[field] && (
+                      <img src={form[field]} alt="" className="h-8 w-8 rounded object-cover shrink-0 border border-[#2a2a2a]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    )}
+                    <Input
+                      type="url"
+                      placeholder="https://..."
+                      value={form[field]}
+                      onChange={(e) => set(field, e.target.value)}
+                      className={inputCls}
+                      data-testid={`input-photo${i + 1}-url`}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -301,19 +321,19 @@ export default function ProviderProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="contactEmail" className="text-[#aaa] text-sm">Email</Label>
-                <Input id="contactEmail" type="email" placeholder="contact@example.com" value={form.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-contact-email" />
+                <Input id="contactEmail" type="email" placeholder="contact@example.com" value={form.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} className={inputCls} data-testid="input-contact-email" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="contactPhone" className="text-[#aaa] text-sm">Phone</Label>
-                <Input id="contactPhone" type="tel" placeholder="+1 555 000 0000" value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-contact-phone" />
+                <Input id="contactPhone" type="tel" placeholder="+1 555 000 0000" value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} className={inputCls} data-testid="input-contact-phone" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="contactTelegram" className="text-[#aaa] text-sm">Telegram</Label>
-                <Input id="contactTelegram" placeholder="@username" value={form.contactTelegram} onChange={(e) => set("contactTelegram", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-contact-telegram" />
+                <Input id="contactTelegram" placeholder="@username" value={form.contactTelegram} onChange={(e) => set("contactTelegram", e.target.value)} className={inputCls} data-testid="input-contact-telegram" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="websiteUrl" className="text-[#aaa] text-sm">Website</Label>
-                <Input id="websiteUrl" type="url" placeholder="https://yoursite.com" value={form.websiteUrl} onChange={(e) => set("websiteUrl", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-website-url" />
+                <Input id="websiteUrl" type="url" placeholder="https://yoursite.com" value={form.websiteUrl} onChange={(e) => set("websiteUrl", e.target.value)} className={inputCls} data-testid="input-website-url" />
               </div>
             </div>
           </div>
@@ -321,23 +341,43 @@ export default function ProviderProfilePage() {
           {/* Social Links */}
           <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
             <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Social Links</h2>
-            <div className="space-y-1.5">
-              <Label htmlFor="instagramUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
-                <Instagram className="h-3.5 w-3.5" /> Instagram
-              </Label>
-              <Input id="instagramUrl" type="url" placeholder="https://instagram.com/yourhandle" value={form.instagramUrl} onChange={(e) => set("instagramUrl", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-instagram-url" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="youtubeUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
-                <Youtube className="h-3.5 w-3.5" /> YouTube
-              </Label>
-              <Input id="youtubeUrl" type="url" placeholder="https://youtube.com/@yourchannel" value={form.youtubeUrl} onChange={(e) => set("youtubeUrl", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-youtube-url" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="tiktokUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
-                <SiTiktok className="h-3.5 w-3.5" /> TikTok
-              </Label>
-              <Input id="tiktokUrl" type="url" placeholder="https://tiktok.com/@yourhandle" value={form.tiktokUrl} onChange={(e) => set("tiktokUrl", e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]" data-testid="input-tiktok-url" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="instagramUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                  <Instagram className="h-3.5 w-3.5 text-[#E1306C]" /> Instagram
+                </Label>
+                <Input id="instagramUrl" type="url" placeholder="https://instagram.com/yourhandle" value={form.instagramUrl} onChange={(e) => set("instagramUrl", e.target.value)} className={inputCls} data-testid="input-instagram-url" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="youtubeUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                  <Youtube className="h-3.5 w-3.5 text-[#FF0000]" /> YouTube
+                </Label>
+                <Input id="youtubeUrl" type="url" placeholder="https://youtube.com/@yourchannel" value={form.youtubeUrl} onChange={(e) => set("youtubeUrl", e.target.value)} className={inputCls} data-testid="input-youtube-url" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="tiktokUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                  <SiTiktok className="h-3.5 w-3.5" /> TikTok
+                </Label>
+                <Input id="tiktokUrl" type="url" placeholder="https://tiktok.com/@yourhandle" value={form.tiktokUrl} onChange={(e) => set("tiktokUrl", e.target.value)} className={inputCls} data-testid="input-tiktok-url" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="facebookUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                  <SiFacebook className="h-3.5 w-3.5 text-[#1877F2]" /> Facebook
+                </Label>
+                <Input id="facebookUrl" type="url" placeholder="https://facebook.com/yourpage" value={form.facebookUrl} onChange={(e) => set("facebookUrl", e.target.value)} className={inputCls} data-testid="input-facebook-url" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="discordUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                  <SiDiscord className="h-3.5 w-3.5 text-[#5865F2]" /> Discord
+                </Label>
+                <Input id="discordUrl" type="url" placeholder="https://discord.gg/yourserver" value={form.discordUrl} onChange={(e) => set("discordUrl", e.target.value)} className={inputCls} data-testid="input-discord-url" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="twitterUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
+                  <SiX className="h-3.5 w-3.5" /> X / Twitter
+                </Label>
+                <Input id="twitterUrl" type="url" placeholder="https://x.com/yourhandle" value={form.twitterUrl} onChange={(e) => set("twitterUrl", e.target.value)} className={inputCls} data-testid="input-twitter-url" />
+              </div>
             </div>
           </div>
 
@@ -348,18 +388,8 @@ export default function ProviderProfilePage() {
               <Label htmlFor="webhookUrl" className="text-[#aaa] text-sm flex items-center gap-1.5">
                 <Webhook className="h-3.5 w-3.5" /> Webhook URL <span className="text-[#444] font-normal">(optional)</span>
               </Label>
-              <Input
-                id="webhookUrl"
-                type="url"
-                placeholder="https://hooks.yourapp.com/leads"
-                value={form.webhookUrl}
-                onChange={(e) => set("webhookUrl", e.target.value)}
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                data-testid="input-webhook-url"
-              />
-              <p className="text-xs text-[#444]">
-                When set, new lead inquiries will be POSTed as JSON to this URL in real time.
-              </p>
+              <Input id="webhookUrl" type="url" placeholder="https://hooks.yourapp.com/leads" value={form.webhookUrl} onChange={(e) => set("webhookUrl", e.target.value)} className={inputCls} data-testid="input-webhook-url" />
+              <p className="text-xs text-[#444]">When set, new lead inquiries will be POSTed as JSON to this URL in real time.</p>
             </div>
           </div>
 

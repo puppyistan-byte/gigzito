@@ -42,6 +42,15 @@ export const providerProfiles = pgTable("provider_profiles", {
   instagramUrl: text("instagram_url"),
   youtubeUrl: text("youtube_url"),
   tiktokUrl: text("tiktok_url"),
+  facebookUrl: text("facebook_url"),
+  discordUrl: text("discord_url"),
+  twitterUrl: text("twitter_url"),
+  photo1Url: text("photo1_url"),
+  photo2Url: text("photo2_url"),
+  photo3Url: text("photo3_url"),
+  photo4Url: text("photo4_url"),
+  photo5Url: text("photo5_url"),
+  photo6Url: text("photo6_url"),
   webhookUrl: text("webhook_url"),
 });
 

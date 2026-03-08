@@ -4,7 +4,7 @@ import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle } from "lucide-react";
-import { SiTiktok } from "react-icons/si";
+import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile, ListingWithProvider } from "@shared/schema";
 
 export default function ProviderPublicPage() {
@@ -25,6 +25,12 @@ export default function ProviderPublicPage() {
   const initials = profile?.displayName
     ? profile.displayName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "?";
+
+  const p = profile as any;
+
+  const photos = profile
+    ? [p.photo1Url, p.photo2Url, p.photo3Url, p.photo4Url, p.photo5Url, p.photo6Url].filter(Boolean)
+    : [];
 
   return (
     <div className="min-h-screen bg-black">
@@ -94,8 +100,8 @@ export default function ProviderPublicPage() {
                   </p>
                 )}
 
-                {/* Contact & Social */}
-                <div className="flex flex-wrap gap-2 mt-4">
+                {/* Contact links */}
+                <div className="flex flex-wrap gap-3 mt-4">
                   {profile.websiteUrl && (
                     <a href={profile.websiteUrl} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-xs text-[#888] hover:text-white transition-colors"
@@ -124,30 +130,100 @@ export default function ProviderPublicPage() {
                       <MessageCircle className="h-3.5 w-3.5" /> Telegram
                     </a>
                   )}
-                  {profile.instagramUrl && (
-                    <a href={profile.instagramUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs text-[#888] hover:text-white transition-colors"
-                      data-testid="link-instagram">
-                      <Instagram className="h-3.5 w-3.5" /> Instagram
-                    </a>
-                  )}
-                  {profile.youtubeUrl && (
-                    <a href={profile.youtubeUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs text-[#888] hover:text-white transition-colors"
-                      data-testid="link-youtube">
-                      <Youtube className="h-3.5 w-3.5" /> YouTube
-                    </a>
-                  )}
-                  {profile.tiktokUrl && (
-                    <a href={profile.tiktokUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs text-[#888] hover:text-white transition-colors"
-                      data-testid="link-tiktok">
-                      <SiTiktok className="h-3.5 w-3.5" /> TikTok
-                    </a>
-                  )}
                 </div>
+
+                {/* Social icons row */}
+                {(profile.instagramUrl || profile.youtubeUrl || profile.tiktokUrl || p.facebookUrl || p.discordUrl || p.twitterUrl) && (
+                  <div className="flex items-center gap-1 mt-3">
+                    {profile.instagramUrl && (
+                      <a href={profile.instagramUrl} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors text-[#E1306C]"
+                        title="Instagram" data-testid="link-instagram">
+                        <Instagram className="h-4 w-4" />
+                      </a>
+                    )}
+                    {profile.youtubeUrl && (
+                      <a href={profile.youtubeUrl} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors text-[#FF0000]"
+                        title="YouTube" data-testid="link-youtube">
+                        <Youtube className="h-4 w-4" />
+                      </a>
+                    )}
+                    {profile.tiktokUrl && (
+                      <a href={profile.tiktokUrl} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors text-white"
+                        title="TikTok" data-testid="link-tiktok">
+                        <SiTiktok className="h-4 w-4" />
+                      </a>
+                    )}
+                    {p.facebookUrl && (
+                      <a href={p.facebookUrl} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors text-[#1877F2]"
+                        title="Facebook" data-testid="link-facebook">
+                        <SiFacebook className="h-4 w-4" />
+                      </a>
+                    )}
+                    {p.discordUrl && (
+                      <a href={p.discordUrl} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors text-[#5865F2]"
+                        title="Discord" data-testid="link-discord">
+                        <SiDiscord className="h-4 w-4" />
+                      </a>
+                    )}
+                    {p.twitterUrl && (
+                      <a href={p.twitterUrl} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors text-white"
+                        title="X / Twitter" data-testid="link-twitter">
+                        <SiX className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Photo Gallery */}
+            {photos.length > 0 && (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3">
+                <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Photos</h2>
+                <div className="grid grid-cols-3 gap-2">
+                  {photos.map((url: string, i: number) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      className="aspect-square rounded-lg overflow-hidden bg-[#111] block border border-[#1e1e1e] hover:border-[#333] transition-colors"
+                      data-testid={`img-gallery-${i + 1}`}>
+                      <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Listings */}
+            {listingsLoading ? (
+              <Skeleton className="h-20 w-full bg-[#111] rounded-xl" />
+            ) : listings.length > 0 ? (
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Videos</h2>
+                {listings.map((l) => (
+                  <div key={l.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4" data-testid={`listing-card-${l.id}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-white">{l.title}</p>
+                        {l.description && <p className="text-xs text-[#666] mt-1 line-clamp-2">{l.description}</p>}
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <Badge className="bg-[#ff2b2b]/10 text-[#ff2b2b] border border-[#ff2b2b]/20 text-xs">
+                            {l.vertical.replace(/_/g, " ")}
+                          </Badge>
+                          {l.tags?.map((tag) => (
+                            <span key={tag} className="text-xs text-[#555]">#{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </>
         )}
       </div>
