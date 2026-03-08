@@ -19,8 +19,8 @@ const TIERS = [
     label: "Spotlight",
     duration: "15 Minutes",
     durationMinutes: 15,
-    price: "$15",
-    priceCents: 1500,
+    price: "$10",
+    priceCents: 1000,
     features: [
       "15 minutes of front-page featured placement",
       "ALL EYES ON ME banner on main feed",
@@ -34,8 +34,8 @@ const TIERS = [
     label: "Power Spotlight",
     duration: "30 Minutes",
     durationMinutes: 30,
-    price: "$25",
-    priceCents: 2500,
+    price: "$20",
+    priceCents: 2000,
     features: [
       "30 minutes of front-page featured placement",
       "ALL EYES ON ME banner on main feed",
@@ -50,8 +50,8 @@ const TIERS = [
     label: "Full Hour",
     duration: "1 Hour",
     durationMinutes: 60,
-    price: "$40",
-    priceCents: 4000,
+    price: "$25",
+    priceCents: 2500,
     features: [
       "60 minutes of front-page featured placement",
       "ALL EYES ON ME banner on main feed",

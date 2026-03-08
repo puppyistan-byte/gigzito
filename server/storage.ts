@@ -1052,7 +1052,7 @@ export class DatabaseStorage implements IStorage {
     const startAt = new Date(data.startAt);
     const endAt = new Date(startAt.getTime() + data.durationMinutes * 60 * 1000);
 
-    const PRICES: Record<number, number> = { 15: 1500, 30: 2500, 60: 4000 };
+    const PRICES: Record<number, number> = { 15: 1000, 30: 2000, 60: 2500 };
     const priceCents = PRICES[data.durationMinutes] ?? 1500;
 
     const [conflict] = await db.select({ id: allEyesSlots.id })
