@@ -1,0 +1,138 @@
+Create a Live Marketers page that displays business cards for all marketers who are currently live.
+
+==================================================
+LIVE BUTTON BEHAVIOR
+==================================================
+
+When a user clicks the "Live" button in the navigation bar:
+
+The user should be taken to a dedicated page called:
+
+Live Marketers
+
+This page displays all marketers who currently have an active live stream.
+
+==================================================
+LIVE MARKETERS PAGE
+==================================================
+
+The Live Marketers page should show a grid or vertical list of business cards.
+
+Each card represents a marketer who is currently live.
+
+The goal is to create a visual "live marketplace".
+
+==================================================
+BUSINESS CARD DISPLAY
+==================================================
+
+Each marketer card should contain:
+
+• profile photo or avatar
+• marketer name
+• category (marketing / coaching / music / etc.)
+• short tagline or headline
+• live indicator
+• click interaction
+
+Optional:
+• brand logo
+• follower or engagement stats
+
+==================================================
+LIVE INDICATOR
+==================================================
+
+Each marketer who is live should display a clear indicator.
+
+Examples:
+
+LIVE
+or
+a red pulsing dot + LIVE label
+
+Example:
+
+● LIVE
+
+The indicator should be visually obvious.
+
+==================================================
+CLICK BEHAVIOR
+==================================================
+
+When a user clicks the marketer's business card:
+
+The platform should open the marketer’s live stream.
+
+Important:
+
+The marketer’s live URL should already be stored in their profile or live session data.
+
+The system should automatically use that stored live URL.
+
+The user should not need to manually enter anything.
+
+==================================================
+LIVE URL SOURCE
+==================================================
+
+Each marketer who goes live must have a live URL associated with their session.
+
+Examples:
+
+TikTok Live
+Instagram Live
+Facebook Live
+YouTube Live
+custom approved live URL
+
+When the marketer activates their live session:
+
+• their live URL becomes active
+• their business card appears on the Live Marketers page
+
+==================================================
+LIVE SESSION LOGIC
+==================================================
+
+When a marketer activates live mode:
+
+1. their profile becomes marked as live
+2. their live URL is registered
+3. their business card appears in the Live Marketers page
+
+When the live session ends:
+
+• the live indicator disappears
+• the card is removed from the Live Marketers page
+
+==================================================
+CARD PRIORITY
+==================================================
+
+If many marketers are live at once:
+
+Sort cards by:
+
+1. newest live session
+or
+2. most engagement
+or
+3. admin priority
+
+Initial version can simply display newest live sessions first.
+
+==================================================
+VISUAL GOAL
+==================================================
+
+The Live page should feel like a live marketplace of experts.
+
+Users click the Live button and instantly see:
+
+multiple live marketers  
+multiple business cards  
+multiple streams available  
+
+Each card clearly shows who is live and allows immediate access to their broadcast.
