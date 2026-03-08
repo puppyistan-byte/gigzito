@@ -1128,6 +1128,57 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(result.slot);
   });
 
+  // ── ZitoTV ──────────────────────────────────────────────────────────────────
+
+  app.get("/api/zitotv/events", async (req, res) => {
+    const from = req.query.from ? new Date(req.query.from as string) : undefined;
+    const to = req.query.to ? new Date(req.query.to as string) : undefined;
+    const events = await storage.getZitoTVEvents({ from, to });
+    return res.json(events);
+  });
+
+  app.get("/api/zitotv/events/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    const event = await storage.getZitoTVEvent(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    return res.json(event);
+  });
+
+  app.post("/api/zitotv/events", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Authentication required" });
+    const { title, description, hostName, category, liveUrl, ctaUrl, durationMinutes, startAt } = req.body;
+    if (!title || !hostName || !startAt || !durationMinutes) return res.status(400).json({ message: "title, hostName, startAt and durationMinutes are required" });
+    const event = await storage.createZitoTVEvent(req.session.userId, { title, description, hostName, category: category ?? "OTHER", liveUrl, ctaUrl, durationMinutes, startAt });
+    return res.json(event);
+  });
+
+  app.patch("/api/zitotv/events/:id", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Authentication required" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    const event = await storage.getZitoTVEvent(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(req.session?.role ?? "");
+    const isOwner = event.hostUserId === req.session.userId;
+    if (!isAdmin && !isOwner) return res.status(403).json({ message: "Not authorized" });
+    const updated = await storage.updateZitoTVEvent(id, req.body);
+    return res.json(updated);
+  });
+
+  app.delete("/api/zitotv/events/:id", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Authentication required" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    const event = await storage.getZitoTVEvent(id);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(req.session?.role ?? "");
+    const isOwner = event.hostUserId === req.session.userId;
+    if (!isAdmin && !isOwner) return res.status(403).json({ message: "Not authorized" });
+    await storage.deleteZitoTVEvent(id);
+    return res.json({ success: true });
+  });
+
   app.patch("/api/all-eyes/:id/cancel", async (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ message: "Authentication required" });
     const id = parseInt(req.params.id);

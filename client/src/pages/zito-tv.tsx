@@ -1,133 +1,554 @@
-import { useState, useRef, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Tv, Lock } from "lucide-react";
-import { GuestCtaModal } from "@/components/guest-cta-modal";
+import { Tv, Calendar, Clock, ChevronLeft, ChevronRight, Plus, X, ExternalLink, Loader2, ArrowLeft, Mic, Users, BookOpen, Music, Presentation, Radio, MessageSquare, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import type { ListingWithProvider } from "@shared/schema";
+import { GuestCtaModal } from "@/components/guest-cta-modal";
+import { apiRequest } from "@/lib/queryClient";
+import type { ZitoTVEventWithHost } from "@shared/schema";
+import { ZITO_TV_CATEGORIES } from "@shared/schema";
 
-function getVideoEmbedUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
-      if (u.pathname.includes("/embed/")) return url;
-      let id = "";
-      if (u.pathname.includes("/shorts/")) id = u.pathname.split("/shorts/")[1].split("?")[0];
-      else if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("?")[0];
-      else id = u.searchParams.get("v") ?? "";
-      if (!id) return url;
-      return `https://www.youtube.com/embed/${id}?autoplay=0&controls=0&modestbranding=1&rel=0&playsinline=1`;
-    }
-    return url;
-  } catch { return url; }
+const CATEGORY_META: Record<string, { icon: any; label: string; color: string }> = {
+  INTERVIEW:     { icon: Mic,           label: "Interview",       color: "#7c5cbf" },
+  COACHING:      { icon: Users,         label: "Coaching",        color: "#2563eb" },
+  PRESENTATION:  { icon: Presentation,  label: "Presentation",    color: "#059669" },
+  DEMO:          { icon: Zap,           label: "Demo",            color: "#d97706" },
+  MUSIC:         { icon: Music,         label: "Music",           color: "#db2777" },
+  CLASS:         { icon: BookOpen,      label: "Class",           color: "#0891b2" },
+  DISCUSSION:    { icon: MessageSquare, label: "Discussion",      color: "#65a30d" },
+  BROADCAST:     { icon: Radio,         label: "Broadcast",       color: "#ff2b2b" },
+  OTHER:         { icon: Tv,            label: "Other",           color: "#888" },
+};
+
+const DURATIONS = [15, 30, 45, 60, 90, 120, 180];
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function formatEventTime(event: ZitoTVEventWithHost): string {
+  const s = new Date(event.startAt);
+  const e = new Date(event.endAt);
+  return `${s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – ${e.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-export default function ZitoTVPage() {
-  const { user } = useAuth();
-  const [showGuestModal, setShowGuestModal] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const feedRef = useRef<HTMLDivElement>(null);
+function isToday(d: Date): boolean {
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+}
 
-  const { data: listings = [], isLoading } = useQuery<ListingWithProvider[]>({
-    queryKey: ["/api/listings"],
-  });
+function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
-  const listing = listings[currentIdx];
+function getCalendarDays(year: number, month: number): (Date | null)[] {
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const days: (Date | null)[] = [];
+  for (let i = 0; i < first.getDay(); i++) days.push(null);
+  for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
+  while (days.length % 7 !== 0) days.push(null);
+  return days;
+}
+
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+interface EventCardProps {
+  event: ZitoTVEventWithHost;
+  onDelete?: (id: number) => void;
+  isAdmin?: boolean;
+  isOwner?: boolean;
+}
+
+function EventCard({ event, onDelete, isAdmin, isOwner }: EventCardProps) {
+  const meta = CATEGORY_META[event.category] ?? CATEGORY_META.OTHER;
+  const Icon = meta.icon;
+  const now = new Date();
+  const isLive = new Date(event.startAt) <= now && new Date(event.endAt) > now;
+  const isPast = new Date(event.endAt) < now;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col" data-testid="page-zito-tv">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-5 py-3 border-b"
-        style={{ borderColor: "rgba(255,43,43,0.2)", background: "#000" }}
-      >
-        <div className="flex items-center gap-2">
-          <Tv className="w-5 h-5 text-[#ff2b2b]" />
-          <span className="text-white font-bold text-lg tracking-tight">Zito TV</span>
-          <span className="text-[10px] text-[#ff2b2b] bg-[#ff2b2b]/15 border border-[#ff2b2b]/30 rounded-full px-2 py-0.5 font-bold ml-1">PUBLIC</span>
+    <div
+      className="rounded-xl border p-4 space-y-2.5 transition-all"
+      style={{
+        background: isLive ? "rgba(255,43,43,0.08)" : "rgba(255,255,255,0.03)",
+        borderColor: isLive ? "rgba(255,43,43,0.40)" : "rgba(255,255,255,0.08)",
+        opacity: isPast ? 0.55 : 1,
+      }}
+      data-testid={`event-card-${event.id}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${meta.color}22` }}>
+            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-white font-bold text-sm leading-tight truncate">{event.title}</p>
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: meta.color }}>{meta.label}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {user ? (
-            <Link href="/">
-              <span className="text-xs text-[#ff2b2b] font-semibold cursor-pointer hover:underline">Full Feed →</span>
-            </Link>
-          ) : (
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isLive && (
+            <span className="flex items-center gap-1 bg-[#ff2b2b] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              LIVE
+            </span>
+          )}
+          {(isAdmin || isOwner) && onDelete && (
             <button
-              onClick={() => setShowGuestModal(true)}
-              className="text-xs bg-[#ff2b2b] text-white font-bold px-3 py-1.5 rounded-full"
-              data-testid="button-zito-tv-join"
+              onClick={() => onDelete(event.id)}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[#555] hover:text-[#ff2b2b] hover:bg-[#ff2b2b]/10 transition-colors"
+              data-testid={`button-delete-event-${event.id}`}
             >
-              Join Free
+              <X className="w-3 h-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Feed */}
-      <div className="flex-1 relative overflow-hidden" ref={feedRef}>
-        {isLoading || !listing ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-[#ff2b2b] border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center gap-3 text-[11px] text-[#666]">
+        <span className="flex items-center gap-1">
+          <Clock className="w-3 h-3" /> {formatEventTime(event)}
+        </span>
+        <span className="text-[#444]">·</span>
+        <span>{event.durationMinutes}m</span>
+      </div>
+
+      {event.hostName && (
+        <p className="text-xs text-[#888]">
+          Hosted by <span className="text-[#bbb] font-medium">{event.hostName}</span>
+        </p>
+      )}
+
+      {event.description && (
+        <p className="text-xs text-[#666] leading-relaxed line-clamp-2">{event.description}</p>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        {event.liveUrl && (
+          <a href={event.liveUrl} target="_blank" rel="noopener noreferrer">
+            <Button size="sm" className="h-7 text-[10px] bg-[#ff2b2b] hover:bg-[#e01e1e] text-white rounded-lg px-3" data-testid={`button-join-event-${event.id}`}>
+              <ExternalLink className="w-3 h-3 mr-1" /> Join Live
+            </Button>
+          </a>
+        )}
+        {event.ctaUrl && (
+          <a href={event.ctaUrl} target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="outline" className="h-7 text-[10px] border-[#2a2a2a] bg-transparent text-[#aaa] hover:text-white rounded-lg px-3">
+              Register
+            </Button>
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface BookingFormProps {
+  selectedDate: Date;
+  onClose: () => void;
+  onSuccess: () => void;
+  user: any;
+  profile: any;
+}
+
+function BookingForm({ selectedDate, onClose, onSuccess, user, profile }: BookingFormProps) {
+  const { toast } = useToast();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [hostName, setHostName] = useState(profile?.displayName ?? "");
+  const [category, setCategory] = useState("OTHER");
+  const [liveUrl, setLiveUrl] = useState("");
+  const [ctaUrl, setCtaUrl] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [time, setTime] = useState("10:00");
+
+  const startAt = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    selectedDate.getDate(),
+    parseInt(time.split(":")[0]),
+    parseInt(time.split(":")[1]),
+  );
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/zitotv/events", {
+        title, description: description || undefined, hostName, category, liveUrl: liveUrl || undefined,
+        ctaUrl: ctaUrl || undefined, durationMinutes, startAt: startAt.toISOString(),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Event scheduled!", description: "Your ZitoTV event is now on the calendar." });
+      onSuccess();
+    },
+    onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+  });
+
+  return (
+    <div className="rounded-2xl bg-[#0b0b0b] border border-[#ff2b2b]/30 p-5 space-y-4" data-testid="booking-form">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-white font-bold text-sm">Book a Live Event</h3>
+          <p className="text-[#555] text-xs mt-0.5">
+            {selectedDate.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" })}
+          </p>
+        </div>
+        <button onClick={onClose} className="text-[#555] hover:text-white text-xs" data-testid="button-close-booking">✕</button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2 space-y-1">
+          <Label className="text-[#aaa] text-xs">Event Title *</Label>
+          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Mindset Mastery Live Session" className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] h-9 text-sm" data-testid="input-event-title" />
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[#aaa] text-xs">Time *</Label>
+          <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff2b2b] h-9 text-sm" data-testid="input-event-time" />
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[#aaa] text-xs">Duration *</Label>
+          <Select value={String(durationMinutes)} onValueChange={v => setDurationMinutes(parseInt(v))}>
+            <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#111] border-[#2a2a2a]">
+              {DURATIONS.map(d => (
+                <SelectItem key={d} value={String(d)} className="text-white focus:bg-[#222]">
+                  {d >= 60 ? `${d / 60}h${d % 60 ? ` ${d % 60}m` : ""}` : `${d}m`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[#aaa] text-xs">Category</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-category">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#111] border-[#2a2a2a]">
+              {ZITO_TV_CATEGORIES.map(c => (
+                <SelectItem key={c} value={c} className="text-white focus:bg-[#222]">{CATEGORY_META[c]?.label ?? c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[#aaa] text-xs">Host Name *</Label>
+          <Input value={hostName} onChange={e => setHostName(e.target.value)} placeholder="Your name or brand" className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] h-9 text-sm" data-testid="input-host-name" />
+        </div>
+
+        <div className="col-span-2 space-y-1">
+          <Label className="text-[#aaa] text-xs">Description (optional)</Label>
+          <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What will this event cover?" rows={2} className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] text-sm resize-none" data-testid="input-description" />
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[#aaa] text-xs">Live Stream URL (optional)</Label>
+          <Input value={liveUrl} onChange={e => setLiveUrl(e.target.value)} placeholder="https://..." className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] h-9 text-sm" data-testid="input-live-url" />
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[#aaa] text-xs">Registration CTA URL (optional)</Label>
+          <Input value={ctaUrl} onChange={e => setCtaUrl(e.target.value)} placeholder="https://..." className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] h-9 text-sm" data-testid="input-cta-url" />
+        </div>
+      </div>
+
+      <Button
+        onClick={() => createMutation.mutate()}
+        disabled={createMutation.isPending || !title.trim() || !hostName.trim()}
+        className="w-full bg-[#ff2b2b] hover:bg-[#e01e1e] text-white font-bold rounded-xl h-10"
+        data-testid="button-submit-event"
+      >
+        {createMutation.isPending
+          ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Scheduling…</>
+          : <><Calendar className="h-4 w-4 mr-2" /> Schedule Event</>
+        }
+      </Button>
+    </div>
+  );
+}
+
+export default function ZitoTVPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [showBooking, setShowBooking] = useState(false);
+  const [showGuestModal, setShowGuestModal] = useState(false);
+
+  const monthStart = new Date(viewYear, viewMonth, 1);
+  const monthEnd = new Date(viewYear, viewMonth + 1, 0, 23, 59, 59);
+
+  const { data: events = [], isLoading } = useQuery<ZitoTVEventWithHost[]>({
+    queryKey: ["/api/zitotv/events", viewYear, viewMonth],
+    queryFn: () => fetch(`/api/zitotv/events?from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`).then(r => r.json()),
+    refetchInterval: 60000,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/zitotv/events/${id}`);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/zitotv/events"] });
+      toast({ title: "Event removed" });
+    },
+    onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+  });
+
+  const calDays = getCalendarDays(viewYear, viewMonth);
+  const selectedEvents = events.filter(e => sameDay(new Date(e.startAt), selectedDate));
+  const isAdmin = user?.user?.role === "ADMIN" || user?.user?.role === "SUPER_ADMIN";
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const handleBookClick = () => {
+    if (!user) { setShowGuestModal(true); return; }
+    setShowBooking(true);
+  };
+
+  const eventDays = new Set(events.map(e => {
+    const d = new Date(e.startAt);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }));
+  const hasEvents = (d: Date) => eventDays.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+  const liveDays = new Set(events.filter(e => {
+    const n = new Date();
+    return new Date(e.startAt) <= n && new Date(e.endAt) > n;
+  }).map(e => {
+    const d = new Date(e.startAt);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }));
+  const isLiveDay = (d: Date) => liveDays.has(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+
+  return (
+    <div className="min-h-screen bg-black pb-20" data-testid="page-zito-tv">
+      {/* Header */}
+      <div className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b" style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)", borderColor: "rgba(255,43,43,0.20)" }}>
+        <div className="flex items-center gap-2.5">
+          <Link href="/">
+            <button className="text-[#555] hover:text-white transition-colors mr-1" data-testid="link-back-home">
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          </Link>
+          <Tv className="w-5 h-5 text-[#ff2b2b]" />
+          <div>
+            <span className="text-white font-black text-base tracking-tight">ZitoTV</span>
+            <span className="text-[#ff2b2b] text-[10px] font-bold ml-1.5 opacity-70">Live Events Calendar</span>
+          </div>
+        </div>
+        <Button
+          onClick={handleBookClick}
+          size="sm"
+          className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white text-xs font-bold rounded-full px-3 h-8"
+          data-testid="button-book-event"
+        >
+          <Plus className="w-3.5 h-3.5 mr-1" /> Book a Live Event
+        </Button>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+
+        {/* Calendar */}
+        <div className="rounded-2xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
+          {/* Month nav */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#1a1a1a]">
+            <button onClick={prevMonth} className="w-8 h-8 rounded-full flex items-center justify-center text-[#666] hover:text-white hover:bg-[#1a1a1a] transition-colors" data-testid="button-prev-month">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <h2 className="text-white font-bold text-sm" data-testid="text-current-month">
+              {MONTH_NAMES[viewMonth]} {viewYear}
+            </h2>
+            <button onClick={nextMonth} className="w-8 h-8 rounded-full flex items-center justify-center text-[#666] hover:text-white hover:bg-[#1a1a1a] transition-colors" data-testid="button-next-month">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Day headers */}
+          <div className="grid grid-cols-7 border-b border-[#111]">
+            {DAY_NAMES.map(d => (
+              <div key={d} className="py-2 text-center text-[10px] font-bold text-[#444] uppercase tracking-widest">{d}</div>
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div className="grid grid-cols-7">
+            {calDays.map((day, idx) => {
+              if (!day) return <div key={`empty-${idx}`} className="h-11 border-r border-b border-[#111] last:border-r-0" />;
+              const sel = sameDay(day, selectedDate);
+              const tod = isToday(day);
+              const live = isLiveDay(day);
+              const hasEv = hasEvents(day);
+              return (
+                <button
+                  key={day.toISOString()}
+                  onClick={() => { setSelectedDate(day); setShowBooking(false); }}
+                  className="h-11 flex flex-col items-center justify-center gap-0.5 border-r border-b border-[#0f0f0f] last:border-r-0 transition-colors relative"
+                  style={{
+                    background: sel ? "rgba(255,43,43,0.15)" : tod ? "rgba(255,43,43,0.05)" : "transparent",
+                  }}
+                  data-testid={`calendar-day-${day.getDate()}`}
+                >
+                  <span className={`text-xs font-semibold ${sel ? "text-[#ff2b2b]" : tod ? "text-white" : "text-[#666]"}`}>
+                    {day.getDate()}
+                  </span>
+                  {(hasEv || live) && (
+                    <span
+                      className="w-1 h-1 rounded-full"
+                      style={{ background: live ? "#ff2b2b" : "#555" }}
+                    />
+                  )}
+                  {sel && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ff2b2b]" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected day heading */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-white font-bold text-sm" data-testid="text-selected-date">
+              {isToday(selectedDate) ? "Today" : selectedDate.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" })}
+            </h3>
+            <p className="text-[#444] text-xs mt-0.5">
+              {selectedEvents.length === 0 ? "No events scheduled" : `${selectedEvents.length} event${selectedEvents.length !== 1 ? "s" : ""} scheduled`}
+            </p>
+          </div>
+          <button
+            onClick={handleBookClick}
+            className="flex items-center gap-1.5 text-xs text-[#ff2b2b] font-semibold hover:text-white transition-colors"
+            data-testid="button-add-event-day"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Event
+          </button>
+        </div>
+
+        {/* Booking form */}
+        {showBooking && user && (
+          <BookingForm
+            selectedDate={selectedDate}
+            onClose={() => setShowBooking(false)}
+            onSuccess={() => {
+              setShowBooking(false);
+              queryClient.invalidateQueries({ queryKey: ["/api/zitotv/events"] });
+            }}
+            user={user}
+            profile={user?.profile}
+          />
+        )}
+
+        {/* Events for selected day */}
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-5 h-5 border-2 border-[#ff2b2b] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : selectedEvents.length === 0 ? (
+          <div className="rounded-2xl bg-[#0b0b0b] border border-[#1a1a1a] py-10 flex flex-col items-center gap-3" data-testid="empty-events">
+            <Tv className="w-8 h-8 text-[#2a2a2a]" />
+            <p className="text-[#444] text-sm">No events on this day</p>
+            <button
+              onClick={handleBookClick}
+              className="text-xs text-[#ff2b2b] font-semibold hover:underline"
+            >
+              Be the first to book a live event →
+            </button>
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center relative">
-            {/* Video */}
-            <div className="relative w-full h-full max-w-[420px] mx-auto flex items-center justify-center">
-              <div className="relative h-full aspect-[9/16] max-w-[420px] w-auto rounded-[22px] overflow-hidden bg-black">
-                <iframe
-                  src={getVideoEmbedUrl(listing.videoUrl)}
-                  title={listing.title}
-                  className="absolute inset-0 w-full h-full border-0 pointer-events-none"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-                {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/10" />
+          <div className="space-y-3" data-testid="events-list">
+            {selectedEvents.map(event => (
+              <EventCard
+                key={event.id}
+                event={event}
+                onDelete={isAdmin || event.hostUserId === user?.user?.id ? deleteMutation.mutate : undefined}
+                isAdmin={isAdmin}
+                isOwner={event.hostUserId === user?.user?.id}
+              />
+            ))}
+          </div>
+        )}
 
-                {/* Locked CTA overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
-                  <p className="text-white font-bold text-base">{listing.title}</p>
-                  <p className="text-white/60 text-xs">{listing.provider.displayName}</p>
-                  {/* Locked action */}
+        {/* Upcoming events this month */}
+        {events.filter(e => {
+          const s = new Date(e.startAt);
+          return s >= today && !sameDay(s, selectedDate);
+        }).length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-[#555] text-xs font-bold uppercase tracking-widest">Upcoming This Month</h3>
+            <div className="space-y-2">
+              {events.filter(e => {
+                const s = new Date(e.startAt);
+                return s >= today && !sameDay(s, selectedDate);
+              }).slice(0, 5).map(event => {
+                const meta = CATEGORY_META[event.category] ?? CATEGORY_META.OTHER;
+                const Icon = meta.icon;
+                return (
                   <button
-                    onClick={() => setShowGuestModal(true)}
-                    className="w-full flex items-center justify-center gap-2 h-9 rounded-full font-bold text-sm text-white/60 border border-white/20 bg-black/40 backdrop-blur-sm"
-                    data-testid="button-zito-tv-locked-cta"
+                    key={event.id}
+                    onClick={() => { setSelectedDate(new Date(event.startAt)); setShowBooking(false); }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#1a1a1a] bg-[#0b0b0b] hover:border-[#ff2b2b]/20 transition-colors text-left"
+                    data-testid={`upcoming-event-${event.id}`}
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    Join to Inquire
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${meta.color}18` }}>
+                      <Icon className="w-4 h-4" style={{ color: meta.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-semibold truncate">{event.title}</p>
+                      <p className="text-[#555] text-[10px]">
+                        {new Date(event.startAt).toLocaleDateString("default", { month: "short", day: "numeric" })} · {new Date(event.startAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-semibold shrink-0" style={{ color: meta.color }}>{meta.label}</span>
                   </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Nav arrows */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-              <button
-                onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
-                disabled={currentIdx === 0}
-                className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white disabled:opacity-30"
-                data-testid="button-zito-tv-prev"
-              >▲</button>
-              <button
-                onClick={() => setCurrentIdx((i) => Math.min(listings.length - 1, i + 1))}
-                disabled={currentIdx >= listings.length - 1}
-                className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white disabled:opacity-30"
-                data-testid="button-zito-tv-next"
-              >▼</button>
+                );
+              })}
             </div>
           </div>
         )}
-      </div>
 
-      {/* Bottom bar */}
-      <div
-        className="px-5 py-3 border-t text-center"
-        style={{ borderColor: "rgba(255,255,255,0.08)", background: "#000" }}
-      >
-        <p className="text-[11px] text-[#555]">
-          Zito TV is a public broadcast view. <button onClick={() => setShowGuestModal(true)} className="text-[#ff2b2b] font-semibold" data-testid="button-zito-tv-join-bottom">Create a free account</button> to interact with creators.
-        </p>
+        {/* Category legend */}
+        <div className="rounded-xl bg-[#0b0b0b] border border-[#1a1a1a] p-4">
+          <p className="text-[#444] text-[10px] font-bold uppercase tracking-widest mb-3">Event Types</p>
+          <div className="grid grid-cols-3 gap-2">
+            {ZITO_TV_CATEGORIES.map(cat => {
+              const meta = CATEGORY_META[cat];
+              const Icon = meta.icon;
+              return (
+                <div key={cat} className="flex items-center gap-1.5">
+                  <Icon className="w-3 h-3 shrink-0" style={{ color: meta.color }} />
+                  <span className="text-[10px] text-[#666]">{meta.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
 
       {showGuestModal && <GuestCtaModal reason="general" onClose={() => setShowGuestModal(false)} />}

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -97,6 +97,12 @@ export interface IStorage {
   getUpcomingAllEyesSlots(): Promise<AllEyesSlotWithProvider[]>;
   getAllAllEyesSlots(): Promise<AllEyesSlotWithProvider[]>;
   cancelAllEyesSlot(id: number): Promise<void>;
+  // ZitoTV
+  createZitoTVEvent(userId: number, data: CreateZitoTVEventRequest): Promise<ZitoTVEvent>;
+  getZitoTVEvents(opts?: { from?: Date; to?: Date }): Promise<ZitoTVEventWithHost[]>;
+  getZitoTVEvent(id: number): Promise<ZitoTVEventWithHost | null>;
+  updateZitoTVEvent(id: number, data: Partial<CreateZitoTVEventRequest & { status: string }>): Promise<ZitoTVEvent>;
+  deleteZitoTVEvent(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1118,6 +1124,80 @@ export class DatabaseStorage implements IStorage {
 
   async cancelAllEyesSlot(id: number): Promise<void> {
     await db.update(allEyesSlots).set({ status: "cancelled" }).where(eq(allEyesSlots.id, id));
+  }
+
+  // ── ZitoTV ─────────────────────────────────────────────────────────────────
+
+  private async enrichZitoTVEvent(event: ZitoTVEvent): Promise<ZitoTVEventWithHost> {
+    let host = null;
+    if (event.hostUserId) {
+      const [profile] = await db.select({
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      }).from(providerProfiles).where(eq(providerProfiles.userId, event.hostUserId));
+      host = profile ?? null;
+    }
+    return { ...event, host };
+  }
+
+  async createZitoTVEvent(userId: number, data: CreateZitoTVEventRequest): Promise<ZitoTVEvent> {
+    const startAt = new Date(data.startAt);
+    const endAt = new Date(startAt.getTime() + data.durationMinutes * 60 * 1000);
+    const [event] = await db.insert(zitoTvEvents).values({
+      title: data.title,
+      description: data.description ?? null,
+      hostName: data.hostName,
+      hostUserId: userId,
+      category: data.category,
+      liveUrl: data.liveUrl ?? null,
+      ctaUrl: data.ctaUrl ?? null,
+      durationMinutes: data.durationMinutes,
+      startAt,
+      endAt,
+      status: "scheduled",
+      createdBy: userId,
+    }).returning();
+    return event;
+  }
+
+  async getZitoTVEvents(opts?: { from?: Date; to?: Date }): Promise<ZitoTVEventWithHost[]> {
+    const conditions = [ne(zitoTvEvents.status, "cancelled")];
+    if (opts?.from) conditions.push(gte(zitoTvEvents.startAt, opts.from));
+    if (opts?.to) conditions.push(lte(zitoTvEvents.startAt, opts.to));
+    const events = await db.select().from(zitoTvEvents)
+      .where(and(...conditions))
+      .orderBy(zitoTvEvents.startAt);
+    return Promise.all(events.map(e => this.enrichZitoTVEvent(e)));
+  }
+
+  async getZitoTVEvent(id: number): Promise<ZitoTVEventWithHost | null> {
+    const [event] = await db.select().from(zitoTvEvents).where(eq(zitoTvEvents.id, id));
+    if (!event) return null;
+    return this.enrichZitoTVEvent(event);
+  }
+
+  async updateZitoTVEvent(id: number, data: Partial<CreateZitoTVEventRequest & { status: string }>): Promise<ZitoTVEvent> {
+    const updates: Record<string, any> = { updatedAt: new Date() };
+    if (data.title !== undefined) updates.title = data.title;
+    if (data.description !== undefined) updates.description = data.description;
+    if (data.hostName !== undefined) updates.hostName = data.hostName;
+    if (data.category !== undefined) updates.category = data.category;
+    if (data.liveUrl !== undefined) updates.liveUrl = data.liveUrl;
+    if (data.ctaUrl !== undefined) updates.ctaUrl = data.ctaUrl;
+    if (data.durationMinutes !== undefined) updates.durationMinutes = data.durationMinutes;
+    if (data.startAt !== undefined) {
+      const startAt = new Date(data.startAt);
+      updates.startAt = startAt;
+      updates.endAt = new Date(startAt.getTime() + (data.durationMinutes ?? 60) * 60 * 1000);
+    }
+    if (data.status !== undefined) updates.status = data.status;
+    const [event] = await db.update(zitoTvEvents).set(updates).where(eq(zitoTvEvents.id, id)).returning();
+    return event;
+  }
+
+  async deleteZitoTVEvent(id: number): Promise<void> {
+    await db.delete(zitoTvEvents).where(eq(zitoTvEvents.id, id));
   }
 }
 

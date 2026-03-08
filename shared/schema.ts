@@ -559,3 +559,52 @@ export type TodayGigJack = {
   displayState: GigJackDisplayState;
   offerEndsAt: string | null;
 };
+
+// === ZITO TV EVENTS TABLE ===
+export const ZITO_TV_CATEGORIES = [
+  "INTERVIEW", "COACHING", "PRESENTATION", "DEMO", "MUSIC",
+  "CLASS", "DISCUSSION", "BROADCAST", "OTHER",
+] as const;
+export type ZitoTVCategory = typeof ZITO_TV_CATEGORIES[number];
+
+export const zitoTvEvents = pgTable("zito_tv_events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  hostName: text("host_name").notNull(),
+  hostUserId: integer("host_user_id").references(() => users.id, { onDelete: "set null" }),
+  category: text("category").notNull().default("OTHER"),
+  liveUrl: text("live_url"),
+  ctaUrl: text("cta_url"),
+  coverImageUrl: text("cover_image_url"),
+  durationMinutes: integer("duration_minutes").notNull().default(60),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at").notNull(),
+  status: text("status").notNull().default("scheduled"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type ZitoTVEvent = typeof zitoTvEvents.$inferSelect;
+export const insertZitoTVEventSchema = createInsertSchema(zitoTvEvents).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertZitoTVEvent = z.infer<typeof insertZitoTVEventSchema>;
+
+export type ZitoTVEventWithHost = ZitoTVEvent & {
+  host: {
+    displayName: string | null;
+    avatarUrl: string | null;
+    username: string | null;
+  } | null;
+};
+
+export type CreateZitoTVEventRequest = {
+  title: string;
+  description?: string;
+  hostName: string;
+  category: ZitoTVCategory;
+  liveUrl?: string;
+  ctaUrl?: string;
+  durationMinutes: number;
+  startAt: string;
+};

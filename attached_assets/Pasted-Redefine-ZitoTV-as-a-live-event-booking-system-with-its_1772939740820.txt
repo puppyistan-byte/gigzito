@@ -1,0 +1,163 @@
+Redefine ZitoTV as a live event booking system with its own calendar-based scheduling flow.
+
+==================================================
+ZITOTV IS NOT ALL EYES ON ME
+==================================================
+
+ZitoTV must be treated as a separate feature from "All Eyes On Me".
+
+Clarification:
+
+1. ZitoTV
+   = a calendar of scheduled live events that users can book interactively
+
+2. All Eyes On Me
+   = a paid front-page spotlight / featured visibility slot
+
+These are two different systems and must not be confused in the UI or in the logic.
+
+==================================================
+ZITOTV PURPOSE
+==================================================
+
+ZitoTV is a calendar-driven live event system.
+
+Users should be able to click the ZitoTV module and open a booking interface for scheduled live events.
+
+This is for planned live sessions, broadcasts, classes, events, interviews, demonstrations, or presentations.
+
+ZitoTV is for live event scheduling.
+
+It is not the same as buying front-page placement.
+
+==================================================
+ZITOTV CLICK BEHAVIOR
+==================================================
+
+When the user clicks the ZitoTV module:
+
+Open a dedicated ZitoTV booking experience.
+
+This should bring up:
+
+• a calendar interface
+• available dates
+• available event time slots
+• booking workflow for live events
+
+The ZitoTV UI should feel like a live event calendar and scheduler.
+
+==================================================
+ZITOTV BOOKING CALENDAR
+==================================================
+
+The ZitoTV booking flow should include:
+
+1. Calendar picker
+   - month
+   - day
+   - year
+
+2. Time slot picker
+   - available live event slots
+
+3. Event details form
+   - event title
+   - host / creator name
+   - event description
+   - category
+   - live URL if applicable
+   - duration
+   - optional CTA or registration link
+
+4. Booking confirmation / submission
+
+==================================================
+ZITOTV EVENT TYPE
+==================================================
+
+ZitoTV should support planned live programming such as:
+
+• interviews
+• coaching sessions
+• business presentations
+• product demos
+• music events
+• classes
+• featured discussions
+• community broadcasts
+
+This is structured programming, not random instant live injection.
+
+==================================================
+UI LABELING
+==================================================
+
+The ZitoTV frame should clearly represent:
+
+ZitoTV
+Live Events Calendar
+
+Optional subtitle:
+Book a Live Event
+
+This helps users understand that clicking it opens event scheduling.
+
+==================================================
+POSSIBLE SUBDOMAIN SUPPORT
+==================================================
+
+ZitoTV may later live on its own subdomain.
+
+Example concept:
+zitoTV.gigzito.com
+or
+live.gigzito.com
+
+Build the ZitoTV system in a way that it can later be moved to a dedicated subdomain if needed.
+
+This means:
+• keep routes modular
+• keep event booking logic self-contained
+• avoid tightly coupling ZitoTV to unrelated front-page spotlight systems
+
+==================================================
+SEPARATION FROM ALL EYES ON ME
+==================================================
+
+Do not merge ZitoTV booking with All Eyes On Me.
+
+All Eyes On Me:
+• paid spotlight
+• front-page attention slot
+• promotional placement
+
+ZitoTV:
+• calendar booking
+• scheduled live programming
+• interactive event participation
+
+They are different products and should remain separate in navigation, booking logic, and pricing.
+
+==================================================
+ADMIN / SUPER ADMIN SUPPORT
+==================================================
+
+Admin and Super Admin should be able to:
+
+• view all ZitoTV scheduled events
+• edit bookings
+• approve / deny events if moderation is required
+• remove events
+• inject or override events for testing
+• manage the ZitoTV calendar
+
+==================================================
+FINAL GOAL
+==================================================
+
+ZitoTV must function as an interactive booking calendar for scheduled live events.
+
+Clicking the ZitoTV module should open a calendar-driven event scheduling experience.
+
+It should be clearly separated from All Eyes On Me, which remains a front-page featured spotlight system.
