@@ -353,6 +353,18 @@ export default function AllEyesOnMePage() {
           All Eyes On Me is a premium front-page spotlight — perfect for product launches, flash sales, course debuts, and live event promotions.
         </p>
 
+        <div className="flex justify-center">
+          <Link href="/">
+            <Button
+              variant="outline"
+              className="rounded-xl border-[#2a2a2a] bg-[#0b0b0b] text-[#aaa] hover:text-white hover:border-[#444] px-8"
+              data-testid="button-return-home"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Return to Main Page
+            </Button>
+          </Link>
+        </div>
+
       </div>
 
       {showGuestModal && <GuestCtaModal reason="general" onClose={() => setShowGuestModal(false)} />}
