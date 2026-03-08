@@ -545,7 +545,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       videoId: z.coerce.number().int().positive(),
       creatorUserId: z.coerce.number().int().positive(),
       firstName: z.string().min(1).max(60),
-      email: z.string().email(),
+      email: z.string().email().optional().nullable(),
       phone: z.string().max(30).optional().nullable(),
       message: z.string().max(500).optional().nullable(),
       videoTitle: z.string().max(200).optional().nullable(),

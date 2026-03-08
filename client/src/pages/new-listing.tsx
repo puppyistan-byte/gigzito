@@ -86,6 +86,10 @@ type FormState = {
   productPrice: string;
   productPurchaseUrl: string;
   productStock: string;
+  revealUrl: boolean;
+  revealEmail: boolean;
+  revealName: boolean;
+  collectEmail: boolean;
 };
 
 const EMPTY: FormState = {
@@ -93,6 +97,7 @@ const EMPTY: FormState = {
   description: "", tags: "", ctaType: "", ctaUrl: "",
   flashSaleEndsAt: "", couponCode: "",
   productPrice: "", productPurchaseUrl: "", productStock: "",
+  revealUrl: true, revealEmail: false, revealName: false, collectEmail: true,
 };
 
 export default function NewListingPage() {
@@ -136,6 +141,10 @@ export default function NewListingPage() {
         tags,
         ctaType: form.ctaType || undefined,
         ctaUrl: form.ctaUrl || undefined,
+        revealUrl: form.revealUrl,
+        revealEmail: form.revealEmail,
+        revealName: form.revealName,
+        collectEmail: form.collectEmail,
       };
       if (form.vertical === "FLASH_SALE" && form.flashSaleEndsAt) {
         payload.flashSaleEndsAt = new Date(form.flashSaleEndsAt).toISOString();
@@ -502,6 +511,52 @@ export default function NewListingPage() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Inquiry reveal settings */}
+          <div className="space-y-3 pt-2">
+            <p className="text-xs font-semibold text-[#888] uppercase tracking-wide">Inquiry Settings</p>
+            <div className="rounded-xl border border-[#222] bg-[#111] divide-y divide-[#1e1e1e]">
+              {[
+                { key: "collectEmail" as const, label: "Collect viewer email", sub: "Ask for email in the inquiry form" },
+                { key: "revealUrl" as const, label: "Reveal CTA link after inquiry", sub: "Show the destination URL to viewers after they submit" },
+                { key: "revealEmail" as const, label: "Reveal your contact email", sub: "Share your email with inquiring viewers" },
+                { key: "revealName" as const, label: "Reveal your first name", sub: "Show your first name in the post-inquiry confirmation" },
+              ].map(({ key, label, sub }) => (
+                <div key={key} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div>
+                    <p className="text-sm text-white font-medium">{label}</p>
+                    <p className="text-xs text-[#555]">{sub}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form[key]}
+                    data-testid={`toggle-${key}`}
+                    onClick={() => setForm((f) => ({ ...f, [key]: !f[key] }))}
+                    style={{
+                      width: 40, height: 22,
+                      borderRadius: 999,
+                      background: form[key] ? "#c41414" : "#333",
+                      border: "none",
+                      cursor: "pointer",
+                      position: "relative",
+                      flexShrink: 0,
+                      transition: "background 0.2s",
+                    }}
+                  >
+                    <span style={{
+                      position: "absolute",
+                      top: 3, left: form[key] ? 21 : 3,
+                      width: 16, height: 16,
+                      borderRadius: "50%",
+                      background: "#fff",
+                      transition: "left 0.2s",
+                    }} />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 

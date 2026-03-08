@@ -3,9 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info, Volume2, VolumeX, Heart } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
-import { VideoInfoModal } from "@/components/video-info-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -230,7 +229,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const flashEndsAt   = listing.flashSaleEndsAt ? new Date(listing.flashSaleEndsAt) : null;
 
   const [showInquire,    setShowInquire]    = useState(false);
-  const [showInfo,       setShowInfo]       = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [autoplayFailed, setAutoplayFailed] = useState(false);
   const [heartAnimating, setHeartAnimating] = useState(false);
@@ -533,7 +531,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               )}
             </div>
 
-            {/* Action Row: CTA · Info · Share */}
+            {/* Action Row: CTA · Share */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCtaClick}
@@ -542,14 +540,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               >
                 {isShopProduct ? <ShoppingCart className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
                 {ctaButtonLabel}
-              </button>
-              <button
-                onClick={() => setShowInfo(true)}
-                className="h-8 px-3 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center gap-1.5 text-white font-bold text-xs flex-shrink-0 transition-colors"
-                data-testid={`button-info-${listing.id}`}
-              >
-                <Info className="w-3.5 h-3.5" />
-                Info
               </button>
               <button
                 onClick={() => handleShare(listing)}
@@ -573,9 +563,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
       {/* Modals */}
       {showInquire && (
         <InquireLeadModal listing={listing} onClose={() => setShowInquire(false)} />
-      )}
-      {showInfo && (
-        <VideoInfoModal listing={listing} onClose={() => setShowInfo(false)} onInquire={handleCtaClick} />
       )}
       {showGuestModal && (
         <GuestCtaModal reason="cta" onClose={() => setShowGuestModal(false)} />

@@ -70,6 +70,10 @@ export const videoListings = pgTable("video_listings", {
   triagedBy: integer("triaged_by").references(() => users.id, { onDelete: "set null" }),
   triagedReason: text("triaged_reason"),
   likeCount: integer("like_count").notNull().default(0),
+  revealUrl: boolean("reveal_url").notNull().default(true),
+  revealEmail: boolean("reveal_email").notNull().default(false),
+  revealName: boolean("reveal_name").notNull().default(false),
+  collectEmail: boolean("collect_email").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -245,7 +249,7 @@ export const leads = pgTable("leads", {
   videoId: integer("video_id").notNull().references(() => videoListings.id, { onDelete: "cascade" }),
   creatorUserId: integer("creator_user_id").notNull(),
   firstName: text("first_name").notNull(),
-  email: text("email").notNull(),
+  email: text("email"),
   phone: text("phone"),
   message: text("message"),
   videoTitle: text("video_title"),
@@ -265,11 +269,11 @@ export type CreateLeadRequest = {
   videoId: number;
   creatorUserId: number;
   firstName: string;
-  email: string;
-  phone?: string;
-  message?: string;
-  videoTitle?: string;
-  category?: string;
+  email?: string | null;
+  phone?: string | null;
+  message?: string | null;
+  videoTitle?: string | null;
+  category?: string | null;
 };
 
 // === LIVE SESSIONS TABLE ===

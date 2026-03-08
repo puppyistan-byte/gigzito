@@ -3,26 +3,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { X, Mail, User, Phone, ExternalLink, CheckCircle2 } from "lucide-react";
+import { X, Mail, User, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { ListingWithProvider } from "@shared/schema";
-
-const formSchema = z.object({
-  firstName: z.string().min(1, "Name is required").max(60),
-  email: z.string().email("Valid email required"),
-  phone: z.string().max(30).optional().or(z.literal("")),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-interface InquireLeadModalProps {
-  listing: ListingWithProvider;
-  onClose: () => void;
-}
 
 const CTA_LABEL_MAP: Record<string, string> = {
   "Visit Offer":  "Visit Offer",
@@ -32,13 +19,29 @@ const CTA_LABEL_MAP: Record<string, string> = {
   "Join Guild":   "Join Guild",
 };
 
+interface InquireLeadModalProps {
+  listing: ListingWithProvider;
+  onClose: () => void;
+}
+
 export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
 
+  const collectEmail = listing.collectEmail !== false;
+
+  const formSchema = z.object({
+    firstName: z.string().min(1, "Name is required").max(60),
+    email: collectEmail
+      ? z.string().email("Valid email required")
+      : z.string().optional().or(z.literal("")),
+  });
+
+  type FormValues = z.infer<typeof formSchema>;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { firstName: "", email: "", phone: "" },
+    defaultValues: { firstName: "", email: "" },
   });
 
   const mutation = useMutation({
@@ -47,8 +50,7 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
         videoId: listing.id,
         creatorUserId: listing.provider.userId,
         firstName: data.firstName,
-        email: data.email,
-        phone: data.phone || null,
+        email: collectEmail ? data.email : null,
         videoTitle: listing.title,
         category: listing.vertical,
       });
@@ -58,9 +60,16 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
     onError: () => toast({ title: "Submission failed", description: "Please try again.", variant: "destructive" }),
   });
 
-  const ctaUrl = listing.ctaUrl ?? null;
-  const ctaType = listing.ctaType ?? null;
+  const ctaUrl   = listing.ctaUrl ?? null;
+  const ctaType  = listing.ctaType ?? null;
   const destinationLabel = ctaType ? (CTA_LABEL_MAP[ctaType] ?? ctaType) : "View Offer";
+
+  const revealUrl   = listing.revealUrl !== false;
+  const revealEmail = listing.revealEmail === true;
+  const revealName  = listing.revealName === true;
+
+  const providerEmail = (listing.provider as any).email ?? null;
+  const providerFirstName = listing.provider.displayName?.split(" ")[0] ?? listing.provider.displayName;
 
   return (
     <div
@@ -104,7 +113,7 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
         </div>
 
         {submitted ? (
-          /* ── Success state ── */
+          /* ── Success / Reveal state ── */
           <div style={{ textAlign: "center", padding: "12px 0 8px" }}>
             <CheckCircle2
               size={44}
@@ -114,10 +123,48 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
             <p style={{ color: "#fff", fontSize: "15px", fontWeight: "600", marginBottom: "6px" }}>
               Thanks, {form.getValues("firstName")}!
             </p>
-            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginBottom: "20px" }}>
-              Your details have been sent to {listing.provider.displayName}.
-            </p>
-            {ctaUrl ? (
+
+            {/* Revealed info */}
+            {(revealName || revealEmail) && (
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "10px",
+                  padding: "10px 14px",
+                  marginBottom: "16px",
+                  textAlign: "left",
+                }}
+              >
+                {revealName && (
+                  <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "13px", margin: "0 0 4px" }}>
+                    <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>Creator: </span>
+                    {providerFirstName}
+                  </p>
+                )}
+                {revealEmail && providerEmail && (
+                  <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "13px", margin: 0 }}>
+                    <span style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px" }}>Contact: </span>
+                    <a
+                      href={`mailto:${providerEmail}`}
+                      style={{ color: "#ff2b2b", textDecoration: "none" }}
+                      data-testid="link-reveal-email"
+                    >
+                      {providerEmail}
+                    </a>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!revealName && !revealEmail && (
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "13px", marginBottom: "16px" }}>
+                Your details have been sent to the creator.
+              </p>
+            )}
+
+            {/* CTA button — only shown if revealUrl is on */}
+            {revealUrl && ctaUrl ? (
               <a
                 href={ctaUrl}
                 target="_blank"
@@ -145,6 +192,7 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
               <Button
                 onClick={onClose}
                 style={{ width: "100%", background: "#222", color: "#fff", border: "1px solid #333", borderRadius: "999px" }}
+                data-testid="button-close-success"
               >
                 Close
               </Button>
@@ -172,40 +220,29 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
                 <FormItem>
                   <FormLabel style={{ fontSize: "12px" }}>
                     <User size={11} style={{ display: "inline", marginRight: "5px" }} />
-                    Name *
+                    First Name *
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="Your name" data-testid="input-lead-first-name" {...field} />
+                    <Input placeholder="Your first name" data-testid="input-lead-first-name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
 
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>
-                    <Mail size={11} style={{ display: "inline", marginRight: "5px" }} />
-                    Email *
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="you@example.com" data-testid="input-lead-email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="phone" render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ fontSize: "12px" }}>
-                    <Phone size={11} style={{ display: "inline", marginRight: "5px" }} />
-                    Phone <span style={{ color: "rgba(255,255,255,0.35)", fontWeight: 400 }}>(optional)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="tel" placeholder="+1 555 000 0000" data-testid="input-lead-phone" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {collectEmail && (
+                <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel style={{ fontSize: "12px" }}>
+                      <Mail size={11} style={{ display: "inline", marginRight: "5px" }} />
+                      Email *
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="you@example.com" data-testid="input-lead-email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
 
               <Button
                 type="submit"
@@ -214,7 +251,11 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
                 data-testid="button-submit-lead"
                 style={{ background: "#c41414", color: "#fff", border: "none", borderRadius: "999px", fontWeight: "700" }}
               >
-                {mutation.isPending ? "Sending…" : ctaUrl ? `Submit & ${destinationLabel}` : "Send Inquiry"}
+                {mutation.isPending
+                  ? "Sending…"
+                  : revealUrl && ctaUrl
+                    ? `Submit & ${destinationLabel}`
+                    : "Send Inquiry"}
               </Button>
 
               <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", textAlign: "center", margin: 0 }}>

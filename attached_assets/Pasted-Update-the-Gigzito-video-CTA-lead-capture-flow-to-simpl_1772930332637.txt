@@ -1,0 +1,134 @@
+Update the Gigzito video CTA / lead-capture flow to simplify the interaction and remove unnecessary fields.
+
+==================================================
+REMOVE INFO BUTTON
+==================================================
+
+Remove the separate "Info" button from the video action area.
+
+Reason:
+All important user interaction and lead-capture behavior should happen through the "Inquire" button.
+
+The UI should be cleaner and more focused.
+
+Keep:
+- Inquire button
+- Share button
+- Heart / Like button
+
+Remove:
+- Info button
+
+==================================================
+INQUIRE BUTTON = PRIMARY ACTION
+==================================================
+
+The Inquire button should become the main conversion button for each offer.
+
+When clicked, it should open the offer inquiry / registration flow.
+
+This flow should contain the key data collection and optional reveal logic.
+
+==================================================
+FORM FIELD CHANGES
+==================================================
+
+Remove the Phone field from the inquiry / registration form.
+
+Phone number should no longer be required or shown by default.
+
+Email handling:
+- Email field should be configurable / optional
+- Creator or admin should be able to turn email collection on or off if needed
+
+Allowed data collection fields:
+- First Name (allowed and preferred)
+- Email (optional / configurable)
+- Phone (remove)
+
+==================================================
+MINIMAL LEAD CAPTURE FLOW
+==================================================
+
+Use a lightweight inquiry form.
+
+Recommended fields:
+1. First Name
+2. Email (optional toggle)
+
+This keeps the conversion flow simple and reduces friction.
+
+==================================================
+POST-INQUIRY DESTINATION
+==================================================
+
+After the user registers through the Inquire flow:
+
+They should be allowed to continue to the external call-to-action site.
+
+This is where they can get the full details of the offering.
+
+The inquiry flow should act as the gateway.
+
+==================================================
+OPTIONAL REVEAL LOGIC
+==================================================
+
+The creator should be able to control what is revealed after inquiry.
+
+Optional reveal fields:
+- offer URL
+- email address
+- creator name
+- first name only if preferred
+
+Examples:
+- reveal external CTA URL after registration
+- reveal contact email only if enabled
+- reveal first name of the creator if available
+- reveal full name only if explicitly allowed
+
+==================================================
+CREATOR / ADMIN SETTINGS
+==================================================
+
+In the post or offer settings, allow the creator/admin to configure:
+
+1. Reveal CTA URL after inquiry
+2. Reveal email after inquiry
+3. Reveal first name after inquiry
+4. Hide all direct contact details and only use CTA redirect
+
+Suggested field toggles:
+- revealUrl
+- revealEmail
+- revealName
+
+==================================================
+DISPLAY RULES
+==================================================
+
+Before inquiry:
+- do not expose full email
+- do not expose direct URL unless configured
+- do not expose unnecessary contact details
+
+After inquiry:
+- reveal CTA destination if enabled
+- reveal email if enabled
+- reveal creator first name if enabled
+
+==================================================
+GOAL
+==================================================
+
+The Gigzito offer flow should be streamlined:
+
+- no Info button
+- Inquire is the main CTA
+- no phone field
+- email can be optional or disabled
+- first name is acceptable
+- after registration, the user can go to the external CTA site and access the rest of the information
+
+This should reduce friction and improve conversions while giving creators control over what information is revealed.

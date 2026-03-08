@@ -28,6 +28,19 @@ Seeded super admin: `admin@gigzito.com` / `Arizona22` (auto-upgraded to SUPER_AD
 - Main video feed (`GET /api/listings`) remains filtered to `ACTIVE` only — TRIAGED listings are fully excluded
 - TRIAGED listings can be restored to ACTIVE via the Eye icon in the admin Content tab
 
+## Inquiry / Lead Capture Flow
+
+- **Info button removed** — video card action row now has only Inquire (primary CTA) + Share + Heart
+- **Inquire is the main CTA** — clicking it opens the `InquireLeadModal` bottom sheet
+- **Phone field removed** from the inquiry form; `leads.email` is nullable in DB
+- **Email collection configurable** via `collectEmail` boolean on each listing (default: true)
+- **Post-inquiry reveal logic** controlled per listing:
+  - `revealUrl` (default true) — show the CTA destination link after submission
+  - `revealEmail` (default false) — reveal the creator's contact email
+  - `revealName` (default false) — reveal the creator's first name
+- **New listing form** has an "Inquiry Settings" toggle section with all four settings
+- Four new boolean columns added to `video_listings`: `reveal_url`, `reveal_email`, `reveal_name`, `collect_email`
+
 ## Super Admin Override Control System
 
 - **Override Mode toggle** on admin console (SUPER_ADMIN only): bypasses 15-min GigJack spacing and 2-per-hour cap
