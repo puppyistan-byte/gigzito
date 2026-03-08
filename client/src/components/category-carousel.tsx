@@ -100,7 +100,7 @@ export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryC
             boxShadow: "0 0 10px rgba(255,43,43,0.4)",
           }}
         >
-          👁️ All Eyes On Me
+          👀 All Eyes On Me
         </button>
       </div>
     </div>
