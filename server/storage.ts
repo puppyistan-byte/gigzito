@@ -1032,7 +1032,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(loveVotes.monthKey, monthKey))
       .groupBy(loveVotes.providerId, providerProfiles.displayName, providerProfiles.avatarUrl, providerProfiles.username)
       .orderBy(sql`COUNT(*) DESC`)
-      .limit(10);
+      .limit(20);
     return rows.map(r => ({ ...r, voteCount: Number(r.voteCount) }));
   }
 

@@ -1,0 +1,145 @@
+Create a "Most Loved / Show Love Rankings" leaderboard panel on the right side of the Gigzito UI.
+
+==================================================
+RANKINGS PANEL LOCATION
+==================================================
+
+Add a vertical leaderboard panel on the right side of the interface.
+
+The panel should align symmetrically with the right-side UI borders.
+
+Requirements:
+
+• same padding from the right edge as other UI modules
+• visually aligned with the GigJack / Live Offer modules
+• clean spacing above and below
+
+The panel should not float randomly.
+
+It should feel anchored and intentional.
+
+==================================================
+PANEL TITLE
+==================================================
+
+Title:
+
+Most Loved
+
+or
+
+Show Love Rankings
+
+Optional subtitle:
+
+Top 20 Creators
+
+==================================================
+PANEL DESIGN
+==================================================
+
+Use the same design language as the rest of the platform.
+
+Requirements:
+
+• frosted glass effect background
+• subtle transparency
+• red typography
+• thin red border
+• soft red glow (very subtle)
+
+Example style:
+
+background: frosted / glass effect  
+border: red outline  
+font: bright red  
+text contrast: strong  
+
+The panel should feel premium and consistent with Gigzito branding.
+
+==================================================
+RANKING CONTENT
+==================================================
+
+Display the Top 20 creators based on Show Love votes.
+
+Each row should include:
+
+• rank number
+• creator avatar
+• creator name
+• Show Love vote count
+
+Example layout:
+
+1. Alex Rivera   😍 1,204  
+2. Mia Torres    😍 1,098  
+3. Jayden Cole   😍 982  
+
+==================================================
+VOTING SOURCE
+==================================================
+
+The rankings should be calculated using the Show Love emoji votes.
+
+Show Love button = 😍
+
+Each vote contributes to the creator’s monthly vote total.
+
+==================================================
+VOTING RULES
+==================================================
+
+Each user may vote:
+
+• once per creator per month
+OR
+• once total per month depending on system rules
+
+The platform should enforce this limit automatically.
+
+==================================================
+INFLUENCER OF THE MONTH
+==================================================
+
+At the end of each month:
+
+The creator with the highest Show Love vote count becomes:
+
+Influencer of the Month
+
+The rankings panel should reset for the new month.
+
+==================================================
+REFRESH BEHAVIOR
+==================================================
+
+The leaderboard should update dynamically.
+
+Options:
+
+• live update when new votes happen
+OR
+• periodic refresh every few seconds/minutes
+
+==================================================
+CLICK BEHAVIOR
+==================================================
+
+When a user clicks a creator in the rankings list:
+
+Open the creator’s profile.
+
+This allows visitors to view their videos and offers.
+
+==================================================
+VISUAL GOAL
+==================================================
+
+The right-side leaderboard should:
+
+• highlight the Top 20 most loved creators
+• reinforce the Show Love engagement mechanic
+• promote the Influencer of the Month competition
+• visually balance the right-side UI elements
+• use frosted styling with red typography to match Gigzito branding

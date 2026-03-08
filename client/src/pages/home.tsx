@@ -7,6 +7,7 @@ import { MiniLivePlayer } from "@/components/mini-live-player";
 import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
 import { TodaysGigJacks } from "@/components/todays-gigjacks";
 import { AllEyesBanner } from "@/components/all-eyes-banner";
+import { LoveLeaderboardPanel } from "@/components/love-leaderboard-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown, Zap } from "lucide-react";
@@ -313,6 +314,8 @@ export default function HomePage() {
       )}
 
       <TodaysGigJacks open={showOffers} onClose={() => setShowOffers(false)} />
+
+      <LoveLeaderboardPanel />
     </div>
   );
 }
