@@ -286,7 +286,7 @@ html, body, #root {
 
   .gigzito-logo-container {
     position: fixed;
-    left: 0;
+    left: 48px;
     width: 309px;
     top: 42px;
     bottom: 287px;
