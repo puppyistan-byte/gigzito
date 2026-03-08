@@ -18,7 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -356,6 +356,11 @@ export default function ProviderDashboard() {
     queryKey: ["/api/stats/daily"],
   });
 
+  const { data: totalLikesData } = useQuery<{ totalLikes: number }>({
+    queryKey: ["/api/profile/me/total-likes"],
+    enabled: !!user,
+  });
+
   const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads/mine"],
     enabled: !!user,
@@ -489,14 +494,18 @@ export default function ProviderDashboard() {
 
         {/* Stats row */}
         {dailyStats && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Today's posts", value: dailyStats.count, testId: "stat-today-count" },
-              { label: "My listings",   value: listings.length,  testId: "stat-my-listings" },
-              { label: "Slots left",    value: dailyStats.maxCap - dailyStats.count, testId: "stat-cap" },
-            ].map(({ label, value, testId }) => (
+              { label: "Today's posts", value: dailyStats.count,                           testId: "stat-today-count" },
+              { label: "My listings",   value: listings.length,                            testId: "stat-my-listings" },
+              { label: "Slots left",    value: dailyStats.maxCap - dailyStats.count,       testId: "stat-cap" },
+              { label: "Total Likes",   value: (totalLikesData?.totalLikes ?? 0).toLocaleString(), testId: "stat-total-likes", heart: true },
+            ].map(({ label, value, testId, heart }) => (
               <div key={testId} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 text-center" data-testid={testId}>
-                <p className="text-2xl font-bold text-white">{value}</p>
+                <p className="text-2xl font-bold text-white flex items-center justify-center gap-1.5">
+                  {heart && <Heart className="w-5 h-5 text-red-500 fill-red-500" />}
+                  {value}
+                </p>
                 <p className="text-xs text-[#555] mt-0.5">{label}</p>
               </div>
             ))}
@@ -536,7 +545,13 @@ export default function ProviderDashboard() {
                         <Badge variant="secondary" className="text-xs bg-[#1a1a1a] text-[#888] border-[#2a2a2a]">{listing.vertical}</Badge>
                       </div>
                       <p className="font-semibold text-sm text-white truncate">{listing.title}</p>
-                      <p className="text-xs text-[#555] mt-0.5">{listing.durationSeconds}s · $3.00 paid</p>
+                      <p className="text-xs text-[#555] mt-0.5 flex items-center gap-2">
+                        <span>{listing.durationSeconds}s · $3.00 paid</span>
+                        <span className="flex items-center gap-0.5 text-red-400" data-testid={`text-likes-listing-${listing.id}`}>
+                          <Heart className="w-3 h-3 fill-red-400" />
+                          {(listing.likeCount ?? 0).toLocaleString()} {(listing.likeCount ?? 0) === 1 ? "like" : "likes"}
+                        </span>
+                      </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Link href={`/listing/${listing.id}`}>

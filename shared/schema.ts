@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, serial, date } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, serial, date, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -69,6 +69,7 @@ export const videoListings = pgTable("video_listings", {
   triagedAt: timestamp("triaged_at"),
   triagedBy: integer("triaged_by").references(() => users.id, { onDelete: "set null" }),
   triagedReason: text("triaged_reason"),
+  likeCount: integer("like_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -129,12 +130,30 @@ export const providerProfilesRelations = relations(providerProfiles, ({ one, man
   gigJacks: many(gigJacks),
 }));
 
-export const videoListingsRelations = relations(videoListings, ({ one }) => ({
+export const videoListingsRelations = relations(videoListings, ({ one, many }) => ({
   provider: one(providerProfiles, {
     fields: [videoListings.providerId],
     references: [providerProfiles.id],
   }),
+  likes: many(videoLikes),
 }));
+
+// === VIDEO LIKES TABLE ===
+export const videoLikes = pgTable("video_likes", {
+  id: serial("id").primaryKey(),
+  videoId: integer("video_id").notNull().references(() => videoListings.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  uniqueVideoUser: unique().on(t.videoId, t.userId),
+}));
+
+export const videoLikesRelations = relations(videoLikes, ({ one }) => ({
+  video: one(videoListings, { fields: [videoLikes.videoId], references: [videoListings.id] }),
+  user: one(users, { fields: [videoLikes.userId], references: [users.id] }),
+}));
+
+export type VideoLike = typeof videoLikes.$inferSelect;
 
 export const gigJacksRelations = relations(gigJacks, ({ one }) => ({
   provider: one(providerProfiles, {

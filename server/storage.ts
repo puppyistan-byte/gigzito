@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -80,6 +80,11 @@ export interface IStorage {
   createInjectedFeed(data: CreateInjectedFeedRequest & { createdBy?: number }): Promise<InjectedFeed>;
   updateInjectedFeed(id: number, data: UpdateInjectedFeedRequest): Promise<InjectedFeed | undefined>;
   deleteInjectedFeed(id: number): Promise<void>;
+
+  // Video Likes
+  toggleVideoLike(videoId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
+  getVideoLikeStatus(videoId: number, userId: number | null): Promise<{ likeCount: number; isLiked: boolean }>;
+  getProviderTotalLikes(providerId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -940,6 +945,46 @@ export class DatabaseStorage implements IStorage {
 
   async deleteInjectedFeed(id: number): Promise<void> {
     await db.delete(injectedFeeds).where(eq(injectedFeeds.id, id));
+  }
+
+  async toggleVideoLike(videoId: number, userId: number): Promise<{ liked: boolean; likeCount: number }> {
+    const existing = await db.select().from(videoLikes).where(
+      and(eq(videoLikes.videoId, videoId), eq(videoLikes.userId, userId))
+    );
+    if (existing.length > 0) {
+      await db.delete(videoLikes).where(
+        and(eq(videoLikes.videoId, videoId), eq(videoLikes.userId, userId))
+      );
+      const [updated] = await db.update(videoListings)
+        .set({ likeCount: sql`GREATEST(like_count - 1, 0)` })
+        .where(eq(videoListings.id, videoId))
+        .returning({ likeCount: videoListings.likeCount });
+      return { liked: false, likeCount: updated?.likeCount ?? 0 };
+    } else {
+      await db.insert(videoLikes).values({ videoId, userId });
+      const [updated] = await db.update(videoListings)
+        .set({ likeCount: sql`like_count + 1` })
+        .where(eq(videoListings.id, videoId))
+        .returning({ likeCount: videoListings.likeCount });
+      return { liked: true, likeCount: updated?.likeCount ?? 0 };
+    }
+  }
+
+  async getVideoLikeStatus(videoId: number, userId: number | null): Promise<{ likeCount: number; isLiked: boolean }> {
+    const [listing] = await db.select({ likeCount: videoListings.likeCount }).from(videoListings).where(eq(videoListings.id, videoId));
+    if (!listing) return { likeCount: 0, isLiked: false };
+    if (!userId) return { likeCount: listing.likeCount, isLiked: false };
+    const [like] = await db.select().from(videoLikes).where(
+      and(eq(videoLikes.videoId, videoId), eq(videoLikes.userId, userId))
+    );
+    return { likeCount: listing.likeCount, isLiked: !!like };
+  }
+
+  async getProviderTotalLikes(providerId: number): Promise<number> {
+    const [result] = await db.select({ total: sql<number>`COALESCE(SUM(like_count), 0)` })
+      .from(videoListings)
+      .where(eq(videoListings.providerId, providerId));
+    return Number(result?.total ?? 0);
   }
 }
 

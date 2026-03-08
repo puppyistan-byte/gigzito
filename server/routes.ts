@@ -1040,5 +1040,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ success: true });
   });
 
+  // === VIDEO LIKES ===
+  app.post("/api/videos/:id/like", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login required to like videos" });
+    const videoId = parseInt(req.params.id);
+    if (isNaN(videoId)) return res.status(400).json({ message: "Invalid video id" });
+    const result = await storage.toggleVideoLike(videoId, req.session.userId);
+    return res.json(result);
+  });
+
+  app.get("/api/videos/:id/likes", async (req, res) => {
+    const videoId = parseInt(req.params.id);
+    if (isNaN(videoId)) return res.status(400).json({ message: "Invalid video id" });
+    const userId = req.session?.userId ?? null;
+    const result = await storage.getVideoLikeStatus(videoId, userId);
+    return res.json(result);
+  });
+
+  app.get("/api/profile/me/total-likes", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const profile = await storage.getProfileByUserId(req.session.userId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    const total = await storage.getProviderTotalLikes(profile.id);
+    return res.json({ totalLikes: total });
+  });
+
   return httpServer;
 }

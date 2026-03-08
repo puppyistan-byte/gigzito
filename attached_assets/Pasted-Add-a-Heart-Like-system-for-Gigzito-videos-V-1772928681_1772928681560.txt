@@ -1,0 +1,160 @@
+Add a Heart Like system for Gigzito videos.
+
+==================================================
+VIDEO LIKE BUTTON (HEART ICON)
+==================================================
+
+Each video in the Gigzito feed must have a Heart Like button.
+
+Requirements:
+
+1. Use a heart icon (❤️) as the Like button.
+2. The heart should appear in the video action area along with the other interaction buttons.
+3. The heart icon must be easily clickable/tappable on both desktop and mobile.
+
+Default State:
+• outlined heart
+• neutral color
+
+Liked State:
+• filled heart
+• bright red
+• subtle pop or pulse animation when clicked
+
+==================================================
+HEART INTERACTION BEHAVIOR
+==================================================
+
+When a user clicks the heart:
+
+1. The heart fills with red.
+2. The total like count increments.
+3. The heart performs a small pulse animation.
+
+When the user clicks again:
+
+1. The heart returns to the outlined state.
+2. The like count decrements.
+
+Only one like per user per video is allowed.
+
+==================================================
+LIKE COUNT DISPLAY
+==================================================
+
+Display the total number of likes next to the heart icon.
+
+Example:
+
+❤️ 142
+
+The number should update immediately when the user likes or unlikes the video.
+
+The like count must appear in:
+
+• the main feed
+• the video card
+• the creator's profile UI
+
+==================================================
+USER LIKE RULES
+==================================================
+
+Rules:
+
+• one like per user per video
+• clicking again removes the like
+• prevent duplicate likes from the same account
+
+==================================================
+PROFILE UI INTEGRATION
+==================================================
+
+Inside the user’s Profile UI, display the like count for each video they currently have in circulation.
+
+In the Profile > My Videos section:
+
+Each video card should display:
+
+• video preview
+• title
+• heart icon
+• total likes
+
+Example display:
+
+❤️ 318 Likes
+
+Creators should be able to see which videos are performing best.
+
+==================================================
+OPTIONAL CREATOR STATS
+==================================================
+
+Add a creator engagement stat in the profile header.
+
+Example:
+
+Total Likes Received: 8,423
+
+This value is calculated by summing likes across all of the creator’s videos.
+
+==================================================
+DATABASE STRUCTURE
+==================================================
+
+Create a likes table.
+
+Table: video_likes
+
+Fields:
+
+id
+videoId
+userId
+createdAt
+
+Rules:
+
+• each user can only like a video once
+• enforce unique constraint on (videoId, userId)
+
+==================================================
+VIDEO METADATA
+==================================================
+
+Each video should expose:
+
+likeCount
+
+This can either be:
+
+• dynamically calculated
+or
+• cached and updated on like/unlike events
+
+==================================================
+BACKEND LIKE LOGIC
+==================================================
+
+When heart is clicked:
+
+1. Check if a like exists for user + video.
+2. If no record exists:
+   - create like record
+   - increment likeCount
+3. If record exists:
+   - delete like record
+   - decrement likeCount
+
+==================================================
+VISUAL GOAL
+==================================================
+
+The heart icon should feel like a natural social interaction.
+
+Users should immediately understand:
+
+tap heart → show love → increase count
+
+Creators should clearly see the performance of their videos both in the feed and inside their profile.

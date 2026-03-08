@@ -1,12 +1,14 @@
 import { Link } from "wouter";
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info, Volume2, VolumeX } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Info, Volume2, VolumeX, Heart } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { VideoInfoModal } from "@/components/video-info-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import type { ListingWithProvider } from "@shared/schema";
 
 const MAX_PLAY_SECONDS = 20;
@@ -231,6 +233,41 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [showInfo,       setShowInfo]       = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [autoplayFailed, setAutoplayFailed] = useState(false);
+  const [heartAnimating, setHeartAnimating] = useState(false);
+  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
+  const [optimisticCount, setOptimisticCount] = useState<number | null>(null);
+
+  const { data: likeData } = useQuery<{ likeCount: number; isLiked: boolean }>({
+    queryKey: [`/api/videos/${listing.id}/likes`],
+    staleTime: 60_000,
+  });
+
+  const isLiked = optimisticLiked ?? likeData?.isLiked ?? false;
+  const likeCount = optimisticCount ?? likeData?.likeCount ?? listing.likeCount;
+
+  const likeMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/videos/${listing.id}/like`) as Promise<{ liked: boolean; likeCount: number }>,
+    onMutate: () => {
+      const newLiked = !isLiked;
+      setOptimisticLiked(newLiked);
+      setOptimisticCount((likeCount ?? 0) + (newLiked ? 1 : -1));
+      setHeartAnimating(true);
+      setTimeout(() => setHeartAnimating(false), 400);
+    },
+    onSuccess: (data) => {
+      setOptimisticLiked(data.liked);
+      setOptimisticCount(data.likeCount);
+    },
+    onError: () => {
+      setOptimisticLiked(null);
+      setOptimisticCount(null);
+    },
+  });
+
+  const handleLike = () => {
+    if (!user) { setShowGuestModal(true); return; }
+    likeMutation.mutate();
+  };
 
   const ctaType = listing.ctaType ?? null;
   const ctaUrl  = listing.ctaUrl ?? null;
@@ -395,6 +432,39 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               )}
             </button>
           )}
+
+          {/* HEART LIKE BUTTON — right sidebar, above avatar */}
+          <div className="absolute bottom-[132px] right-3 z-30 flex flex-col items-center gap-0.5" data-testid={`like-container-${listing.id}`}>
+            <button
+              onClick={handleLike}
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-transform"
+              style={{
+                background: isLiked ? "rgba(220,38,38,0.25)" : "rgba(0,0,0,0.5)",
+                border: isLiked ? "1.5px solid rgba(220,38,38,0.6)" : "1.5px solid rgba(255,255,255,0.2)",
+                transform: heartAnimating ? "scale(1.35)" : "scale(1)",
+                transition: "transform 0.2s cubic-bezier(.36,.07,.19,.97), background 0.15s, border-color 0.15s",
+                backdropFilter: "blur(6px)",
+              }}
+              data-testid={`button-like-${listing.id}`}
+              title={isLiked ? "Unlike" : "Like"}
+            >
+              <Heart
+                className="w-5 h-5"
+                style={{
+                  color: isLiked ? "#ef4444" : "rgba(255,255,255,0.85)",
+                  fill: isLiked ? "#ef4444" : "transparent",
+                  transition: "fill 0.15s, color 0.15s",
+                }}
+              />
+            </button>
+            <span
+              className="text-white/80 font-bold tabular-nums"
+              style={{ fontSize: "11px", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}
+              data-testid={`text-like-count-${listing.id}`}
+            >
+              {likeCount > 0 ? likeCount.toLocaleString() : ""}
+            </span>
+          </div>
 
           {/* FLOATING CREATOR AVATAR */}
           <Link href={`/provider/${listing.provider.id}`}>
