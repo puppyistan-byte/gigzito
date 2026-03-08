@@ -18,8 +18,8 @@ export function LoveLeaderboardPanel() {
       className="hidden xl:flex flex-col"
       style={{
         position: "fixed",
-        top: "72px",
-        right: "12px",
+        top: "264px",
+        right: "204px",
         width: "210px",
         maxHeight: "calc(100vh - 160px)",
         zIndex: 45,
