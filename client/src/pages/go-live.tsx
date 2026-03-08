@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Radio, ArrowLeft, Youtube, Twitch, Video } from "lucide-react";
+import { Loader2, Radio, ArrowLeft, Youtube, Video, Instagram, Globe } from "lucide-react";
+import { SiTiktok, SiFacebook, SiTwitch } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
 
 const LIVE_ALLOWED_CATEGORIES = ["INFLUENCER", "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS"];
@@ -162,7 +163,7 @@ export default function GoLivePage() {
               <Label className="text-[#aaa] text-sm">Stream URL</Label>
               <Input
                 type="url"
-                placeholder="https://youtube.com/watch?v=... or twitch.tv/yourchannel"
+                placeholder="https://youtube.com/live/... or tiktok.com/@user/live or twitch.tv/channel"
                 value={streamUrl}
                 onChange={(e) => setStreamUrl(e.target.value)}
                 required
@@ -180,15 +181,21 @@ export default function GoLivePage() {
             {/* Platform quick links */}
             <div className="flex gap-2 flex-wrap">
               {[
-                { label: "YouTube Live", icon: <Youtube className="w-3 h-3" />, hint: "https://youtube.com/live/" },
-                { label: "Twitch", icon: <Twitch className="w-3 h-3" />, hint: "https://twitch.tv/" },
-                { label: "Direct Video", icon: <Video className="w-3 h-3" />, hint: "https://yourstream.m3u8" },
+                { label: "YouTube Live",  icon: <Youtube className="w-3 h-3 text-[#FF0000]" />,    color: "text-[#FF0000] border-[#FF0000]/20" },
+                { label: "TikTok Live",   icon: <SiTiktok className="w-3 h-3 text-white" />,        color: "text-white border-white/20" },
+                { label: "Instagram Live",icon: <Instagram className="w-3 h-3 text-[#E1306C]" />,   color: "text-[#E1306C] border-[#E1306C]/20" },
+                { label: "Facebook Live", icon: <SiFacebook className="w-3 h-3 text-[#1877F2]" />,  color: "text-[#1877F2] border-[#1877F2]/20" },
+                { label: "Twitch",        icon: <SiTwitch className="w-3 h-3 text-[#9147FF]" />,    color: "text-[#9147FF] border-[#9147FF]/20" },
+                { label: "Direct Video",  icon: <Video className="w-3 h-3 text-[#888]" />,          color: "text-[#888] border-[#888]/20" },
               ].map((p) => (
-                <span key={p.label} className="inline-flex items-center gap-1 text-[10px] text-[#555] bg-[#111] border border-[#2a2a2a] rounded-full px-2 py-0.5">
+                <span key={p.label} className={`inline-flex items-center gap-1.5 text-[10px] bg-[#111] border rounded-full px-2.5 py-1 ${p.color}`}>
                   {p.icon} {p.label}
                 </span>
               ))}
             </div>
+            <p className="text-xs text-[#444]">
+              Paste your live stream URL above. TikTok, Instagram and Facebook links will redirect viewers to your live — YouTube and Twitch embed directly.
+            </p>
           </div>
 
           {/* Optional thumbnail */}
