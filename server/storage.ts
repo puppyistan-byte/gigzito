@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -85,6 +85,11 @@ export interface IStorage {
   toggleVideoLike(videoId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
   getVideoLikeStatus(videoId: number, userId: number | null): Promise<{ likeCount: number; isLiked: boolean }>;
   getProviderTotalLikes(providerId: number): Promise<number>;
+
+  // Love Votes
+  castLoveVote(voterUserId: number, providerId: number, monthKey: string): Promise<{ success: boolean; alreadyVoted: boolean }>;
+  getLoveVoteStatus(voterUserId: number | null, providerId: number, monthKey: string): Promise<{ voteCount: number; hasVoted: boolean }>;
+  getLoveLeaderboard(monthKey: string): Promise<import("@shared/schema").LoveLeaderboardEntry[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -985,6 +990,43 @@ export class DatabaseStorage implements IStorage {
       .from(videoListings)
       .where(eq(videoListings.providerId, providerId));
     return Number(result?.total ?? 0);
+  }
+
+  async castLoveVote(voterUserId: number, providerId: number, monthKey: string): Promise<{ success: boolean; alreadyVoted: boolean }> {
+    try {
+      await db.insert(loveVotes).values({ voterUserId, providerId, monthKey });
+      return { success: true, alreadyVoted: false };
+    } catch {
+      return { success: false, alreadyVoted: true };
+    }
+  }
+
+  async getLoveVoteStatus(voterUserId: number | null, providerId: number, monthKey: string): Promise<{ voteCount: number; hasVoted: boolean }> {
+    const [countResult] = await db.select({ count: sql<number>`COUNT(*)` })
+      .from(loveVotes)
+      .where(and(eq(loveVotes.providerId, providerId), eq(loveVotes.monthKey, monthKey)));
+    const voteCount = Number(countResult?.count ?? 0);
+    if (!voterUserId) return { voteCount, hasVoted: false };
+    const [existing] = await db.select().from(loveVotes)
+      .where(and(eq(loveVotes.voterUserId, voterUserId), eq(loveVotes.monthKey, monthKey)));
+    return { voteCount, hasVoted: !!existing };
+  }
+
+  async getLoveLeaderboard(monthKey: string): Promise<import("@shared/schema").LoveLeaderboardEntry[]> {
+    const rows = await db.select({
+      providerId: loveVotes.providerId,
+      displayName: providerProfiles.displayName,
+      avatarUrl: providerProfiles.avatarUrl,
+      username: providerProfiles.username,
+      voteCount: sql<number>`COUNT(*)`,
+    })
+      .from(loveVotes)
+      .innerJoin(providerProfiles, eq(loveVotes.providerId, providerProfiles.id))
+      .where(eq(loveVotes.monthKey, monthKey))
+      .groupBy(loveVotes.providerId, providerProfiles.displayName, providerProfiles.avatarUrl, providerProfiles.username)
+      .orderBy(sql`COUNT(*) DESC`)
+      .limit(10);
+    return rows.map(r => ({ ...r, voteCount: Number(r.voteCount) }));
   }
 }
 

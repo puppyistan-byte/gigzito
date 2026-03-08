@@ -20,6 +20,7 @@ import LiveViewPage from "@/pages/live-view";
 import BuyLivePage from "@/pages/buy-live";
 import ZitoTVPage from "@/pages/zito-tv";
 import GigCardDirectoryPage from "@/pages/gigcard-directory";
+import LeaderboardPage from "@/pages/leaderboard";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/zito-tv" component={ZitoTVPage} />
       <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/gigcard-directory" component={GigCardDirectoryPage} />
+      <Route path="/leaderboard" component={LeaderboardPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

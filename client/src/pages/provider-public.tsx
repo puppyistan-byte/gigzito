@@ -1,14 +1,22 @@
 import { useParams, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
-import type { ProviderProfile, ListingWithProvider } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { ProviderProfile, ListingWithProvider, LoveLeaderboardEntry } from "@shared/schema";
+
+type LoveStatus = { voteCount: number; hasVoted: boolean };
 
 export default function ProviderPublicPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: profile, isLoading: profileLoading } = useQuery<ProviderProfile>({
     queryKey: ["/api/profile", id],
@@ -22,25 +30,59 @@ export default function ProviderPublicPage() {
     enabled: !!id,
   });
 
+  const { data: loveStatus } = useQuery<LoveStatus>({
+    queryKey: ["/api/love/status", id],
+    queryFn: () => fetch(`/api/love/${id}/status`).then((r) => r.json()),
+    enabled: !!id,
+  });
+
+  const loveMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/love/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/love/status", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/love/leaderboard"] });
+      toast({ title: "Love sent! 😍", description: "Your vote has been counted for this month." });
+    },
+    onError: async (err: any) => {
+      const msg = err?.message ?? "Something went wrong";
+      if (msg.includes("already")) {
+        toast({ title: "Already voted 😍", description: "You can only show love once per month. Come back next month!", variant: "destructive" });
+      } else if (msg.includes("Login") || msg.includes("Unauthorized")) {
+        toast({ title: "Sign in to show love", description: "Create a free account to vote for your favourite creator.", variant: "destructive" });
+      } else if (msg.includes("yourself")) {
+        toast({ title: "Nice try 😄", description: "You can't vote for yourself.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      }
+    },
+  });
+
   const initials = profile?.displayName
     ? profile.displayName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
   const p = profile as any;
-
   const photos = profile
     ? [p.photo1Url, p.photo2Url, p.photo3Url, p.photo4Url, p.photo5Url, p.photo6Url].filter(Boolean)
     : [];
+
+  const hasVoted = loveStatus?.hasVoted ?? false;
+  const voteCount = loveStatus?.voteCount ?? 0;
 
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="link-back-to-main">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Return to Main
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="link-back-to-main">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Return to Main
+          </Link>
+          <Link href="/leaderboard" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#ff1a1a] hover:text-[#ff4444] transition-colors" data-testid="link-leaderboard">
+            👑 Marketer of the Month
+          </Link>
+        </div>
 
         {profileLoading ? (
           <div className="space-y-4">
@@ -62,21 +104,41 @@ export default function ProviderPublicPage() {
               )}
               <div className="p-5">
                 <div className="flex items-end gap-4 -mt-2">
-                  <div
-                    style={{
-                      width: "64px", height: "64px", borderRadius: "50%",
-                      border: "3px solid #ff2b2b", overflow: "hidden", background: "#1a1a1a", flexShrink: 0,
-                    }}
-                    data-testid="img-provider-avatar"
-                  >
-                    {profile.avatarUrl ? (
-                      <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "20px", fontWeight: "700" }}>
-                        {initials}
-                      </div>
-                    )}
+
+                  {/* Avatar with Show Love button */}
+                  <div className="relative shrink-0 group" style={{ width: "72px", height: "72px" }}>
+                    <div
+                      style={{
+                        width: "72px", height: "72px", borderRadius: "50%",
+                        border: hasVoted ? "3px solid #ff69b4" : "3px solid #ff2b2b",
+                        overflow: "hidden", background: "#1a1a1a",
+                        transition: "border-color 0.3s",
+                      }}
+                      data-testid="img-provider-avatar"
+                    >
+                      {profile.avatarUrl ? (
+                        <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "20px", fontWeight: "700" }}>
+                          {initials}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Show Love overlay on hover */}
+                    <button
+                      onClick={() => loveMutation.mutate()}
+                      disabled={loveMutation.isPending}
+                      className="absolute inset-0 rounded-full flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      title={hasVoted ? "Already shown love this month" : "Show Love"}
+                      data-testid="button-show-love-avatar"
+                    >
+                      <span className="text-2xl" style={{ filter: hasVoted ? "none" : "grayscale(0.3)" }}>
+                        {hasVoted ? "😍" : "🤍"}
+                      </span>
+                    </button>
                   </div>
+
                   <div className="flex-1 min-w-0 pb-1">
                     <h1 className="text-lg font-bold text-white truncate" data-testid="text-provider-name">{profile.displayName}</h1>
                     {profile.username && (
@@ -99,6 +161,28 @@ export default function ProviderPublicPage() {
                     <MapPin className="h-3 w-3" /> {profile.location}
                   </p>
                 )}
+
+                {/* Show Love action bar */}
+                <div className="mt-4 flex items-center gap-3">
+                  <button
+                    onClick={() => loveMutation.mutate()}
+                    disabled={loveMutation.isPending || hasVoted}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
+                      hasVoted
+                        ? "bg-pink-500/10 border-pink-500/30 text-pink-400 cursor-default"
+                        : "bg-[#1a1a1a] border-[#333] text-white hover:border-pink-500/50 hover:bg-pink-500/10 hover:text-pink-300 active:scale-95"
+                    }`}
+                    data-testid="button-show-love"
+                  >
+                    <span className="text-base">{hasVoted ? "😍" : "🤍"}</span>
+                    {hasVoted ? "Love shown!" : "Show Love"}
+                  </button>
+                  {voteCount > 0 && (
+                    <span className="text-xs text-[#555]" data-testid="text-vote-count">
+                      {voteCount} {voteCount === 1 ? "person" : "people"} showed love this month
+                    </span>
+                  )}
+                </div>
 
                 {/* Contact links */}
                 <div className="flex flex-wrap gap-3 mt-4">

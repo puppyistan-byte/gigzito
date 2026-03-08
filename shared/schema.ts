@@ -455,6 +455,25 @@ export type CreateAuditLogRequest = {
   usedOverride?: boolean;
 };
 
+// === LOVE VOTES TABLE ===
+export const loveVotes = pgTable("love_votes", {
+  id: serial("id").primaryKey(),
+  voterUserId: integer("voter_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  providerId: integer("provider_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
+  monthKey: text("month_key").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.voterUserId, t.monthKey)]);
+
+export type LoveVote = typeof loveVotes.$inferSelect;
+
+export type LoveLeaderboardEntry = {
+  providerId: number;
+  displayName: string;
+  avatarUrl: string | null;
+  username: string | null;
+  voteCount: number;
+};
+
 // === MFA CODES TABLE ===
 export const mfaCodes = pgTable("mfa_codes", {
   id: serial("id").primaryKey(),

@@ -1065,5 +1065,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ totalLikes: total });
   });
 
+  // === LOVE VOTES ===
+  const currentMonthKey = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  app.post("/api/love/:providerId", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login to show love" });
+    const providerId = parseInt(req.params.providerId);
+    if (isNaN(providerId)) return res.status(400).json({ message: "Invalid provider" });
+    const voter = await storage.getUserById(req.session.userId);
+    const voterProfile = await storage.getProfileByUserId(req.session.userId);
+    if (voterProfile && voterProfile.id === providerId) {
+      return res.status(400).json({ message: "You can't vote for yourself" });
+    }
+    const result = await storage.castLoveVote(req.session.userId, providerId, currentMonthKey());
+    if (result.alreadyVoted) return res.status(409).json({ message: "You've already shown love this month" });
+    return res.json({ success: true });
+  });
+
+  app.get("/api/love/:providerId/status", async (req, res) => {
+    const providerId = parseInt(req.params.providerId);
+    if (isNaN(providerId)) return res.status(400).json({ message: "Invalid provider" });
+    const userId = req.session?.userId ?? null;
+    const result = await storage.getLoveVoteStatus(userId, providerId, currentMonthKey());
+    return res.json(result);
+  });
+
+  app.get("/api/love/leaderboard", async (req, res) => {
+    const entries = await storage.getLoveLeaderboard(currentMonthKey());
+    return res.json(entries);
+  });
+
   return httpServer;
 }
