@@ -138,7 +138,8 @@ providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, desc
 - `GuestCtaModal` — modal shown to visitors attempting locked actions (reason: cta/live/inquire/general)
 - `MiniLivePlayer` — always-visible top-right widget; Off Air state OR embedded stream (muted by default) with mute toggle
 - `BottomNav` — 5-tab bottom navigation: Feed, Live, Create Post, Zito TV, Profile
-- `CategoryCarousel` — scrollable pills + "📡 Buy Live Show" CTA button
+- `CategoryCarousel` — scrollable pills + "👁️ All Eyes On Me" CTA button (routes to `/all-eyes-on-me`)
+- `AllEyesBanner` — compact strip below carousel; polls `/api/all-eyes/active` every 20s; shows avatar, title, countdown, dismiss; only renders when a slot is live
 
 ## Access Control
 

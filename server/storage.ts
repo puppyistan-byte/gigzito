@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -90,6 +90,13 @@ export interface IStorage {
   castLoveVote(voterUserId: number, providerId: number, monthKey: string): Promise<{ success: boolean; alreadyVoted: boolean }>;
   getLoveVoteStatus(voterUserId: number | null, providerId: number, monthKey: string): Promise<{ voteCount: number; hasVoted: boolean }>;
   getLoveLeaderboard(monthKey: string): Promise<import("@shared/schema").LoveLeaderboardEntry[]>;
+
+  // All Eyes On Me
+  bookAllEyesSlot(providerId: number, userId: number, data: BookAllEyesRequest): Promise<{ slot?: AllEyesSlot; error?: string }>;
+  getActiveAllEyesSlot(): Promise<AllEyesSlotWithProvider | null>;
+  getUpcomingAllEyesSlots(): Promise<AllEyesSlotWithProvider[]>;
+  getAllAllEyesSlots(): Promise<AllEyesSlotWithProvider[]>;
+  cancelAllEyesSlot(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1027,6 +1034,90 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`COUNT(*) DESC`)
       .limit(10);
     return rows.map(r => ({ ...r, voteCount: Number(r.voteCount) }));
+  }
+
+  // ── All Eyes On Me ─────────────────────────────────────────────────────────
+
+  private async enrichAllEyesSlot(slot: AllEyesSlot): Promise<AllEyesSlotWithProvider> {
+    const [provider] = await db.select().from(providerProfiles).where(eq(providerProfiles.id, slot.providerId));
+    let videoListing = undefined;
+    if (slot.videoListingId) {
+      const [vl] = await db.select().from(videoListings).where(eq(videoListings.id, slot.videoListingId));
+      videoListing = vl ?? null;
+    }
+    return { ...slot, provider, videoListing };
+  }
+
+  async bookAllEyesSlot(providerId: number, userId: number, data: BookAllEyesRequest): Promise<{ slot?: AllEyesSlot; error?: string }> {
+    const startAt = new Date(data.startAt);
+    const endAt = new Date(startAt.getTime() + data.durationMinutes * 60 * 1000);
+
+    const PRICES: Record<number, number> = { 15: 1500, 30: 2500, 60: 4000 };
+    const priceCents = PRICES[data.durationMinutes] ?? 1500;
+
+    const [conflict] = await db.select({ id: allEyesSlots.id })
+      .from(allEyesSlots)
+      .where(and(
+        ne(allEyesSlots.status, "cancelled"),
+        ne(allEyesSlots.status, "ended"),
+        lte(allEyesSlots.startAt, endAt),
+        gte(allEyesSlots.endAt, startAt),
+      ));
+
+    if (conflict) return { error: "That time slot is already booked. Please choose a different time." };
+
+    const [slot] = await db.insert(allEyesSlots).values({
+      providerId,
+      videoListingId: data.videoListingId ?? null,
+      customTitle: data.customTitle ?? null,
+      durationMinutes: data.durationMinutes,
+      startAt,
+      endAt,
+      status: "scheduled",
+      priceCents,
+      createdBy: userId,
+    }).returning();
+
+    return { slot };
+  }
+
+  async getActiveAllEyesSlot(): Promise<AllEyesSlotWithProvider | null> {
+    const now = new Date();
+    const [slot] = await db.select().from(allEyesSlots)
+      .where(and(
+        ne(allEyesSlots.status, "cancelled"),
+        ne(allEyesSlots.status, "ended"),
+        lte(allEyesSlots.startAt, now),
+        gte(allEyesSlots.endAt, now),
+      ))
+      .orderBy(allEyesSlots.startAt)
+      .limit(1);
+    if (!slot) return null;
+    return this.enrichAllEyesSlot(slot);
+  }
+
+  async getUpcomingAllEyesSlots(): Promise<AllEyesSlotWithProvider[]> {
+    const now = new Date();
+    const slots = await db.select().from(allEyesSlots)
+      .where(and(
+        ne(allEyesSlots.status, "cancelled"),
+        ne(allEyesSlots.status, "ended"),
+        gte(allEyesSlots.endAt, now),
+      ))
+      .orderBy(allEyesSlots.startAt)
+      .limit(20);
+    return Promise.all(slots.map(s => this.enrichAllEyesSlot(s)));
+  }
+
+  async getAllAllEyesSlots(): Promise<AllEyesSlotWithProvider[]> {
+    const slots = await db.select().from(allEyesSlots)
+      .orderBy(desc(allEyesSlots.createdAt))
+      .limit(100);
+    return Promise.all(slots.map(s => this.enrichAllEyesSlot(s)));
+  }
+
+  async cancelAllEyesSlot(id: number): Promise<void> {
+    await db.update(allEyesSlots).set({ status: "cancelled" }).where(eq(allEyesSlots.id, id));
   }
 }
 

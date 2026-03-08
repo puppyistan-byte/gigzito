@@ -2338,3 +2338,5 @@ html, body, #root {
   gap: 2px;
   flex-shrink: 0;
 }
+
+@keyframes scanner { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }

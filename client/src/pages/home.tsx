@@ -6,6 +6,7 @@ import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
 import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
 import { TodaysGigJacks } from "@/components/todays-gigjacks";
+import { AllEyesBanner } from "@/components/all-eyes-banner";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown, Zap } from "lucide-react";
@@ -194,6 +195,8 @@ export default function HomePage() {
       <MiniLivePlayer />
 
       <CategoryCarousel activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
+
+      <AllEyesBanner />
 
       {/* Feed — no onScroll handler; index is driven by wheel/touch/button, not scroll position */}
       <div

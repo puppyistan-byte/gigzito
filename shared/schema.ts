@@ -455,6 +455,42 @@ export type CreateAuditLogRequest = {
   usedOverride?: boolean;
 };
 
+// === ALL EYES ON ME SLOTS TABLE ===
+export const allEyesSlots = pgTable("all_eyes_slots", {
+  id: serial("id").primaryKey(),
+  providerId: integer("provider_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
+  videoListingId: integer("video_listing_id").references(() => videoListings.id, { onDelete: "set null" }),
+  customTitle: text("custom_title"),
+  durationMinutes: integer("duration_minutes").notNull(),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at").notNull(),
+  status: text("status").notNull().default("scheduled"),
+  priceCents: integer("price_cents").notNull().default(0),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const allEyesSlotsRelations = relations(allEyesSlots, ({ one }) => ({
+  provider: one(providerProfiles, { fields: [allEyesSlots.providerId], references: [providerProfiles.id] }),
+  videoListing: one(videoListings, { fields: [allEyesSlots.videoListingId], references: [videoListings.id] }),
+}));
+
+export const insertAllEyesSlotSchema = createInsertSchema(allEyesSlots).omit({ id: true, createdAt: true });
+export type AllEyesSlot = typeof allEyesSlots.$inferSelect;
+export type InsertAllEyesSlot = z.infer<typeof insertAllEyesSlotSchema>;
+
+export type AllEyesSlotWithProvider = AllEyesSlot & {
+  provider: ProviderProfile;
+  videoListing?: VideoListing | null;
+};
+
+export type BookAllEyesRequest = {
+  durationMinutes: 15 | 30 | 60;
+  videoListingId?: number;
+  customTitle?: string;
+  startAt: string;
+};
+
 // === LOVE VOTES TABLE ===
 export const loveVotes = pgTable("love_votes", {
   id: serial("id").primaryKey(),

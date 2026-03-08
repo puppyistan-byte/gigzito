@@ -1098,5 +1098,50 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(entries);
   });
 
+  // ── All Eyes On Me ──────────────────────────────────────────────────────────
+
+  app.get("/api/all-eyes/active", async (_req, res) => {
+    const slot = await storage.getActiveAllEyesSlot();
+    return res.json(slot ?? null);
+  });
+
+  app.get("/api/all-eyes/upcoming", async (_req, res) => {
+    const slots = await storage.getUpcomingAllEyesSlots();
+    return res.json(slots);
+  });
+
+  app.get("/api/all-eyes/all", async (req, res) => {
+    if (!["ADMIN", "SUPER_ADMIN"].includes(req.session?.role ?? "")) return res.status(403).json({ message: "Admin only" });
+    const slots = await storage.getAllAllEyesSlots();
+    return res.json(slots);
+  });
+
+  app.post("/api/all-eyes/book", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Authentication required" });
+    const profile = await storage.getProfileByUserId(req.session.userId);
+    if (!profile) return res.status(400).json({ message: "Provider profile required" });
+    const { durationMinutes, videoListingId, customTitle, startAt } = req.body;
+    if (![15, 30, 60].includes(durationMinutes)) return res.status(400).json({ message: "Duration must be 15, 30, or 60 minutes" });
+    if (!startAt) return res.status(400).json({ message: "Start time is required" });
+    const result = await storage.bookAllEyesSlot(profile.id, req.session.userId, { durationMinutes, videoListingId, customTitle, startAt });
+    if (result.error) return res.status(409).json({ message: result.error });
+    return res.json(result.slot);
+  });
+
+  app.patch("/api/all-eyes/:id/cancel", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Authentication required" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    const slots = await storage.getAllAllEyesSlots();
+    const slot = slots.find(s => s.id === id);
+    if (!slot) return res.status(404).json({ message: "Slot not found" });
+    const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(req.session?.role ?? "");
+    const profile = await storage.getProfileByUserId(req.session.userId);
+    const isOwner = profile?.id === slot.providerId;
+    if (!isAdmin && !isOwner) return res.status(403).json({ message: "Not authorized" });
+    await storage.cancelAllEyesSlot(id);
+    return res.json({ success: true });
+  });
+
   return httpServer;
 }

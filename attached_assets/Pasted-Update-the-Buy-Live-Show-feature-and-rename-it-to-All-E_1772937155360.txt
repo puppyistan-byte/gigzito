@@ -1,0 +1,129 @@
+Update the "Buy Live Show" feature and rename it to "All Eyes On Me".
+
+==================================================
+RENAME BUTTON
+==================================================
+
+Replace the existing navigation button:
+
+Buy Live Show
+
+with the new label:
+
+All Eyes On Me
+
+The button should remain in the same location in the top navigation bar.
+
+Use the same red styling and prominence.
+
+==================================================
+ALL EYES ON ME PAGE
+==================================================
+
+When the user clicks "All Eyes On Me", open a new page or modal explaining the feature.
+
+Title:
+
+All Eyes On Me
+
+==================================================
+DESCRIPTION TEXT
+==================================================
+
+Display the following explanation:
+
+"All Eyes On Me is a featured spotlight placement on the Gigzito front page.
+
+When you purchase a slot, your content or offer is promoted directly on the main page so the entire network can see it.
+
+This is designed for marketers, creators, and businesses who want maximum attention for their offer."
+
+==================================================
+AVAILABLE SLOT OPTIONS
+==================================================
+
+Allow users to purchase time slots.
+
+Slot options:
+
+15 Minutes
+30 Minutes
+1 Hour
+
+Each slot will place the user’s content in a featured position on the Gigzito front page.
+
+==================================================
+FEATURED PLACEMENT
+==================================================
+
+When an All Eyes On Me slot is active:
+
+• the creator's video / offer appears prominently on the front page
+• it should appear in a featured section above or near the main feed
+• the placement should clearly stand out from normal content
+
+Optional label:
+
+FEATURED
+
+or
+
+ALL EYES ON ME
+
+==================================================
+PURCHASE FLOW
+==================================================
+
+When a user selects a slot:
+
+1. choose duration
+   - 15 minutes
+   - 30 minutes
+   - 1 hour
+
+2. choose the content they want featured
+   (video / offer / post)
+
+3. schedule the slot
+
+4. complete payment if required
+
+==================================================
+SCHEDULING
+==================================================
+
+Slots should follow the same scheduling logic as other timed events.
+
+The system must prevent overlapping All Eyes On Me slots if exclusivity is required.
+
+Admin should be able to override scheduling if needed.
+
+==================================================
+FRONT PAGE DISPLAY
+==================================================
+
+During the scheduled slot:
+
+The featured content should display clearly on the front page.
+
+Example behaviors:
+
+• highlighted frame
+• labeled as All Eyes On Me
+• countdown timer showing remaining time
+
+==================================================
+END OF SLOT
+==================================================
+
+When the slot expires:
+
+• the featured content returns to normal feed behavior
+• the All Eyes On Me banner disappears
+• the next scheduled slot begins if applicable
+
+==================================================
+GOAL
+==================================================
+
+All Eyes On Me should act as a premium front-page spotlight feature that allows creators and marketers to purchase time where their content is prominently displayed to the entire Gigzito network.

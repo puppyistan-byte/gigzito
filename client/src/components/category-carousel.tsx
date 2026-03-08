@@ -79,10 +79,10 @@ export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryC
           );
         })}
 
-        {/* Buy Live Show CTA — pinned after categories */}
+        {/* All Eyes On Me CTA — pinned after categories */}
         <button
-          onClick={() => navigate("/buy-live")}
-          data-testid="button-buy-live-show"
+          onClick={() => navigate("/all-eyes-on-me")}
+          data-testid="button-all-eyes-on-me"
           style={{
             background: "#ff2b2b",
             borderRadius: "999px",
@@ -100,7 +100,7 @@ export function CategoryCarousel({ activeVertical, onVerticalChange }: CategoryC
             boxShadow: "0 0 10px rgba(255,43,43,0.4)",
           }}
         >
-          📡 Buy Live Show
+          👁️ All Eyes On Me
         </button>
       </div>
     </div>

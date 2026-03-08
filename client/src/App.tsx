@@ -17,7 +17,7 @@ import ProviderPublicPage from "@/pages/provider-public";
 import LiveNowPage from "@/pages/live-now";
 import GoLivePage from "@/pages/go-live";
 import LiveViewPage from "@/pages/live-view";
-import BuyLivePage from "@/pages/buy-live";
+import AllEyesOnMePage from "@/pages/all-eyes-on-me";
 import ZitoTVPage from "@/pages/zito-tv";
 import GigCardDirectoryPage from "@/pages/gigcard-directory";
 import LeaderboardPage from "@/pages/leaderboard";
@@ -35,7 +35,8 @@ function Router() {
       <Route path="/live" component={LiveNowPage} />
       <Route path="/live/go" component={GoLivePage} />
       <Route path="/live/:id" component={LiveViewPage} />
-      <Route path="/buy-live" component={BuyLivePage} />
+      <Route path="/buy-live" component={AllEyesOnMePage} />
+      <Route path="/all-eyes-on-me" component={AllEyesOnMePage} />
       <Route path="/zito-tv" component={ZitoTVPage} />
       <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/gigcard-directory" component={GigCardDirectoryPage} />
