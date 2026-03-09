@@ -2398,3 +2398,47 @@ html {
 }
 
 @keyframes scanner { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* ─── FEED LAYOUT UNLOCK ────────────────────────────────────────────────────
+   These rules MUST live outside any @layer so they are "unlayered" in the
+   CSS cascade.  Unlayered author styles always beat layered author styles
+   (spec: CSS Cascade 5 §6.2), regardless of specificity.  This means they
+   win over the unlayered  html, body, #root { height: 100% }  reset above,
+   via selector specificity, AND they win over everything inside @layer
+   utilities / @layer base because those are layered.
+   Do NOT move these rules inside any @layer block.
+─────────────────────────────────────────────────────────────────────────── */
+body.feed-active {
+  height: 100vh;
+  overflow: hidden;
+  width: 100%;
+  padding-bottom: 0;
+  background: #000000;
+}
+
+.app-shell {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background: #000000;
+}
+
+.feed-wrap {
+  height: var(--feed-height, calc(100vh - 140px));
+  position: relative;
+  width: 100%;
+}
+
+.feed-item {
+  height: var(--feed-height, calc(100vh - 140px));
+  position: relative;
+  width: 100%;
+}
+
+.video-card,
+.card {
+  height: var(--feed-height, calc(100vh - 140px));
+  position: relative;
+  width: 100%;
+}
