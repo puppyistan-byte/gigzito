@@ -346,34 +346,21 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
   return (
     <>
+      {/* Single player shell — is BOTH the sizing box and the absolute positioning context.
+          No nested wrapper. All children stack inside this one div. */}
       <div
         data-testid={`card-listing-${listing.id}`}
-        className={`video-card ${className}`}
+        className={`video-card ${glowClass} ${className}`}
         style={{
           position: "relative",
-          height: "100%",
-          width: "100%",
           overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          width: "100%",
+          height: "100%",
+          maxWidth: "420px",
+          borderRadius: "22px",
           background: "#0b0b0b",
         }}
       >
-        <div
-          className={glowClass}
-          style={{
-            position: "relative",
-            overflow: "hidden",
-            height: "100%",
-            width: "100%",
-            maxWidth: "420px",
-            borderRadius: "22px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
 
           {/* Poster thumbnail shown when video is not active */}
           {!isActive && posterUrl && (
@@ -421,8 +408,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             loading="lazy"
           />
 
-          {/* Transparent event interceptor — sits above the iframe so wheel/touch
-              events reach the parent document instead of the iframe's browsing context. */}
+          {/* Transparent event interceptor */}
           <div
             style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, zIndex: 1, touchAction: "pan-y" }}
             aria-hidden="true"
@@ -591,7 +577,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               </div>
             )}
           </div>
-        </div>
       </div>
 
       {/* Modals */}
