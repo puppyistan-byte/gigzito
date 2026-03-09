@@ -348,9 +348,18 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
     <>
       <div
         data-testid={`card-listing-${listing.id}`}
-        className={`video-card relative w-full h-full overflow-hidden flex items-center justify-center ${className}`}
+        className={`video-card relative overflow-hidden flex items-center justify-center ${className}`}
+        style={{ width: "100%", height: "100%" }}
       >
-        <div className={`relative h-full aspect-[9/16] max-w-[420px] w-auto flex items-center justify-center rounded-[22px] overflow-hidden ${glowClass}`}>
+        <div
+          className={`relative flex items-center justify-center rounded-[22px] overflow-hidden ${glowClass}`}
+          style={{
+            height: "100%",
+            aspectRatio: "9/16",
+            maxWidth: "420px",
+            width: "auto",
+          }}
+        >
 
           {/* Poster thumbnail shown when video is not active */}
           {!isActive && posterUrl && (

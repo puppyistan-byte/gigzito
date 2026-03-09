@@ -203,7 +203,15 @@ export default function HomePage() {
       <div
         ref={feedRef}
         className="feed-wrap feed-container flex-1"
-        style={{ overflowY: "scroll", scrollSnapType: "y mandatory" }}
+        style={{
+          overflowY: "scroll",
+          scrollSnapType: "y mandatory",
+          height: "calc(100vh - 140px)",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
         data-testid="feed-container"
       >
         {isLoading ? (
@@ -227,7 +235,15 @@ export default function HomePage() {
               key={listing.id}
               ref={(el) => { itemRefs.current[idx] = el; }}
               className="feed-item"
-              style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+              style={{
+                scrollSnapAlign: "start",
+                scrollSnapStop: "always",
+                position: "relative",
+                width: "100%",
+                maxWidth: "420px",
+                height: "calc(100vh - 140px)",
+                flexShrink: 0,
+              }}
               data-testid={`listing-item-${idx}`}
             >
               <VideoCard
