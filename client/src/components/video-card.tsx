@@ -348,16 +348,30 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
     <>
       <div
         data-testid={`card-listing-${listing.id}`}
-        className={`video-card relative overflow-hidden flex items-center justify-center ${className}`}
-        style={{ width: "100%", height: "100%" }}
+        className={`video-card ${className}`}
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0b0b0b",
+        }}
       >
         <div
-          className={`relative flex items-center justify-center rounded-[22px] overflow-hidden ${glowClass}`}
+          className={glowClass}
           style={{
+            position: "relative",
+            overflow: "hidden",
             height: "100%",
-            aspectRatio: "9/16",
+            width: "100%",
             maxWidth: "420px",
-            width: "auto",
+            borderRadius: "22px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
 
