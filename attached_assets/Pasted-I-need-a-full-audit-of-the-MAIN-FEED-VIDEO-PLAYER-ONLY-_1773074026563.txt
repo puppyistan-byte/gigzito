@@ -1,0 +1,64 @@
+I need a full audit of the MAIN FEED VIDEO PLAYER ONLY so I can match my VPS to the working Replit version exactly.
+
+Do not redesign anything. Do not generalize. I need the exact implemented values and code locations for the current working main feed player.
+
+Please inspect the current working player and report:
+
+1. File + component
+- exact file path
+- exact component name
+- any helper functions that determine the player/embed URL
+
+2. Outer player/card wrapper
+- full className string
+- exact width behavior
+- exact max-width
+- exact height behavior
+- exact aspect ratio
+- exact border radius
+- exact overflow behavior
+- exact background color
+- any flex alignment
+
+3. Media container
+- full className string
+- whether iframe/video is absolute or normal flow
+- whether it uses inset-0
+- exact width/height values
+- exact object-fit behavior
+- exact background behavior
+- exact z-index layering
+
+4. Poster behavior
+- exact className for poster image
+- whether poster uses object-cover or object-contain
+- when it appears/disappears
+
+5. Iframe/video behavior
+- exact className string
+- exact inline styles
+- whether it fills the frame or is letterboxed
+- whether the player is intended to crop or contain the source
+- exact allow attributes
+- pointer-events behavior
+
+6. Overlay layers
+- exact gradient overlay classes
+- countdown badge positioning
+- mute button positioning
+- like button positioning
+- avatar positioning
+- CTA positioning
+
+7. Any CSS outside the component affecting it
+- selectors in index.css or elsewhere that target .video-card, iframe, video, img, feed-item, or feed-wrap
+- any media queries affecting desktop player size
+
+8. Final implementation snapshot
+Please print the exact current code block for the player markup section in full, and then summarize the exact values that must match on the VPS.
+
+Important:
+- I only care about the main center feed player, not ZitoTV
+- preserve the currently working Replit look exactly
+- identify whether the player is designed to CONTAIN the media or COVER/crop it
+- if the Replit player depends on supporting CSS from index.css, include that exact CSS too
