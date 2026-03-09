@@ -380,20 +380,28 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <img
               src={posterUrl}
               alt={listing.title}
-              className="absolute inset-0 w-full h-full object-cover z-0"
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
               data-testid={`img-poster-${listing.id}`}
             />
           )}
 
           {/* Dark background fallback when no poster */}
           {!isActive && !posterUrl && (
-            <div className="absolute inset-0 bg-[#0b0b0b] z-0" />
+            <div style={{ position: "absolute", inset: 0, background: "#0b0b0b", zIndex: 0 }} />
           )}
 
           {/* Autoplay fallback play button — only shown if autoplay failed */}
           {!isActive && autoplayFailed && (
             <button
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30 transition-opacity"
+              style={{
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)", zIndex: 20,
+                width: 80, height: 80, borderRadius: "50%",
+                background: "rgba(255,255,255,0.2)", backdropFilter: "blur(4px)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+              }}
               aria-label="Play video"
               data-testid={`button-play-${listing.id}`}
             >
@@ -407,36 +415,39 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             key={`video-${listing.id}`}
             src={iframeSrc}
             title={listing.title}
-            className="absolute inset-0 w-full h-full border-0 z-0"
-            style={{ pointerEvents: "none" }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", zIndex: 0, pointerEvents: "none" }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             loading="lazy"
           />
 
           {/* Transparent event interceptor — sits above the iframe so wheel/touch
-              events reach the parent document instead of the iframe's browsing context.
-              z-1 keeps it below all interactive overlays (z-10+). */}
+              events reach the parent document instead of the iframe's browsing context. */}
           <div
-            className="absolute inset-0 z-[1]"
-            style={{ touchAction: "pan-y" }}
+            style={{ position: "absolute", inset: 0, zIndex: 1, touchAction: "pan-y" }}
             aria-hidden="true"
           />
 
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/10 z-10 pointer-events-none" />
+          {/* Gradient overlay */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none",
+            background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)",
+          }} />
 
           {/* TOP: Duration badge */}
-          <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-black/55 backdrop-blur-sm rounded-full px-2 py-0.5" data-testid={`badge-duration-${listing.id}`}>
+          <div
+            style={{ position: "absolute", top: 12, right: 12, zIndex: 20, display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", borderRadius: 999, padding: "2px 8px" }}
+            data-testid={`badge-duration-${listing.id}`}
+          >
             <Clock className="w-2.5 h-2.5 text-white/70" />
             <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
           </div>
 
-          {/* Mute / Unmute toggle — tap to hear sound */}
+          {/* Mute / Unmute toggle */}
           {isActive && (
             <button
               onClick={toggleMute}
-              className="absolute top-3 left-3 z-30 flex items-center gap-1.5 bg-black/65 hover:bg-black/80 backdrop-blur-sm rounded-full px-2.5 py-1 transition-colors cursor-pointer"
+              style={{ position: "absolute", top: 12, left: 12, zIndex: 30, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", borderRadius: 999, padding: "4px 10px", border: "none", cursor: "pointer" }}
               data-testid={`button-mute-${listing.id}`}
               title={isMuted ? "Tap to unmute" : "Tap to mute"}
             >
@@ -454,17 +465,22 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </button>
           )}
 
-          {/* HEART LIKE BUTTON — right sidebar, above avatar */}
-          <div className="absolute bottom-[132px] right-3 z-30 flex flex-col items-center gap-0.5" data-testid={`like-container-${listing.id}`}>
+          {/* HEART LIKE BUTTON */}
+          <div
+            style={{ position: "absolute", bottom: 132, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+            data-testid={`like-container-${listing.id}`}
+          >
             <button
               onClick={handleLike}
-              className="w-11 h-11 rounded-full flex items-center justify-center transition-transform"
               style={{
+                width: 44, height: 44, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
                 background: isLiked ? "rgba(220,38,38,0.25)" : "rgba(0,0,0,0.5)",
                 border: isLiked ? "1.5px solid rgba(220,38,38,0.6)" : "1.5px solid rgba(255,255,255,0.2)",
                 transform: heartAnimating ? "scale(1.35)" : "scale(1)",
                 transition: "transform 0.2s cubic-bezier(.36,.07,.19,.97), background 0.15s, border-color 0.15s",
                 backdropFilter: "blur(6px)",
+                cursor: "pointer",
               }}
               data-testid={`button-like-${listing.id}`}
               title={isLiked ? "Unlike" : "Like"}
@@ -479,8 +495,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               />
             </button>
             <span
-              className="text-white/80 font-bold tabular-nums"
-              style={{ fontSize: "11px", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}
+              style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)", fontVariantNumeric: "tabular-nums" }}
               data-testid={`text-like-count-${listing.id}`}
             >
               {likeCount > 0 ? likeCount.toLocaleString() : ""}
@@ -490,29 +505,25 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           {/* FLOATING CREATOR AVATAR */}
           <Link href={`/provider/${listing.provider.id}`}>
             <div
-              className="absolute bottom-[76px] right-4 z-30 cursor-pointer"
+              style={{ position: "absolute", bottom: 76, right: 16, zIndex: 30, cursor: "pointer", transition: "transform 0.15s ease" }}
               data-testid={`avatar-creator-${listing.id}`}
               title={`View ${provider.displayName}'s profile`}
-              style={{ transition: "transform 0.15s ease" }}
               onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
               onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
               <div
                 style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "50%",
+                  width: 44, height: 44, borderRadius: "50%",
                   border: "2.5px solid rgba(255,255,255,0.5)",
                   overflow: "hidden",
                   boxShadow: "0 2px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3)",
-                  background: "#1a1a1a",
-                  flexShrink: 0,
+                  background: "#1a1a1a", flexShrink: 0,
                 }}
               >
                 {provider.avatarUrl ? (
                   <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "15px", fontWeight: "700" }}>
+                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: 15, fontWeight: 700 }}>
                     {initials}
                   </div>
                 )}
@@ -521,7 +532,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           </Link>
 
           {/* BOTTOM: Info & CTAs */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 pt-12 z-20 space-y-2.5">
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "48px 16px 16px", zIndex: 20 }} className="space-y-2.5">
 
             {/* Category badge */}
             <Badge className={`${badgeInfo.bg} text-white text-[10px] px-2.5 py-0.5 uppercase font-bold border-0 tracking-wide`}>
