@@ -1,0 +1,39 @@
+Yep — I see it.
+
+The feed itself is working again, but the bottom CTA cluster inside the video card is sitting too low / too cramped in the shell. The issue is inside video-card.tsx only, not ZitoTV, not home.tsx, not index.css.
+
+What looks off from the screenshot:
+
+the Inquire button row is hugging the bottom too tightly
+
+the share button is crowded into the same lower strip
+
+the tags are too close to the CTA row
+
+the bottom overlay needs a little more breathing room so it sits like a proper TikTok-style stack
+
+Send this to Replit
+
+We’ve got the player frame stable again, but the bottom action area inside the main feed card is still visually off. This is not a global layout issue and should be treated as a video-card.tsx-only polish fix. The current issue is that the bottom CTA cluster inside the video shell is sitting too low and too cramped. In the current rendering, the Inquire button row hugs the bottom too tightly, the share button is crowded in the same lower strip, and the tags sit too close to the action row. Please adjust only the bottom info panel inside client/src/components/video-card.tsx so the composition has cleaner vertical spacing. The goal is: category badge, title, description, CTA/share row, then tags — all comfortably inside the media shell with proper breathing room above the bottom edge. Do not touch index.css, home.tsx, or mini-live-player.tsx. We want a one-file fix only. Please identify the exact bottom info panel block and adjust the padding / spacing so the CTA row sits slightly higher and the tags have a little separation beneath it. Once updated, provide only the corrected video-card.tsx source or the exact code block to replace, not a bulk deploy script.
+
+My read of the likely fix
+
+Inside video-card.tsx, Replit probably needs to tweak the bottom panel block that currently looks roughly like:
+
+bottom info panel container
+
+title/description block
+
+action row
+
+tags row
+
+The likely adjustment is one or more of these:
+
+slightly more bottom padding on the info panel
+
+slightly more gap between description and action row
+
+slightly more gap between action row and tags
+
+possibly reduce the CTA row’s vertical footprint a hair

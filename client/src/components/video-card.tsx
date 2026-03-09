@@ -518,7 +518,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           </Link>
 
           {/* BOTTOM: Info & CTAs */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "48px 16px 16px", zIndex: 20 }} className="space-y-2.5">
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "48px 16px 22px", zIndex: 20 }} className="space-y-2">
 
             {/* Category badge */}
             <Badge className={`${badgeInfo.bg} text-white text-[10px] px-2.5 py-0.5 uppercase font-bold border-0 tracking-wide`}>
@@ -541,18 +541,18 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               />
             )}
 
-            {/* Title + Description */}
-            <div>
+            {/* Title + Description — right-padded to clear the avatar column */}
+            <div style={{ paddingRight: "64px" }}>
               <h4 className="font-bold text-base leading-snug text-white drop-shadow-md">{listing.title}</h4>
               {listing.description && (
-                <p className="text-[12px] text-white/80 line-clamp-2 leading-relaxed mt-0.5 drop-shadow-sm">
+                <p className="text-[12px] text-white/80 line-clamp-1 leading-relaxed mt-0.5 drop-shadow-sm">
                   {listing.description}
                 </p>
               )}
             </div>
 
             {/* Action Row: CTA · Share */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" style={{ paddingRight: "64px" }}>
               <button
                 onClick={handleCtaClick}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-[#c41414] hover:bg-[#a51010] text-white h-8 rounded-full font-bold text-xs transition-colors"
@@ -572,7 +572,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
             {/* Tags */}
             {listing.tags && listing.tags.length > 0 && (
-              <div className="flex gap-2 text-[11px] text-white/50 flex-wrap">
+              <div className="flex gap-2 text-[11px] text-white/50 flex-wrap" style={{ paddingRight: "64px" }}>
                 {listing.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}
               </div>
             )}

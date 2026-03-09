@@ -1206,5 +1206,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.sendFile(filePath);
   });
 
+  app.get("/get-mini-player", (_req, res) => {
+    const filePath = path.resolve("client/public/deploy_mini_player.js");
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("deploy_mini_player.js not found");
+    }
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", 'attachment; filename="deploy_mini_player.js"');
+    res.sendFile(filePath);
+  });
+
+  app.get("/get-video-card", (_req, res) => {
+    const filePath = path.resolve("client/public/deploy_video_card.js");
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("deploy_video_card.js not found");
+    }
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", 'attachment; filename="deploy_video_card.js"');
+    res.sendFile(filePath);
+  });
+
   return httpServer;
 }
