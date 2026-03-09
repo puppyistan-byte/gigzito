@@ -350,10 +350,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
         data-testid={`card-listing-${listing.id}`}
         className={`video-card ${className}`}
         style={{
-          position: "relative",
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
           overflow: "hidden",
-          width: "100%",
-          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -380,14 +379,14 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <img
               src={posterUrl}
               alt={listing.title}
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
+              style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
               data-testid={`img-poster-${listing.id}`}
             />
           )}
 
           {/* Dark background fallback when no poster */}
           {!isActive && !posterUrl && (
-            <div style={{ position: "absolute", inset: 0, background: "#0b0b0b", zIndex: 0 }} />
+            <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, background: "#0b0b0b", zIndex: 0 }} />
           )}
 
           {/* Autoplay fallback play button — only shown if autoplay failed */}
@@ -415,7 +414,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             key={`video-${listing.id}`}
             src={iframeSrc}
             title={listing.title}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", zIndex: 0, pointerEvents: "none" }}
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, width: "100%", height: "100%", border: "none", zIndex: 0, pointerEvents: "none" }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             loading="lazy"
@@ -424,13 +423,13 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           {/* Transparent event interceptor — sits above the iframe so wheel/touch
               events reach the parent document instead of the iframe's browsing context. */}
           <div
-            style={{ position: "absolute", inset: 0, zIndex: 1, touchAction: "pan-y" }}
+            style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, zIndex: 1, touchAction: "pan-y" }}
             aria-hidden="true"
           />
 
           {/* Gradient overlay */}
           <div style={{
-            position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none",
+            position: "absolute", top: 0, right: 0, bottom: 0, left: 0, zIndex: 10, pointerEvents: "none",
             background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)",
           }} />
 
