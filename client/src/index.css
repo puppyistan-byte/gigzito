@@ -143,6 +143,20 @@ html, body, #root {
   color: #eaeaea;
 }
 
+/* ── GLOBAL RENDERING LOCK ──────────────────────────────────────────────────
+   Explicit 16px root locks rem-based sizing identically across all platforms.
+   overflow-x: hidden prevents 100vw scrollbar-gutter blowout on Linux/GTK.
+   box-sizing: border-box makes padding not add to declared widths anywhere.
+─────────────────────────────────────────────────────────────────────────── */
+html {
+  font-size: 16px;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -265,7 +279,8 @@ html, body, #root {
   body.feed-active {
     overflow: hidden;
     height: 100vh;
-    width: 100vw;
+    width: 100%;          /* NOT 100vw — avoids scrollbar-gutter blowout */
+    padding-bottom: 0;    /* cancel global 110px padding that shifts feed */
     background: #000000;
   }
 
@@ -275,21 +290,64 @@ html, body, #root {
   }
 
   .app-shell {
+    /* ── DESKTOP SIZING LOCK ───────────────────────────────────────────────
+       Use width:100% (not 100vw) so scrollbar gutter never adds overflow.
+       All key layout values are defined as custom properties here so they
+       are a single source of truth — change one value, everything adjusts.
+    ─────────────────────────────────────────────────────────────────────── */
     height: 100vh;
-    width: 100vw;
+    width: 100%;                     /* NOT 100vw — avoids scrollbar blowout */
     position: relative;
     overflow: hidden;
     background: #000000;
-    --branding-height: 70px;
-    --branding-spacing: 16px;
-    --bottom-nav-height: 64px;
+
+    /* ── Layout tokens ────────────────────────────────────────────── */
+    --bottom-nav-height:    72px;    /* bottom nav bar */
+    --branding-height:      70px;
+    --branding-spacing:     16px;
+
+    /* Logo (left column) */
+    --logo-left:            96px;
+    --logo-container-w:     309px;
+    --logo-top:             42px;
+    --logo-img-w:           248px;
+
+    /* ZitoTV mini player (bottom-left) */
+    --zitotv-left:          12px;
+    --zitotv-bottom:        84px;    /* = bottom-nav + 12px clearance */
+    --zitotv-card-w:        298px;
+    --zitotv-embed-h:       168px;
+
+    /* GigJack siren widget (top-right) */
+    --gigjack-right:        8px;
+    --gigjack-top:          8px;
+    --gigjack-w:            252px;
+
+    /* Today's Offers button (bottom-right) */
+    --offers-btn-right:     12px;
+    --offers-btn-bottom:    84px;
+
+    /* Center feed */
+    --feed-card-max-w:      420px;
+    --feed-gap:             72px;
+    --feed-top-margin:      16px;
+    --feed-height:          calc(100vh - 140px);
+
+    /* Category nav */
+    --cat-strip-pad-y-top:  10px;
+    --cat-strip-pad-y-bot:  6px;
+    --cat-strip-pad-x:      12px;
+    --cat-pill-pad-y:       6px;
+    --cat-pill-pad-x:       14px;
+    --cat-pill-font:        12px;
+    --cat-gap:              10px;
   }
 
   .gigzito-logo-container {
     position: fixed;
-    left: 96px;
-    width: 309px;
-    top: 42px;
+    left: var(--logo-left, 96px);
+    width: var(--logo-container-w, 309px);
+    top: var(--logo-top, 42px);
     bottom: 287px;
     z-index: 50;
     pointer-events: none;
@@ -302,7 +360,7 @@ html, body, #root {
   }
 
   .gigzito-logo-img {
-    width: 248px;
+    width: var(--logo-img-w, 248px);
     height: auto;
     display: block;
     object-fit: contain;
@@ -333,14 +391,14 @@ html, body, #root {
     position: relative;
     z-index: 2;
     width: 100%;
-    height: calc(100vh - 140px);
-    margin-top: 16px;
+    height: var(--feed-height, calc(100vh - 140px));
+    margin-top: var(--feed-top-margin, 16px);
     display: flex;
     flex-direction: column;
     align-items: center;
     overflow-y: scroll;
     scroll-snap-type: y mandatory;
-    gap: 72px;
+    gap: var(--feed-gap, 72px);
     touch-action: pan-y;
   }
 
@@ -348,8 +406,8 @@ html, body, #root {
   .card {
     position: relative;
     width: 100%;
-    max-width: 420px;
-    height: calc(100vh - 140px);
+    max-width: var(--feed-card-max-w, 420px);
+    height: var(--feed-height, calc(100vh - 140px));
     scroll-snap-align: start;
     flex: 0 0 auto;
     border-radius: 12px !important;
@@ -360,7 +418,7 @@ html, body, #root {
     border: 1px solid #222 !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
     padding: 8px;
-    margin-bottom: 72px;
+    margin-bottom: var(--feed-gap, 72px);
     transition: border-color 0.18s ease;
     touch-action: pan-y;
   }
@@ -369,12 +427,12 @@ html, body, #root {
   .feed-item {
     position: relative;
     width: 100%;
-    max-width: 420px;
-    height: calc(100vh - 140px);
+    max-width: var(--feed-card-max-w, 420px);
+    height: var(--feed-height, calc(100vh - 140px));
     scroll-snap-align: start;
     flex: 0 0 auto;
     overflow: visible;
-    margin-bottom: 72px;
+    margin-bottom: var(--feed-gap, 72px);
     touch-action: pan-y;
   }
   .video-card:hover,
@@ -408,7 +466,7 @@ html, body, #root {
     right: 0;
     bottom: 0;
     z-index: 9999;
-    height: 72px;
+    height: var(--bottom-nav-height, 72px);
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -588,7 +646,7 @@ html, body, #root {
   /* ========================= CATEGORY CAROUSEL ========================= */
   .category-strip {
     width: 100%;
-    padding: 10px 12px 6px;
+    padding: var(--cat-strip-pad-y-top, 10px) var(--cat-strip-pad-x, 12px) var(--cat-strip-pad-y-bot, 6px);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -601,7 +659,7 @@ html, body, #root {
 
   .category-track {
     display: flex;
-    gap: 10px;
+    gap: var(--cat-gap, 10px);
     align-items: center;
     white-space: nowrap;
     scroll-snap-type: x mandatory;
