@@ -1,0 +1,31 @@
+Looking at the screenshot, the core issue is clear regardless of our previous fixes: the poster and iframe are still rendering in document flow, and overlays fall below. Let me try a fundamentally different approach — collapse the outer and inner divs into one single container that directly holds all children. This eliminates the height chain between the two nested divs entirely:
+
+The two nested flex containers are the culprit. Each one with height: 100% of the next creates a chain that breaks on VPS. I'm collapsing them into one single container that is both the sizing box and the positioning context — no nesting, no height chain:
+
+The workflow failed — likely a JSX error from removing the inner closing div. Let me check and fix:
+
+There's one extra closing div left over from the old inner div. Removing it:
+
+JSX parse error — there's still a mismatched closing div. Let me read the bottom of the file and fix it cleanly:
+
+The JSX structure looks correct now — info panel closes at 579, single player shell at 580, fragment at 589. The error was from the previous state. Let me restart the workflow:
+
+App is running cleanly — JSX compiled successfully, Vite connected. Now rebuild the archive:
+
+Archive is built at 22K. Let me quickly verify the single-container structure is correct:
+
+The structure is exactly right — one div that is both the sizing box and the positioning context, with position: relative; overflow: hidden; height: 100%. No nested divs, no height chain to break.
+
+To deploy this to your VPS, run these commands:
+
+# 1. On Replit, download the archive (it's at client/src/gigzito-layout-files.tar.gz)
+# 2. Upload it to your VPS, then:
+cd /opt/gigzito
+tar -xzf gigzito-layout-files.tar.gz -C client/src/
+# 3. Restart the app
+pm2 delete gigzito && pm2 start npm --name gigzito -- run dev
+What changed in this fix:
+
+The old code had two nested divs — an outer flex container and an inner flex container. Both used height: 100%, meaning the inner div's height depended on the outer div's height, which depended on the feed-item. On VPS, that chain was silently collapsing, causing all the position: absolute children to anchor to a zero-height box and render in document flow instead.
+
+This version uses one single div with explicit height: 100%; position: relative; overflow: hidden. There's no chain — just one container inheriting height from the feed-item directly, then all children absolutely positioned inside it.
