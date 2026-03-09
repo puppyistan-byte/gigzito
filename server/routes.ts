@@ -6,6 +6,8 @@ import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { sendMfaCode, sendTriageNotification } from "./email";
+import fs from "fs";
+import path from "path";
 
 // === BOT CHECKS ===
 function runBotChecks(data: {
@@ -1192,6 +1194,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!isAdmin && !isOwner) return res.status(403).json({ message: "Not authorized" });
     await storage.cancelAllEyesSlot(id);
     return res.json({ success: true });
+  });
+
+  app.get("/get-deploy", (_req, res) => {
+    const filePath = path.resolve("client/public/deploy_all.js");
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("deploy_all.js not found");
+    }
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", 'attachment; filename="deploy_all.js"');
+    res.sendFile(filePath);
   });
 
   return httpServer;
