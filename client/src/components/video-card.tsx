@@ -350,8 +350,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
         data-testid={`card-listing-${listing.id}`}
         className={`video-card ${className}`}
         style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0, bottom: 0,
+          position: "relative",
+          height: "100%",
+          width: "100%",
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
