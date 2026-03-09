@@ -1,0 +1,49 @@
+**Verification Request — Tailwind Utility Classes in VPS Production Build**
+
+We are seeing a rendering discrepancy between the Replit environment and the Hetzner VPS production build.
+
+Observed behavior:
+
+• In Replit:
+The poster image fills the entire video card and all overlay elements (duration badge, mute button, like button, avatar, info panel) stack correctly within the inner player container.
+
+• In the VPS production build:
+The poster `<img>` renders as a normal-flow element at the top of the card, the `<iframe>` renders as a separate block below it, and all overlay elements fall below both elements.
+
+This strongly suggests that Tailwind utility classes responsible for positioning are not being applied in the production bundle, specifically:
+
+* `absolute`
+* `inset-0`
+* `z-*`
+* `top-*`
+* `bottom-*`
+* `left-*`
+* `right-*`
+
+Because these classes are missing, the children lose their absolute positioning and fall into normal document flow.
+
+We want to confirm whether the following is the correct diagnosis:
+
+**Hypothesis**
+
+During the production build, Tailwind’s purge/content scanning removed structural utility classes used inside `video-card.tsx`, causing those classes not to exist in the compiled CSS on the VPS.
+
+**Proposed solution**
+
+Move all structural layout properties for elements inside the inner player container to inline styles:
+
+* `position`
+* `inset`
+* `zIndex`
+* `top`
+* `bottom`
+* `left`
+* `right`
+
+Tailwind would remain only for non-structural visual styling (typography, colors, transitions).
+
+This ensures the player shell stacking system cannot be altered by Tailwind compilation or class ordering differences between environments.
+
+Can you confirm whether this explanation matches the current project configuration, or whether there is a Tailwind configuration or Vite build setting that could be causing these classes not to appear in the production bundle?
+
+If Tailwind purging is the cause, we want to verify whether inline structural styles are the correct long-term solution for the player component.
