@@ -432,7 +432,7 @@ export default function ProviderDashboard() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
-        {/* Return to Main + Sign Out */}
+        {/* Return to Main + Admin Console + Sign Out */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Link href="/">
             <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
@@ -440,14 +440,26 @@ export default function ProviderDashboard() {
               Return to Main
             </button>
           </Link>
-          <button
-            onClick={async () => { await logout(); navigate("/"); }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/70 hover:bg-red-500/10 rounded-full px-3 py-1.5 transition-colors"
-            data-testid="button-sign-out-dashboard"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign Out
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 border border-amber-500/40 hover:border-amber-500/70 hover:bg-amber-500/10 rounded-full px-3 py-1.5 transition-colors"
+                data-testid="button-admin-console-dashboard"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Admin Console
+              </button>
+            )}
+            <button
+              onClick={async () => { await logout(); navigate("/"); }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/70 hover:bg-red-500/10 rounded-full px-3 py-1.5 transition-colors"
+              data-testid="button-sign-out-dashboard"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Header */}
