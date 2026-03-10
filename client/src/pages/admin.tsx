@@ -655,6 +655,15 @@ export default function AdminPage() {
           {isSuperAdmin && (
             <TabBtn label="Audit Log" icon={ClipboardList} active={activeTab === "audit"} onClick={() => setActiveTab("audit")} superOnly />
           )}
+          {/* Always-visible Sign Out — right edge of tab bar */}
+          <button
+            onClick={async () => { await logout(); navigate("/"); }}
+            className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/70 hover:bg-red-500/10 transition-all"
+            data-testid="button-admin-signout-tabbar"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
         </div>
 
         {/* ═══════════════════════════════ OVERVIEW ═══════════════════════════════ */}
