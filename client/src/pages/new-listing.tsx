@@ -183,14 +183,14 @@ export default function NewListingPage() {
   const handleDurationChange = (val: string) => {
     set("durationSeconds", val);
     const n = parseInt(val, 10);
-    setDurationWarning(!isNaN(n) && n > 20);
+    setDurationWarning(!isNaN(n) && n > 60);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const dur = parseInt(form.durationSeconds, 10);
-    if (isNaN(dur) || dur < 1 || dur > 20) {
-      toast({ title: "Invalid duration", description: "Video must be 1–20 seconds.", variant: "destructive" });
+    if (isNaN(dur) || dur < 1 || dur > 60) {
+      toast({ title: "Invalid duration", description: "Video must be 1–60 seconds.", variant: "destructive" });
       return;
     }
     if (form.ctaType && !form.ctaUrl) {
@@ -331,9 +331,9 @@ export default function NewListingPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[#aaa] text-sm">Duration (seconds) * <span className="text-[#555] font-normal">Max 20s</span></Label>
+              <Label className="text-[#aaa] text-sm">Duration (seconds) * <span className="text-[#555] font-normal">Max 60s</span></Label>
               <Input
-                type="number" min={1} max={20} placeholder="15"
+                type="number" min={1} max={60} placeholder="30"
                 value={form.durationSeconds}
                 onChange={(e) => handleDurationChange(e.target.value)}
                 required
@@ -465,7 +465,7 @@ export default function NewListingPage() {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-[#aaa] text-sm">CTA Type</Label>
-                <Select value={form.ctaType} onValueChange={(val) => set("ctaType", val === "none" ? "" : val)}>
+                <Select value={form.ctaType || "none"} onValueChange={(val) => set("ctaType", val === "none" ? "" : val)}>
                   <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff1a1a]" data-testid="select-cta-type">
                     <SelectValue placeholder="No CTA (optional)" />
                   </SelectTrigger>
