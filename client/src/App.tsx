@@ -21,6 +21,7 @@ import AllEyesOnMePage from "@/pages/all-eyes-on-me";
 import ZitoTVPage from "@/pages/zito-tv";
 import GigCardDirectoryPage from "@/pages/gigcard-directory";
 import LeaderboardPage from "@/pages/leaderboard";
+import VerifyEmailPage from "@/pages/verify-email";
 
 function Router() {
   return (
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/gigcard-directory" component={GigCardDirectoryPage} />
       <Route path="/leaderboard" component={LeaderboardPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

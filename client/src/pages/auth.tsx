@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck, Mail, RefreshCw } from "lucide-react";
+import { Loader2, ShieldCheck, Mail, RefreshCw, MailCheck } from "lucide-react";
 import { Link } from "wouter";
 import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
 
@@ -28,6 +28,13 @@ export default function AuthPage() {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Verify email state (after registration)
+  const [verifyEmailStep, setVerifyEmailStep] = useState(false);
+  const [verifyEmailAddr, setVerifyEmailAddr] = useState("");
+  const [resendVerifyCooldown, setResendVerifyCooldown] = useState(0);
+  const [resendVerifyLoading, setResendVerifyLoading] = useState(false);
+  const verifyCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // MFA state
   const [mfaStep, setMfaStep] = useState(false);
   const [mfaEmail, setMfaEmail] = useState("");
@@ -46,8 +53,43 @@ export default function AuthPage() {
   }, [mfaStep]);
 
   useEffect(() => {
-    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+      if (verifyCooldownRef.current) clearInterval(verifyCooldownRef.current);
+    };
   }, []);
+
+  const startVerifyCooldown = () => {
+    setResendVerifyCooldown(RESEND_COOLDOWN);
+    if (verifyCooldownRef.current) clearInterval(verifyCooldownRef.current);
+    verifyCooldownRef.current = setInterval(() => {
+      setResendVerifyCooldown((prev) => {
+        if (prev <= 1) { clearInterval(verifyCooldownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleResendVerification = async () => {
+    if (resendVerifyCooldown > 0 || resendVerifyLoading) return;
+    setResendVerifyLoading(true);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verifyEmailAddr }),
+      });
+      if (res.ok) {
+        startVerifyCooldown();
+        toast({ title: "Email sent", description: "A new verification link was sent to your inbox." });
+      } else {
+        const data = await res.json();
+        toast({ title: "Could not resend", description: data.message, variant: "destructive" });
+      }
+    } finally {
+      setResendVerifyLoading(false);
+    }
+  };
 
   const startCooldown = () => {
     setResendCooldown(RESEND_COOLDOWN);
@@ -76,7 +118,13 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: "Login failed", description: data.message, variant: "destructive" });
+        if (data.emailNotVerified) {
+          setVerifyEmailAddr(data.email || loginEmail);
+          setVerifyEmailStep(true);
+          startVerifyCooldown();
+        } else {
+          toast({ title: "Login failed", description: data.message, variant: "destructive" });
+        }
       } else if (data.mfaRequired) {
         setMfaEmail(data.email);
         setDevCode(data.devCode ?? null);
@@ -159,9 +207,12 @@ export default function AuthPage() {
       const data = await res.json();
       if (!res.ok) {
         toast({ title: "Registration failed", description: data.message, variant: "destructive" });
+      } else if (data.requiresVerification) {
+        setVerifyEmailAddr(data.email);
+        setVerifyEmailStep(true);
+        startVerifyCooldown();
       } else {
-        queryClient.setQueryData(["/api/auth/me"], data);
-        refetch();
+        await refetch();
         navigate("/provider/profile");
         toast({ title: "Welcome to Gigzito!", description: "Complete your profile to start posting videos." });
       }
@@ -169,6 +220,58 @@ export default function AuthPage() {
       setIsLoading(false);
     }
   };
+
+  // ─── Verify Email Step ────────────────────────────────────────────────────────
+  if (verifyEmailStep) {
+    return (
+      <div className="auth-page min-h-screen flex flex-col items-center justify-center px-4">
+        <Link href="/">
+          <a className="auth-brand" data-testid="link-auth-home">
+            <img src={logoImg} alt="Gigzito" className="auth-logo" />
+          </a>
+        </Link>
+
+        <Card className="w-full max-w-sm p-6">
+          <div className="flex flex-col items-center gap-2 mb-5">
+            <div className="w-12 h-12 rounded-full bg-[#ff2b2b]/10 border border-[#ff2b2b]/20 flex items-center justify-center">
+              <MailCheck className="h-6 w-6 text-[#ff2b2b]" />
+            </div>
+            <h2 className="text-lg font-bold text-white text-center">Check your inbox</h2>
+            <p className="text-xs text-[#666] text-center leading-relaxed">
+              We sent a verification link to<br />
+              <span className="text-[#999] font-medium">{verifyEmailAddr}</span>
+            </p>
+            <p className="text-xs text-[#555] text-center leading-relaxed mt-1">
+              Click the link in the email to verify your account, then come back to log in.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-3 mt-2">
+            <button
+              type="button"
+              onClick={handleResendVerification}
+              disabled={resendVerifyCooldown > 0 || resendVerifyLoading}
+              className={`flex items-center gap-1.5 text-xs transition-colors ${resendVerifyCooldown > 0 ? "text-[#444] cursor-not-allowed" : "text-[#ff2b2b] hover:text-[#ff5555]"}`}
+              data-testid="button-resend-verification"
+            >
+              {resendVerifyLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              {resendVerifyCooldown > 0 ? `Resend in ${resendVerifyCooldown}s` : "Resend verification email"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setVerifyEmailStep(false)}
+              className="text-xs text-[#444] hover:text-[#888] transition-colors"
+              data-testid="button-back-to-login"
+            >
+              Back to login
+            </button>
+          </div>
+        </Card>
+
+        <p className="text-xs text-muted-foreground mt-4">Verification link expires in 24 hours.</p>
+      </div>
+    );
+  }
 
   // ─── MFA Step ─────────────────────────────────────────────────────────────────
   if (mfaStep) {

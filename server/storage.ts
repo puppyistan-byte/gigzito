@@ -6,6 +6,9 @@ export interface IStorage {
   // Users
   getUserById(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  verifyUserEmail(userId: number): Promise<void>;
+  updateVerificationToken(userId: number, token: string | null): Promise<void>;
   createUser(data: InsertUser): Promise<User>;
 
   // Profiles
@@ -119,6 +122,19 @@ export class DatabaseStorage implements IStorage {
   async createUser(data: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(data).returning();
     return user;
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.emailVerificationToken, token));
+    return user;
+  }
+
+  async verifyUserEmail(userId: number): Promise<void> {
+    await db.update(users).set({ emailVerified: true, emailVerificationToken: null }).where(eq(users.id, userId));
+  }
+
+  async updateVerificationToken(userId: number, token: string | null): Promise<void> {
+    await db.update(users).set({ emailVerificationToken: token }).where(eq(users.id, userId));
   }
 
   async getProfileByUserId(userId: number): Promise<ProviderProfile | undefined> {

@@ -5,7 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { sendMfaCode, sendTriageNotification } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail } from "./email";
 import fs from "fs";
 import path from "path";
 
@@ -224,11 +224,58 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const existing = await storage.getUserByEmail(email);
       if (existing) return res.status(409).json({ message: "Email already registered" });
       const hashed = await hashPassword(password);
-      const user = await storage.createUser({ email, password: hashed, role: "PROVIDER", disclaimerAccepted: true });
-      const profile = await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null, username: null, primaryCategory: null, location: null, instagramUrl: null, youtubeUrl: null, tiktokUrl: null });
-      (req.session as any).userId = user.id;
-      (req.session as any).role = user.role;
-      return res.status(201).json({ user: { ...user, password: undefined }, profile });
+      const verificationToken = randomBytes(32).toString("hex");
+      const emailResult = await sendVerificationEmail(
+        email,
+        `${req.protocol}://${req.get("host")}/verify-email?token=${verificationToken}`
+      );
+      const autoVerified = emailResult.devMode;
+      const user = await storage.createUser({
+        email, password: hashed, role: "PROVIDER", disclaimerAccepted: true,
+        emailVerified: autoVerified,
+        emailVerificationToken: autoVerified ? null : verificationToken,
+      });
+      await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null, username: null, primaryCategory: null, location: null, instagramUrl: null, youtubeUrl: null, tiktokUrl: null });
+      if (autoVerified) {
+        (req.session as any).userId = user.id;
+        (req.session as any).role = user.role;
+      }
+      return res.status(201).json({ requiresVerification: !autoVerified, email });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query as { token?: string };
+      if (!token) return res.status(400).json({ message: "Missing token" });
+      const user = await storage.getUserByVerificationToken(token);
+      if (!user) return res.status(400).json({ message: "Invalid or expired verification link." });
+      if (user.emailVerified) return res.json({ alreadyVerified: true });
+      await storage.verifyUserEmail(user.id);
+      return res.json({ verified: true });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email required" });
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(404).json({ message: "No account found with that email." });
+      if (user.emailVerified) return res.json({ message: "Email already verified." });
+      const verificationToken = randomBytes(32).toString("hex");
+      await storage.updateVerificationToken(user.id, verificationToken);
+      const emailResult = await sendVerificationEmail(
+        email,
+        `${req.protocol}://${req.get("host")}/verify-email?token=${verificationToken}`
+      );
+      return res.json({ sent: true, devMode: emailResult.devMode });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Server error" });
@@ -244,6 +291,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const valid = await verifyPassword(password, user.password);
       if (!valid) return res.status(401).json({ message: "Invalid credentials" });
       if (user.status === "disabled") return res.status(403).json({ message: "Your account has been disabled. Please contact support." });
+      if (!user.emailVerified) return res.status(403).json({ message: "Please verify your email before logging in.", emailNotVerified: true, email: user.email });
       // Generate MFA code
       const code = String(Math.floor(100000 + Math.random() * 900000));
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);

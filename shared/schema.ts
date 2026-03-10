@@ -21,6 +21,8 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default("VISITOR"),
   status: text("status").notNull().default("active"),
   disclaimerAccepted: boolean("disclaimer_accepted").notNull().default(false),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationToken: text("email_verification_token"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });

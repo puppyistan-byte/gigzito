@@ -86,6 +86,38 @@ export async function sendTriageNotification(
   return { devMode: false };
 }
 
+export async function sendVerificationEmail(toEmail: string, verifyUrl: string): Promise<{ devMode: boolean }> {
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+      <h2 style="color:#fff;font-size:20px;margin:0 0 8px;">Verify your email</h2>
+      <p style="color:#888;font-size:14px;margin:0 0 24px;">Click the button below to confirm your Gigzito account. This link expires in 24 hours.</p>
+      <a href="${verifyUrl}" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none;margin-bottom:24px;">Verify Email</a>
+      <p style="color:#555;font-size:12px;margin:0;">If you didn't create a Gigzito account, you can safely ignore this email.</p>
+    </div>
+  `;
+
+  if (DEV_MODE) {
+    console.log("\n");
+    console.log("=".repeat(60));
+    console.log("  [DEV MODE] Email verification for:", toEmail);
+    console.log("  Verify URL:", verifyUrl);
+    console.log("=".repeat(60));
+    console.log("\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: toEmail,
+    subject: "Verify your Gigzito account",
+    html,
+    text: `Verify your Gigzito account by visiting: ${verifyUrl}`,
+  });
+
+  return { devMode: false };
+}
+
 export async function sendMfaCode(toEmail: string, code: string): Promise<SendMfaCodeResult> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
