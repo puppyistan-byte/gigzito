@@ -680,10 +680,14 @@ export function MiniLivePlayer() {
                     LIVE SOURCE URL
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     value={adminUrl}
                     onChange={e => setAdminUrl(e.target.value)}
-                    placeholder="YouTube, TikTok, Instagram, Facebook, or embed URL"
+                    onClick={e => e.stopPropagation()}
+                    onMouseDown={e => e.stopPropagation()}
+                    onKeyDown={e => e.stopPropagation()}
+                    onKeyUp={e => e.stopPropagation()}
+                    placeholder="https://youtube.com/live/... or any stream URL"
                     data-testid="input-admin-live-url"
                     style={{
                       width: "100%",
