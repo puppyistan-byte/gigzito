@@ -413,8 +413,8 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </button>
           )}
 
-          {/* Iframe — src is controlled via state; ref used to send stop commands */}
-          <iframe
+          {/* Iframe — only mounted when active; unmounting fully kills browser audio */}
+          {iframeSrc !== "about:blank" && <iframe
             ref={iframeRef}
             key={`video-${listing.id}`}
             src={iframeSrc}
@@ -423,7 +423,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             loading="lazy"
-          />
+          />}
 
           {/* Transparent event interceptor */}
           <div
