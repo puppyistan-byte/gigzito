@@ -29,11 +29,11 @@ interface AllEyesBannerProps {
 function AllEyesBannerInner({ slot, onDismiss }: AllEyesBannerProps) {
   const countdown = useCountdown(slot.endAt);
   const provider = slot.provider;
-  const initials = provider.displayName?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
-  const title = slot.customTitle || (slot.videoListing as any)?.title || provider.displayName;
+  const initials = provider?.displayName?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
+  const title = slot.customTitle || (slot.videoListing as any)?.title || provider?.displayName || "Featured";
   const isEnded = countdown === "Ended";
 
-  if (isEnded) return null;
+  if (isEnded || !provider) return null;
 
   const destination = slot.videoListingId
     ? `/listing/${slot.videoListingId}`
