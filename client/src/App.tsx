@@ -23,6 +23,7 @@ import ZitoTVPage from "@/pages/zito-tv";
 import GigCardDirectoryPage from "@/pages/gigcard-directory";
 import LeaderboardPage from "@/pages/leaderboard";
 import VerifyEmailPage from "@/pages/verify-email";
+import LogoutPage from "@/pages/logout";
 
 function Router() {
   return (
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/gigcard-directory" component={GigCardDirectoryPage} />
       <Route path="/leaderboard" component={LeaderboardPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
+      <Route path="/logout" component={LogoutPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
