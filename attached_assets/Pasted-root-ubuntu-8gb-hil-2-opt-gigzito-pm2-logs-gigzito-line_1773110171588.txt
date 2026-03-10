@@ -1,0 +1,67 @@
+root@ubuntu-8gb-hil-2:/opt/gigzito# pm2 logs gigzito --lines 30 --nostream
+[TAILING] Tailing last 30 lines for [gigzito] process (change the value with --lines option)
+/root/.pm2/logs/gigzito-out.log last 30 lines:
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+
+/root/.pm2/logs/gigzito-error.log last 30 lines:
+0|gigzito  |     at <anonymous> (/opt/gigzito/server/db.ts:8:9)
+0|gigzito  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|gigzito  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|gigzito  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|gigzito  |
+0|gigzito  | Node.js v20.20.1
+0|gigzito  | /opt/gigzito/server/db.ts:8
+0|gigzito  |   throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+0|gigzito  |         ^
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|gigzito  |     at <anonymous> (/opt/gigzito/server/db.ts:8:9)
+0|gigzito  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|gigzito  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|gigzito  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|gigzito  |
+0|gigzito  | Node.js v20.20.1
+0|gigzito  | /opt/gigzito/server/db.ts:8
+0|gigzito  |   throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+0|gigzito  |         ^
+0|gigzito  |
+0|gigzito  |
+0|gigzito  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|gigzito  |     at <anonymous> (/opt/gigzito/server/db.ts:8:9)
+0|gigzito  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|gigzito  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|gigzito  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|gigzito  |
+0|gigzito  | Node.js v20.20.1
+
+root@ubuntu-8gb-hil-2:/opt/gigzito#
