@@ -419,6 +419,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     req.session.destroy(() => res.json({ message: "Logged out" }));
   });
 
+  // GET /logout — navigating to this URL in any browser clears the session and redirects home
+  app.get("/logout", (req, res) => {
+    req.session.destroy(() => res.redirect("/?signedout=1"));
+  });
+
   app.get(api.auth.me.path, async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.json(null);
