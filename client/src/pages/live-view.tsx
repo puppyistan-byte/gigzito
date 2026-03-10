@@ -19,7 +19,7 @@ function getLiveEmbed(streamUrl: string, sessionId: number): { canEmbed: boolean
       else if (url.searchParams.get("v")) videoId = url.searchParams.get("v")!;
       else if (url.pathname.includes("/live/")) videoId = url.pathname.split("/live/")[1]?.split("?")[0];
       else if (url.pathname.includes("/embed/")) return { canEmbed: true, type: "youtube", embedSrc: streamUrl };
-      if (videoId) return { canEmbed: true, type: "youtube", embedSrc: `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0` };
+      if (videoId) return { canEmbed: true, type: "youtube", embedSrc: `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0` };
     }
     if (url.hostname.includes("twitch.tv")) {
       const channel = url.pathname.slice(1).split("/")[0];

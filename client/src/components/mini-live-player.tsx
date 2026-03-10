@@ -47,8 +47,8 @@ function getInjectedEmbedUrl(feed: InjectedFeed, muted = true): string | null {
       if (!id) return null;
       const mt = muted ? 1 : 0;
       const isShorts = u.pathname.includes("/shorts/");
-      if (isShorts) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&modestbranding=1&rel=0&playsinline=1`;
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
+      if (isShorts) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&modestbranding=1&rel=0&playsinline=1`;
+      return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
     }
     return null;
   } catch { return null; }
@@ -61,7 +61,7 @@ function getEmbedUrl(url: string, muted: boolean): string | null {
       const id = getYouTubeVideoId(url);
       if (!id) return null;
       const mt = muted ? 1 : 0;
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
+      return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
     }
     if (u.hostname.includes("twitch.tv")) {
       const channel = u.pathname.slice(1);

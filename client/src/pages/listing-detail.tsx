@@ -21,7 +21,7 @@ function getVideoEmbedUrl(url: string): string {
       else if (u.hostname === "youtu.be") id = u.pathname.slice(1).split("?")[0];
       else id = u.searchParams.get("v") ?? "";
       if (!id) return url;
-      return `https://www.youtube.com/embed/${id}?rel=0&playsinline=1`;
+      return `https://www.youtube-nocookie.com/embed/${id}?rel=0&playsinline=1`;
     }
     if (u.hostname.includes("vimeo.com")) {
       const id = u.pathname.split("/").pop();

@@ -74,7 +74,7 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
       if (shorts) {
         // Shorts: minimal params — loop/playlist/controls=0 break Shorts playback
         return [
-          `https://www.youtube.com/embed/${id}`,
+          `https://www.youtube-nocookie.com/embed/${id}`,
           `?autoplay=${ap}`,
           `&mute=${mt}`,
           `&enablejsapi=1`,
@@ -84,7 +84,7 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
         ].join("");
       }
       return [
-        `https://www.youtube.com/embed/${id}`,
+        `https://www.youtube-nocookie.com/embed/${id}`,
         `?autoplay=${ap}`,
         `&mute=${mt}`,
         `&enablejsapi=1`,
