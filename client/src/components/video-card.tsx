@@ -306,6 +306,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const endCalledRef = useRef(false);
   const iframeRef    = useRef<HTMLIFrameElement>(null);
   const [iframeSrc,  setIframeSrc]  = useState("about:blank");
+  const [videoBlocked, setVideoBlocked] = useState(false);
 
   // Keep a ref to the current muted state so the iframe postMessage always uses the latest value
   const isMutedRef = useRef(isMuted);
@@ -326,6 +327,30 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   };
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
+
+  // Reset blocked state when switching videos
+  useEffect(() => {
+    setVideoBlocked(false);
+  }, [listing.id]);
+
+  // Listen for YouTube iframe API error events
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      try {
+        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        // YouTube iframe API: event=onError, info=100/101/150 means restricted/embedding disabled
+        if (data?.event === "onError" && [100, 101, 150].includes(Number(data?.info))) {
+          setVideoBlocked(true);
+        }
+        // Alternate format used by some YouTube player versions
+        if (data?.channel === "widget" && [100, 101, 150].includes(Number(data?.info))) {
+          setVideoBlocked(true);
+        }
+      } catch {}
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   useEffect(() => {
     if (!isActive) {
@@ -419,10 +444,43 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             src={iframeSrc}
             title={listing.title}
             style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, width: "100%", height: "100%", border: "none", zIndex: 0, pointerEvents: "none" }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
             loading="lazy"
           />}
+
+          {/* Video blocked / embedding disabled fallback */}
+          {videoBlocked && isActive && (
+            <div
+              style={{
+                position: "absolute", inset: 0, zIndex: 6,
+                background: "rgba(0,0,0,0.93)",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 14,
+              }}
+              data-testid={`overlay-blocked-${listing.id}`}
+            >
+              <div style={{ fontSize: 36 }}>🎬</div>
+              <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, textAlign: "center", maxWidth: 200, lineHeight: 1.5 }}>
+                This video can't be embedded. Watch it directly on YouTube.
+              </p>
+              <a
+                href={getWatchableUrl(listing.videoUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: "#ff0000", color: "white",
+                  borderRadius: 20, padding: "9px 20px",
+                  fontSize: 13, fontWeight: 700,
+                  textDecoration: "none",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+                data-testid={`link-watch-youtube-${listing.id}`}
+              >
+                ▶ Watch on YouTube
+              </a>
+            </div>
+          )}
 
           {/* Transparent event interceptor */}
           <div
