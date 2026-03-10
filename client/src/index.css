@@ -345,7 +345,7 @@ html {
 
   .gigzito-logo-container {
     position: fixed;
-    left: var(--logo-left, 96px);
+    left: var(--logo-left, 168px);
     width: var(--logo-container-w, 309px);
     top: var(--logo-top, 42px);
     bottom: 287px;
