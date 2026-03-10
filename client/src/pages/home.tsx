@@ -78,6 +78,19 @@ export default function HomePage() {
     },
   });
 
+  const listingIds = listings.map((l) => l.id);
+  const { data: batchLikes = {}, isFetched: batchFetched } = useQuery<Record<number, boolean>>({
+    queryKey: ["/api/videos/likes/batch", listingIds.join(",")],
+    queryFn: async () => {
+      if (listingIds.length === 0) return {};
+      const res = await fetch(`/api/videos/likes/batch?ids=${listingIds.join(",")}`);
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: listingIds.length > 0,
+    staleTime: 30_000,
+  });
+
   // Refs that are always current — used inside wheel handler without stale closure
   const wheelCooldown   = useRef(false);
   const currentIdxRef   = useRef(0);
@@ -262,6 +275,8 @@ export default function HomePage() {
                 isActive={idx === currentIndex && !feedPaused}
                 isMuted={globalMuted}
                 onMuteChange={handleMuteChange}
+                initialIsLiked={batchFetched ? (batchLikes[listing.id] ?? false) : undefined}
+                suppressLikeQuery={listingIds.length > 0}
                 onEnd={() => {
                   if (idx < listings.length - 1) scrollToIndex(idx + 1);
                 }}

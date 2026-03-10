@@ -27,6 +27,8 @@ interface VideoCardProps {
   onEnd?: () => void;
   isMuted?: boolean;
   onMuteChange?: (muted: boolean) => void;
+  initialIsLiked?: boolean;
+  suppressLikeQuery?: boolean;
 }
 
 const BADGE: Record<string, { bg: string; label: string }> = {
@@ -233,7 +235,7 @@ function ProductBlock({ price, purchaseUrl, stock, onGuestAction }: { price?: st
   );
 }
 
-export function VideoCard({ listing, className = "", isActive = false, onEnd, isMuted = true, onMuteChange }: VideoCardProps) {
+export function VideoCard({ listing, className = "", isActive = false, onEnd, isMuted = true, onMuteChange, initialIsLiked, suppressLikeQuery = false }: VideoCardProps) {
   const { user } = useAuth();
   const provider = listing.provider;
   const initials = provider.displayName
@@ -260,9 +262,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const { data: likeData } = useQuery<{ likeCount: number; isLiked: boolean }>({
     queryKey: [`/api/videos/${listing.id}/likes`],
     staleTime: 60_000,
+    enabled: !suppressLikeQuery && initialIsLiked === undefined,
   });
 
-  const isLiked = optimisticLiked ?? likeData?.isLiked ?? false;
+  const isLiked = optimisticLiked ?? (initialIsLiked !== undefined ? initialIsLiked : likeData?.isLiked ?? false);
   const likeCount = optimisticCount ?? likeData?.likeCount ?? listing.likeCount;
 
   const likeMutation = useMutation({

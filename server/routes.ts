@@ -1212,6 +1212,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // === VIDEO LIKES ===
+  app.get("/api/videos/likes/batch", async (req, res) => {
+    const raw = req.query.ids as string;
+    if (!raw) return res.json({});
+    const ids = raw.split(",").map(Number).filter(n => !isNaN(n) && n > 0);
+    if (ids.length === 0) return res.json({});
+    const userId = req.session?.userId ?? null;
+    const result = await storage.getBatchVideoLikeStatus(ids, userId);
+    return res.json(result);
+  });
+
   app.post("/api/videos/:id/like", async (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ message: "Login required to like videos" });
     const videoId = parseInt(req.params.id);

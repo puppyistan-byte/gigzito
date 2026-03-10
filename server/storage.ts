@@ -87,6 +87,7 @@ export interface IStorage {
   // Video Likes
   toggleVideoLike(videoId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
   getVideoLikeStatus(videoId: number, userId: number | null): Promise<{ likeCount: number; isLiked: boolean }>;
+  getBatchVideoLikeStatus(videoIds: number[], userId: number | null): Promise<Record<number, boolean>>;
   getProviderTotalLikes(providerId: number): Promise<number>;
 
   // Love Votes
@@ -1012,6 +1013,17 @@ export class DatabaseStorage implements IStorage {
       and(eq(videoLikes.videoId, videoId), eq(videoLikes.userId, userId))
     );
     return { likeCount: listing.likeCount, isLiked: !!like };
+  }
+
+  async getBatchVideoLikeStatus(videoIds: number[], userId: number | null): Promise<Record<number, boolean>> {
+    const result: Record<number, boolean> = {};
+    for (const id of videoIds) result[id] = false;
+    if (!userId || videoIds.length === 0) return result;
+    const likes = await db.select({ videoId: videoLikes.videoId })
+      .from(videoLikes)
+      .where(and(inArray(videoLikes.videoId, videoIds), eq(videoLikes.userId, userId)));
+    for (const like of likes) result[like.videoId] = true;
+    return result;
   }
 
   async getProviderTotalLikes(providerId: number): Promise<number> {
