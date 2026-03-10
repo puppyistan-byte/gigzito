@@ -131,6 +131,8 @@ export function MiniLivePlayer() {
       queryClient.invalidateQueries({ queryKey: ["/api/injected-feed/active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/injected-feeds"] });
       refetchInj();
+      setShowAdminPanel(false);
+      setAdminEnabled(false);
     },
   });
 
