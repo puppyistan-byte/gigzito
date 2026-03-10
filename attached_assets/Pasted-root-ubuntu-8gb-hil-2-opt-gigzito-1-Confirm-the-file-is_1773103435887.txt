@@ -1,0 +1,101 @@
+root@ubuntu-8gb-hil-2:/opt/gigzito# # 1. Confirm the file is actually there and has the right content
+head -5 /opt/gigzito/client/src/components/video-card.tsx
+
+# 2. Check when it was last modified
+ls -la /opt/gigzito/client/src/components/video-card.tsx
+import { Link } from "wouter";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+-rw-r--r-- 1 1000 1000 24307 Mar 10 00:33 /opt/gigzito/client/src/components/video-card.tsx
+root@ubuntu-8gb-hil-2:/opt/gigzito#
+root@ubuntu-8gb-hil-2:/opt/gigzito#
+root@ubuntu-8gb-hil-2:/opt/gigzito# # Check home.tsx — look for feed-active and feed-wrap
+grep -n "feed-active\|feed-wrap\|feed-item\|app-shell" /opt/gigzito/client/src/pages/home.tsx | head -20
+
+# Check index.css — look for feed-item height
+grep -n "feed-item\|feed-wrap\|feed-active\|app-shell" /opt/gigzito/client/src/index.css | head -20
+151:    document.body.classList.add("feed-active");
+152:    return () => document.body.classList.remove("feed-active");
+183:    <div className="app-shell flex flex-col h-screen overflow-hidden relative">
+205:        className="feed-wrap feed-container flex-1"
+229:              className="feed-item"
+255:  .feed-item {
+275:  body.feed-active {
+288:  .app-shell {
+343:  .feed-wrap {
+379:  /* feed-item must NOT have overflow:hidden so swipe events propagate to the scroll container */
+380:  .feed-item {
+392:  .feed-item:hover,
+399:  .feed-item iframe,
+400:  .feed-item video,
+411:  .feed-item::before,
+527:  .feed-wrap .pager,
+528:  .feed-wrap .page-indicator,
+529:  .feed-wrap .swiper-pagination {
+1820:/* ─── Seismic shake — applied to .app-shell ──────────────────────────────── */
+1840:.app-shell.gigjack-seismic-active {
+root@ubuntu-8gb-hil-2:/opt/gigzito# wc -l /opt/gigzito/client/src/index.css
+tail -60 /opt/gigzito/client/src/index.css
+2375 /opt/gigzito/client/src/index.css
+.todays-gigjack-thumb {
+  width: 40px;
+  height: 32px;
+  border-radius: 7px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.todays-gigjack-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.todays-gigjack-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todays-gigjack-brand {
+  font-size: 9px;
+  color: #555;
+  margin-top: 1px;
+}
+
+.todays-gigjack-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+@keyframes scanner { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* === Desktop: pin ZitoTV card bottom-left using actual component hook === */
+@media (min-width: 1024px) {
+  [data-testid="mini-live-player"] {
+    position: fixed !important;
+    left: 12px !important;
+    bottom: 84px !important;
+    top: auto !important;
+    right: auto !important;
+    width: 298px !important;
+    max-width: 298px !important;
+    z-index: 60 !important;
+  }
+
+  [data-testid="mini-live-player"] iframe,
+  [data-testid="mini-live-player"] video {
+    width: 100% !important;
+    height: 168px !important;
+    object-fit: cover !important;
+    display: block !important;
+  }
+}
