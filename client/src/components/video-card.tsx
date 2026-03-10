@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
@@ -114,6 +114,21 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
   } catch {
     return url;
   }
+}
+
+function getWatchableUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com") && u.pathname.includes("/embed/")) {
+      const id = u.pathname.split("/embed/")[1].split("?")[0];
+      return `https://www.youtube.com/watch?v=${id}`;
+    }
+    if (u.hostname.includes("player.vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean).pop();
+      return `https://vimeo.com/${id}`;
+    }
+    return url;
+  } catch { return url; }
 }
 
 function stopIframe(iframe: HTMLIFrameElement | null) {
@@ -234,6 +249,8 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [heartAnimating, setHeartAnimating] = useState(false);
   const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
   const [optimisticCount, setOptimisticCount] = useState<number | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const { data: likeData } = useQuery<{ likeCount: number; isLiked: boolean }>({
     queryKey: [`/api/videos/${listing.id}/likes`],
@@ -429,25 +446,24 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
           </div>
 
-          {/* Mute / Unmute toggle */}
+          {/* SOUND BUTTON — bottom-right rail, above heart */}
           {isActive && (
             <button
               onClick={toggleMute}
-              style={{ position: "absolute", top: 12, left: 12, zIndex: 30, display: "flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", borderRadius: 999, padding: "4px 10px", border: "none", cursor: "pointer" }}
+              style={{
+                position: "absolute", bottom: 196, right: 12, zIndex: 30,
+                width: 44, height: 44, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
+                border: "1.5px solid rgba(255,255,255,0.2)",
+                cursor: "pointer",
+              }}
               data-testid={`button-mute-${listing.id}`}
-              title={isMuted ? "Tap to unmute" : "Tap to mute"}
+              title={isMuted ? "Tap for sound" : "Mute"}
             >
-              {isMuted ? (
-                <>
-                  <VolumeX className="w-3 h-3 text-white/70" />
-                  <span className="text-white/70 text-[10px] font-semibold">Tap for sound</span>
-                </>
-              ) : (
-                <>
-                  <Volume2 className="w-3 h-3 text-white" />
-                  <span className="text-white text-[10px] font-semibold">Sound on</span>
-                </>
-              )}
+              {isMuted
+                ? <VolumeX className="w-5 h-5 text-white/70" />
+                : <Volume2 className="w-5 h-5 text-white" />}
             </button>
           )}
 
@@ -552,7 +568,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </div>
 
             {/* Action Row: CTA · Share */}
-            <div className="flex items-center gap-2" style={{ paddingRight: "64px" }}>
+            <div className="flex items-center gap-2" style={{ paddingRight: "64px", position: "relative" }}>
               <button
                 onClick={handleCtaClick}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-[#c41414] hover:bg-[#a51010] text-white h-8 rounded-full font-bold text-xs transition-colors"
@@ -561,13 +577,82 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
                 {isShopProduct ? <ShoppingCart className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
                 {ctaButtonLabel}
               </button>
-              <button
-                onClick={() => handleShare(listing)}
-                className="h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 transition-colors"
-                data-testid={`button-share-${listing.id}`}
-              >
-                <Share2 className="w-3.5 h-3.5 text-white" />
-              </button>
+
+              {/* Share button + dropdown */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                <button
+                  onClick={() => setShowShareMenu((v) => !v)}
+                  className="h-8 w-8 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm flex items-center justify-center transition-colors"
+                  data-testid={`button-share-${listing.id}`}
+                >
+                  <Share2 className="w-3.5 h-3.5 text-white" />
+                </button>
+
+                {showShareMenu && (() => {
+                  const watchUrl = getWatchableUrl(listing.videoUrl);
+                  const handleCopyLink = () => {
+                    navigator.clipboard.writeText(watchUrl).then(() => {
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    });
+                  };
+                  return (
+                    <div
+                      style={{
+                        position: "absolute", bottom: "calc(100% + 8px)", right: 0,
+                        background: "rgba(15,15,15,0.96)", backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
+                        padding: "10px 12px", minWidth: 220, zIndex: 50,
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+                      }}
+                      data-testid={`share-menu-${listing.id}`}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Source Video</span>
+                        <button onClick={() => setShowShareMenu(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", padding: 0 }}>
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "6px 10px", marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {watchUrl}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          onClick={handleCopyLink}
+                          style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            background: linkCopied ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.1)",
+                            border: linkCopied ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.15)",
+                            borderRadius: 8, padding: "6px 0", cursor: "pointer", transition: "all 0.2s",
+                          }}
+                          data-testid={`button-copy-link-${listing.id}`}
+                        >
+                          {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-white/70" />}
+                          <span style={{ fontSize: 11, color: linkCopied ? "rgba(74,222,128,1)" : "rgba(255,255,255,0.7)", fontWeight: 600 }}>
+                            {linkCopied ? "Copied!" : "Copy link"}
+                          </span>
+                        </button>
+                        <a
+                          href={watchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                            background: "rgba(196,20,20,0.2)", border: "1px solid rgba(196,20,20,0.4)",
+                            borderRadius: 8, padding: "6px 0", textDecoration: "none",
+                          }}
+                          data-testid={`link-open-video-${listing.id}`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                          <span style={{ fontSize: 11, color: "rgba(252,100,100,1)", fontWeight: 600 }}>Watch</span>
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Tags */}
