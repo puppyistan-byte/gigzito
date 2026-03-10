@@ -123,6 +123,9 @@ export default function AdminPage() {
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
   const [userStatusFilter, setUserStatusFilter] = useState("ALL");
 
+  const [contentSearch, setContentSearch] = useState("");
+  const [contentStatusFilter, setContentStatusFilter] = useState("ALL");
+
   const [editingUser, setEditingUser] = useState<UserWithProfile | null>(null);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editBio, setEditBio] = useState("");
@@ -800,72 +803,130 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════ CONTENT ═══════════════════════════════ */}
-        {activeTab === "content" && (
-          <div className="space-y-3" data-testid="section-admin-content">
-            <p className="text-sm text-[#555]">{stats?.listings?.length ?? 0} total video posts</p>
+        {activeTab === "content" && (() => {
+          const allListings: any[] = stats?.listings ?? [];
+          const filteredListings = allListings.filter((l) => {
+            const q = contentSearch.trim().toLowerCase();
+            const matchSearch = !q ||
+              l.title?.toLowerCase().includes(q) ||
+              l.provider?.displayName?.toLowerCase().includes(q) ||
+              l.provider?.username?.toLowerCase().includes(q) ||
+              l.vertical?.toLowerCase().includes(q);
+            const matchStatus = contentStatusFilter === "ALL" || l.status === contentStatusFilter;
+            return matchSearch && matchStatus;
+          });
 
-            {statsLoading ? (
-              <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-            ) : (stats?.listings ?? []).map((listing: any) => (
-              <div
-                key={listing.id}
-                className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 flex items-start gap-3"
-                data-testid={`card-admin-listing-${listing.id}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${STATUS_COLORS[listing.status]}`}>
-                      {listing.status}
-                    </span>
-                    <Badge variant="secondary" className="text-xs">{listing.vertical}</Badge>
-                    <span className="text-xs text-[#555]">{listing.durationSeconds}s</span>
-                  </div>
-                  <p className="font-medium text-sm text-white truncate">{listing.title}</p>
-                  <p className="text-xs text-[#555] truncate">
-                    by {listing.provider?.displayName ?? "Unknown"} · {listing.dropDate}
-                  </p>
+          return (
+            <div className="space-y-3" data-testid="section-admin-content">
+              {/* Filters row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ position: "relative", flex: 1, minWidth: 160 }}>
+                  <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 13, height: 13, color: "#555", pointerEvents: "none" }} />
+                  <input
+                    type="text"
+                    placeholder="Search title, provider…"
+                    value={contentSearch}
+                    onChange={(e) => setContentSearch(e.target.value)}
+                    data-testid="input-content-search"
+                    style={{ width: "100%", background: "#0b0b0b", border: "1px solid #2a2a2a", borderRadius: 10, padding: "6px 10px 6px 28px", color: "#ccc", fontSize: 12, outline: "none" }}
+                  />
+                  {contentSearch && (
+                    <button onClick={() => setContentSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "#555", background: "none", border: "none", cursor: "pointer", fontSize: 11 }}>✕</button>
+                  )}
                 </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  {listing.status !== "ACTIVE" && listing.status !== "TRIAGED" && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-white"
-                      onClick={() => statusMutation.mutate({ id: listing.id, status: "ACTIVE" })}
-                      disabled={statusMutation.isPending}
-                      data-testid={`button-admin-activate-${listing.id}`}
-                      title="Restore to feed">
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  {listing.status === "ACTIVE" && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-amber-400"
-                      onClick={() => statusMutation.mutate({ id: listing.id, status: "PAUSED" })}
-                      disabled={statusMutation.isPending}
-                      data-testid={`button-admin-pause-${listing.id}`}
-                      title="Pause">
-                      <EyeOff className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  {listing.status !== "TRIAGED" && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-orange-400"
-                      onClick={() => { setConfirmTriage({ id: listing.id, title: listing.title }); setTriagedReason("Non-video format — static image detected"); }}
-                      disabled={triageMutation.isPending}
-                      data-testid={`button-admin-triage-${listing.id}`}
-                      title="Triage — move to GigCard Directory">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-red-500"
-                    onClick={() => setConfirmDelete({ id: listing.id, title: listing.title })}
-                    disabled={deleteListingMutation.isPending}
-                    data-testid={`button-admin-delete-listing-${listing.id}`}
-                    title="Delete permanently">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Select value={contentStatusFilter} onValueChange={setContentStatusFilter}>
+                  <SelectTrigger className="h-8 w-32 bg-[#0b0b0b] border-[#2a2a2a] text-[#aaa] text-xs" data-testid="select-content-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                    {["ALL","ACTIVE","PAUSED","TRIAGED","REMOVED","PENDING"].map((s) => (
+                      <SelectItem key={s} value={s} className="text-xs text-[#ccc]">{s === "ALL" ? "All statuses" : s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-[#555]" data-testid="text-content-count">
+                  {filteredListings.length} / {allListings.length} posts
+                </span>
               </div>
-            ))}
-          </div>
-        )}
+
+              {statsLoading ? (
+                <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+              ) : filteredListings.length === 0 ? (
+                <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center text-[#444] text-sm" data-testid="text-content-empty">
+                  {contentSearch || contentStatusFilter !== "ALL" ? "No videos match your filters." : "No videos posted yet."}
+                </div>
+              ) : filteredListings.map((listing: any) => (
+                <div
+                  key={listing.id}
+                  className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 flex items-start gap-3"
+                  data-testid={`card-admin-listing-${listing.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${STATUS_COLORS[listing.status]}`}>
+                        {listing.status}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">{listing.vertical}</Badge>
+                      <span className="text-xs text-[#555]">{listing.durationSeconds}s</span>
+                    </div>
+                    <p className="font-medium text-sm text-white truncate" data-testid={`text-listing-title-${listing.id}`}>{listing.title}</p>
+                    <p className="text-xs text-[#555] truncate">
+                      by {listing.provider?.displayName ?? "Unknown"} · {listing.dropDate}
+                    </p>
+                    {listing.videoUrl && (
+                      <a
+                        href={listing.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-[#444] hover:text-[#ff2b2b] truncate block mt-0.5 max-w-xs"
+                        data-testid={`link-listing-video-${listing.id}`}
+                      >
+                        {listing.videoUrl.length > 55 ? listing.videoUrl.slice(0, 55) + "…" : listing.videoUrl}
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    {listing.status !== "ACTIVE" && listing.status !== "TRIAGED" && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-white"
+                        onClick={() => statusMutation.mutate({ id: listing.id, status: "ACTIVE" })}
+                        disabled={statusMutation.isPending}
+                        data-testid={`button-admin-activate-${listing.id}`}
+                        title="Restore to feed">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {listing.status === "ACTIVE" && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-amber-400"
+                        onClick={() => statusMutation.mutate({ id: listing.id, status: "PAUSED" })}
+                        disabled={statusMutation.isPending}
+                        data-testid={`button-admin-pause-${listing.id}`}
+                        title="Pause">
+                        <EyeOff className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {listing.status !== "TRIAGED" && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-orange-400"
+                        onClick={() => { setConfirmTriage({ id: listing.id, title: listing.title }); setTriagedReason("Non-video format — static image detected"); }}
+                        disabled={triageMutation.isPending}
+                        data-testid={`button-admin-triage-${listing.id}`}
+                        title="Triage — move to GigCard Directory">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-red-500"
+                      onClick={() => setConfirmDelete({ id: listing.id, title: listing.title })}
+                      disabled={deleteListingMutation.isPending}
+                      data-testid={`button-admin-delete-listing-${listing.id}`}
+                      title="Delete permanently">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ═══════════════════════════════ GIGJACKS ═══════════════════════════════ */}
         {activeTab === "gigjacks" && (
