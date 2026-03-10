@@ -374,13 +374,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const profile = await storage.getProfileByUserId(userId);
     if (!profile) return res.json([]);
     const listings = await storage.getListingsByProvider(profile.id);
-    return res.json(listings);
+    return res.json(listings ?? []);
   });
 
   app.get(api.listings.list.path, async (req, res) => {
     const vertical = req.query.vertical as string | undefined;
     const listings = await storage.getListings(vertical);
-    return res.json(listings);
+    return res.json(listings ?? []);
   });
 
   app.get(api.listings.get.path, async (req, res) => {
@@ -538,7 +538,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // GigCard Directory — publicly browsable triaged listings
   app.get("/api/gigcard-directory", async (_req, res) => {
     const listings = await storage.getTriagedListings();
-    return res.json(listings);
+    return res.json(listings ?? []);
   });
 
   // === LEADS ===
@@ -688,7 +688,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/gigjacks/slots", async (req, res) => {
     const slots = await storage.getAvailableSlots();
-    return res.json(slots);
+    return res.json(slots ?? []);
   });
 
   app.post("/api/gigjacks/submit", async (req, res) => {
@@ -1097,7 +1097,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/love/leaderboard", async (req, res) => {
     const entries = await storage.getLoveLeaderboard(currentMonthKey());
-    return res.json(entries);
+    return res.json(entries ?? []);
   });
 
   // ── All Eyes On Me ──────────────────────────────────────────────────────────
@@ -1109,13 +1109,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/all-eyes/upcoming", async (_req, res) => {
     const slots = await storage.getUpcomingAllEyesSlots();
-    return res.json(slots);
+    return res.json(slots ?? []);
   });
 
   app.get("/api/all-eyes/all", async (req, res) => {
     if (!["ADMIN", "SUPER_ADMIN"].includes(req.session?.role ?? "")) return res.status(403).json({ message: "Admin only" });
     const slots = await storage.getAllAllEyesSlots();
-    return res.json(slots);
+    return res.json(slots ?? []);
   });
 
   app.post("/api/all-eyes/book", async (req, res) => {
@@ -1136,7 +1136,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const from = req.query.from ? new Date(req.query.from as string) : undefined;
     const to = req.query.to ? new Date(req.query.to as string) : undefined;
     const events = await storage.getZitoTVEvents({ from, to });
-    return res.json(events);
+    return res.json(events ?? []);
   });
 
   app.get("/api/zitotv/events/:id", async (req, res) => {
