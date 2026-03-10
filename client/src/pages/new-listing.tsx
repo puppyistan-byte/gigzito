@@ -106,7 +106,6 @@ export default function NewListingPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
-  const [durationWarning, setDurationWarning] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -136,7 +135,7 @@ export default function NewListingPage() {
         vertical: form.vertical,
         title: form.title,
         videoUrl: form.videoUrl,
-        durationSeconds: parseInt(form.durationSeconds, 10),
+        durationSeconds: 60,
         description: form.description || undefined,
         tags,
         ctaType: form.ctaType || undefined,
@@ -180,19 +179,8 @@ export default function NewListingPage() {
 
   const set = (field: keyof FormState, val: string) => setForm((p) => ({ ...p, [field]: val }));
 
-  const handleDurationChange = (val: string) => {
-    set("durationSeconds", val);
-    const n = parseInt(val, 10);
-    setDurationWarning(!isNaN(n) && n > 60);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const dur = parseInt(form.durationSeconds, 10);
-    if (isNaN(dur) || dur < 1 || dur > 60) {
-      toast({ title: "Invalid duration", description: "Video must be 1–60 seconds.", variant: "destructive" });
-      return;
-    }
     if (form.ctaType && !form.ctaUrl) {
       toast({ title: "CTA URL required", description: "Please enter a URL for your CTA button.", variant: "destructive" });
       return;
@@ -330,23 +318,6 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[#aaa] text-sm">Duration (seconds) * <span className="text-[#555] font-normal">Max 60s</span></Label>
-              <Input
-                type="number" min={1} max={60} placeholder="30"
-                value={form.durationSeconds}
-                onChange={(e) => handleDurationChange(e.target.value)}
-                required
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                data-testid="input-duration"
-              />
-              {durationWarning && (
-                <p className="text-xs text-amber-400 flex items-center gap-1" data-testid="text-duration-warning">
-                  <AlertCircle className="h-3 w-3" />
-                  Videos over 20 seconds will be rejected.
-                </p>
-              )}
-            </div>
           </div>
 
           {/* Flash Sale extras */}

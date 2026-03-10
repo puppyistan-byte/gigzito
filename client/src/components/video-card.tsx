@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import type { ListingWithProvider } from "@shared/schema";
 
-const MAX_PLAY_SECONDS = 20;
+const MAX_PLAY_SECONDS = 60;
 
 const CTA_LABELS: Record<string, string> = {
   "Visit Offer":  "Visit Offer",
@@ -494,13 +494,18 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)",
           }} />
 
-          {/* TOP: Duration badge */}
+          {/* TOP: Duration badge — live countdown while active */}
           <div
             style={{ position: "absolute", top: 12, right: 12, zIndex: 20, display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", borderRadius: 999, padding: "2px 8px" }}
             data-testid={`badge-duration-${listing.id}`}
           >
             <Clock className="w-2.5 h-2.5 text-white/70" />
-            <span className="text-white/80 text-[10px] font-semibold">{listing.durationSeconds}s</span>
+            <span
+              className="text-[10px] font-semibold"
+              style={{ color: timeLeft !== null && timeLeft <= 5 ? "#ff4444" : timeLeft !== null && timeLeft <= 15 ? "#f59e0b" : "rgba(255,255,255,0.8)" }}
+            >
+              {timeLeft !== null ? `${Math.ceil(timeLeft)}s` : `${playSeconds}s`}
+            </span>
           </div>
 
           {/* SOUND BUTTON — bottom-right rail, above heart */}
