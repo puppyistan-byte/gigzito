@@ -279,7 +279,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         email,
         `${req.protocol}://${req.get("host")}/verify-email?token=${verificationToken}`
       );
-      const autoVerified = emailResult.devMode;
+      // Only auto-verify for bypass emails (e.g. admin@gigzito.com); everyone else must click the link
+      const autoVerified = emailResult.devMode && !emailResult.verifyUrl;
       const user = await storage.createUser({
         email, password: hashed, role: "PROVIDER", disclaimerAccepted: true,
         emailVerified: autoVerified,
@@ -290,7 +291,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         (req.session as any).userId = user.id;
         (req.session as any).role = user.role;
       }
-      return res.status(201).json({ requiresVerification: !autoVerified, email });
+      const resp: any = { requiresVerification: !autoVerified, email };
+      if (emailResult.verifyUrl) resp.devVerifyUrl = emailResult.verifyUrl;
+      return res.status(201).json(resp);
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Server error" });

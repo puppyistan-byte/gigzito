@@ -184,7 +184,7 @@ export async function sendContentDeletedNotification(
   return { devMode: false };
 }
 
-export async function sendVerificationEmail(toEmail: string, verifyUrl: string): Promise<{ devMode: boolean }> {
+export async function sendVerificationEmail(toEmail: string, verifyUrl: string): Promise<{ devMode: boolean; verifyUrl?: string }> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
@@ -195,14 +195,22 @@ export async function sendVerificationEmail(toEmail: string, verifyUrl: string):
     </div>
   `;
 
-  if (DEV_MODE || BYPASS_EMAILS.has(toEmail.toLowerCase())) {
-    console.log("\n");
-    console.log("=".repeat(60));
-    console.log("  [BYPASS] Email verification for:", toEmail);
-    console.log("  Verify URL:", verifyUrl);
-    console.log("=".repeat(60));
-    console.log("\n");
+  // Bypass emails (e.g. admin) are always auto-verified
+  if (BYPASS_EMAILS.has(toEmail.toLowerCase())) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [BYPASS] Auto-verified:", toEmail);
+    console.log("=".repeat(60) + "\n");
     return { devMode: true };
+  }
+
+  // Dev mode: no SMTP configured — show link on screen so testing still works,
+  // but DO NOT auto-verify (user must still click the link)
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Verification link for:", toEmail);
+    console.log("  URL:", verifyUrl);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true, verifyUrl };
   }
 
   await getTransporter().sendMail({

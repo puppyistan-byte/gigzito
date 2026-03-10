@@ -31,6 +31,7 @@ export default function AuthPage() {
   // Verify email state (after registration)
   const [verifyEmailStep, setVerifyEmailStep] = useState(false);
   const [verifyEmailAddr, setVerifyEmailAddr] = useState("");
+  const [devVerifyUrl, setDevVerifyUrl] = useState<string | null>(null);
   const [resendVerifyCooldown, setResendVerifyCooldown] = useState(0);
   const [resendVerifyLoading, setResendVerifyLoading] = useState(false);
   const verifyCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -211,6 +212,7 @@ export default function AuthPage() {
         toast({ title: "Registration failed", description: data.message, variant: "destructive" });
       } else if (data.requiresVerification) {
         setVerifyEmailAddr(data.email);
+        setDevVerifyUrl(data.devVerifyUrl ?? null);
         setVerifyEmailStep(true);
         startVerifyCooldown();
       } else {
@@ -247,6 +249,20 @@ export default function AuthPage() {
               Click the link in the email to verify your account, then come back to log in.
             </p>
           </div>
+
+          {devVerifyUrl && (
+            <div className="mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5">
+              <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider mb-1.5">Dev mode — no email sent</p>
+              <a
+                href={devVerifyUrl}
+                className="block text-xs text-amber-300 underline break-all leading-relaxed"
+                data-testid="link-dev-verify"
+              >
+                {devVerifyUrl}
+              </a>
+              <p className="text-[10px] text-amber-600 mt-1.5">Click the link above to verify this account</p>
+            </div>
+          )}
 
           <div className="flex flex-col items-center gap-3 mt-2">
             <button
