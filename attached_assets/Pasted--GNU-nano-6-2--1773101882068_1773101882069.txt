@@ -1,0 +1,58 @@
+  GNU nano 6.2                                                                                         client/src/components/video-card.tsx                                                                                                  import { Link } from "wouter";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart } from "lucide-react";
+import { InquireLeadModal } from "@/components/inquire-lead-modal";
+import { GuestCtaModal } from "@/components/guest-cta-modal";
+import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
+import type { ListingWithProvider } from "@shared/schema";
+
+const MAX_PLAY_SECONDS = 20;
+
+const CTA_LABELS: Record<string, string> = {
+  "Visit Offer":  "Visit Offer",
+  "Shop Product": "Shop Now",
+  "Join Event":   "Join Event",
+  "Book Service": "Book Now",
+  "Join Guild":   "Join Guild",
+};
+
+interface VideoCardProps {
+  listing: ListingWithProvider;
+  className?: string;
+  isActive?: boolean;
+  onEnd?: () => void;
+  isMuted?: boolean;
+  onMuteChange?: (muted: boolean) => void;
+}
+
+const BADGE: Record<string, { bg: string; label: string }> = {
+  INFLUENCER:      { bg: "bg-purple-600",             label: "Influencer" },
+  MARKETING:       { bg: "bg-red-600",                label: "Marketing" },
+  COACHING:        { bg: "bg-violet-600",             label: "Coaching" },
+  COURSES:         { bg: "bg-blue-600",               label: "Courses" },
+  PRODUCTS:        { bg: "bg-orange-500",             label: "Products" },
+  FLASH_SALE:      { bg: "bg-red-600",                label: "Flash Sale" },
+  FLASH_COUPON:    { bg: "bg-emerald-600",            label: "Flash Coupon" },
+  MUSIC_GIGS:      { bg: "bg-pink-500",               label: "Music Gigs" },
+  MUSIC:           { bg: "bg-pink-500",               label: "Music" },
+  EVENTS:          { bg: "bg-yellow-500 text-black",  label: "Events" },
+  CRYPTO:          { bg: "bg-yellow-600",             label: "Crypto" },
+  CORPORATE_DEALS: { bg: "bg-blue-900",               label: "Corporate Deals" },
+};
+
+const SPECIAL_GLOW: Record<string, string> = {
+  FLASH_SALE:   "ring-2 ring-red-500 shadow-[0_0_24px_rgba(255,0,64,0.55)]",
+  FLASH_COUPON: "ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(0,200,83,0.5)]",
+};
+
+function getYouTubeId(url: string): string {
+  const u = new URL(url);
+  if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1].split("?")[0];
+  if (u.pathname.includes("/shorts/")) return u.pathname.split("/shorts/")[1].split("?")[0];
+  if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0];
+  return u.searchParams.get("v") ?? "";
+}
