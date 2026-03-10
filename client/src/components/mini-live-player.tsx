@@ -209,6 +209,26 @@ export function MiniLivePlayer() {
 
   const focusedIframeRef = useRef<HTMLIFrameElement>(null);
 
+  // When the main feed unmutes, mute ZitoTV so only one source plays audio at a time
+  useEffect(() => {
+    const muteIframe = (iframe: HTMLIFrameElement | null) => {
+      if (!iframe?.contentWindow) return;
+      try {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: "mute", args: [] }), "*"
+        );
+      } catch {}
+    };
+    const handler = () => {
+      if (videoRef.current) videoRef.current.muted = true;
+      muteIframe(iframeRef.current);
+      muteIframe(focusedIframeRef.current);
+      setMuted(true);
+    };
+    window.addEventListener("feed-unmuted", handler);
+    return () => window.removeEventListener("feed-unmuted", handler);
+  }, []);
+
   const sendMuteCmd = (iframe: HTMLIFrameElement | null, nextMuted: boolean) => {
     if (!iframe?.contentWindow) return;
     try {

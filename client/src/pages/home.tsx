@@ -35,19 +35,25 @@ export default function HomePage() {
     globalMutedRef.current = muted;
     setGlobalMuted(muted);
     persistMuted(muted);
+    // When the feed unmutes, tell ZitoTV pop-out to mute itself
+    if (!muted) {
+      window.dispatchEvent(new CustomEvent("feed-unmuted"));
+    }
   }, []);
 
-  // Pauses the main feed when ZitoTV live audio turns on
+  // Pauses + mutes the main feed when ZitoTV live audio turns on
   const [feedPaused, setFeedPaused] = useState(false);
   const feedPausedRef = useRef(false);
   useEffect(() => {
     const handler = () => {
       feedPausedRef.current = true;
       setFeedPaused(true);
+      // Also mute the feed so both sources can't play audio simultaneously
+      handleMuteChange(true);
     };
     window.addEventListener("zitotv-unmuted", handler);
     return () => window.removeEventListener("zitotv-unmuted", handler);
-  }, []);
+  }, [handleMuteChange]);
 
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
