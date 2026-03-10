@@ -12,7 +12,7 @@ export function LoveLeaderboardPanel() {
 
   const { data: entries = [], isLoading } = useQuery<LoveLeaderboardEntry[]>({
     queryKey: ["/api/love/leaderboard"],
-    queryFn: () => fetch("/api/love/leaderboard").then(r => r.json()),
+    queryFn: () => fetch("/api/love/leaderboard").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
     refetchInterval: 30000,
   });
 
