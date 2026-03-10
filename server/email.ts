@@ -6,7 +6,7 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM ?? "Gigzito <noreply@gigzito.com>";
 
-const DEV_MODE = !SMTP_HOST || !SMTP_USER || !SMTP_PASS;
+const DEV_MODE = !SMTP_HOST;
 
 const BYPASS_EMAILS = new Set(["admin@gigzito.com"]);
 
@@ -21,7 +21,8 @@ function getTransporter(): nodemailer.Transporter {
         host: SMTP_HOST,
         port: SMTP_PORT,
         secure: SMTP_PORT === 465,
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
+        ...(SMTP_USER && SMTP_PASS ? { auth: { user: SMTP_USER, pass: SMTP_PASS } } : {}),
+        tls: { rejectUnauthorized: false },
       });
     }
   }
