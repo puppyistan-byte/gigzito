@@ -75,7 +75,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "users" | "content" | "gigjacks" | "audit" | "injection";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "audit" | "injection";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -232,6 +232,7 @@ export default function AdminPage() {
 
   const [contentSearch, setContentSearch] = useState("");
   const [contentStatusFilter, setContentStatusFilter] = useState("ALL");
+  const [lookupSearch, setLookupSearch] = useState("");
 
   const [editingUser, setEditingUser] = useState<UserWithProfile | null>(null);
   const [editDisplayName, setEditDisplayName] = useState("");
@@ -646,6 +647,7 @@ export default function AdminPage() {
         {/* Tab nav */}
         <div className="flex items-center gap-2 flex-wrap">
           <TabBtn label="Overview" icon={LayoutDashboard} active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
+          <TabBtn label="Lookup" icon={Search} active={activeTab === "lookup"} onClick={() => setActiveTab("lookup")} />
           {!isSuperUser && (
             <TabBtn label="Users" icon={Users} active={activeTab === "users"} onClick={() => setActiveTab("users")} badge={disabledCount} />
           )}
@@ -713,6 +715,212 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ═══════════════════════════════ LOOKUP ═══════════════════════════════ */}
+        {activeTab === "lookup" && (() => {
+          const q = lookupSearch.trim().toLowerCase();
+          const allListings: any[] = stats?.listings ?? [];
+          const matchedUsers = !q ? [] : (adminUsers ?? []).filter((u) =>
+            u.email?.toLowerCase().includes(q) ||
+            u.profile?.displayName?.toLowerCase().includes(q) ||
+            u.profile?.username?.toLowerCase().includes(q) ||
+            String(u.id) === q
+          );
+          const matchedVideos = !q ? [] : allListings.filter((l) =>
+            l.title?.toLowerCase().includes(q) ||
+            l.provider?.displayName?.toLowerCase().includes(q) ||
+            l.provider?.username?.toLowerCase().includes(q) ||
+            l.videoUrl?.toLowerCase().includes(q) ||
+            String(l.id) === q
+          );
+          const hasResults = matchedUsers.length > 0 || matchedVideos.length > 0;
+
+          return (
+            <div className="space-y-4" data-testid="section-admin-lookup">
+              {/* Search box */}
+              <div style={{ position: "relative" }}>
+                <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "#555", pointerEvents: "none" }} />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search by email, username, display name, video title, or ID…"
+                  value={lookupSearch}
+                  onChange={(e) => setLookupSearch(e.target.value)}
+                  data-testid="input-lookup-search"
+                  style={{ width: "100%", background: "#0b0b0b", border: "1px solid #333", borderRadius: 12, padding: "10px 12px 10px 38px", color: "#fff", fontSize: 13, outline: "none" }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "#ff2b2b40"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "#333"; }}
+                />
+                {lookupSearch && (
+                  <button onClick={() => setLookupSearch("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: "#555", background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>✕</button>
+                )}
+              </div>
+
+              {!q && (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "#444", fontSize: 13 }}>
+                  Type above to search across all users and videos.
+                </div>
+              )}
+
+              {q && !hasResults && (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "#444", fontSize: 13 }}>
+                  No users or videos matched <span style={{ color: "#777" }}>"{lookupSearch}"</span>
+                </div>
+              )}
+
+              {/* Matched Users */}
+              {matchedUsers.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, fontWeight: 600 }}>
+                    Users · {matchedUsers.length}
+                  </p>
+                  <div className="space-y-2">
+                    {matchedUsers.map((u) => {
+                      const isExpanded = expandedUserId === u.id;
+                      const isDeleted = !!u.deletedAt;
+                      const cardBg = isDeleted ? "bg-zinc-900/50 border-zinc-800/50 opacity-70" : u.status === "disabled" ? "bg-red-500/5 border-red-500/20" : "bg-[#0b0b0b] border-[#1e1e1e]";
+                      return (
+                        <div key={u.id} className={`rounded-xl border overflow-hidden ${cardBg}`} data-testid={`lookup-user-${u.id}`}>
+                          <div className="p-3 flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${isDeleted ? "bg-zinc-600" : u.status === "disabled" ? "bg-red-500" : "bg-green-500"}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-white">{u.profile?.displayName ?? "—"}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${ROLE_COLORS[u.role]}`}>{ROLE_LABELS[u.role] ?? u.role}</span>
+                                {isDeleted && <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-500/20 text-zinc-400 font-semibold">DELETED</span>}
+                                {!isDeleted && u.status === "disabled" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-semibold">DISABLED</span>}
+                              </div>
+                              <p className="text-xs text-[#555]">{u.email} · @{u.profile?.username ?? "no-username"} · ID #{u.id}</p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-wrap justify-end shrink-0">
+                              {!isDeleted && !isSuperUser && (
+                                <Select
+                                  value={u.role}
+                                  onValueChange={(val) => userRoleMutation.mutate({ id: u.id, role: val })}
+                                >
+                                  <SelectTrigger className="h-7 w-28 bg-[#111] border-[#2a2a2a] text-[#aaa] text-[11px]" data-testid={`select-role-lookup-${u.id}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                                    {availableRoles.map((r) => (
+                                      <SelectItem key={r} value={r} className="text-xs text-[#ccc]">{ROLE_LABELS[r] ?? r}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              {!isDeleted && (
+                                <Button size="sm" variant="ghost"
+                                  className={`h-7 px-2 text-xs border ${u.status === "disabled" ? "text-green-400 border-green-500/20 hover:bg-green-500/10" : "text-amber-400 border-amber-500/20 hover:bg-amber-500/10"}`}
+                                  onClick={() => userStatusMutation.mutate({ id: u.id, status: u.status === "disabled" ? "active" : "disabled" })}
+                                  disabled={userStatusMutation.isPending}
+                                  data-testid={`button-lookup-toggle-status-${u.id}`}
+                                >
+                                  {u.status === "disabled" ? <><UserCheck className="h-3.5 w-3.5 mr-1" />Enable</> : <><UserX className="h-3.5 w-3.5 mr-1" />Disable</>}
+                                </Button>
+                              )}
+                              {isDeleted && isSuperAdmin && (
+                                <Button size="sm" variant="ghost" className="text-green-400 hover:text-green-300 h-7 px-2 text-xs border border-green-500/20"
+                                  onClick={() => restoreMutation.mutate(u.id)}
+                                  disabled={restoreMutation.isPending}
+                                  data-testid={`button-lookup-restore-${u.id}`}
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5 mr-1" />Restore
+                                </Button>
+                              )}
+                              <Button size="sm" variant="ghost"
+                                className={`h-7 px-2 text-xs border flex items-center gap-1 ${isExpanded ? "text-[#ff4444] border-[#ff4444]/30 bg-[#ff4444]/10" : "text-[#555] border-[#2a2a2a] hover:text-white"}`}
+                                onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                                data-testid={`button-lookup-expand-videos-${u.id}`}
+                              >
+                                <Video className="h-3.5 w-3.5" />Videos
+                                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              </Button>
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <div className="border-t border-[#1a1a1a] px-3 pb-3" data-testid={`lookup-user-videos-${u.id}`}>
+                              <UserListingsPanel
+                                userId={u.id}
+                                onDisable={(id, title) => setConfirmPause({ id, title })}
+                                onDelete={(id, title) => setConfirmDelete({ id, title })}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Matched Videos */}
+              {matchedVideos.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, fontWeight: 600 }}>
+                    Videos · {matchedVideos.length}
+                  </p>
+                  <div className="space-y-2">
+                    {matchedVideos.map((listing: any) => (
+                      <div key={listing.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 flex items-start gap-3" data-testid={`lookup-video-${listing.id}`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${STATUS_COLORS[listing.status]}`}>{listing.status}</span>
+                            <Badge variant="secondary" className="text-xs">{listing.vertical}</Badge>
+                            <span className="text-xs text-[#555]">{listing.durationSeconds}s · ID #{listing.id}</span>
+                          </div>
+                          <p className="font-medium text-sm text-white truncate">{listing.title}</p>
+                          <p className="text-xs text-[#555] truncate">
+                            by {listing.provider?.displayName ?? "Unknown"} (@{listing.provider?.username ?? "?"}) · {listing.dropDate}
+                          </p>
+                          {listing.videoUrl && (
+                            <a href={listing.videoUrl} target="_blank" rel="noopener noreferrer"
+                              className="text-[10px] text-[#444] hover:text-[#ff2b2b] truncate block mt-0.5 max-w-xs"
+                              data-testid={`link-lookup-video-${listing.id}`}
+                            >
+                              {listing.videoUrl.length > 60 ? listing.videoUrl.slice(0, 60) + "…" : listing.videoUrl}
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {listing.status !== "ACTIVE" && listing.status !== "TRIAGED" && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-white"
+                              onClick={() => statusMutation.mutate({ id: listing.id, status: "ACTIVE" })}
+                              disabled={statusMutation.isPending} title="Restore to feed"
+                              data-testid={`button-lookup-activate-${listing.id}`}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {listing.status === "ACTIVE" && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-amber-400"
+                              onClick={() => setConfirmPause({ id: listing.id, title: listing.title })}
+                              disabled={statusMutation.isPending} title="Disable"
+                              data-testid={`button-lookup-pause-${listing.id}`}>
+                              <EyeOff className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {listing.status !== "TRIAGED" && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-orange-400"
+                              onClick={() => { setConfirmTriage({ id: listing.id, title: listing.title }); setTriagedReason("Non-video format — static image detected"); }}
+                              disabled={triageMutation.isPending} title="Triage"
+                              data-testid={`button-lookup-triage-${listing.id}`}>
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-red-500"
+                            onClick={() => setConfirmDelete({ id: listing.id, title: listing.title })}
+                            disabled={deleteListingMutation.isPending} title="Delete permanently"
+                            data-testid={`button-lookup-delete-${listing.id}`}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ═══════════════════════════════ USERS ═══════════════════════════════ */}
         {activeTab === "users" && (
