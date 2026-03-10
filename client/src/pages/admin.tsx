@@ -41,7 +41,7 @@ const STATUS_COLORS: Record<string, string> = {
 const ROLE_LABELS: Record<string, string> = {
   VISITOR: "Visitor", PROVIDER: "Provider", MEMBER: "Member",
   MARKETER: "Marketer", INFLUENCER: "Influencer", CORPORATE: "Corporate",
-  ADMIN: "Admin", SUPER_ADMIN: "Super Admin", COORDINATOR: "Coordinator",
+  SUPERUSER: "Superuser", ADMIN: "Admin", SUPER_ADMIN: "Super Admin", COORDINATOR: "Coordinator",
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -51,12 +51,26 @@ const ROLE_COLORS: Record<string, string> = {
   MARKETER: "bg-purple-500/20 text-purple-400",
   INFLUENCER: "bg-pink-500/20 text-pink-400",
   CORPORATE: "bg-amber-500/20 text-amber-400",
+  SUPERUSER: "bg-orange-500/20 text-orange-300",
   ADMIN: "bg-red-500/20 text-red-400",
   SUPER_ADMIN: "bg-violet-500/20 text-violet-300",
   COORDINATOR: "bg-cyan-500/20 text-cyan-400",
 };
 
-const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN", "COORDINATOR"];
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  VISITOR: "Read-only access",
+  PROVIDER: "Can post listings",
+  MEMBER: "Community member",
+  MARKETER: "Add content only — no delete",
+  INFLUENCER: "Influencer creator",
+  CORPORATE: "Corporate account",
+  SUPERUSER: "Delete content — no user management",
+  ADMIN: "Full admin access",
+  SUPER_ADMIN: "Unrestricted access",
+  COORDINATOR: "Event coordination",
+};
+
+const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "SUPERUSER", "ADMIN", "COORDINATOR"];
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
@@ -134,8 +148,9 @@ export default function AdminPage() {
   const [triagedReason, setTriagedReason] = useState("Non-video format — static image detected");
 
   const userRole = user?.user?.role ?? "";
-  const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN");
+  const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "SUPERUSER");
   const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const isSuperUser = userRole === "SUPERUSER";
 
   const shouldRedirect = !authLoading && !isAdmin;
   if (shouldRedirect) {
@@ -453,11 +468,16 @@ export default function AdminPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Shield className="h-5 w-5 text-[#ff2b2b]" />
           <h1 className="text-xl font-bold" data-testid="text-admin-title">
-            {isSuperAdmin ? "Super Admin Console" : "Admin Console"}
+            {isSuperAdmin ? "Super Admin Console" : isSuperUser ? "Superuser Console" : "Admin Console"}
           </h1>
           {isSuperAdmin && (
             <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
               SUPER ADMIN
+            </span>
+          )}
+          {isSuperUser && (
+            <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+              SUPERUSER
             </span>
           )}
           <span className="ml-auto text-xs text-[#555] font-mono">{user?.user?.email}</span>
@@ -499,7 +519,9 @@ export default function AdminPage() {
         {/* Tab nav */}
         <div className="flex items-center gap-2 flex-wrap">
           <TabBtn label="Overview" icon={LayoutDashboard} active={activeTab === "overview"} onClick={() => setActiveTab("overview")} />
-          <TabBtn label="Users" icon={Users} active={activeTab === "users"} onClick={() => setActiveTab("users")} badge={disabledCount} />
+          {!isSuperUser && (
+            <TabBtn label="Users" icon={Users} active={activeTab === "users"} onClick={() => setActiveTab("users")} badge={disabledCount} />
+          )}
           <TabBtn label="Content" icon={Video} active={activeTab === "content"} onClick={() => setActiveTab("content")} />
           <TabBtn label="GigJacks" icon={Zap} active={activeTab === "gigjacks"} onClick={() => setActiveTab("gigjacks")} badge={pendingCount} />
           <TabBtn label="Live Injection" icon={Radio} active={activeTab === "injection"} onClick={() => setActiveTab("injection")} />
@@ -666,7 +688,12 @@ export default function AdminPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {availableRoles.map((r) => (
-                          <SelectItem key={r} value={r} className="text-xs">{ROLE_LABELS[r] ?? r}</SelectItem>
+                          <SelectItem key={r} value={r} className="text-xs">
+                            <span className="font-semibold">{ROLE_LABELS[r] ?? r}</span>
+                            {ROLE_DESCRIPTIONS[r] && (
+                              <span className="ml-1.5 text-[10px] text-zinc-400">{ROLE_DESCRIPTIONS[r]}</span>
+                            )}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -110,6 +110,14 @@ function requireAdmin(req: any, res: any): boolean {
   return true;
 }
 
+function requireContentAdmin(req: any, res: any): boolean {
+  if (!req.session?.userId || !["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(req.session?.role)) {
+    res.status(403).json({ message: "Insufficient permissions" });
+    return false;
+  }
+  return true;
+}
+
 function requireSuperAdmin(req: any, res: any): boolean {
   if (!req.session?.userId || req.session?.role !== "SUPER_ADMIN") {
     res.status(403).json({ message: "Super Admin only" });
@@ -561,7 +569,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // === ADMIN ===
   app.get(api.admin.stats.path, async (req, res) => {
-    if (!requireAdmin(req, res)) return;
+    if (!requireContentAdmin(req, res)) return;
     const count = await storage.getTodayListingCount();
     const revenue = await storage.getTodayRevenue();
     const listings = await storage.getAllListingsWithProviders();
@@ -569,7 +577,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.patch(api.admin.updateListing.path, async (req, res) => {
-    if (!requireAdmin(req, res)) return;
+    if (!requireContentAdmin(req, res)) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(404).json({ message: "Not found" });
     const { status } = req.body;
@@ -583,7 +591,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Triage a listing (pull from video feed → GigCard Directory) + notify provider
   app.patch("/api/admin/listings/:id/triage", async (req, res) => {
-    if (!requireAdmin(req, res)) return;
+    if (!requireContentAdmin(req, res)) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
     const schema = z.object({ reason: z.string().min(1).max(300) });
@@ -963,7 +971,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.delete("/api/admin/listings/:id", async (req, res) => {
-    if (!requireAdmin(req, res)) return;
+    if (!requireContentAdmin(req, res)) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     await storage.deleteListing(id);
