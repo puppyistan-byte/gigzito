@@ -97,9 +97,11 @@ export default function HomePage() {
     isScrollingRef.current = true;
     container.scrollTo({ top: clamped * h, behavior: "smooth" });
     // When user explicitly navigates to a new card, resume the feed
+    // Also unmute feed and mute ZitoTV so only one audio source plays
     if (feedPausedRef.current) {
       feedPausedRef.current = false;
       setFeedPaused(false);
+      handleMuteChange(false);
     }
     // Clear the "scrolling" flag after the animation completes
     setTimeout(() => { isScrollingRef.current = false; }, 600);
