@@ -1226,5 +1226,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.sendFile(filePath);
   });
 
+  app.get("/get-home", (_req, res) => {
+    const filePath = path.resolve("client/public/deploy_home.js");
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("deploy_home.js not found");
+    }
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", 'attachment; filename="deploy_home.js"');
+    res.sendFile(filePath);
+  });
+
   return httpServer;
 }
