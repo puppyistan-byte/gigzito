@@ -8,6 +8,8 @@ const SMTP_FROM = process.env.SMTP_FROM ?? "Gigzito <noreply@gigzito.com>";
 
 const DEV_MODE = !SMTP_HOST || !SMTP_USER || !SMTP_PASS;
 
+const BYPASS_EMAILS = new Set(["admin@gigzito.com"]);
+
 let transporter: nodemailer.Transporter | null = null;
 
 function getTransporter(): nodemailer.Transporter {
@@ -97,10 +99,10 @@ export async function sendVerificationEmail(toEmail: string, verifyUrl: string):
     </div>
   `;
 
-  if (DEV_MODE) {
+  if (DEV_MODE || BYPASS_EMAILS.has(toEmail.toLowerCase())) {
     console.log("\n");
     console.log("=".repeat(60));
-    console.log("  [DEV MODE] Email verification for:", toEmail);
+    console.log("  [BYPASS] Email verification for:", toEmail);
     console.log("  Verify URL:", verifyUrl);
     console.log("=".repeat(60));
     console.log("\n");
@@ -131,10 +133,10 @@ export async function sendMfaCode(toEmail: string, code: string): Promise<SendMf
     </div>
   `;
 
-  if (DEV_MODE) {
+  if (DEV_MODE || BYPASS_EMAILS.has(toEmail.toLowerCase())) {
     console.log("\n");
     console.log("=".repeat(60));
-    console.log("  [DEV MODE] MFA Code for:", toEmail);
+    console.log("  [BYPASS] MFA Code for:", toEmail);
     console.log("  Code:", code);
     console.log("=".repeat(60));
     console.log("\n");

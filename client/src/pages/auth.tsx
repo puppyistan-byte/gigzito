@@ -299,7 +299,7 @@ export default function AuthPage() {
             <div className="mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 flex items-center gap-2">
               <Mail className="h-4 w-4 text-amber-400 shrink-0" />
               <div>
-                <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Dev mode — no SMTP configured</p>
+                <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Code delivered here (SMTP bypass)</p>
                 <p className="text-sm text-amber-300 font-mono font-bold tracking-widest mt-0.5">{devCode}</p>
               </div>
             </div>
