@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -10,9 +10,100 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
+
+function ImageUploadField({
+  value, onChange, label, hint, required, testId, aspect = "square",
+}: {
+  value: string; onChange: (url: string) => void;
+  label: string; hint?: string; required?: boolean;
+  testId?: string; aspect?: "square" | "wide";
+}) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      onChange(url);
+    } catch {
+      toast({ title: "Upload failed", description: "Please try again or paste a URL.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const previewClass = aspect === "wide"
+    ? "w-full h-28 object-cover rounded-lg border border-[#2a2a2a]"
+    : "w-20 h-20 object-cover rounded-full border-2 border-[#2a2a2a]";
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-[#aaa] text-sm">{label}{required && " *"}{hint && <span className="text-[#555] font-normal"> {hint}</span>}</Label>
+      <div className="flex items-start gap-3">
+        <div className="relative shrink-0 group">
+          {value ? (
+            <img src={value} alt="" className={previewClass} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          ) : (
+            <div className={`${aspect === "wide" ? "w-28 h-20" : "w-20 h-20 rounded-full"} bg-[#1a1a1a] border border-dashed border-[#333] flex items-center justify-center rounded-${aspect === "wide" ? "lg" : "full"}`}>
+              <Camera className="h-5 w-5 text-[#444]" />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
+            data-testid={testId ? `button-upload-${testId}` : undefined}
+            disabled={uploading}
+          >
+            {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
+          </button>
+        </div>
+        <div className="flex-1 space-y-1.5">
+          <Input
+            type="url"
+            placeholder="https://... or upload ↙"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a] text-sm"
+            data-testid={testId}
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="text-xs text-[#888] hover:text-white transition-colors flex items-center gap-1"
+            >
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              Upload photo
+            </button>
+            {value && (
+              <button type="button" onClick={() => onChange("")} className="text-xs text-[#555] hover:text-red-400 transition-colors flex items-center gap-1">
+                <X className="h-3 w-3" /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+      />
+    </div>
+  );
+}
 
 const VERTICALS = [
   { value: "INFLUENCER",      label: "Influencer" },
@@ -273,14 +364,23 @@ export default function ProviderProfilePage() {
           {/* Avatar */}
           <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
             <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Media</h2>
-            <div className="space-y-1.5">
-              <Label htmlFor="avatarUrl" className="text-[#aaa] text-sm">Avatar URL * <span className="text-[#555] font-normal">(square image)</span></Label>
-              <Input id="avatarUrl" type="url" placeholder="https://..." value={form.avatarUrl} onChange={(e) => set("avatarUrl", e.target.value)} required className={inputCls} data-testid="input-avatar-url" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="thumbUrl" className="text-[#aaa] text-sm">Thumbnail URL <span className="text-[#555] font-normal">(16:9 image)</span></Label>
-              <Input id="thumbUrl" type="url" placeholder="https://..." value={form.thumbUrl} onChange={(e) => set("thumbUrl", e.target.value)} className={inputCls} data-testid="input-thumb-url" />
-            </div>
+            <ImageUploadField
+              label="Profile Picture"
+              hint="(square image)"
+              required
+              value={form.avatarUrl}
+              onChange={(url) => set("avatarUrl", url)}
+              testId="input-avatar-url"
+              aspect="square"
+            />
+            <ImageUploadField
+              label="Thumbnail"
+              hint="(16:9 cover image)"
+              value={form.thumbUrl}
+              onChange={(url) => set("thumbUrl", url)}
+              testId="input-thumb-url"
+              aspect="wide"
+            />
           </div>
 
           {/* Photo Gallery */}
@@ -289,26 +389,18 @@ export default function ProviderProfilePage() {
               <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest flex items-center gap-1.5">
                 <Images className="h-3.5 w-3.5" /> Photo Gallery
               </h2>
-              <p className="text-xs text-[#444] mt-1">Paste up to 6 image URLs — they will display as a gallery on your public profile.</p>
+              <p className="text-xs text-[#444] mt-1">Upload or paste up to 6 photos — they appear as a gallery on your public profile.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {PHOTOS.map((field, i) => (
-                <div key={field} className="space-y-1.5">
-                  <Label className="text-[#aaa] text-sm">Photo {i + 1}</Label>
-                  <div className="flex gap-2 items-center">
-                    {form[field] && (
-                      <img src={form[field]} alt="" className="h-8 w-8 rounded object-cover shrink-0 border border-[#2a2a2a]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                    )}
-                    <Input
-                      type="url"
-                      placeholder="https://..."
-                      value={form[field]}
-                      onChange={(e) => set(field, e.target.value)}
-                      className={inputCls}
-                      data-testid={`input-photo${i + 1}-url`}
-                    />
-                  </div>
-                </div>
+                <ImageUploadField
+                  key={field}
+                  label={`Photo ${i + 1}`}
+                  value={form[field]}
+                  onChange={(url) => set(field, url)}
+                  testId={`input-photo${i + 1}-url`}
+                  aspect="wide"
+                />
               ))}
             </div>
           </div>

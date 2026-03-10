@@ -8,6 +8,27 @@ import { promisify } from "util";
 import { sendMfaCode, sendTriageNotification, sendVerificationEmail } from "./email";
 import fs from "fs";
 import path from "path";
+import multer from "multer";
+
+const uploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+    cb(null, `${Date.now()}-${randomBytes(6).toString("hex")}${ext}`);
+  },
+});
+const upload = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"));
+  },
+});
 
 // === BOT CHECKS ===
 function runBotChecks(data: {
@@ -389,6 +410,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
+  });
+
+  app.post("/api/upload/image", upload.single("file"), async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    return res.json({ url });
   });
 
   app.get(api.profiles.profileCompletion.path, async (req, res) => {
