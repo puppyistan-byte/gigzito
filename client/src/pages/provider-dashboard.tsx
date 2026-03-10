@@ -442,7 +442,7 @@ export default function ProviderDashboard() {
           </Link>
           <button
             onClick={async () => { await logout(); navigate("/"); }}
-            className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-red-400 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/70 hover:bg-red-500/10 rounded-full px-3 py-1.5 transition-colors"
             data-testid="button-sign-out-dashboard"
           >
             <LogOut className="h-3.5 w-3.5" />
