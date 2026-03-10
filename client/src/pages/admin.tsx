@@ -209,7 +209,7 @@ function UserListingsPanel({
 }
 
 export default function AdminPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -595,7 +595,19 @@ export default function AdminPage() {
               SUPERUSER
             </span>
           )}
-          <span className="ml-auto text-xs text-[#555] font-mono">{user?.user?.email}</span>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="text-xs text-[#555] font-mono" data-testid="text-admin-email">{user?.user?.email}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-3 text-xs text-[#666] hover:text-white border border-[#2a2a2a] hover:border-[#444]"
+              onClick={async () => { await logout(); navigate("/"); }}
+              data-testid="button-admin-logout"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Override Mode Banner (SUPER_ADMIN only) */}
