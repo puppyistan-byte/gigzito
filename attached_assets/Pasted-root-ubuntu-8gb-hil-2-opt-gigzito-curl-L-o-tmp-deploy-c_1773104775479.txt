@@ -1,0 +1,39 @@
+root@ubuntu-8gb-hil-2:/opt/gigzito# curl -L -o /tmp/deploy_css.js "YOUR-WEBVIEW-URL/get-css"
+node /tmp/deploy_css.js
+pm2 delete gigzito && pm2 start npm --name gigzito -- run dev
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0curl: (6) Could not resolve host: YOUR-WEBVIEW-URL
+node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module '/tmp/deploy_css.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v20.20.1
+[PM2] Applying action deleteProcessId on app [gigzito](ids: [ 0 ])
+[PM2] [gigzito](0) ✓
+┌────┬───────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name      │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+└────┴───────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Starting /usr/bin/npm in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name       │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ gigzito    │ default     │ N/A     │ fork    │ 9457     │ 0s     │ 0    │ online    │ 0%       │ 16.4mb   │ root     │ disabled │
+└────┴────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-8gb-hil-2:/opt/gigzito# sleep 10 && pm2 logs gigzito --lines 10 --nostream 2>&1 | grep -i "error\|import\|postcss"
+
+/root/.pm2/logs/gigzito-error.log last 10 lines:
+0|gigzito  | [vite:css][postcss] @import must precede all other statements (besides @charset or empty @layer)
+0|gigzito  | 11 |  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+root@ubuntu-8gb-hil-2:/opt/gigzito#
+root@ubuntu-8gb-hil-2:/opt/gigzito#
