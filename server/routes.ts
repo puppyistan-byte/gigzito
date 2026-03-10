@@ -1196,6 +1196,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ success: true });
   });
 
+  app.get("/get-setup", (_req, res) => {
+    const filePath = path.resolve("client/public/vps_setup.sh");
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("vps_setup.sh not found");
+    }
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Disposition", 'attachment; filename="vps_setup.sh"');
+    res.sendFile(filePath);
+  });
+
   app.get("/get-deploy", (_req, res) => {
     const filePath = path.resolve("client/public/deploy_all.js");
     if (!fs.existsSync(filePath)) {
