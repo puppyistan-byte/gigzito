@@ -1236,5 +1236,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.sendFile(filePath);
   });
 
+  app.get("/get-css", (_req, res) => {
+    const filePath = path.resolve("client/public/deploy_css.js");
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("deploy_css.js not found");
+    }
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", 'attachment; filename="deploy_css.js"');
+    res.sendFile(filePath);
+  });
+
   return httpServer;
 }

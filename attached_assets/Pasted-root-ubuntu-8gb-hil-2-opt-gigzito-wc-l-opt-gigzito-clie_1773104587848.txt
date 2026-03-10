@@ -1,0 +1,91 @@
+root@ubuntu-8gb-hil-2:/opt/gigzito# wc -l /opt/gigzito/client/src/pages/home.tsx
+337 /opt/gigzito/client/src/pages/home.tsx
+root@ubuntu-8gb-hil-2:/opt/gigzito# # Clear the Vite cache completely
+rm -rf /opt/gigzito/node_modules/.vite
+
+# Verify the inline height is actually in the file
+grep -n "calc(100vh - 140px)" /opt/gigzito/client/src/pages/home.tsx
+
+# Full restart
+pm2 delete gigzito && pm2 start npm --name gigzito -- run dev
+
+# Wait 10 seconds then check for errors
+sleep 10 && pm2 logs gigzito --lines 30 --nostream
+209:          height: "calc(100vh - 140px)",
+244:                height: "calc(100vh - 140px)",
+[PM2] Applying action deleteProcessId on app [gigzito](ids: [ 0 ])
+[PM2] [gigzito](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Starting /usr/bin/npm in fork_mode (1 instance)
+[PM2] Done.
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ gigzito            │ fork     │ 0    │ online    │ 0%       │ 16.4mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[TAILING] Tailing last 30 lines for [gigzito] process (change the value with --lines option)
+/root/.pm2/logs/gigzito-out.log last 30 lines:
+0|gigzito  | 1:01:46 AM [express] GET /api/gigjacks/live-state 304 in 2ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:01:49 AM [express] GET /api/gigjacks/live-state 304 in 4ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:01:52 AM [express] GET /api/gigjacks/live-state 304 in 2ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:01:53 AM [express] GET /api/live/active 304 in 2ms :: []
+0|gigzito  | 1:01:54 AM [express] GET /api/love/leaderboard 304 in 2ms :: []
+0|gigzito  | 1:01:55 AM [express] GET /api/gigjacks/today 304 in 2ms :: []
+0|gigzito  | 1:01:56 AM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:01:59 AM [express] GET /api/gigjacks/live-state 304 in 2ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:02 AM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:04 AM [express] GET /api/all-eyes/active 304 in 1ms
+0|gigzito  | 1:02:06 AM [express] GET /api/gigjacks/live-state 304 in 2ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:09 AM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:10 AM [express] GET /api/gigjacks/today 304 in 3ms :: []
+0|gigzito  | 1:02:12 AM [express] GET /api/gigjacks/live-state 304 in 2ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:16 AM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:19 AM [express] GET /api/gigjacks/live-state 304 in 2ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:22 AM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 1:02:23 AM [express] GET /api/injected-feed/active 304 in 2ms
+0|gigzito  | 1:02:24 AM [express] GET /api/live/active 304 in 2ms :: []
+0|gigzito  | 1:02:24 AM [express] GET /api/love/leaderboard 304 in 2ms :: []
+0|gigzito  | 1:02:24 AM [express] GET /api/all-eyes/active 304 in 2ms
+0|gigzito  | 1:02:25 AM [express] GET /api/gigjacks/today 304 in 2ms :: []
+0|gigzito  | 1:02:25 AM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  |
+0|gigzito  | > rest-express@1.0.0 dev
+0|gigzito  | > NODE_ENV=development tsx server/index.ts
+0|gigzito  |
+0|gigzito  | [dotenv@17.3.1] injecting env (2) from .env -- tip: ⚙️  override existing env vars with { override: true }
+0|gigzito  | 1:02:28 AM [express] serving on port 5000
+0|gigzito  | 1:02:29 AM [express] GET /api/gigjacks/live-state 304 in 8ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+
+/root/.pm2/logs/gigzito-error.log last 30 lines:
+0|gigzito  | 12 |
+0|gigzito  | 13 |  @tailwind base;
+0|gigzito  | [vite:css][postcss] @import must precede all other statements (besides @charset or empty @layer)
+0|gigzito  | 9  |  }
+0|gigzito  | 10 |
+0|gigzito  | 11 |  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+0|gigzito  |    |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+0|gigzito  | 12 |
+0|gigzito  | 13 |  @tailwind base;
+0|gigzito  | [vite:css][postcss] @import must precede all other statements (besides @charset or empty @layer)
+0|gigzito  | 9  |  }
+0|gigzito  | 10 |
+0|gigzito  | 11 |  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+0|gigzito  |    |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+0|gigzito  | 12 |
+0|gigzito  | 13 |  @tailwind base;
+0|gigzito  | [vite:css][postcss] @import must precede all other statements (besides @charset or empty @layer)
+0|gigzito  | 9  |  }
+0|gigzito  | 10 |
+0|gigzito  | 11 |  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+0|gigzito  |    |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+0|gigzito  | 12 |
+0|gigzito  | 13 |  @tailwind base;
+0|gigzito  | [vite:css][postcss] @import must precede all other statements (besides @charset or empty @layer)
+0|gigzito  | 9  |  }
+0|gigzito  | 10 |
+0|gigzito  | 11 |  @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+0|gigzito  |    |  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+0|gigzito  | 12 |
+0|gigzito  | 13 |  @tailwind base;
