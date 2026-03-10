@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap, Smartphone } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X } from "lucide-react";
 import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
@@ -106,6 +106,11 @@ export default function NewListingPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -179,8 +184,71 @@ export default function NewListingPage() {
 
   const set = (field: keyof FormState, val: string) => setForm((p) => ({ ...p, [field]: val }));
 
+  const handleVideoFile = async (file: File) => {
+    if (!file.type.startsWith("video/")) {
+      toast({ title: "Invalid file", description: "Please upload a video file (MP4, MOV, WebM).", variant: "destructive" });
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum file size is 200MB.", variant: "destructive" });
+      return;
+    }
+    // Client-side duration check
+    const objectUrl = URL.createObjectURL(file);
+    const duration = await new Promise<number>((resolve) => {
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => { URL.revokeObjectURL(objectUrl); resolve(v.duration); };
+      v.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(0); };
+      v.src = objectUrl;
+    });
+    if (duration > 61) {
+      toast({ title: "Video too long", description: `Your video is ${Math.ceil(duration)}s. Maximum is 60 seconds.`, variant: "destructive" });
+      return;
+    }
+    setUploadedFileName(file.name);
+    setUploadProgress(0);
+    set("videoUrl", "");
+    const formData = new FormData();
+    formData.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const result = JSON.parse(xhr.responseText);
+        set("videoUrl", result.url);
+        setUploadProgress(100);
+      } else {
+        toast({ title: "Upload failed", description: "Please try again.", variant: "destructive" });
+        setUploadProgress(null);
+        setUploadedFileName(null);
+      }
+    };
+    xhr.onerror = () => {
+      toast({ title: "Upload failed", description: "Network error. Please try again.", variant: "destructive" });
+      setUploadProgress(null);
+      setUploadedFileName(null);
+    };
+    xhr.open("POST", "/api/upload/video");
+    xhr.send(formData);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.videoUrl) {
+      if (videoMode === "upload") {
+        toast({ title: "No video uploaded", description: "Please upload your video before submitting.", variant: "destructive" });
+      } else {
+        toast({ title: "Video URL required", description: "Please enter a video URL.", variant: "destructive" });
+      }
+      return;
+    }
+    if (videoMode === "upload" && uploadProgress !== null && uploadProgress < 100) {
+      toast({ title: "Upload in progress", description: "Please wait for your video to finish uploading.", variant: "destructive" });
+      return;
+    }
     if (form.ctaType && !form.ctaUrl) {
       toast({ title: "CTA URL required", description: "Please enter a URL for your CTA button.", variant: "destructive" });
       return;
@@ -272,50 +340,131 @@ export default function NewListingPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[#aaa] text-sm">Video URL *</Label>
-              <Input
-                type="url"
-                placeholder="https://youtube.com/shorts/... or tiktok.com/..."
-                value={form.videoUrl}
-                onChange={(e) => set("videoUrl", e.target.value)}
-                required
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                data-testid="input-video-url"
-              />
+            <div className="space-y-3">
+              <Label className="text-[#aaa] text-sm">Video *</Label>
 
-              {/* Dynamic landscape warning */}
-              {videoFormatStatus === "landscape" && (
-                <div
-                  className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300"
-                  data-testid="alert-landscape-video"
+              {/* Mode toggle */}
+              <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="video-mode-toggle">
+                <button
+                  type="button"
+                  onClick={() => { setVideoMode("url"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors"
+                  style={{ background: videoMode === "url" ? "rgba(255,43,43,0.15)" : "transparent", color: videoMode === "url" ? "#ff4444" : "#555", borderRight: "1px solid #2a2a2a" }}
+                  data-testid="toggle-url-mode"
                 >
-                  <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400" />
-                  <span>
-                    <strong className="text-amber-400">Landscape video detected.</strong> This video does not appear to be a vertical short-form format.
-                    Engagement and distribution may be limited. You can still post, but vertical content performs best.
-                  </span>
+                  <Link2 className="h-3.5 w-3.5" />
+                  URL Mirror
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setVideoMode("upload"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors"
+                  style={{ background: videoMode === "upload" ? "rgba(255,43,43,0.15)" : "transparent", color: videoMode === "upload" ? "#ff4444" : "#555" }}
+                  data-testid="toggle-upload-mode"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload Video
+                </button>
+              </div>
+
+              {/* URL Mirror mode */}
+              {videoMode === "url" && (
+                <div className="space-y-2">
+                  <Input
+                    type="url"
+                    placeholder="https://youtube.com/shorts/... or tiktok.com/..."
+                    value={form.videoUrl}
+                    onChange={(e) => set("videoUrl", e.target.value)}
+                    required
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
+                    data-testid="input-video-url"
+                  />
+                  {videoFormatStatus === "landscape" && (
+                    <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-xs text-amber-300" data-testid="alert-landscape-video">
+                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400" />
+                      <span><strong className="text-amber-400">Landscape video detected.</strong> Vertical content performs best on Gigzito.</span>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] text-xs text-[#666]" data-testid="notice-source-format">
+                    <Smartphone className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#444]" />
+                    <div className="space-y-0.5">
+                      <p className="text-[#888] font-semibold">Best with vertical short-form (9:16)</p>
+                      <p>YouTube Shorts · TikTok · Instagram Reels · Facebook Reels</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Source Format Notice — always visible */}
-              <div
-                className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] text-xs text-[#666] mt-1"
-                data-testid="notice-source-format"
-              >
-                <Smartphone className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#444]" />
-                <div className="space-y-1">
-                  <p className="text-[#888] font-semibold">Source Format Notice</p>
-                  <p>Gigzito performs best with short-form <strong className="text-[#666]">vertical (9:16)</strong> videos from:</p>
-                  <ul className="list-none space-y-0.5 text-[#555] pl-0">
-                    <li>• YouTube Shorts</li>
-                    <li>• TikTok</li>
-                    <li>• Instagram Reels</li>
-                    <li>• Facebook Reels</li>
-                  </ul>
-                  <p className="text-[#444]">Horizontal or non-short-form videos may appear letterboxed in the feed. Gigzito does not scale or reformat non-vertical content.</p>
+              {/* Native Upload mode */}
+              {videoMode === "upload" && (
+                <div className="space-y-3">
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/*"
+                    className="hidden"
+                    data-testid="input-video-file"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVideoFile(f); }}
+                  />
+
+                  {/* Drop zone */}
+                  {!uploadedFileName && (
+                    <div
+                      className="relative rounded-xl border-2 border-dashed transition-colors cursor-pointer"
+                      style={{ borderColor: dragOver ? "#ff4444" : "#2a2a2a", background: dragOver ? "rgba(255,43,43,0.05)" : "#0d0d0d", padding: "32px 20px", textAlign: "center" }}
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleVideoFile(f); }}
+                      data-testid="video-drop-zone"
+                    >
+                      <Film className="h-8 w-8 mx-auto mb-3" style={{ color: "#333" }} />
+                      <p className="text-sm font-semibold text-[#555]">Drop your video here</p>
+                      <p className="text-xs text-[#333] mt-1">or click to browse</p>
+                      <p className="text-[10px] text-[#2a2a2a] mt-3">MP4 · MOV · WebM · Max 60s · Max 200MB</p>
+                    </div>
+                  )}
+
+                  {/* Upload progress */}
+                  {uploadedFileName && uploadProgress !== null && uploadProgress < 100 && (
+                    <div className="rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] p-4 space-y-3" data-testid="upload-progress">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 text-[#ff4444] animate-spin flex-shrink-0" />
+                        <p className="text-xs text-[#888] truncate flex-1">{uploadedFileName}</p>
+                        <span className="text-xs font-bold text-[#ff4444] flex-shrink-0">{uploadProgress}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-[#1a1a1a] overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${uploadProgress}%`, background: "linear-gradient(90deg, #ff2b2b, #ff6644)" }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload success */}
+                  {uploadedFileName && uploadProgress === 100 && form.videoUrl && (
+                    <div className="rounded-xl bg-[#0d1a0d] border border-green-900/50 p-3 flex items-center gap-3" data-testid="upload-success">
+                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-green-400">Video uploaded</p>
+                        <p className="text-[10px] text-green-900/80 text-green-700 truncate mt-0.5">{uploadedFileName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+                        className="text-[#444] hover:text-white flex-shrink-0"
+                        data-testid="button-remove-upload"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-[#0d0d0d] border border-[#1a1a1a] text-xs text-[#555]">
+                    <Film className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[#333]" />
+                    <p>Upload vertical (9:16) portrait videos for best results. Content is reviewed before going live.</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
           </div>

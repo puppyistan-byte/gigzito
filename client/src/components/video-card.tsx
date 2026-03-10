@@ -57,6 +57,12 @@ function getYouTubeId(url: string): string {
   return u.searchParams.get("v") ?? "";
 }
 
+function isNativeVideo(url: string): boolean {
+  if (!url) return false;
+  if (url.startsWith("/uploads/")) return true;
+  return /\.(mp4|webm|mov|ogg|ogv|avi|m4v|3gp|mkv)(\?|$)/i.test(url);
+}
+
 function isYouTubeShorts(url: string): boolean {
   try { return new URL(url).pathname.includes("/shorts/"); } catch { return false; }
 }
@@ -305,23 +311,36 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
   const endCalledRef = useRef(false);
   const iframeRef    = useRef<HTMLIFrameElement>(null);
+  const videoRef     = useRef<HTMLVideoElement>(null);
   const [iframeSrc,  setIframeSrc]  = useState("about:blank");
   const [videoBlocked, setVideoBlocked] = useState(false);
 
   // Keep a ref to the current muted state so the iframe postMessage always uses the latest value
   const isMutedRef = useRef(isMuted);
-  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+  useEffect(() => {
+    isMutedRef.current = isMuted;
+    // Sync muted state live to native video element
+    if (isNativeVideo(listing.videoUrl) && videoRef.current) {
+      videoRef.current.muted = isMuted;
+      videoRef.current.volume = isMuted ? 0 : 1;
+    }
+  }, [isMuted, listing.videoUrl]);
 
   const toggleMute = () => {
-    const iframe = iframeRef.current;
     const next = !isMuted;
-    if (iframe?.contentWindow) {
-      try {
-        iframe.contentWindow.postMessage(
-          JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
-          "*"
-        );
-      } catch (_) {}
+    if (isNativeVideo(listing.videoUrl)) {
+      const v = videoRef.current;
+      if (v) { v.muted = next; v.volume = next ? 0 : 1; }
+    } else {
+      const iframe = iframeRef.current;
+      if (iframe?.contentWindow) {
+        try {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
+            "*"
+          );
+        } catch (_) {}
+      }
     }
     onMuteChange?.(next);
   };
@@ -353,19 +372,35 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   }, []);
 
   useEffect(() => {
+    const native = isNativeVideo(listing.videoUrl);
     if (!isActive) {
-      stopIframe(iframeRef.current);
-      setIframeSrc("about:blank");
+      if (native) {
+        const v = videoRef.current;
+        if (v) { v.pause(); v.currentTime = 0; }
+      } else {
+        stopIframe(iframeRef.current);
+        setIframeSrc("about:blank");
+      }
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = null;
       setTimeLeft(null);
       endCalledRef.current = false;
       return;
     }
-    // Activate: load the autoplay URL, honouring the current global muted preference
-    setIframeSrc(getVideoEmbedUrl(listing.videoUrl, true, isMutedRef.current));
+    // Activate
     endCalledRef.current = false;
     setTimeLeft(playSeconds);
+    if (native) {
+      const v = videoRef.current;
+      if (v) {
+        v.currentTime = 0;
+        v.muted = isMutedRef.current;
+        v.volume = isMutedRef.current ? 0 : 1;
+        v.play().catch(() => {});
+      }
+    } else {
+      setIframeSrc(getVideoEmbedUrl(listing.videoUrl, true, isMutedRef.current));
+    }
     const start = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = (Date.now() - start) / 1000;
@@ -437,8 +472,29 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </button>
           )}
 
+          {/* Native video element — used when listing.videoUrl is an uploaded file */}
+          {isNativeVideo(listing.videoUrl) && (
+            <video
+              ref={videoRef}
+              key={`native-${listing.id}`}
+              src={listing.videoUrl}
+              playsInline
+              loop={false}
+              preload="metadata"
+              onEnded={() => {
+                if (!endCalledRef.current) {
+                  endCalledRef.current = true;
+                  if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+                  onEnd?.();
+                }
+              }}
+              style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
+              data-testid={`native-video-${listing.id}`}
+            />
+          )}
+
           {/* Iframe — only mounted when active; unmounting fully kills browser audio */}
-          {iframeSrc !== "about:blank" && <iframe
+          {!isNativeVideo(listing.videoUrl) && iframeSrc !== "about:blank" && <iframe
             ref={iframeRef}
             key={`video-${listing.id}`}
             src={iframeSrc}

@@ -30,6 +30,27 @@ const upload = multer({
   },
 });
 
+const videoUploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), "uploads", "videos");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || ".mp4";
+    cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
+  },
+});
+const videoUpload = multer({
+  storage: videoUploadStorage,
+  limits: { fileSize: 200 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/ogg", "video/3gpp", "video/mpeg", "video/x-m4v"];
+    if (allowed.includes(file.mimetype) || file.mimetype.startsWith("video/")) cb(null, true);
+    else cb(new Error("Only video files are allowed"));
+  },
+});
+
 // === BOT CHECKS ===
 function runBotChecks(data: {
   offerTitle: string;
@@ -425,6 +446,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const url = `/uploads/${req.file.filename}`;
     return res.json({ url });
+  });
+
+  app.post("/api/upload/video", videoUpload.single("file"), async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const url = `/uploads/videos/${req.file.filename}`;
+    return res.json({ url, size: req.file.size, originalName: req.file.originalname });
   });
 
   app.get(api.profiles.profileCompletion.path, async (req, res) => {
