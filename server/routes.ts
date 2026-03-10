@@ -974,6 +974,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(allUsers.map((u) => ({ ...u, password: undefined })));
   });
 
+  app.get("/api/admin/users/:id/listings", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) return res.status(400).json({ message: "Invalid id" });
+    const profile = await storage.getProfileByUserId(userId);
+    if (!profile) return res.json([]);
+    const listings = await storage.getListingsByProvider(profile.id);
+    return res.json(listings);
+  });
+
   app.patch("/api/admin/users/:id/status", async (req, res) => {
     if (!requireAdmin(req, res)) return;
     const id = parseInt(req.params.id);

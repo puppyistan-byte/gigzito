@@ -16,6 +16,7 @@ import {
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
+  ChevronDown, ChevronUp, Film, Link2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
@@ -102,6 +103,111 @@ function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   );
 }
 
+function UserListingsPanel({
+  userId,
+  onDisable,
+  onDelete,
+}: {
+  userId: number;
+  onDisable: (id: number, title: string) => void;
+  onDelete: (id: number, title: string) => void;
+}) {
+  const { data: listings, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/users", userId, "listings"],
+    queryFn: () => fetch(`/api/admin/users/${userId}/listings`).then((r) => r.json()),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="mt-3 space-y-2 pl-5" data-testid={`user-listings-loading-${userId}`}>
+        {[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+      </div>
+    );
+  }
+
+  if (!listings || listings.length === 0) {
+    return (
+      <div className="mt-3 pl-5 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] p-4 text-center text-xs text-[#444]" data-testid={`user-listings-empty-${userId}`}>
+        No videos found for this user.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2 pl-5" data-testid={`user-listings-panel-${userId}`}>
+      {listings.map((listing) => (
+        <div
+          key={listing.id}
+          className="flex items-center gap-3 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] p-3"
+          data-testid={`user-listing-row-${listing.id}`}
+        >
+          {/* Thumb or icon */}
+          <div
+            className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden"
+            style={{ background: "#111" }}
+          >
+            {listing.thumbnailUrl ? (
+              <img src={listing.thumbnailUrl} alt="" className="w-full h-full object-cover rounded-lg" />
+            ) : (
+              <Film className="h-4 w-4 text-[#333]" />
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-white truncate" data-testid={`user-listing-title-${listing.id}`}>
+              {listing.title}
+            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${STATUS_COLORS[listing.status] ?? "bg-zinc-500/20 text-zinc-400"}`}
+                data-testid={`user-listing-status-${listing.id}`}
+              >
+                {listing.status}
+              </span>
+              <span className="text-[10px] text-[#444]">{listing.vertical}</span>
+              {listing.videoUrl?.startsWith("/uploads/") ? (
+                <span className="text-[10px] text-blue-500/70 flex items-center gap-0.5">
+                  <Film className="h-2.5 w-2.5" /> Uploaded
+                </span>
+              ) : (
+                <span className="text-[10px] text-[#333] flex items-center gap-0.5">
+                  <Link2 className="h-2.5 w-2.5" /> URL
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {listing.status !== "REMOVED" && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-amber-400 hover:text-amber-300 border border-amber-500/20"
+                onClick={() => onDisable(listing.id, listing.title)}
+                data-testid={`button-disable-listing-${listing.id}`}
+              >
+                <EyeOff className="h-3.5 w-3.5 mr-1" /> Disable
+              </Button>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-[#555] hover:text-red-400"
+              title="Delete listing"
+              onClick={() => onDelete(listing.id, listing.title)}
+              data-testid={`button-delete-listing-${listing.id}`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -122,6 +228,7 @@ export default function AdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
   const [userStatusFilter, setUserStatusFilter] = useState("ALL");
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
 
   const [contentSearch, setContentSearch] = useState("");
   const [contentStatusFilter, setContentStatusFilter] = useState("ALL");
@@ -654,12 +761,15 @@ export default function AdminPage() {
                   ? "bg-red-500/5 border-red-500/20"
                   : "bg-[#0b0b0b] border-[#1e1e1e]";
 
+              const isExpanded = expandedUserId === u.id;
+
               return (
                 <div
                   key={u.id}
-                  className={`rounded-xl border p-3 flex items-center gap-3 ${cardBg}`}
+                  className={`rounded-xl border overflow-hidden ${cardBg}`}
                   data-testid={`row-user-${u.id}`}
                 >
+                <div className="p-3 flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full shrink-0 ${isDeleted ? "bg-zinc-600" : u.status === "disabled" ? "bg-red-500" : "bg-green-500"}`} />
 
                   <div className="flex-1 min-w-0">
@@ -795,6 +905,31 @@ export default function AdminPage() {
                       <RefreshCw className="h-3.5 w-3.5 mr-1" /> Restore
                     </Button>
                   )}
+
+                  {/* Videos expand button */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={`h-7 px-2 text-xs border flex items-center gap-1 ${isExpanded ? "text-[#ff4444] border-[#ff4444]/30 bg-[#ff4444]/10" : "text-[#555] border-[#2a2a2a] hover:text-white"}`}
+                    onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                    data-testid={`button-expand-user-videos-${u.id}`}
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    Videos
+                    {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                </div>
+
+                {/* Expanded listings panel */}
+                {isExpanded && (
+                  <div className="border-t border-[#1a1a1a] px-3 pb-3" data-testid={`user-videos-section-${u.id}`}>
+                    <UserListingsPanel
+                      userId={u.id}
+                      onDisable={(id, title) => setConfirmPause({ id, title })}
+                      onDelete={(id, title) => setConfirmDelete({ id, title })}
+                    />
+                  </div>
+                )}
                 </div>
               );
             })}
