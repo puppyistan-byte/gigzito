@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
@@ -158,7 +158,7 @@ const EMPTY: FormState = {
 const inputCls = "bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]";
 
 export default function ProviderProfilePage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -295,19 +295,29 @@ export default function ProviderProfilePage() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         <div className="space-y-3">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Return to Main
-              </button>
-            </Link>
-            <Link href="/provider/me">
-              <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Return to Profile
-              </button>
-            </Link>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Return to Main
+                </button>
+              </Link>
+              <Link href="/provider/me">
+                <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-profile">
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Return to Profile
+                </button>
+              </Link>
+            </div>
+            <button
+              onClick={async () => { await logout(); navigate("/"); }}
+              className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-red-400 transition-colors"
+              data-testid="button-sign-out-profile"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
           </div>
           <h1 className="text-xl font-bold text-white" data-testid="text-page-title">Creator Profile</h1>
         </div>

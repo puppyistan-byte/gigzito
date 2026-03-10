@@ -18,7 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -325,7 +325,7 @@ function GigJackCenter() {
 }
 
 export default function ProviderDashboard() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -432,13 +432,23 @@ export default function ProviderDashboard() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
-        {/* Return to Main */}
-        <Link href="/">
-          <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Return to Main
+        {/* Return to Main + Sign Out */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Link href="/">
+            <button className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-white transition-colors" data-testid="btn-return-to-main">
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Return to Main
+            </button>
+          </Link>
+          <button
+            onClick={async () => { await logout(); navigate("/"); }}
+            className="flex items-center gap-1.5 text-xs font-medium text-[#555] hover:text-red-400 transition-colors"
+            data-testid="button-sign-out-dashboard"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign Out
           </button>
-        </Link>
+        </div>
 
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
