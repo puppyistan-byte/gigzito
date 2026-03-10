@@ -359,7 +359,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/auth/mfa/verify", async (req, res) => {
     try {
-      const { email, code } = req.body;
+      const { email, code, rememberMe } = req.body;
       if (!email || !code) return res.status(400).json({ message: "Email and code required" });
       const user = await storage.getUserByEmail(email);
       if (!user) return res.status(401).json({ message: "Invalid verification code." });
@@ -372,6 +372,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const profile = await storage.getProfileByUserId(user.id);
       (req.session as any).userId = user.id;
       (req.session as any).role = user.role;
+      // If "Remember me" checked, persist the session for 30 days; otherwise it expires when the browser closes
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+      }
       return res.json({ user: { ...user, password: undefined }, profile: profile ?? null });
     } catch (err) {
       console.error(err);

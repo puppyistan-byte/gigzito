@@ -35,6 +35,8 @@ export default function AuthPage() {
   const [resendVerifyLoading, setResendVerifyLoading] = useState(false);
   const verifyCooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const [rememberMe, setRememberMe] = useState(false);
+
   // MFA state
   const [mfaStep, setMfaStep] = useState(false);
   const [mfaEmail, setMfaEmail] = useState("");
@@ -114,7 +116,7 @@ export default function AuthPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword, rememberMe }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -153,7 +155,7 @@ export default function AuthPage() {
       const res = await fetch("/api/auth/mfa/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: mfaEmail, code: mfaCode }),
+        body: JSON.stringify({ email: mfaEmail, code: mfaCode, rememberMe }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -405,7 +407,17 @@ export default function AuthPage() {
                   data-testid="input-login-password"
                 />
               </div>
-              <div className="auth-row">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer" data-testid="label-remember-me">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="accent-[#ff2b2b] w-3.5 h-3.5"
+                    data-testid="checkbox-remember-me"
+                  />
+                  <span className="text-xs text-[#888]">Remember me</span>
+                </label>
                 <button type="button" className="link-red" data-testid="button-forgot-password">Forgot password?</button>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading} data-testid="button-login-submit">
