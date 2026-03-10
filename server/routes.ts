@@ -3,8 +3,9 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import rateLimit from "express-rate-limit";
 import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification } from "./email";
 import fs from "fs";
 import path from "path";
@@ -266,6 +267,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   await ensureAdminUser();
 
   // === AUTH ===
+  const verifyEmailLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many verification attempts. Please wait a minute and try again." },
+  });
+
+  const resendVerifyLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 3,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many resend requests. Please wait a few minutes." },
+  });
+
   app.post(api.auth.register.path, async (req, res) => {
     try {
       const { email, password, disclaimerAccepted } = req.body;
@@ -275,16 +292,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (existing) return res.status(409).json({ message: "Email already registered" });
       const hashed = await hashPassword(password);
       const verificationToken = randomBytes(32).toString("hex");
+      const tokenHash = createHash("sha256").update(verificationToken).digest("hex");
+      const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const emailResult = await sendVerificationEmail(
         email,
         `${req.protocol}://${req.get("host")}/verify-email?token=${verificationToken}`
       );
-      // Only auto-verify for bypass emails (e.g. admin@gigzito.com); everyone else must click the link
       const autoVerified = emailResult.devMode && !emailResult.verifyUrl;
       const user = await storage.createUser({
         email, password: hashed, role: "PROVIDER", disclaimerAccepted: true,
         emailVerified: autoVerified,
-        emailVerificationToken: autoVerified ? null : verificationToken,
+        emailVerificationToken: autoVerified ? null : tokenHash,
+        emailVerificationExpiresAt: autoVerified ? null : tokenExpiresAt,
       });
       await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null, username: null, primaryCategory: null, location: null, instagramUrl: null, youtubeUrl: null, tiktokUrl: null });
       if (autoVerified) {
@@ -300,12 +319,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.get("/api/auth/verify-email", async (req, res) => {
+  app.get("/api/auth/verify-email", verifyEmailLimiter, async (req, res) => {
     try {
       const { token } = req.query as { token?: string };
-      if (!token) return res.status(400).json({ message: "Missing token" });
+      if (!token) return res.status(400).json({ message: "Verification link invalid or expired." });
       const user = await storage.getUserByVerificationToken(token);
-      if (!user) return res.status(400).json({ message: "Invalid or expired verification link." });
+      if (!user) return res.status(400).json({ message: "Verification link invalid or expired." });
       if (user.emailVerified) return res.json({ alreadyVerified: true });
       await storage.verifyUserEmail(user.id);
       return res.json({ verified: true });
@@ -315,13 +334,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/auth/resend-verification", async (req, res) => {
+  app.post("/api/auth/resend-verification", resendVerifyLimiter, async (req, res) => {
     try {
       const { email } = req.body;
       if (!email) return res.status(400).json({ message: "Email required" });
       const user = await storage.getUserByEmail(email);
-      if (!user) return res.status(404).json({ message: "No account found with that email." });
-      if (user.emailVerified) return res.json({ message: "Email already verified." });
+      if (!user || user.emailVerified) {
+        return res.json({ sent: true });
+      }
       const verificationToken = randomBytes(32).toString("hex");
       await storage.updateVerificationToken(user.id, verificationToken);
       const emailResult = await sendVerificationEmail(

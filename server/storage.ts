@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { createHash } from "crypto";
 import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
@@ -126,16 +127,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.emailVerificationToken, token));
+    const hash = createHash("sha256").update(token).digest("hex");
+    const [user] = await db.select().from(users).where(
+      and(
+        eq(users.emailVerificationToken, hash),
+        gte(users.emailVerificationExpiresAt, new Date())
+      )
+    );
     return user;
   }
 
   async verifyUserEmail(userId: number): Promise<void> {
-    await db.update(users).set({ emailVerified: true, emailVerificationToken: null }).where(eq(users.id, userId));
+    await db.update(users).set({
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+    }).where(eq(users.id, userId));
   }
 
-  async updateVerificationToken(userId: number, token: string | null): Promise<void> {
-    await db.update(users).set({ emailVerificationToken: token }).where(eq(users.id, userId));
+  async updateVerificationToken(userId: number, token: string): Promise<void> {
+    const hash = createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db.update(users).set({
+      emailVerificationToken: hash,
+      emailVerificationExpiresAt: expiresAt,
+    }).where(eq(users.id, userId));
   }
 
   async getProfileByUserId(userId: number): Promise<ProviderProfile | undefined> {

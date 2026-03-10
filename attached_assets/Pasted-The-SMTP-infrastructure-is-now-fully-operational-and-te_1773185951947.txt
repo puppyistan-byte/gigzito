@@ -1,0 +1,19 @@
+The SMTP infrastructure is now fully operational and tested end-to-end. The Gigzito application successfully sends verification emails through the local Postfix relay container on 127.0.0.1:2525, which forwards mail through Brevo’s authenticated SMTP relay. The domain gigzito.com is authenticated with SPF and DKIM, and test messages are delivering correctly to the inbox. The user registration flow is functioning properly — new users receive the verification email, the verification link works, and the account confirmation page completes successfully.
+
+Now that the flow is confirmed working, we want to bring the verification system up to standard security practices.
+
+First, verification tokens must be single-use. Each token should be marked as unused when created and flagged as used once a successful verification occurs. If a token is reused after verification it should be rejected. Tokens should also have an expiration timestamp (the current 24-hour expiration is acceptable).
+
+Second, verification tokens should not be stored in plaintext in the database. Instead, store a SHA-256 hash of the token. When the user clicks the verification link, hash the incoming token and compare it against the stored hash. This prevents exposure of valid tokens if the database were ever compromised.
+
+Third, ensure tokens are generated using cryptographically secure randomness, ideally a minimum of 32 bytes of entropy (for example using crypto.randomBytes(32).toString("hex")). This produces a 256-bit token which is effectively impossible to brute force.
+
+Fourth, verification endpoints should avoid user enumeration. The system should return a generic message such as “Verification link invalid or expired” rather than indicating whether a specific user or email exists.
+
+Fifth, apply rate limiting to the verification endpoint to prevent brute-force attempts against tokens (for example limiting requests per IP per minute).
+
+Sixth, ensure all verification links always use HTTPS only, and confirm the application enforces HSTS so browsers never downgrade to HTTP.
+
+Finally, once verification succeeds, the token should be immediately invalidated or removed so it cannot be reused.
+
+To summarize: the current system is operational and delivering mail correctly; the goal of these changes is simply to harden the verification flow according to standard production security practices. No architectural changes are required — only improvements to token handling and endpoint protections.
