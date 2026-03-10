@@ -39,16 +39,27 @@ function getYouTubeVideoId(url: string): string {
   } catch { return ""; }
 }
 
+function buildYouTubeEmbed(id: string, muted: boolean, isLive = false, isShorts = false): string {
+  const mt = muted ? 1 : 0;
+  const origin = encodeURIComponent(window.location.origin);
+  if (isShorts) {
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&origin=${origin}`;
+  }
+  if (isLive) {
+    return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&origin=${origin}`;
+  }
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&rel=0&playsinline=1&modestbranding=1&loop=1&playlist=${id}&origin=${origin}`;
+}
+
 function getInjectedEmbedUrl(feed: InjectedFeed, muted = true): string | null {
   try {
     const u = new URL(feed.sourceUrl);
     if (feed.platform === "YouTube" || u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
       const id = getYouTubeVideoId(feed.sourceUrl);
       if (!id) return null;
-      const mt = muted ? 1 : 0;
+      const isLive = u.pathname.includes("/live/");
       const isShorts = u.pathname.includes("/shorts/");
-      if (isShorts) return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&modestbranding=1&rel=0&playsinline=1`;
-      return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&loop=1&playlist=${id}`;
+      return buildYouTubeEmbed(id, muted, isLive, isShorts);
     }
     return null;
   } catch { return null; }
@@ -60,8 +71,9 @@ function getEmbedUrl(url: string, muted: boolean): string | null {
     if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) {
       const id = getYouTubeVideoId(url);
       if (!id) return null;
-      const mt = muted ? 1 : 0;
-      return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=${mt}&enablejsapi=1&controls=0&modestbranding=1&rel=0&playsinline=1`;
+      const isLive = u.pathname.includes("/live/");
+      const isShorts = u.pathname.includes("/shorts/");
+      return buildYouTubeEmbed(id, muted, isLive, isShorts);
     }
     if (u.hostname.includes("twitch.tv")) {
       const channel = u.pathname.slice(1);
@@ -320,7 +332,7 @@ export function MiniLivePlayer() {
                     src={getEmbedUrl(session.streamUrl, muted)!}
                     title={session.title}
                     className="absolute inset-0 w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center" style={{ background: "#000" }}>
@@ -343,7 +355,7 @@ export function MiniLivePlayer() {
                     src={embedUrl}
                     title={activeInj.displayTitle ?? "Live Feed"}
                     className="absolute inset-0 w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen
                   />
                 ) : (
                   <a href={activeInj.sourceUrl} target="_blank" rel="noopener noreferrer" className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ display: "flex", background: ps.bg + "22" }}>
@@ -499,7 +511,7 @@ export function MiniLivePlayer() {
                   src={getEmbedUrl(session.streamUrl, muted)!}
                   title={session.title}
                   className="absolute inset-0 w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen
                   style={{ pointerEvents: "none" }}
                 />
               ) : (
@@ -572,7 +584,7 @@ export function MiniLivePlayer() {
                       src={embedUrl}
                       title={activeInj.displayTitle ?? "Injected Feed"}
                       className="absolute inset-0 w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen
                       style={{ pointerEvents: "none" }}
                     />
                     <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(11,11,11,0.7) 0%, transparent 55%)" }} />

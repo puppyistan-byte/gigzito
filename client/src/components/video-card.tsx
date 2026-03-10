@@ -71,8 +71,8 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
       const id = getYouTubeId(url);
       if (!id) return url; // guard against empty ID
       const shorts = isYouTubeShorts(url);
+      const origin = encodeURIComponent(window.location.origin);
       if (shorts) {
-        // Shorts: minimal params — loop/playlist/controls=0 break Shorts playback
         return [
           `https://www.youtube-nocookie.com/embed/${id}`,
           `?autoplay=${ap}`,
@@ -81,6 +81,7 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
           `&rel=0`,
           `&playsinline=1`,
           `&modestbranding=1`,
+          `&origin=${origin}`,
         ].join("");
       }
       return [
@@ -88,14 +89,12 @@ function getVideoEmbedUrl(url: string, autoplay = false, muted = true): string {
         `?autoplay=${ap}`,
         `&mute=${mt}`,
         `&enablejsapi=1`,
-        `&controls=0`,
         `&modestbranding=1`,
         `&rel=0`,
-        `&iv_load_policy=3`,
-        `&showinfo=0`,
         `&playsinline=1`,
         `&loop=1`,
         `&playlist=${id}`,
+        `&origin=${origin}`,
       ].join("");
     }
 
