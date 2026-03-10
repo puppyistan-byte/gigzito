@@ -88,6 +88,102 @@ export async function sendTriageNotification(
   return { devMode: false };
 }
 
+export async function sendContentDisabledNotification(
+  toEmail: string,
+  providerName: string,
+  listingTitle: string,
+  reason: string,
+): Promise<{ devMode: boolean }> {
+  const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+      <h2 style="color:#f59e0b;font-size:20px;margin:0 0 8px;">Your Video Has Been Disabled</h2>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${providerName},</p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
+        Our moderation team has temporarily disabled the following video from the Gigzito feed.
+      </p>
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Listing</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${listingTitle}</p>
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Reason</p>
+        <p style="color:#f59e0b;font-size:13px;margin:0;">${reason}</p>
+      </div>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
+        If you believe this was made in error, please reach out to our support team. You may re-submit content that complies with our community guidelines via your provider dashboard.
+      </p>
+      <a href="https://gigzito.com/provider/me" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none;margin-bottom:24px;">Go to Dashboard</a>
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
+      <p style="color:#555;font-size:12px;margin:0;">Questions? Reply to this email or visit gigzito.com/support.</p>
+    </div>
+  `;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Content disabled notification for:", toEmail);
+    console.log("  Listing:", listingTitle);
+    console.log("  Reason:", reason);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: toEmail,
+    subject: `Your Gigzito video "${listingTitle}" has been disabled`,
+    html,
+    text: `Hi ${providerName}, your listing "${listingTitle}" has been disabled. Reason: ${reason}. Log in to your dashboard at gigzito.com/provider/me for more details.`,
+  });
+  return { devMode: false };
+}
+
+export async function sendContentDeletedNotification(
+  toEmail: string,
+  providerName: string,
+  listingTitle: string,
+  reason: string,
+): Promise<{ devMode: boolean }> {
+  const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+      <h2 style="color:#ef4444;font-size:20px;margin:0 0 8px;">Your Video Has Been Removed</h2>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${providerName},</p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
+        Our moderation team has permanently removed the following listing from Gigzito.
+      </p>
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Listing</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${listingTitle}</p>
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Reason</p>
+        <p style="color:#ef4444;font-size:13px;margin:0;">${reason}</p>
+      </div>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
+        This action is permanent. If you believe this was made in error, please contact our support team. You may submit new content that complies with our community guidelines.
+      </p>
+      <a href="https://gigzito.com/provider/new" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none;margin-bottom:24px;">Submit New Video</a>
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
+      <p style="color:#555;font-size:12px;margin:0;">Questions? Reply to this email or visit gigzito.com/support.</p>
+    </div>
+  `;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Content deleted notification for:", toEmail);
+    console.log("  Listing:", listingTitle);
+    console.log("  Reason:", reason);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: toEmail,
+    subject: `Your Gigzito video "${listingTitle}" has been permanently removed`,
+    html,
+    text: `Hi ${providerName}, your listing "${listingTitle}" has been permanently removed. Reason: ${reason}. Visit gigzito.com/provider/new to submit new content.`,
+  });
+  return { devMode: false };
+}
+
 export async function sendVerificationEmail(toEmail: string, verifyUrl: string): Promise<{ devMode: boolean }> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">

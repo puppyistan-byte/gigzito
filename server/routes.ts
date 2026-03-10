@@ -5,7 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -580,12 +580,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!requireContentAdmin(req, res)) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(404).json({ message: "Not found" });
-    const { status } = req.body;
+    const { status, reason, sendEmail } = req.body;
     if (!["ACTIVE", "PAUSED", "REMOVED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
     const listing = await storage.updateListingStatus(id, status);
     if (!listing) return res.status(404).json({ message: "Listing not found" });
+    // Send email notification if requested and status is disabling
+    if (sendEmail && reason && ["PAUSED", "REMOVED"].includes(status)) {
+      try {
+        const fullListing = await storage.getListingById(id);
+        const contactEmail = fullListing?.provider?.contactEmail;
+        const displayName = fullListing?.provider?.displayName || "Provider";
+        if (contactEmail) {
+          await sendContentDisabledNotification(contactEmail, displayName, fullListing.title, reason);
+        }
+      } catch (err) {
+        console.error("[disable] email notification failed:", err);
+      }
+    }
     return res.json(listing);
   });
 
@@ -974,7 +987,29 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!requireContentAdmin(req, res)) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { reason, sendEmail } = req.body ?? {};
+    // Look up listing before deleting so we can send the notification
+    let contactEmail: string | null = null;
+    let displayName = "Provider";
+    let listingTitle = "Your listing";
+    if (sendEmail && reason) {
+      try {
+        const fullListing = await storage.getListingById(id);
+        if (fullListing) {
+          listingTitle = fullListing.title;
+          contactEmail = fullListing.provider?.contactEmail ?? null;
+          displayName = fullListing.provider?.displayName || "Provider";
+        }
+      } catch {}
+    }
     await storage.deleteListing(id);
+    if (sendEmail && reason && contactEmail) {
+      try {
+        await sendContentDeletedNotification(contactEmail, displayName, listingTitle, reason);
+      } catch (err) {
+        console.error("[delete] email notification failed:", err);
+      }
+    }
     return res.json({ success: true });
   });
 

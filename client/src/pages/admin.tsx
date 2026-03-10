@@ -18,7 +18,7 @@ import {
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+import { ContentActionDialog } from "@/components/content-action-dialog";
 import type { GigJackWithProvider, UserWithProfile, AuditLog, InjectedFeed } from "@shared/schema";
 
 interface AdminStats {
@@ -145,6 +145,7 @@ export default function AdminPage() {
 
   // Delete confirmation dialog state
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string } | null>(null);
+  const [confirmPause, setConfirmPause] = useState<{ id: number; title: string } | null>(null);
 
   // Triage dialog state
   const [confirmTriage, setConfirmTriage] = useState<{ id: number; title: string } | null>(null);
@@ -234,25 +235,29 @@ export default function AdminPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+    mutationFn: async ({ id, status, reason, sendEmail }: { id: number; status: string; reason?: string; sendEmail?: boolean }) => {
       const res = await fetch(`/api/admin/listings/${id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason, sendEmail }),
       });
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }); toast({ title: "Listing updated" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }); setConfirmPause(null); toast({ title: "Listing updated" }); },
     onError: () => toast({ title: "Error", variant: "destructive" }),
   });
 
   const deleteListingMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await fetch(`/api/admin/listings/${id}`, { method: "DELETE" });
+    mutationFn: async ({ id, reason, sendEmail }: { id: number; reason?: string; sendEmail?: boolean }) => {
+      const res = await fetch(`/api/admin/listings/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason, sendEmail }),
+      });
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }); toast({ title: "Listing deleted" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }); setConfirmDelete(null); toast({ title: "Listing deleted" }); },
     onError: () => toast({ title: "Error deleting listing", variant: "destructive" }),
   });
 
@@ -898,10 +903,10 @@ export default function AdminPage() {
                     )}
                     {listing.status === "ACTIVE" && (
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-[#666] hover:text-amber-400"
-                        onClick={() => statusMutation.mutate({ id: listing.id, status: "PAUSED" })}
+                        onClick={() => setConfirmPause({ id: listing.id, title: listing.title })}
                         disabled={statusMutation.isPending}
                         data-testid={`button-admin-pause-${listing.id}`}
-                        title="Pause">
+                        title="Disable">
                         <EyeOff className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -1607,14 +1612,27 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Disable confirmation dialog */}
+      {confirmPause && (
+        <ContentActionDialog
+          type="disable"
+          title={confirmPause.title}
+          isPending={statusMutation.isPending}
+          onConfirm={(reason, sendEmail) => {
+            statusMutation.mutate({ id: confirmPause.id, status: "PAUSED", reason, sendEmail });
+          }}
+          onCancel={() => setConfirmPause(null)}
+        />
+      )}
+
       {/* Delete confirmation dialog */}
       {confirmDelete && (
-        <DeleteConfirmDialog
+        <ContentActionDialog
+          type="delete"
           title={confirmDelete.title}
           isPending={deleteListingMutation.isPending}
-          onConfirm={() => {
-            deleteListingMutation.mutate(confirmDelete.id);
-            setConfirmDelete(null);
+          onConfirm={(reason, sendEmail) => {
+            deleteListingMutation.mutate({ id: confirmDelete.id, reason, sendEmail });
           }}
           onCancel={() => setConfirmDelete(null)}
         />
