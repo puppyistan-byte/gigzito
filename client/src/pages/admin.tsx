@@ -16,7 +16,7 @@ import {
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
-  ChevronDown, ChevronUp, Film, Link2,
+  ChevronDown, ChevronUp, Film, Link2, LogOut,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
@@ -596,16 +596,16 @@ export default function AdminPage() {
             </span>
           )}
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-xs text-[#555] font-mono" data-testid="text-admin-email">{user?.user?.email}</span>
+            <span className="text-xs text-[#555] font-mono hidden sm:block" data-testid="text-admin-email">{user?.user?.email}</span>
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 px-3 text-xs text-[#666] hover:text-white border border-[#2a2a2a] hover:border-[#444]"
+              className="h-8 px-3 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10"
               onClick={async () => { await logout(); navigate("/"); }}
               data-testid="button-admin-logout"
             >
-              <X className="h-3.5 w-3.5 mr-1" />
-              Logout
+              <LogOut className="h-3.5 w-3.5 mr-1.5" />
+              Sign Out
             </Button>
           </div>
         </div>
