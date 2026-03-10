@@ -121,39 +121,6 @@ export function Navbar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Always-visible Sign Out button */}
-      <button
-        onClick={handleLogout}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          background: "rgba(0,0,0,0.6)",
-          border: "1px solid rgba(255,43,43,0.35)",
-          backdropFilter: "blur(8px)",
-          borderRadius: "999px",
-          padding: "4px 10px",
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "#ff6b6b",
-          cursor: "pointer",
-          transition: "all 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,43,43,0.15)";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,43,43,0.6)";
-          (e.currentTarget as HTMLButtonElement).style.color = "#ff4444";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.6)";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,43,43,0.35)";
-          (e.currentTarget as HTMLButtonElement).style.color = "#ff6b6b";
-        }}
-        data-testid="button-logout"
-      >
-        <LogOut style={{ width: "11px", height: "11px" }} />
-        Sign Out
-      </button>
     </div>
   );
 }
