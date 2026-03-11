@@ -1,0 +1,115 @@
+root@ubuntu-8gb-hil-2:/opt/gigzito# cat > /opt/gigzito/start.sh << 'EOF'
+#!/bin/bash
+set -a
+source /opt/gigzito/.env
+set +a
+cd /opt/gigzito
+exec node dist/index.cjs
+EOF
+root@ubuntu-8gb-hil-2:/opt/gigzito# cd /opt/gigzito
+npm run build
+pm2 restart gigzito
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (57) ../node_modules/lucide-react/dist/esm/lucide-react.js
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 2164 modules transformed.
+rendering chunks (2)...[esbuild css minify]
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5196:5:
+      5196 │      {
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5207:5:
+      5207 │      { min-width: 300px !important; }
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5778:5:
+      5778 │      {
+           ╵      ^
+
+
+../dist/public/index.html                                              2.13 kB │ gzip:   0.79 kB
+../dist/public/assets/reoverblack_1772857110054-B0Iy_krt.jpg          41.97 kB
+../dist/public/assets/gigzito-logo-tight_1772926617316-cM3caTgX.png  252.93 kB
+../dist/public/assets/index-MNT-zZ19.css                             139.55 kB │ gzip:  24.58 kB
+../dist/public/assets/purify.es-C0_7NiBM.js                           22.58 kB │ gzip:   8.67 kB
+../dist/public/assets/browser-BBANkcPh.js                             25.78 kB │ gzip:  10.13 kB
+../dist/public/assets/index.es-BKWmsDRm.js                           158.62 kB │ gzip:  52.95 kB
+../dist/public/assets/html2canvas.esm-DXEQVQnt.js                    201.04 kB │ gzip:  47.43 kB
+../dist/public/assets/jspdf.es.min-DpdxQ_zg.js                       385.86 kB │ gzip: 126.13 kB
+../dist/public/assets/index-DIxrHph9.js                              845.09 kB │ gzip: 234.86 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.32s
+building server...
+
+  dist/index.cjs  1.6mb ⚠️
+
+⚡ Done in 146ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [gigzito](ids: [ 0 ])
+[PM2] [gigzito](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ gigzito            │ fork     │ 45   │ online    │ 0%       │ 13.8mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@ubuntu-8gb-hil-2:/opt/gigzito# pm2 show gigzito
+pm2 logs gigzito --lines 20
+ Describing process with id 0 - name gigzito
+┌───────────────────┬───────────────────────────────────┐
+│ status            │ online                            │
+│ name              │ gigzito                           │
+│ namespace         │ default                           │
+│ version           │ 1.0.0                             │
+│ restarts          │ 45                                │
+│ uptime            │ 16s                               │
+│ script path       │ /opt/gigzito/start.sh             │
+│ script args       │ N/A                               │
+│ error log path    │ /root/.pm2/logs/gigzito-error.log │
+│ out log path      │ /root/.pm2/logs/gigzito-out.log   │
+│ pid path          │ /root/.pm2/pids/gigzito-0.pid     │
+│ interpreter       │ bash                              │
+│ interpreter args  │ N/A                               │
+│ script id         │ 0                                 │
+│ exec cwd          │ /opt/gigzito                      │
+│ exec mode         │ fork_mode                         │
+│ node.js version   │ N/A                               │
+│ node env          │ N/A                               │
+│ watch & reload    │ ✘                                 │
+│ unstable restarts │ 0                                 │
+│ created at        │ 2026-03-11T00:08:03.501Z          │
+└───────────────────┴───────────────────────────────────┘
+ Divergent env variables from local env
+
+
+ Add your own code metrics: http://bit.ly/code-metrics
+ Use `pm2 logs gigzito [--lines 1000]` to display logs
+ Use `pm2 env 0` to display environment variables
+ Use `pm2 monit` to monitor CPU and Memory usage gigzito
+[TAILING] Tailing last 20 lines for [gigzito] process (change the value with --lines option)
+/root/.pm2/logs/gigzito-error.log last 20 lines:
+0|gigzito  |
+0|gigzito  | A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+0|gigzito  |
+0|gigzito  | A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+
+/root/.pm2/logs/gigzito-out.log last 20 lines:
+0|gigzito  | owth"],"ctaLabel":null,"ctaUrl":"https://alexrivera.com/ig-guide","ctaType":null,"flashSaleEndsAt":null,"couponCode":null,"productPrice":null,"productPurchaseUrl":null,"productStock":null,"status":"ACTIVE","dropDate":"2026-03-10","pricePaidCents":300,"stripeSessionId":null,"triagedAt":null,"triagedBy":null,"triagedReason":null,"likeCount":0,"revealUrl":true,"revealEmail":false,"revealName":false,"collectEmail":true,"createdAt":"2026-03-10T02:58:26.071Z","updatedAt":"2026-03-10T02:58:26.071Z","provider":{"id":1,"userId":1,"displayName":"Alex Rivera","bio":"Digital marketing strategist with 10+ years helping brands grow online.","avatarUrl":"https://i.pravatar.cc/150?img=1","thumbUrl":"https://picsum.photos/seed/alex/400/300","contactEmail":"alex@gigzito.com","contactPhone":null,"contactTelegram":null,"websiteUrl":"https://alexrivera.com","username":"alexrivera","primaryCategory":"MARKETING","location":"New York, NY","instagramUrl":"https://instagram.com/alexrivera","youtubeUrl":"https://youtube.com/@alexrivera","tiktokUrl":null,"facebookUrl":null,"discordUrl":null,"twitterUrl":null,"photo1Url":null,"photo2Url":null,"photo3Url":null,"photo4Url":null,"photo5Url":null,"photo6Url":null,"webhookUrl":null,"user":{"id":1,"email":"alex@gigzito.com","password":"5f7762140c405ffecf1438753b9c77510e8619a5c08fbe0e06ca080c56ae336ab0fa863aac00139273bef909221e453838dd423260c8173916cbf3f73772331b.a88b99e16f4c4bda5a4cef87021fe345","role":"PROVIDER","status":"active","disclaimerAccepted":false,"emailVerified":false,"emailVerificationToken":null,"emailVerificationExpiresAt":null,"passwordResetToken":null,"passwordResetExpiresAt":null,"createdAt":"2026-03-10T02:58:25.816Z","deletedAt":null}}},{"id":1,"providerId":1,"vertical":"MARKETING","title":"5 Email Hacks That Tripled My Open Rates","videoUrl":"https://www.youtube.com/embed/dQw4w9WgXcQ","durationSeconds":18,"description":"Learn the exact subject line formulas I use to get 50%+ open rates.","tags":["email","marketing","growth"],"ctaLabel":null,"ctaUrl":"https://alexrivera.com/email-course","ctaType":null,"flashSaleEndsAt":null,"couponCode":null,"productPrice":null,"productPurchaseUrl":null,"productStock":null,"status":"ACTIVE","dropDate":"2026-03-10","pricePaidCents":300,"stripeSessionId":null,"triagedAt":null,"triagedBy":null,"triagedReason":null,"likeCount":0,"revealUrl":true,"revealEmail":false,"revealName":false,"collectEmail":true,"createdAt":"2026-03-10T02:58:26.068Z","updatedAt":"2026-03-10T02:58:26.068Z","provider":{"id":1,"userId":1,"displayName":"Alex Rivera","bio":"Digital marketing strategist with 10+ years helping brands grow online.","avatarUrl":"https://i.pravatar.cc/150?img=1","thumbUrl":"https://picsum.photos/seed/alex/400/300","contactEmail":"alex@gigzito.com","contactPhone":null,"contactTelegram":null,"websiteUrl":"https://alexrivera.com","username":"alexrivera","primaryCategory":"MARKETING","location":"New York, NY","instagramUrl":"https://instagram.com/alexrivera","youtubeUrl":"https://youtube.com/@alexrivera","tiktokUrl":null,"facebookUrl":null,"discordUrl":null,"twitterUrl":null,"photo1Url":null,"photo2Url":null,"photo3Url":null,"photo4Url":null,"photo5Url":null,"photo6Url":null,"webhookUrl":null,"user":{"id":1,"email":"alex@gigzito.com","password":"5f7762140c405ffecf1438753b9c77510e8619a5c08fbe0e06ca080c56ae336ab0fa863aac00139273bef909221e453838dd423260c8173916cbf3f73772331b.a88b99e16f4c4bda5a4cef87021fe345","role":"PROVIDER","status":"active","disclaimerAccepted":false,"emailVerified":false,"emailVerificationToken":null,"emailVerificationExpiresAt":null,"passwordResetToken":null,"passwordResetExpiresAt":null,"createdAt":"2026-03-10T02:58:25.816Z","deletedAt":null}}}]
+0|gigzito  | 12:07:12 AM [express] GET /api/videos/likes/batch 200 in 1ms :: {"1":false,"2":false,"3":false,"4":false,"5":false,"6":false,"7":false,"8":false,"9":false,"10":false,"11":false,"12":false,"13":false,"14":false,"15":false,"16":false,"17":false,"18":false,"19":false}
+0|gigzito  | 12:08:03 AM [express] serving on port 5000
