@@ -346,6 +346,7 @@ function ProviderDashboardInner() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isAdmin = user?.user?.role === "ADMIN" || user?.user?.role === "SUPER_ADMIN";
 
   // Delete confirmation for listings
   const [confirmRemoveListing, setConfirmRemoveListing] = useState<{ id: number; title: string } | null>(null);
