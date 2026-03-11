@@ -8,7 +8,7 @@ const SMTP_FROM = process.env.SMTP_FROM ?? "Gigzito <noreply@gigzito.com>";
 
 const DEV_MODE = !SMTP_HOST;
 
-const BYPASS_EMAILS = new Set(["admin@gigzito.com"]);
+const BYPASS_EMAILS = new Set<string>();
 
 let transporter: nodemailer.Transporter | null = null;
 
