@@ -371,8 +371,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       await storage.deleteOldMfaCodes(user.id);
       await storage.createMfaCode(user.id, code, expiresAt);
       const emailResult = await sendMfaCode(user.email, code);
+      const isAdminRole = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
       const resp: any = { mfaRequired: true, email: user.email };
-      if (emailResult.devMode) resp.devCode = emailResult.previewCode;
+      if (emailResult.devMode || isAdminRole) resp.devCode = code;
       return res.json(resp);
     } catch (err) {
       console.error(err);
