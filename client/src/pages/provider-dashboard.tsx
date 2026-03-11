@@ -1,4 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Component, type ReactNode } from "react";
+
+class DashboardErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#000", color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <p style={{ color: "#ff2b2b", fontWeight: 700, marginBottom: 8 }}>Dashboard Error</p>
+          <pre style={{ fontSize: 12, color: "#888", maxWidth: 500, whiteSpace: "pre-wrap" }}>{(this.state.error as Error).message}</pre>
+          <button style={{ marginTop: 16, padding: "8px 20px", background: "#111", border: "1px solid #333", color: "#aaa", borderRadius: 8, cursor: "pointer" }} onClick={() => window.location.reload()}>Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -324,7 +341,7 @@ function GigJackCenter() {
   );
 }
 
-export default function ProviderDashboard() {
+function ProviderDashboardInner() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -685,5 +702,13 @@ export default function ProviderDashboard() {
         />
       )}
     </div>
+  );
+}
+
+export default function ProviderDashboard() {
+  return (
+    <DashboardErrorBoundary>
+      <ProviderDashboardInner />
+    </DashboardErrorBoundary>
   );
 }

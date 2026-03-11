@@ -19,6 +19,8 @@ declare module "http" {
 
 const PgStore = connectPgSimple(session);
 
+app.set("trust proxy", 1);
+
 app.use(
   session({
     store: new PgStore({ pool, createTableIfMissing: true }),
