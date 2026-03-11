@@ -425,7 +425,11 @@ export default function ProviderDashboard() {
       <div className="p-4 max-w-2xl mx-auto"><Skeleton className="h-32 w-full bg-[#111]" /></div>
     </div>
   );
-  if (!user) return null;
+  if (!user) return (
+    <div className="min-h-screen bg-black">
+      <Navbar />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-black">
