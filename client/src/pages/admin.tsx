@@ -16,11 +16,11 @@ import {
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
-  ChevronDown, ChevronUp, Film, Link2, LogOut,
+  ChevronDown, ChevronUp, Film, Link2, LogOut, Megaphone, ImagePlus, Power,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
-import type { GigJackWithProvider, UserWithProfile, AuditLog, InjectedFeed } from "@shared/schema";
+import type { GigJackWithProvider, UserWithProfile, AuditLog, InjectedFeed, SponsorAd } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -75,7 +75,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "audit" | "injection";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "audit" | "injection" | "ads";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -298,6 +298,11 @@ export default function AdminPage() {
     enabled: enabled && activeTab === "injection",
   });
 
+  const { data: sponsorAds = [], isLoading: adsLoading } = useQuery<SponsorAd[]>({
+    queryKey: ["/api/admin/sponsor-ads"],
+    enabled: enabled && activeTab === "ads",
+  });
+
   const createInjMutation = useMutation({
     mutationFn: async (data: object) => {
       const res = await apiRequest("POST", "/api/admin/injected-feeds", data);
@@ -340,6 +345,51 @@ export default function AdminPage() {
       toast({ title: "Feed removed" });
     },
     onError: () => toast({ title: "Error removing feed", variant: "destructive" }),
+  });
+
+  // ── Ads state + mutations ────────────────────────────────────────────────────
+  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 });
+  const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
+  const [adFormOpen, setAdFormOpen] = useState(false);
+
+  const createAdMutation = useMutation({
+    mutationFn: async (data: object) => {
+      const res = await apiRequest("POST", "/api/admin/sponsor-ads", data);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); toast({ title: "Ad created" }); },
+    onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
+  });
+
+  const updateAdMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: object }) => {
+      const res = await apiRequest("PATCH", `/api/admin/sponsor-ads/${id}`, data);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); toast({ title: "Ad updated" }); },
+    onError: () => toast({ title: "Error updating ad", variant: "destructive" }),
+  });
+
+  const toggleAdMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/sponsor-ads/${id}/toggle`, { active });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); },
+    onError: () => toast({ title: "Error toggling ad", variant: "destructive" }),
+  });
+
+  const deleteAdMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/sponsor-ads/${id}`, undefined);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); toast({ title: "Ad deleted" }); },
+    onError: () => toast({ title: "Error deleting ad", variant: "destructive" }),
   });
 
   const statusMutation = useMutation({
@@ -654,6 +704,7 @@ export default function AdminPage() {
           <TabBtn label="Content" icon={Video} active={activeTab === "content"} onClick={() => setActiveTab("content")} />
           <TabBtn label="GigJacks" icon={Zap} active={activeTab === "gigjacks"} onClick={() => setActiveTab("gigjacks")} badge={pendingCount} />
           <TabBtn label="Live Injection" icon={Radio} active={activeTab === "injection"} onClick={() => setActiveTab("injection")} />
+          <TabBtn label="Ads" icon={Megaphone} active={activeTab === "ads"} onClick={() => setActiveTab("ads")} />
           {isSuperAdmin && (
             <TabBtn label="Audit Log" icon={ClipboardList} active={activeTab === "audit"} onClick={() => setActiveTab("audit")} superOnly />
           )}
@@ -1720,6 +1771,192 @@ export default function AdminPage() {
                 <li>Admin injected — immediate mode</li>
                 <li>Admin injected — fallback mode</li>
               </ol>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════ ADS ═══════════════════════════════ */}
+        {activeTab === "ads" && (
+          <div className="space-y-4" data-testid="section-admin-ads">
+            <div className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-[#ff2b2b]" />
+              <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
+              <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
+              <button
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdFormOpen(true); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
+                data-testid="button-ad-new"
+              >
+                <ImagePlus className="h-3 w-3" />
+                New Ad
+              </button>
+            </div>
+
+            {/* ── Ad Form ── */}
+            {adFormOpen && (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-white">{editingAd ? "Edit Ad" : "Create New Ad"}</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="text-xs text-[#666] mb-1 block">Headline *</label>
+                    <Input
+                      value={adForm.title}
+                      onChange={(e) => setAdForm((f) => ({ ...f, title: e.target.value }))}
+                      placeholder="Ad headline (max 60 chars)"
+                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      data-testid="input-ad-title"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-[#666] mb-1 block">Body Text</label>
+                    <Input
+                      value={adForm.body}
+                      onChange={(e) => setAdForm((f) => ({ ...f, body: e.target.value }))}
+                      placeholder="Short description (max 120 chars)"
+                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      data-testid="input-ad-body"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-[#666] mb-1 block">Image URL * <span className="text-[#444]">(760×520 recommended, serve from /ads/ folder)</span></label>
+                    <Input
+                      value={adForm.imageUrl}
+                      onChange={(e) => setAdForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                      placeholder="/ads/your-image.png or https://..."
+                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      data-testid="input-ad-image-url"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-[#666] mb-1 block">Destination URL *</label>
+                    <Input
+                      value={adForm.targetUrl}
+                      onChange={(e) => setAdForm((f) => ({ ...f, targetUrl: e.target.value }))}
+                      placeholder="https://yoursite.com/?ref_code=..."
+                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      data-testid="input-ad-target-url"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#666] mb-1 block">CTA Button Label</label>
+                    <Input
+                      value={adForm.cta}
+                      onChange={(e) => setAdForm((f) => ({ ...f, cta: e.target.value }))}
+                      placeholder="Learn More"
+                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      data-testid="input-ad-cta"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#666] mb-1 block">Sort Order</label>
+                    <Input
+                      type="number"
+                      value={adForm.sortOrder}
+                      onChange={(e) => setAdForm((f) => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
+                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      data-testid="input-ad-sort-order"
+                    />
+                  </div>
+                </div>
+                {adForm.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border border-[#2a2a2a]" style={{ height: "120px" }}>
+                    <img src={adForm.imageUrl} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setAdFormOpen(false); setEditingAd(null); }}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold text-[#666] hover:text-white border border-[#2a2a2a] transition-colors"
+                    data-testid="button-ad-cancel"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!adForm.title || !adForm.imageUrl || !adForm.targetUrl) return toast({ title: "Title, Image URL and Destination URL are required", variant: "destructive" });
+                      if (editingAd) {
+                        updateAdMutation.mutate({ id: editingAd.id, data: adForm });
+                      } else {
+                        createAdMutation.mutate(adForm);
+                      }
+                    }}
+                    disabled={createAdMutation.isPending || updateAdMutation.isPending}
+                    className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors disabled:opacity-50"
+                    data-testid="button-ad-save"
+                  >
+                    {createAdMutation.isPending || updateAdMutation.isPending ? "Saving…" : editingAd ? "Save Changes" : "Create Ad"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Ad List ── */}
+            {adsLoading ? (
+              <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+            ) : sponsorAds.length === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-8 text-center text-[#444] text-sm">
+                No sponsor ads yet. Click "New Ad" to add one.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sponsorAds.map((ad) => (
+                  <div key={ad.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 flex items-center gap-3" data-testid={`row-ad-${ad.id}`}>
+                    {/* Thumbnail */}
+                    <div className="rounded-lg overflow-hidden flex-shrink-0 bg-[#1a1a1a]" style={{ width: "72px", height: "48px" }}>
+                      <img src={ad.imageUrl} alt={ad.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{ad.title}</p>
+                      <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#ff2b2b] hover:underline truncate block">{ad.targetUrl}</a>
+                    </div>
+
+                    {/* Order badge */}
+                    <span className="text-xs text-[#444] font-mono">#{ad.sortOrder}</span>
+
+                    {/* Status toggle */}
+                    <button
+                      onClick={() => toggleAdMutation.mutate({ id: ad.id, active: !ad.active })}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${ad.active ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-[#1e1e1e] text-[#555] hover:bg-[#2a2a2a]"}`}
+                      data-testid={`button-ad-toggle-${ad.id}`}
+                    >
+                      <Power className="h-3 w-3" />
+                      {ad.active ? "Live" : "Off"}
+                    </button>
+
+                    {/* Edit */}
+                    <button
+                      onClick={() => {
+                        setEditingAd(ad);
+                        setAdForm({ title: ad.title, body: ad.body, imageUrl: ad.imageUrl, targetUrl: ad.targetUrl, cta: ad.cta, sortOrder: ad.sortOrder });
+                        setAdFormOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-white/5 transition-colors"
+                      data-testid={`button-ad-edit-${ad.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => { if (confirm(`Delete ad "${ad.title}"?`)) deleteAdMutation.mutate(ad.id); }}
+                      className="p-1.5 rounded-lg text-[#555] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      data-testid={`button-ad-delete-${ad.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Spec reminder */}
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 text-xs text-[#555] space-y-1">
+              <p className="text-[#777] font-semibold flex items-center gap-1.5"><Megaphone className="h-3 w-3" /> Ad Image Specs</p>
+              <p>Recommended upload: <span className="text-[#999]">760 × 520px</span> (displayed at 380 × 260px for retina clarity)</p>
+              <p>Place image files in <span className="text-[#999]">client/public/ads/</span> and reference them as <span className="text-[#999]">/ads/filename.png</span></p>
+              <p>Ads rotate every 25 seconds in the right-rail sponsor panel. Active ads only rotate.</p>
             </div>
           </div>
         )}

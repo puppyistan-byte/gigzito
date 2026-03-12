@@ -1455,5 +1455,82 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.sendFile(filePath);
   });
 
+  // === SPONSOR ADS (PUBLIC) ===
+  app.get("/api/sponsor-ads", async (_req, res) => {
+    try {
+      const ads = await storage.getActiveSponsorAds();
+      return res.json(ads);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch ads" });
+    }
+  });
+
+  // === SPONSOR ADS (ADMIN) ===
+  app.get("/api/admin/sponsor-ads", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const ads = await storage.getSponsorAds();
+      return res.json(ads);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch ads" });
+    }
+  });
+
+  app.post("/api/admin/sponsor-ads", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const { title, body, imageUrl, targetUrl, cta, sortOrder } = req.body;
+      if (!title || !imageUrl || !targetUrl) return res.status(400).json({ message: "title, imageUrl and targetUrl are required" });
+      const ad = await storage.createSponsorAd({
+        title,
+        body: body ?? "",
+        imageUrl,
+        targetUrl,
+        cta: cta ?? "Learn More",
+        active: true,
+        sortOrder: sortOrder ?? 0,
+        createdBy: (req.session as any).userId,
+      });
+      return res.status(201).json(ad);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to create ad" });
+    }
+  });
+
+  app.patch("/api/admin/sponsor-ads/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      const { title, body, imageUrl, targetUrl, cta, sortOrder, active } = req.body;
+      const ad = await storage.updateSponsorAd(id, { title, body, imageUrl, targetUrl, cta, sortOrder, active });
+      return res.json(ad);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to update ad" });
+    }
+  });
+
+  app.patch("/api/admin/sponsor-ads/:id/toggle", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      const { active } = req.body;
+      const ad = await storage.toggleSponsorAd(id, !!active);
+      return res.json(ad);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to toggle ad" });
+    }
+  });
+
+  app.delete("/api/admin/sponsor-ads/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteSponsorAd(id);
+      return res.json({ ok: true });
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to delete ad" });
+    }
+  });
+
   return httpServer;
 }

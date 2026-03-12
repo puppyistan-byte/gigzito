@@ -565,6 +565,25 @@ export type TodayGigJack = {
   offerEndsAt: string | null;
 };
 
+// === SPONSOR ADS TABLE ===
+export const sponsorAds = pgTable("sponsor_ads", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  body: text("body").notNull().default(""),
+  imageUrl: text("image_url").notNull(),
+  targetUrl: text("target_url").notNull(),
+  cta: text("cta").notNull().default("Learn More"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type SponsorAd = typeof sponsorAds.$inferSelect;
+export const insertSponsorAdSchema = createInsertSchema(sponsorAds).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSponsorAd = z.infer<typeof insertSponsorAdSchema>;
+
 // === ZITO TV EVENTS TABLE ===
 export const ZITO_TV_CATEGORIES = [
   "INTERVIEW", "COACHING", "PRESENTATION", "DEMO", "MUSIC",

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Megaphone } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -46,10 +46,19 @@ export function Navbar() {
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: "8px",
       }}
       data-testid="navbar-profile"
     >
+      <Link href="/advertise">
+        <a
+          style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: "11px", padding: "6px 12px", borderRadius: "999px", textDecoration: "none", letterSpacing: "0.03em", boxShadow: "0 2px 8px rgba(255,43,43,0.4)" }}
+          data-testid="link-advertise-with-us"
+        >
+          <Megaphone style={{ width: "12px", height: "12px" }} />
+          Advertise
+        </a>
+      </Link>
       {/* Avatar dropdown for navigation */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

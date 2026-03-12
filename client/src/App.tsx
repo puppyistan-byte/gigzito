@@ -24,6 +24,7 @@ import GigCardDirectoryPage from "@/pages/gigcard-directory";
 import LeaderboardPage from "@/pages/leaderboard";
 import VerifyEmailPage from "@/pages/verify-email";
 import LogoutPage from "@/pages/logout";
+import AdvertisePage from "@/pages/advertise";
 
 function Router() {
   return (
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/logout" component={LogoutPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/advertise" component={AdvertisePage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -108,6 +108,14 @@ export interface IStorage {
   getZitoTVEvent(id: number): Promise<ZitoTVEventWithHost | null>;
   updateZitoTVEvent(id: number, data: Partial<CreateZitoTVEventRequest & { status: string }>): Promise<ZitoTVEvent>;
   deleteZitoTVEvent(id: number): Promise<void>;
+
+  // Sponsor Ads
+  getSponsorAds(): Promise<SponsorAd[]>;
+  getActiveSponsorAds(): Promise<SponsorAd[]>;
+  createSponsorAd(data: InsertSponsorAd): Promise<SponsorAd>;
+  updateSponsorAd(id: number, data: Partial<InsertSponsorAd>): Promise<SponsorAd>;
+  toggleSponsorAd(id: number, active: boolean): Promise<SponsorAd>;
+  deleteSponsorAd(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1242,6 +1250,36 @@ export class DatabaseStorage implements IStorage {
 
   async deleteZitoTVEvent(id: number): Promise<void> {
     await db.delete(zitoTvEvents).where(eq(zitoTvEvents.id, id));
+  }
+
+  // ── Sponsor Ads ─────────────────────────────────────────────────────────────
+  async getSponsorAds(): Promise<SponsorAd[]> {
+    return db.select().from(sponsorAds).orderBy(sponsorAds.sortOrder, sponsorAds.createdAt);
+  }
+
+  async getActiveSponsorAds(): Promise<SponsorAd[]> {
+    return db.select().from(sponsorAds)
+      .where(eq(sponsorAds.active, true))
+      .orderBy(sponsorAds.sortOrder, sponsorAds.createdAt);
+  }
+
+  async createSponsorAd(data: InsertSponsorAd): Promise<SponsorAd> {
+    const [ad] = await db.insert(sponsorAds).values({ ...data, updatedAt: new Date() }).returning();
+    return ad;
+  }
+
+  async updateSponsorAd(id: number, data: Partial<InsertSponsorAd>): Promise<SponsorAd> {
+    const [ad] = await db.update(sponsorAds).set({ ...data, updatedAt: new Date() }).where(eq(sponsorAds.id, id)).returning();
+    return ad;
+  }
+
+  async toggleSponsorAd(id: number, active: boolean): Promise<SponsorAd> {
+    const [ad] = await db.update(sponsorAds).set({ active, updatedAt: new Date() }).where(eq(sponsorAds.id, id)).returning();
+    return ad;
+  }
+
+  async deleteSponsorAd(id: number): Promise<void> {
+    await db.delete(sponsorAds).where(eq(sponsorAds.id, id));
   }
 }
 
