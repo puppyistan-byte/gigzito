@@ -10,30 +10,12 @@ export interface RightRailAd {
 
 const rightRailAds: RightRailAd[] = [
   {
-    id: "ad-001",
-    title: "Grow Your Brand with Gigzito Pro",
-    body: "Get featured placement, priority listing, and unlimited video uploads. Join thousands of providers already growing on Gigzito.",
-    imageUrl: "/ads/ad-placeholder-1.jpg",
-    targetUrl: "https://gigzito.com",
-    cta: "Get Started",
-    active: true,
-  },
-  {
-    id: "ad-002",
-    title: "Your Ad Could Be Here",
-    body: "Reach thousands of engaged buyers and service seekers daily. Premium sponsor slots available now — limited inventory.",
-    imageUrl: "/ads/ad-placeholder-2.jpg",
-    targetUrl: "https://gigzito.com",
-    cta: "Advertise With Us",
-    active: true,
-  },
-  {
-    id: "ad-003",
-    title: "Launch Your Gig Today",
-    body: "List your promo video for just $3 and get in front of motivated buyers across 11 business categories.",
-    imageUrl: "/ads/ad-placeholder-3.jpg",
-    targetUrl: "https://gigzito.com",
-    cta: "Post Your Gig",
+    id: "aurum-001",
+    title: "AI Bot Trading Continually Performs",
+    body: "Let an advanced AI trade for you 24/7. Set it up once and let it work around the clock.",
+    imageUrl: "/ads/aurum.png",
+    targetUrl: "https://aurum.com",
+    cta: "Learn More",
     active: true,
   },
 ];
