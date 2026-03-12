@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle, Megaphone } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -162,8 +162,8 @@ export default function ProviderPublicPage() {
                   </p>
                 )}
 
-                {/* Show Love action bar */}
-                <div className="mt-4 flex items-center gap-3">
+                {/* Show Love + Promote action bar */}
+                <div className="mt-4 flex items-center flex-wrap gap-3">
                   <button
                     onClick={() => loveMutation.mutate()}
                     disabled={loveMutation.isPending || hasVoted}
@@ -177,8 +177,17 @@ export default function ProviderPublicPage() {
                     <span className="text-base">{hasVoted ? "😍" : "🤍"}</span>
                     {hasVoted ? "Love shown!" : "Show Love"}
                   </button>
+                  <Link href={`/advertise?ref=${profile?.username ?? id}`}>
+                    <a
+                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-[#ff2b2b]/40 bg-[#ff2b2b]/10 text-[#ff2b2b] hover:bg-[#ff2b2b]/20 hover:border-[#ff2b2b]/70 transition-all active:scale-95"
+                      data-testid="link-promote-business"
+                    >
+                      <Megaphone className="h-3.5 w-3.5" />
+                      Promote My Business
+                    </a>
+                  </Link>
                   {voteCount > 0 && (
-                    <span className="text-xs text-[#555]" data-testid="text-vote-count">
+                    <span className="text-xs text-[#555] w-full" data-testid="text-vote-count">
                       {voteCount} {voteCount === 1 ? "person" : "people"} showed love this month
                     </span>
                   )}
