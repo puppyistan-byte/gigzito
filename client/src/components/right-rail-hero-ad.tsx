@@ -50,15 +50,13 @@ export function RightRailHeroAd() {
       style={{
         position: "fixed",
         top: "50%",
-        right: "24%",
+        right: "11%",
         transform: "translateY(-50%)",
         width: "380px",
         zIndex: 9999,
         display: "flex",
         flexDirection: "column",
         gap: "0px",
-        visibility: "visible",
-        opacity: 1,
       }}
       className="gigzito-sponsor-zone"
       data-testid="right-rail-ad"
