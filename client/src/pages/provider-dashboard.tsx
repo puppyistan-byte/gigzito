@@ -35,7 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -379,6 +379,10 @@ function ProviderDashboardInner() {
     enabled: !!user,
   });
 
+  const { data: audienceData } = useQuery<{ count: number; members: { id: number; leadName: string; leadEmail: string; leadPhone: string | null; createdAt: string }[] }>({
+    queryKey: ["/api/my-audience"],
+  });
+
   const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads/mine"],
     enabled: !!user,
@@ -628,6 +632,65 @@ function ProviderDashboardInner() {
 
         {/* ─── Gig Cards ─── */}
         {profile && <GigCardSection profile={profile} />}
+
+        {/* ─── Your Audience ─── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white" data-testid="text-audience-title">Your Audience</h2>
+            {(audienceData?.count ?? 0) > 0 && (
+              <span
+                className="text-xs font-bold px-2.5 py-0.5 rounded-full"
+                style={{ background: "#ff2b2b22", color: "#ff2b2b", border: "1px solid #ff2b2b44" }}
+                data-testid="badge-audience-count"
+              >
+                {audienceData!.count} subscriber{audienceData!.count !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          {!audienceData ? (
+            <Skeleton className="h-20 w-full bg-[#111] rounded-xl" />
+          ) : audienceData.count === 0 ? (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-audience">
+              <Users className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-sm">No subscribers yet. Every CTA lead with an email is automatically added to your broadcast list.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4" data-testid="card-audience-summary">
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="flex items-center justify-center w-12 h-12 rounded-xl text-xl font-black"
+                  style={{ background: "linear-gradient(135deg,#ff2b2b22,#ff2b2b08)", border: "1px solid #ff2b2b33", color: "#ff2b2b" }}
+                >
+                  {audienceData.count}
+                </div>
+                <div>
+                  <p className="text-white text-sm font-semibold">Broadcast-Ready Subscribers</p>
+                  <p className="text-[#555] text-xs">These contacts will be targeted during your next GigJack event.</p>
+                </div>
+              </div>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {audienceData.members.slice(0, 20).map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-[#161616] last:border-0" data-testid={`row-audience-${m.id}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
+                        <span className="text-[10px] text-[#666] font-bold">{m.leadName.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-white font-medium truncate">{m.leadName}</p>
+                        <p className="text-[10px] text-[#555] truncate">{m.leadEmail}</p>
+                      </div>
+                    </div>
+                    <span className="text-[9px] text-[#444] shrink-0">{new Date(m.createdAt).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {audienceData.count > 20 && (
+                  <p className="text-center text-[10px] text-[#444] pt-1">+{audienceData.count - 20} more</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* CTA Leads section */}
         <div>

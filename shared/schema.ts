@@ -654,3 +654,23 @@ export type CreateZitoTVEventRequest = {
   durationMinutes: number;
   startAt: string;
 };
+
+// ─── Marketer Audiences ───────────────────────────────────────────────────────
+export const marketerAudiences = pgTable(
+  "marketer_audiences",
+  {
+    id: serial("id").primaryKey(),
+    providerUserId: integer("provider_user_id").notNull(),
+    leadName: text("lead_name").notNull(),
+    leadEmail: text("lead_email").notNull(),
+    leadPhone: text("lead_phone"),
+    sourceListingId: integer("source_listing_id").references(() => videoListings.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    uniqProviderEmail: unique("marketer_audiences_provider_email_unique").on(t.providerUserId, t.leadEmail),
+  })
+);
+
+export type MarketerAudience = typeof marketerAudiences.$inferSelect;
+export type InsertMarketerAudience = typeof marketerAudiences.$inferInsert;

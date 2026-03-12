@@ -732,6 +732,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         videoTitle: data.videoTitle ?? undefined,
         category: data.category ?? undefined,
       });
+      // Auto-aggregate into marketer's audience if an email was provided
+      if (data.email) {
+        storage.upsertMarketerAudience({
+          providerUserId: data.creatorUserId,
+          leadName: data.firstName,
+          leadEmail: data.email,
+          leadPhone: data.phone ?? null,
+          sourceListingId: data.videoId,
+        }).catch((err) => console.warn("Audience upsert failed:", err.message));
+      }
       // Fire webhook if the creator has one configured
       const creatorProfile = await storage.getProfileById(data.creatorUserId);
       if (creatorProfile?.webhookUrl) {
@@ -768,6 +778,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any).userId;
     const leads = await storage.getLeadsByProvider(userId);
     return res.json(leads);
+  });
+
+  // Marketer audience
+  app.get("/api/my-audience", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const [count, members] = await Promise.all([
+      storage.getMarketerAudienceCount(userId),
+      storage.getMarketerAudience(userId),
+    ]);
+    return res.json({ count, members });
   });
 
   // === LIVE SESSIONS ===

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, marketerAudiences, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -49,6 +49,11 @@ export interface IStorage {
   // Leads
   createLead(data: CreateLeadRequest): Promise<Lead>;
   getLeadsByProvider(creatorUserId: number): Promise<Lead[]>;
+
+  // Marketer Audiences
+  upsertMarketerAudience(data: { providerUserId: number; leadName: string; leadEmail: string; leadPhone?: string | null; sourceListingId?: number | null }): Promise<void>;
+  getMarketerAudienceCount(providerUserId: number): Promise<number>;
+  getMarketerAudience(providerUserId: number): Promise<import("@shared/schema").MarketerAudience[]>;
 
   // Live Sessions
   createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession>;
@@ -454,6 +459,35 @@ export class DatabaseStorage implements IStorage {
       .from(leads)
       .where(eq(leads.creatorUserId, creatorUserId))
       .orderBy(sql`${leads.createdAt} DESC`);
+  }
+
+  async upsertMarketerAudience(data: { providerUserId: number; leadName: string; leadEmail: string; leadPhone?: string | null; sourceListingId?: number | null }): Promise<void> {
+    await db
+      .insert(marketerAudiences)
+      .values({
+        providerUserId: data.providerUserId,
+        leadName: data.leadName,
+        leadEmail: data.leadEmail,
+        leadPhone: data.leadPhone ?? null,
+        sourceListingId: data.sourceListingId ?? null,
+      })
+      .onConflictDoNothing();
+  }
+
+  async getMarketerAudienceCount(providerUserId: number): Promise<number> {
+    const [row] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(marketerAudiences)
+      .where(eq(marketerAudiences.providerUserId, providerUserId));
+    return row?.count ?? 0;
+  }
+
+  async getMarketerAudience(providerUserId: number): Promise<MarketerAudience[]> {
+    return db
+      .select()
+      .from(marketerAudiences)
+      .where(eq(marketerAudiences.providerUserId, providerUserId))
+      .orderBy(sql`${marketerAudiences.createdAt} DESC`);
   }
 
   async createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession> {
