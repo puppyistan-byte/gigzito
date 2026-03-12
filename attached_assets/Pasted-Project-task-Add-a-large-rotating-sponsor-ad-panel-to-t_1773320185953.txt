@@ -1,0 +1,66 @@
+Project task: Add a large rotating sponsor ad panel to the right side of the Gigzito desktop interface.
+
+Goal
+We want a prominent right-side ad rail on the Gigzito feed page that can display rotating sponsor ads. The ad should be visually large (roughly twice the size of the Zito TV player) so it feels like a premium sponsor placement.
+
+Layout requirements
+• Desktop layout should have three visual areas: left spacer, main video feed, and right sponsor rail.
+• The ad rail should sit on the right side of the screen and remain visible while scrolling (sticky positioning).
+• The main feed must have extra right padding so the ad does not overlap content.
+• On mobile screens the ad rail should be hidden.
+
+Ad panel design
+• Width approximately 380–420px.
+• Height approximately 700–760px.
+• Rounded corners and subtle border or shadow.
+• Top label: “Sponsored”.
+• Large image area.
+• Title headline.
+• Short description text.
+• CTA button (Learn More / Visit Sponsor / etc).
+• Entire card should be clickable and open the sponsor URL in a new tab.
+
+Ad rotation behavior
+• Ads should rotate automatically every ~25 seconds.
+• Rotation should cycle through active ads in an array.
+• Dots or indicators can appear at the bottom for manual switching.
+
+Data source
+Create a simple file-based configuration:
+
+client/src/data/right-rail-ads.ts
+
+Each ad object should contain:
+• id
+• title
+• body
+• imageUrl
+• targetUrl
+• cta
+• active
+
+Example images should be stored in:
+
+client/public/ads/
+
+Component to build
+Create a reusable component:
+
+client/src/components/right-rail-hero-ad.tsx
+
+This component should:
+• read active ads from the data file
+• display one ad at a time
+• rotate through them on a timer
+• be hidden on small screens
+• be sticky on desktop
+
+Page integration
+Import and render the component in:
+
+client/src/pages/home.tsx
+
+Also ensure the main feed container has extra right padding (around 420px) so the ad rail has space.
+
+Result
+Gigzito should display a large rotating sponsor panel on the right side of the desktop feed that can easily be updated by editing the ad data file or swapping images in the ads folder.
