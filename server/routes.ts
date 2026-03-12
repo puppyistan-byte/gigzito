@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
@@ -31,19 +32,8 @@ const upload = multer({
   },
 });
 
-const adImageUploadStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(process.cwd(), "client", "public", "ads");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || ".png";
-    cb(null, `ad-${Date.now()}-${randomBytes(4).toString("hex")}${ext}`);
-  },
-});
 const adImageUpload = multer({
-  storage: adImageUploadStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
@@ -1478,10 +1468,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // === SPONSOR ADS: ADMIN IMAGE UPLOAD ===
   app.post("/api/admin/upload-ad-image", (req, res) => {
     if (!requireAdmin(req, res)) return;
-    adImageUpload.single("image")(req, res, (err) => {
+    adImageUpload.single("image")(req, res, async (err) => {
       if (err) return res.status(400).json({ message: err.message ?? "Upload failed" });
       if (!req.file) return res.status(400).json({ message: "No file received" });
-      return res.json({ url: `/ads/${req.file.filename}` });
+      try {
+        const adsDir = path.join(process.cwd(), "client", "public", "ads");
+        if (!fs.existsSync(adsDir)) fs.mkdirSync(adsDir, { recursive: true });
+        const filename = `ad-${Date.now()}-${randomBytes(4).toString("hex")}.png`;
+        const outPath = path.join(adsDir, filename);
+        await sharp(req.file.buffer)
+          .resize(760, 520, { fit: "cover", position: "centre" })
+          .png({ quality: 90 })
+          .toFile(outPath);
+        return res.json({ url: `/ads/${filename}` });
+      } catch (e: any) {
+        return res.status(500).json({ message: e.message ?? "Image processing failed" });
+      }
     });
   });
 

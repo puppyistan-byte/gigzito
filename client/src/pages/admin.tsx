@@ -1820,7 +1820,10 @@ export default function AdminPage() {
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-[#666] mb-1 block">
-                      Ad Image * <span className="text-[#444]">760×520px recommended (PNG/JPG/WebP, max 8 MB)</span>
+                      Ad Image *{" "}
+                      <span className="text-[#444]">
+                        Upload at 760×520px → auto-processed &amp; displayed at 380×260px (retina) · PNG/JPG/WebP · max 8 MB
+                      </span>
                     </label>
                     {/* File picker */}
                     <label
