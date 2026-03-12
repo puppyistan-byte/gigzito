@@ -1,0 +1,44 @@
+System Sync Summary: Admin Ads Upgrade & Assets Specification
+1. Current Database & File State
+
+Database: sponsor_ads table is live. One ad exists (ID: 1).
+
+Static Assets: Served from client/public/ads/.
+
+Visibility Issue: Admin UI currently shows "0 ads." Replit needs to verify if the Admin panel is filtering by active status, created_by ID, or hitting an incorrect /api/admin/... route.
+
+2. New Feature: Integrated File Upload
+
+Functionality: Replace the manual "Image URL" text input with an Active Upload Dropzone/Picker.
+
+Processing:
+
+Backend: Use multer to save files to client/public/ads/.
+
+Auto-Naming: Files should be saved with a timestamp or hash (e.g., sponsor_1710268.png) to ensure cache-busting and prevent overwrites.
+
+Retina Handling: The UI should enforce/suggest the 760 × 520px standard.
+
+3. Ad Frame & Display Specs
+
+Retina Clarity: Images are uploaded at 760 × 520px but rendered in the sidebar at 380 × 260px (2x density).
+
+Placement: The "right-rail sponsor panel" (currently floating at right: 11%).
+
+Rotation Logic: The frontend needs to ensure ads rotate every 25 seconds, filtering for active: true ads only.
+
+Specific Instructions for Replit
+"Replit, update the Admin Console based on these specs:
+
+File Upload Route: Create an Express POST route /api/admin/upload-ad that saves to client/public/ads/.
+
+Admin UI Update:
+
+Update the Ads admin tab to fetch and list all ads from the sponsor_ads table (fix the '0 ads' display).
+
+In the 'New Ad' form, add a File input. Upon file selection, it should upload to the server and auto-populate the imageUrl field with the returned path.
+
+Frontend Component: Ensure the Sponsor Ad component on the main site implements the 25-second rotation and handles the 380px wide display for the 760px wide source images."
+
+One Quick Manual Tip
+Since you mentioned the ads rotate every 25 seconds, make sure we add at least two ads in the database. If there is only one active ad, the rotation logic might "blink" or try to switch to a null value depending on how it was coded.
