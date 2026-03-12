@@ -2442,3 +2442,10 @@ body.feed-active {
   position: relative;
   width: 100%;
 }
+
+/* Right-rail sponsor ad — hidden on screens too narrow to show it without overlap */
+@media (max-width: 1240px) {
+  .right-rail-ad-container {
+    display: none !important;
+  }
+}
