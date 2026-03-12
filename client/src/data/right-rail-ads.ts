@@ -14,7 +14,7 @@ const rightRailAds: RightRailAd[] = [
     title: "AI Bot Trading Continually Performs",
     body: "Let an advanced AI trade for you 24/7. Set it up once and let it work around the clock.",
     imageUrl: "/ads/aurum.png",
-    targetUrl: "https://aurum.com",
+    targetUrl: "https://aiwealthsecret.io/?ref_code=ERUEUE&disable_popups=true",
     cta: "Learn More",
     active: true,
   },
