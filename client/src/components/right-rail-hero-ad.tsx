@@ -49,10 +49,10 @@ export function RightRailHeroAd() {
       style={{
         position: "fixed",
         top: "50%",
-        left: "calc(50% + 230px)",
+        right: "24px",
         transform: "translateY(-50%)",
-        width: "400px",
-        zIndex: 40,
+        width: "380px",
+        zIndex: 45,
         display: "flex",
         flexDirection: "column",
         gap: "0px",
