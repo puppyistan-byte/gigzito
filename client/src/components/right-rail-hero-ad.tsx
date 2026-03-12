@@ -13,7 +13,8 @@ const FALLBACK_GRADIENTS = [
 export function RightRailHeroAd() {
   const { data: ads = [] } = useQuery<SponsorAd[]>({
     queryKey: ["/api/sponsor-ads"],
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const [idx, setIdx] = useState(0);
