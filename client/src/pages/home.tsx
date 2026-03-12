@@ -8,6 +8,7 @@ import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
 import { TodaysGigJacks } from "@/components/todays-gigjacks";
 import { AllEyesBanner } from "@/components/all-eyes-banner";
 import { LoveLeaderboardPanel } from "@/components/love-leaderboard-panel";
+import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
@@ -357,6 +358,8 @@ export default function HomePage() {
       <TodaysGigJacks open={showOffers} onClose={() => setShowOffers(false)} />
 
       <LoveLeaderboardPanel />
+
+      <RightRailHeroAd />
     </div>
   );
 }
