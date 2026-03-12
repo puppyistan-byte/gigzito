@@ -2443,9 +2443,9 @@ body.feed-active {
   width: 100%;
 }
 
-/* Right-rail sponsor ad — hidden on screens too narrow to show it without overlap */
-@media (max-width: 1240px) {
-  .right-rail-ad-container {
-    display: none !important;
-  }
+/* Gigzito sponsor zone — always visible, never blocked */
+.gigzito-sponsor-zone {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
