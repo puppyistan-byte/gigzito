@@ -1,0 +1,42 @@
+Gemini said
+This is a high-stakes, "Dominance-Marketing" feature. You aren't just sending a notification; you are creating a synchronized Platform Event. To achieve this, we need to bridge your CRM (the CSV/Mailing List) with a Real-Time WebSocket Engine (The GigJack Seizure).
+
+Here is the technical architecture to make "All Eyes on Me" a reality.
+
+Technical Summary: The GigJack "Seismic Event" & CRM Integration
+1. The Audience Engine (The "My Audience" Checkbox)
+Every Call-to-Action (CTA) on a user's post currently collects Name, Email, and Phone. This data needs to be "Liquid."
+
+Data Aggregation: We create a user_audiences table that automatically maps every successful CTA conversion to the Creator's ID.
+
+The Opt-In Logic: When a marketer hits "Go Live" or "Deploy GigJack," a checkbox labeled "Include My Audience" will trigger an automated broadcast to this CSV-derived list (Email/SMS).
+
+2. The "GigJack" Seizure (The Frontend Takeover)
+This is a State-Driven Interrupt. We use WebSockets (Socket.io) to push a "Seizure Command" to every active browser session on the site.
+
+The "Freeze": A high-z-index overlay (z-index: 9999) locks the scroll and dims the background.
+
+The Presentation: The "Hot Coupon" or Offer appears in the dead center with a "Seismic" CSS animation (shake/pulse).
+
+The Collapse & Fly: Using Framer Motion or GSAP, the center modal "implodes" and animates its x,y coordinates to the top-right "GigJack Frame."
+
+The Siren State: A persistent Red Siren SVG with a CSS animate-pulse and a CountdownTimer component stays active in the header until the offer expires.
+
+3. The "Unfair Advantage" Approval Workflow
+Because a GigJack is intrusive (it stops the user's "retina view"), it cannot be automated.
+
+Admin Gatekeeper: The marketer submits the GigJack request. It enters a pending_gigjacks queue.
+
+The "Seized" Status: Only once a Super Admin clicks "Approve & Launch" does the WebSocket signal fire across the entire platform.
+
+Database & Logic Requirements
+Feature	Technical Implementation
+Broadcast Trigger	POST /api/gigjack/launch (Requires admin_approved: true)
+Audience Filter	SELECT email, phone FROM cta_leads WHERE creator_id = $1
+Seismic Animation	CSS Keyframes: @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } ... }
+The "Fly" Path	Calculated viewport coordinates from center to top-right-fixed-anchor.
+The "Gigzito" Philosophy: Ethical Intrusion
+By making this an "Approved Only" event, you prevent the site from becoming spammy. It keeps the "Seismic Event" special. When a user sees the screen shake, they know it’s a vetted, high-value offer, not a random pop-up.
+
+Next Step for Replit
+We need to build the Audience Aggregator first so the "My Audience" checkbox actually has a list to talk to.
