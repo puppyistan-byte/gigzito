@@ -1487,10 +1487,33 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     });
   });
 
-  // === SPONSOR ADS (PUBLIC) ===
-  app.get("/api/sponsor-ads", async (_req, res) => {
+  // === AD AVAILABILITY (PUBLIC) ===
+  app.get("/api/ads/availability", async (req, res) => {
     try {
-      const ads = await storage.getActiveSponsorAds();
+      const { start, end } = req.query as { start?: string; end?: string };
+      if (!start || !end) return res.status(400).json({ message: "start and end date params required (YYYY-MM-DD)" });
+      const booked = await storage.getAvailabilityForRange(start, end);
+      const allSlots = [1, 2, 3, 4, 5];
+      const result: Record<string, { slot: number; available: boolean }[]> = {};
+      const cursor = new Date(start);
+      const endD = new Date(end);
+      while (cursor <= endD) {
+        const dateStr = cursor.toISOString().slice(0, 10);
+        const taken = booked[dateStr] ?? [];
+        result[dateStr] = allSlots.map((slot) => ({ slot, available: !taken.includes(slot) }));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return res.json(result);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch availability" });
+    }
+  });
+
+  // === SPONSOR ADS (PUBLIC) ===
+  app.get("/api/sponsor-ads", async (req, res) => {
+    try {
+      const { date } = req.query as { date?: string };
+      const ads = date ? await storage.getAdsForDate(date) : await storage.getActiveSponsorAds();
       return res.json(ads);
     } catch (e) {
       return res.status(500).json({ message: "Failed to fetch ads" });
@@ -1561,6 +1584,85 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.json({ ok: true });
     } catch (e) {
       return res.status(500).json({ message: "Failed to delete ad" });
+    }
+  });
+
+  // === AD BOOKINGS (PUBLIC SELF-SERVE) ===
+  app.post("/api/ads/book", async (req, res) => {
+    try {
+      const { sponsorAdId, bookingDate, slotNumber, advertiserName, advertiserEmail, amountCents, notes } = req.body;
+      if (!bookingDate || !slotNumber || !advertiserName || !advertiserEmail) {
+        return res.status(400).json({ message: "bookingDate, slotNumber, advertiserName and advertiserEmail are required" });
+      }
+      if (slotNumber < 1 || slotNumber > 5) {
+        return res.status(400).json({ message: "slotNumber must be 1-5" });
+      }
+      const existing = await storage.getBookingsForDate(bookingDate);
+      const confirmedCount = existing.filter((b) => b.status === "confirmed").length;
+      if (confirmedCount >= 5) {
+        return res.status(409).json({ message: "Sold out — all 5 slots are booked for this date." });
+      }
+      const slotTaken = existing.some((b) => b.slotNumber === slotNumber && b.status === "confirmed");
+      if (slotTaken) {
+        return res.status(409).json({ message: `Slot ${slotNumber} is already taken for this date.` });
+      }
+      const booking = await storage.createAdBooking({
+        sponsorAdId: sponsorAdId ?? null,
+        bookingDate,
+        slotNumber,
+        advertiserName,
+        advertiserEmail,
+        status: "pending",
+        amountCents: amountCents ?? 0,
+        notes: notes ?? null,
+      });
+      return res.status(201).json(booking);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to create booking" });
+    }
+  });
+
+  // === AD BOOKINGS (ADMIN) ===
+  app.get("/api/admin/ad-bookings", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const bookings = await storage.getAdBookings();
+      return res.json(bookings);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  app.patch("/api/admin/ad-bookings/:id/status", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      if (!["pending", "confirmed", "cancelled"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      if (status === "confirmed") {
+        const booking = await storage.getBookingsForDate(req.body.bookingDate ?? "");
+        const confirmedCount = booking.filter((b) => b.id !== id && b.status === "confirmed").length;
+        if (confirmedCount >= 5) {
+          return res.status(409).json({ message: "Cannot confirm — 5 slots already confirmed for this date." });
+        }
+      }
+      const updated = await storage.updateAdBookingStatus(id, status);
+      return res.json(updated);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to update booking status" });
+    }
+  });
+
+  app.delete("/api/admin/ad-bookings/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteAdBooking(id);
+      return res.json({ ok: true });
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to delete booking" });
     }
   });
 

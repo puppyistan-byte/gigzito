@@ -10,12 +10,16 @@ const FALLBACK_GRADIENTS = [
   "linear-gradient(135deg, #0a1a0a 0%, #003d00 50%, #0a1a0a 100%)",
 ];
 
+const todayDate = new Date().toISOString().slice(0, 10);
+
 export function RightRailHeroAd() {
-  const { data: ads = [] } = useQuery<SponsorAd[]>({
-    queryKey: ["/api/sponsor-ads"],
+  const { data: rawAds = [] } = useQuery<SponsorAd[]>({
+    queryKey: ["/api/sponsor-ads", todayDate],
+    queryFn: () => fetch(`/api/sponsor-ads?date=${todayDate}`, { credentials: "include" }).then((r) => r.json()),
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
+  const ads = rawAds.slice(0, 5);
 
   const [idx, setIdx] = useState(0);
   const [imgError, setImgError] = useState<Record<number, boolean>>({});

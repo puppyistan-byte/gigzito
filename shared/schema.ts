@@ -584,6 +584,28 @@ export type SponsorAd = typeof sponsorAds.$inferSelect;
 export const insertSponsorAdSchema = createInsertSchema(sponsorAds).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertSponsorAd = z.infer<typeof insertSponsorAdSchema>;
 
+// === AD BOOKINGS TABLE ===
+export const AD_BOOKING_STATUSES = ["pending", "confirmed", "cancelled"] as const;
+export type AdBookingStatus = typeof AD_BOOKING_STATUSES[number];
+
+export const adBookings = pgTable("ad_bookings", {
+  id: serial("id").primaryKey(),
+  sponsorAdId: integer("sponsor_ad_id").references(() => sponsorAds.id, { onDelete: "cascade" }),
+  bookingDate: text("booking_date").notNull(),  // YYYY-MM-DD
+  slotNumber: integer("slot_number").notNull(),  // 1-5
+  advertiserName: text("advertiser_name").notNull(),
+  advertiserEmail: text("advertiser_email").notNull(),
+  status: text("status").notNull().default("pending"),
+  amountCents: integer("amount_cents").notNull().default(0),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type AdBooking = typeof adBookings.$inferSelect;
+export type AdBookingWithAd = AdBooking & { ad: SponsorAd | null };
+export const insertAdBookingSchema = createInsertSchema(adBookings).omit({ id: true, createdAt: true });
+export type InsertAdBooking = z.infer<typeof insertAdBookingSchema>;
+
 // === ZITO TV EVENTS TABLE ===
 export const ZITO_TV_CATEGORIES = [
   "INTERVIEW", "COACHING", "PRESENTATION", "DEMO", "MUSIC",

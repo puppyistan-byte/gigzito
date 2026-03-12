@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -112,10 +112,18 @@ export interface IStorage {
   // Sponsor Ads
   getSponsorAds(): Promise<SponsorAd[]>;
   getActiveSponsorAds(): Promise<SponsorAd[]>;
+  getAdsForDate(date: string): Promise<SponsorAd[]>;
   createSponsorAd(data: InsertSponsorAd): Promise<SponsorAd>;
   updateSponsorAd(id: number, data: Partial<InsertSponsorAd>): Promise<SponsorAd>;
   toggleSponsorAd(id: number, active: boolean): Promise<SponsorAd>;
   deleteSponsorAd(id: number): Promise<void>;
+  // Ad bookings
+  getBookingsForDate(date: string): Promise<AdBookingWithAd[]>;
+  getAvailabilityForRange(startDate: string, endDate: string): Promise<Record<string, number[]>>;
+  createAdBooking(data: InsertAdBooking): Promise<AdBooking>;
+  updateAdBookingStatus(id: number, status: string): Promise<AdBooking>;
+  getAdBookings(): Promise<AdBookingWithAd[]>;
+  deleteAdBooking(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1280,6 +1288,61 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSponsorAd(id: number): Promise<void> {
     await db.delete(sponsorAds).where(eq(sponsorAds.id, id));
+  }
+
+  async getAdsForDate(date: string): Promise<SponsorAd[]> {
+    const bookings = await db
+      .select({ sponsorAdId: adBookings.sponsorAdId })
+      .from(adBookings)
+      .where(and(eq(adBookings.bookingDate, date), eq(adBookings.status, "confirmed")));
+    const adIds = bookings.map((b) => b.sponsorAdId).filter((id): id is number => id !== null);
+    if (adIds.length === 0) {
+      return db.select().from(sponsorAds).where(eq(sponsorAds.active, true)).orderBy(sponsorAds.sortOrder);
+    }
+    return db.select().from(sponsorAds).where(and(inArray(sponsorAds.id, adIds), eq(sponsorAds.active, true))).orderBy(sponsorAds.sortOrder);
+  }
+
+  async getBookingsForDate(date: string): Promise<AdBookingWithAd[]> {
+    const rows = await db.select().from(adBookings).where(eq(adBookings.bookingDate, date)).orderBy(adBookings.slotNumber);
+    return Promise.all(rows.map(async (b) => {
+      const ad = b.sponsorAdId ? (await db.select().from(sponsorAds).where(eq(sponsorAds.id, b.sponsorAdId)))[0] ?? null : null;
+      return { ...b, ad };
+    }));
+  }
+
+  async getAvailabilityForRange(startDate: string, endDate: string): Promise<Record<string, number[]>> {
+    const rows = await db
+      .select({ bookingDate: adBookings.bookingDate, slotNumber: adBookings.slotNumber })
+      .from(adBookings)
+      .where(and(gte(adBookings.bookingDate, startDate), lte(adBookings.bookingDate, endDate), eq(adBookings.status, "confirmed")));
+    const result: Record<string, number[]> = {};
+    for (const row of rows) {
+      if (!result[row.bookingDate]) result[row.bookingDate] = [];
+      result[row.bookingDate].push(row.slotNumber);
+    }
+    return result;
+  }
+
+  async createAdBooking(data: InsertAdBooking): Promise<AdBooking> {
+    const [booking] = await db.insert(adBookings).values(data).returning();
+    return booking;
+  }
+
+  async updateAdBookingStatus(id: number, status: string): Promise<AdBooking> {
+    const [booking] = await db.update(adBookings).set({ status }).where(eq(adBookings.id, id)).returning();
+    return booking;
+  }
+
+  async getAdBookings(): Promise<AdBookingWithAd[]> {
+    const rows = await db.select().from(adBookings).orderBy(desc(adBookings.createdAt));
+    return Promise.all(rows.map(async (b) => {
+      const ad = b.sponsorAdId ? (await db.select().from(sponsorAds).where(eq(sponsorAds.id, b.sponsorAdId)))[0] ?? null : null;
+      return { ...b, ad };
+    }));
+  }
+
+  async deleteAdBooking(id: number): Promise<void> {
+    await db.delete(adBookings).where(eq(adBookings.id, id));
   }
 }
 
