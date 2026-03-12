@@ -351,6 +351,7 @@ export default function AdminPage() {
   const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 });
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
   const [adFormOpen, setAdFormOpen] = useState(false);
+  const [adUploading, setAdUploading] = useState(false);
 
   const createAdMutation = useMutation({
     mutationFn: async (data: object) => {
@@ -1818,11 +1819,52 @@ export default function AdminPage() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="text-xs text-[#666] mb-1 block">Image URL * <span className="text-[#444]">(760×520 recommended, serve from /ads/ folder)</span></label>
+                    <label className="text-xs text-[#666] mb-1 block">
+                      Ad Image * <span className="text-[#444]">760×520px recommended (PNG/JPG/WebP, max 8 MB)</span>
+                    </label>
+                    {/* File picker */}
+                    <label
+                      className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-dashed cursor-pointer transition-colors text-sm font-semibold mb-2 ${adUploading ? "border-[#444] text-[#555] cursor-not-allowed" : "border-[#3a3a3a] text-[#888] hover:border-[#ff2b2b] hover:text-[#ff2b2b]"}`}
+                      data-testid="label-ad-file-upload"
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                      {adUploading ? "Uploading…" : adForm.imageUrl ? "Replace image file" : "Upload image file"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={adUploading}
+                        data-testid="input-ad-file"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setAdUploading(true);
+                          try {
+                            const formData = new FormData();
+                            formData.append("image", file);
+                            const res = await fetch("/api/admin/upload-ad-image", {
+                              method: "POST",
+                              credentials: "include",
+                              body: formData,
+                            });
+                            if (!res.ok) { const err = await res.json(); throw new Error(err.message ?? "Upload failed"); }
+                            const { url } = await res.json();
+                            setAdForm((f) => ({ ...f, imageUrl: url }));
+                            toast({ title: "Image uploaded", description: url });
+                          } catch (err: any) {
+                            toast({ title: err.message ?? "Upload failed", variant: "destructive" });
+                          } finally {
+                            setAdUploading(false);
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    </label>
+                    {/* Manual URL fallback */}
                     <Input
                       value={adForm.imageUrl}
                       onChange={(e) => setAdForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                      placeholder="/ads/your-image.png or https://..."
+                      placeholder="/ads/filename.png or https://..."
                       className="bg-[#111] border-[#2a2a2a] text-white text-sm"
                       data-testid="input-ad-image-url"
                     />

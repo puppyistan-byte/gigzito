@@ -31,6 +31,26 @@ const upload = multer({
   },
 });
 
+const adImageUploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), "client", "public", "ads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || ".png";
+    cb(null, `ad-${Date.now()}-${randomBytes(4).toString("hex")}${ext}`);
+  },
+});
+const adImageUpload = multer({
+  storage: adImageUploadStorage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"));
+  },
+});
+
 const videoUploadStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     const dir = path.join(process.cwd(), "uploads", "videos");
@@ -1453,6 +1473,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader("Content-Disposition", 'attachment; filename="deploy_css.js"');
     res.sendFile(filePath);
+  });
+
+  // === SPONSOR ADS: ADMIN IMAGE UPLOAD ===
+  app.post("/api/admin/upload-ad-image", (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    adImageUpload.single("image")(req, res, (err) => {
+      if (err) return res.status(400).json({ message: err.message ?? "Upload failed" });
+      if (!req.file) return res.status(400).json({ message: "No file received" });
+      return res.json({ url: `/ads/${req.file.filename}` });
+    });
   });
 
   // === SPONSOR ADS (PUBLIC) ===
