@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
+import { getIO } from "./socket";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import sharp from "sharp";
@@ -1011,6 +1012,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const result = await storage.reviewGigJack(id, status, reviewNote, adminUserId);
       if (result.error) return res.status(409).json({ message: result.error });
       if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
+      // Socket.io instant push — fires GIGJACK_START to all clients the moment admin approves
+      if (status === "APPROVED") {
+        try {
+          getIO().emit("GIGJACK_START", { id: result.gj.id });
+        } catch (_) {}
+      }
       return res.json(result.gj);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -1173,6 +1180,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (result.error) return res.status(409).json({ message: result.error });
     if (!result.gj) return res.status(404).json({ message: "GigJack not found" });
     await storage.createAuditLog({ actorUserId: adminUserId, actionType: `GIGJACK_${status}_OVERRIDE`, targetType: "GIGJACK", targetId: id, usedOverride: true });
+    if (status === "APPROVED") {
+      try { getIO().emit("GIGJACK_START", { id: result.gj.id }); } catch (_) {}
+    }
     return res.json(result.gj);
   });
 

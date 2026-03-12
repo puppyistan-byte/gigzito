@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
+import { useSocket } from "@/hooks/use-socket";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home";
 import ListingDetailPage from "@/pages/listing-detail";
@@ -54,11 +55,17 @@ function Router() {
   );
 }
 
+function SocketInitializer() {
+  useSocket();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <SocketInitializer />
           <Toaster />
           <Navbar />
           <Router />
