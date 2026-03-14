@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
 import { useSocket } from "@/hooks/use-socket";
 import NotFound from "@/pages/not-found";
@@ -60,7 +60,8 @@ function Router() {
 }
 
 function SocketInitializer() {
-  useSocket();
+  const { user } = useAuth();
+  useSocket(user?.user?.id);
   return null;
 }
 

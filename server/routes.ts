@@ -63,6 +63,33 @@ const videoUpload = multer({
   },
 });
 
+// === BIF REPUTATION SCANNER ===
+const BIF_SCAN_STATUSES = ["SCANNING", "CLEAN", "FLAGGED", "APPEAL_PENDING", "APPEAL_DENIED", "HUMAN_REVIEW"];
+
+async function callBif(listingId: number, videoUrl: string, ownerUserId: number): Promise<void> {
+  const bifUrl = process.env.BIF_API_URL;
+  if (!bifUrl) {
+    // Bif not configured — auto-pass
+    await storage.updateScanStatus(listingId, "CLEAN", null);
+    try { getIO().emit("SCAN_UPDATE", { listingId, status: "CLEAN", ownerUserId }); } catch (_) {}
+    return;
+  }
+  const callbackUrl = `${process.env.APP_BASE_URL || "http://localhost:5000"}/api/scan/callback`;
+  const secret = process.env.BIF_WEBHOOK_SECRET || "";
+  try {
+    const fullVideoUrl = videoUrl.startsWith("/") ? `${process.env.APP_BASE_URL || "http://localhost:5000"}${videoUrl}` : videoUrl;
+    await fetch(bifUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId, videoUrl: fullVideoUrl, ownerUserId, callbackUrl, secret }),
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (err) {
+    console.error(`[Bif] Failed to dispatch scan for listing ${listingId}:`, err);
+    // Don't block the user — leave as SCANNING, Jim's team handles manual resolution
+  }
+}
+
 // === BOT CHECKS ===
 function runBotChecks(data: {
   offerTitle: string;
@@ -620,7 +647,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       ]),
       title: z.string().min(1).max(200),
       videoUrl: z.string().url(),
-      durationSeconds: z.coerce.number().int().min(1).max(20),
+      durationSeconds: z.coerce.number().int().min(1).max(60),
       description: z.string().max(1000).optional(),
       tags: z.array(z.string()).max(10).optional(),
       ctaLabel: z.string().max(60).optional(),
@@ -635,6 +662,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     try {
       const data = schema.parse(req.body);
+      const isUploadedVideo = data.videoUrl.startsWith("/uploads/videos/");
       const listing = await storage.createListing({
         ...data,
         ctaLabel: data.ctaLabel || null,
@@ -644,7 +672,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         dropDate: getTodayDate(),
         pricePaidCents: 300,
       });
-      return res.status(201).json({ success: true, listingId: listing.id });
+      // Set scan status + kick off Bif asynchronously for uploaded videos
+      if (isUploadedVideo) {
+        await storage.updateScanStatus(listing.id, "SCANNING", null);
+        callBif(listing.id, data.videoUrl, userId).catch((err) => {
+          console.error("[Bif] async call failed:", err);
+        });
+      }
+      return res.status(201).json({ success: true, listingId: listing.id, scanStatus: isUploadedVideo ? "SCANNING" : "CLEAN" });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join(".") });
@@ -665,6 +700,53 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const listing = await storage.updateListingStatus(id, status);
     if (!listing) return res.status(404).json({ message: "Listing not found" });
     return res.json(listing);
+  });
+
+  // === BIF SCAN ROUTES ===
+  // Bif webhook callback — called by the Ashburn VPS bot after scanning
+  app.post("/api/scan/callback", async (req, res) => {
+    const secret = req.headers["bif-webhook-secret"] || req.headers["x-bif-secret"];
+    const expected = process.env.BIF_WEBHOOK_SECRET || "";
+    if (expected && secret !== expected) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const { listingId, status, scanNote, ownerUserId } = req.body;
+    if (!listingId || !status) return res.status(400).json({ message: "Missing listingId or status" });
+    if (!BIF_SCAN_STATUSES.includes(status)) return res.status(400).json({ message: "Invalid status" });
+    await storage.updateScanStatus(Number(listingId), status, scanNote ?? null);
+    try {
+      getIO().emit("SCAN_UPDATE", { listingId: Number(listingId), status, ownerUserId: Number(ownerUserId) });
+    } catch (_) {}
+    return res.json({ ok: true });
+  });
+
+  // Poll scan status for a single listing
+  app.get("/api/listings/:id/scan-status", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(404).json({ message: "Not found" });
+    const listing = await storage.getListingById(id);
+    if (!listing) return res.status(404).json({ message: "Not found" });
+    return res.json({ listingId: id, scanStatus: listing.scanStatus, scanNote: listing.scanNote });
+  });
+
+  // Appeal a FLAGGED listing
+  app.post("/api/listings/:id/appeal", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(404).json({ message: "Not found" });
+    const listing = await storage.getListingById(id);
+    if (!listing) return res.status(404).json({ message: "Not found" });
+    if (listing.provider.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+    if (listing.scanStatus !== "FLAGGED") {
+      return res.status(400).json({ message: "Can only appeal FLAGGED listings" });
+    }
+    await storage.updateScanStatus(id, "APPEAL_PENDING", listing.scanNote);
+    try {
+      getIO().emit("SCAN_UPDATE", { listingId: id, status: "APPEAL_PENDING", ownerUserId: userId });
+    } catch (_) {}
+    return res.json({ ok: true, status: "APPEAL_PENDING" });
   });
 
   // === STATS ===
