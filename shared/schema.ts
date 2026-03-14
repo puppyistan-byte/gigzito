@@ -692,6 +692,20 @@ export const cardMessages = pgTable("card_messages", {
 export type CardMessage = typeof cardMessages.$inferSelect;
 export type InsertCardMessage = typeof cardMessages.$inferInsert;
 
+// ─── Gigness Card Comments ────────────────────────────────────────────────────
+export const gignessCardComments = pgTable("gigness_card_comments", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").notNull().references(() => gignessCards.id, { onDelete: "cascade" }),
+  authorUserId: integer("author_user_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull().default("Anonymous"),
+  commentText: text("comment_text").notNull(),
+  isClean: boolean("is_clean").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type GignessCardComment = typeof gignessCardComments.$inferSelect;
+export type InsertGignessCardComment = typeof gignessCardComments.$inferInsert;
+
 // ─── Marketer Audiences ───────────────────────────────────────────────────────
 export const marketerAudiences = pgTable(
   "marketer_audiences",
