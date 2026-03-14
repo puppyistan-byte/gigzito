@@ -1,0 +1,140 @@
+
+root@ubuntu-8gb-ash-2:/opt/gigzito# cd /opt/gigzito
+
+# Kill the ghost table, push schema
+psql "postgresql://jovial:Postgres2626492@localhost:5432/gigzito" \
+  -c "DROP TABLE IF EXISTS geezee_cards;"
+
+DATABASE_URL="postgresql://jovial:Postgres2626492@localhost:5432/gigzito" \
+  npx drizzle-kit push
+
+# Rebuild from scratch and restart
+rm -rf dist && npm run build && pm2 restart gigzito --update-env
+NOTICE:  table "geezee_cards" does not exist, skipping
+DROP TABLE
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/gigzito/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+[✓] Changes applied
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 2170 modules transformed.
+rendering chunks (2)...[esbuild css minify]
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5370:5:
+      5370 │      {
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5381:5:
+      5381 │      { min-width: 300px !important; }
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5952:5:
+      5952 │      {
+           ╵      ^
+
+
+../dist/public/index.html                                              2.13 kB │ gzip:   0.79 kB
+../dist/public/assets/reoverblack_1772857110054-B0Iy_krt.jpg          41.97 kB
+../dist/public/assets/gigzito-logo-tight_1772926617316-cM3caTgX.png  252.93 kB
+../dist/public/assets/index-OYSTDg6P.css                             143.28 kB │ gzip:  25.14 kB
+../dist/public/assets/purify.es-C0_7NiBM.js                           22.58 kB │ gzip:   8.67 kB
+../dist/public/assets/browser-B_4uyFc5.js                             25.78 kB │ gzip:  10.13 kB
+../dist/public/assets/index.es-CirzVL3w.js                           158.62 kB │ gzip:  52.95 kB
+../dist/public/assets/html2canvas.esm-DXEQVQnt.js                    201.04 kB │ gzip:  47.43 kB
+../dist/public/assets/jspdf.es.min-CluL52B0.js                       385.86 kB │ gzip: 126.13 kB
+../dist/public/assets/index-LRB33Tc0.js                              910.10 kB │ gzip: 250.35 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.41s
+building server...
+
+  dist/index.cjs  1.6mb ⚠️
+
+⚡ Done in 156ms
+[PM2] Applying action restartProcessId on app [gigzito](ids: [ 0 ])
+[PM2] [gigzito](0) ✓
+┌────┬────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name       │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ gigzito    │ default     │ 1.0.0   │ fork    │ 249218   │ 0s     │ 15   │ online    │ 0%       │ 18.9mb   │ root     │ disabled │
+└────┴────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-8gb-ash-2:/opt/gigzito# ^C
+root@ubuntu-8gb-ash-2:/opt/gigzito# cd /opt/gigzito && git reset --hard origin/main && rm -rf dist && npm run build && pm2 restart gigzito --update-env
+HEAD is now at a2e90c1 Add screenshots of the working application interface
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (56) ../node_modules/react/cjs/react.production.min.js
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 2200 modules transformed.
+rendering chunks (2)...[esbuild css minify]
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5370:5:
+      5370 │      {
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5381:5:
+      5381 │      { min-width: 300px !important; }
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5952:5:
+      5952 │      {
+           ╵      ^
+
+
+../dist/public/index.html                                              2.13 kB │ gzip:   0.79 kB
+../dist/public/assets/reoverblack_1772857110054-B0Iy_krt.jpg          41.97 kB
+../dist/public/assets/gigzito-logo-tight_1772926617316-cM3caTgX.png  252.93 kB
+../dist/public/assets/index-OYSTDg6P.css                             143.28 kB │ gzip:  25.14 kB
+../dist/public/assets/purify.es-C0_7NiBM.js                           22.58 kB │ gzip:   8.67 kB
+../dist/public/assets/browser-CaRCelX4.js                             25.78 kB │ gzip:  10.13 kB
+../dist/public/assets/index.es-CtQto3UH.js                           158.62 kB │ gzip:  52.95 kB
+../dist/public/assets/html2canvas.esm-DXEQVQnt.js                    201.04 kB │ gzip:  47.43 kB
+../dist/public/assets/jspdf.es.min-DO29M_8g.js                       385.86 kB │ gzip: 126.13 kB
+../dist/public/assets/index-Bi-fVSgL.js                              952.51 kB │ gzip: 263.77 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.33s
+building server...
+
+  dist/index.cjs  1.6mb ⚠️
+
+⚡ Done in 110ms
+[PM2] Applying action restartProcessId on app [gigzito](ids: [ 0 ])
+[PM2] [gigzito](0) ✓
+┌────┬────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name       │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ gigzito    │ default     │ 1.0.0   │ fork    │ 251244   │ 0s     │ 16   │ online    │ 0%       │ 17.5mb   │ root     │ disabled │
+└────┴────────────┴─────────────┴───────
