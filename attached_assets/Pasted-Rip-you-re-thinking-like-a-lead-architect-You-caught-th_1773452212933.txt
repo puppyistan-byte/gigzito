@@ -1,0 +1,69 @@
+Rip, you’re thinking like a lead architect. You caught the drift—I’m speaking in conceptual modules, but you’re the one who has to wire the TypeScript and keep the server from melting. As Jim, I’m going to clear the deck so you can build.
+
+Here is the "Common Sense" response to the Critical Path:
+
+## Rip’s Technical Clearance (The Jim Spec)
+1. The GZ-Bot Model: OpenAI Moderation API
+Let’s go with the OpenAI Moderation API. It’s robust, fast, and handles the "PG" nuance better than a static regex.
+
+Phase 1: OpenAI API call for the scrub.
+
+Phase 2: Local regex "Naughty List" for instant blocking of specific blacklisted words to save on API calls.
+
+2. Tiers vs. Roles: Subscriptions OVER Roles
+Don't blow up the role system yet.
+
+Keep PROVIDER and MARKETER as the "Functional Roles."
+
+Layer the GZ Tiers (GZLurker, GZ2, GZ Plus, GZ Pro) as Subscription Levels.
+
+Example: A user can be a PROVIDER (Role) but if they are GZLurker (Tier), their Gigness Card is hidden. They must be GZ Pro to unlock the "Unlimited" features of their role.
+
+3. Age Data: Self-Declared Brackets
+We don't need a birth certificate. Upon upgrading to GZ2, we ask for a Self-Declared Age Bracket (18-25, etc.). This keeps it light but makes the Rolodex tabs functional.
+
+4. The Stack: TS/React (The Real World)
+Copy that, Rip. I’m speaking in "Arch-Speak," but you build it in the TS/React stack you’ve got. Use server/routes.ts and server/storage.ts. Forget the .js naming—just implement the logic of those modules into your existing file structure.
+
+5. Message Delivery: The "Notification Center"
+We want people on the platform.
+
+Primary: Real-time delivery via Socket.io to a "GZ Inbox" (Notification Center) inside the app.
+
+Secondary: A "You've got mail" SMS alert (since we have their numbers for vetting) to pull them back in.
+
+6. GZ Pro Pinning: Separate "VIP Row"
+The "All Eyes On Me" slot is for paid Ad placement (the big frames). For the Rolodex, let's have a separate "Featured Cards" section at the top of the stack. GZ Pro cards rotate through those top 3 positions.
+
+### Technical Summary for the Build
+The Vault (Hillsboro - Storage.ts)
+We need to add the gigness_cards interface to your storage logic.
+
+TypeScript
+// Rip, add this to your schema definitions
+export interface GignessCard {
+  id: number;
+  userId: number;
+  slogan: string;
+  profilePic: string;
+  isPublic: boolean; // The "Go Dark" Toggle
+  ageBracket: string;
+  gender: string;
+  intent: 'marketing' | 'social' | 'activity';
+  engagementCount: number;
+}
+The Switchboard (Ashburn - Routes.ts)
+Your middleware needs to look like this:
+
+TypeScript
+// The "Lurker" check in your TS routes
+const requireGZ2 = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user.subscriptionTier === 'GZLurker') {
+    return res.status(403).json({ message: "Upgrade to GZ2 to engage!" });
+  }
+  next();
+};
+### Jim’s Final Directive to Rip:
+We are building the Gigness Card Rolodex as the centerpiece of social discovery. It needs to be fast, it needs to be "PG," and it needs to make GZLurkers feel like they are missing out on a world of "Unfair Advantages."
+
+Rip, since you're in the TS/React stack, should I give you the "Replace-All" code for the gigness_cards database schema and the requireGZ2 middleware, or should we focus on the React component for the Rolodex UI first?
