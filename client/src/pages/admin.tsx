@@ -532,6 +532,23 @@ export default function AdminPage() {
     onError: () => toast({ title: "Error changing role", variant: "destructive" }),
   });
 
+  const userTierMutation = useMutation({
+    mutationFn: async ({ id, tier }: { id: number; tier: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${id}/subscription-tier`, { tier });
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] }); toast({ title: "GeeZee tier updated" }); },
+    onError: () => toast({ title: "Error updating tier", variant: "destructive" }),
+  });
+
+  const GZ_TIERS = ["GZLurker", "GZ2", "GZ_PLUS", "GZ_PRO"] as const;
+  const GZ_TIER_COLORS: Record<string, string> = {
+    GZLurker: "bg-zinc-500/20 text-zinc-400",
+    GZ2: "bg-blue-500/20 text-blue-400",
+    GZ_PLUS: "bg-purple-500/20 text-purple-400",
+    GZ_PRO: "bg-amber-500/20 text-amber-400",
+  };
+
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
@@ -1061,6 +1078,9 @@ export default function AdminPage() {
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ROLE_COLORS[u.role] ?? "bg-zinc-500/20 text-zinc-400"}`}>
                         {ROLE_LABELS[u.role] ?? u.role}
                       </span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${GZ_TIER_COLORS[u.subscriptionTier ?? "GZLurker"] ?? "bg-zinc-500/20 text-zinc-400"}`} data-testid={`badge-tier-${u.id}`}>
+                        {u.subscriptionTier ?? "GZLurker"}
+                      </span>
                       {u.status === "disabled" && !isDeleted && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400">DISABLED</span>
                       )}
@@ -1092,6 +1112,25 @@ export default function AdminPage() {
                             {ROLE_DESCRIPTIONS[r] && (
                               <span className="ml-1.5 text-[10px] text-zinc-400">{ROLE_DESCRIPTIONS[r]}</span>
                             )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {/* GeeZee Tier selector (not for deleted) */}
+                  {!isDeleted && (
+                    <Select
+                      value={u.subscriptionTier ?? "GZLurker"}
+                      onValueChange={(tier) => userTierMutation.mutate({ id: u.id, tier })}
+                    >
+                      <SelectTrigger className="w-[95px] h-7 text-xs bg-[#111] border-[#2a2a2a] text-white" data-testid={`select-tier-${u.id}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GZ_TIERS.map((t) => (
+                          <SelectItem key={t} value={t} className="text-xs">
+                            <span className={`font-bold ${GZ_TIER_COLORS[t]?.includes("blue") ? "text-blue-400" : GZ_TIER_COLORS[t]?.includes("purple") ? "text-purple-400" : GZ_TIER_COLORS[t]?.includes("amber") ? "text-amber-400" : "text-zinc-400"}`}>{t}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>

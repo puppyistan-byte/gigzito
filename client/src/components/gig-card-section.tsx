@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Sparkles, CreditCard, Users, Edit3, Printer, QrCode, Lock } from "lucide-react";
+import { Sparkles, Edit3, Printer, QrCode, Lock, Users, Radio } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { ProviderProfile } from "@shared/schema";
 
 interface GigCardSectionProps {
@@ -185,9 +187,21 @@ function PrintVistaTab() {
 export function GigCardSection({ profile }: GigCardSectionProps) {
   const [tab, setTab] = useState<"digital" | "print">("digital");
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const qc = useQueryClient();
 
   const { data: card } = useQuery<any>({
     queryKey: ["/api/gigness-cards/mine"],
+  });
+
+  const broadcastMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/gigness-cards/broadcast"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/gigness-cards/mine"] });
+      qc.invalidateQueries({ queryKey: ["/api/gigness-cards"] });
+      toast({ title: "🎙️ Broadcasted!", description: "Your GeeZee Card is live in the Rolodex." });
+    },
+    onError: () => toast({ title: "Error", description: "Could not broadcast.", variant: "destructive" }),
   });
 
   const hasCard = card && (card.slogan || card.profilePic);
@@ -277,15 +291,33 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
             </p>
           )}
 
-          {card?.isPublic === false && hasCard && (
+          {hasCard && !card?.isPublic && (
+            <Button
+              size="sm"
+              onClick={() => broadcastMutation.mutate()}
+              disabled={broadcastMutation.isPending}
+              className="w-full h-9 text-xs font-bold rounded-xl"
+              style={{
+                background: "linear-gradient(90deg, rgba(219,39,119,0.2), rgba(139,92,246,0.2))",
+                color: "#d946ef",
+                border: "1px solid rgba(219,39,119,0.3)",
+              }}
+              data-testid="button-broadcast-geezee"
+            >
+              <Radio style={{ width: 12, height: 12, marginRight: 5 }} />
+              {broadcastMutation.isPending ? "Broadcasting…" : "Broadcast My GeeZee"}
+            </Button>
+          )}
+
+          {hasCard && card?.isPublic && (
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
-              fontSize: 10, color: "#666", background: "#111",
+              fontSize: 10, color: "#4ade80", background: "rgba(74,222,128,0.05)",
               borderRadius: 8, padding: "6px 10px",
-              border: "1px solid #2a2a2a",
+              border: "1px solid rgba(74,222,128,0.15)",
             }}>
-              <Lock style={{ width: 10, height: 10, color: "#444" }} />
-              Your card is set to private — toggle it public in the editor to appear in the Rolodex.
+              <Radio style={{ width: 10, height: 10, color: "#4ade80" }} />
+              Live in the Rolodex — others can discover and comment on your card.
             </div>
           )}
         </div>

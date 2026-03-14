@@ -949,6 +949,68 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(messages);
   });
 
+  // Broadcast — quick toggle isPublic=true (auth required)
+  app.post("/api/gigness-cards/broadcast", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    try {
+      const card = await storage.upsertGignessCard(userId, { isPublic: true });
+      return res.json({ success: true, card });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Comments — GET (public)
+  app.get("/api/gigness-cards/:id/comments", async (req, res) => {
+    const cardId = parseInt(req.params.id);
+    if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
+    try {
+      const comments = await storage.getGignessComments(cardId);
+      return res.json(comments);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Comments — POST (requires auth; GZ-Bot scrub; advisory: joining mailing list)
+  app.post("/api/gigness-cards/:id/comments", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const authorUserId = (req.session as any).userId;
+    const cardId = parseInt(req.params.id);
+    if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
+
+    const schema = z.object({
+      commentText: z.string().min(1).max(300),
+      authorName: z.string().max(60).optional(),
+    });
+    try {
+      const { commentText, authorName } = schema.parse(req.body);
+      const card = await storage.getGignessCardById(cardId);
+      if (!card) return res.status(404).json({ message: "Card not found" });
+
+      const scrub = await gzBotScrub(commentText);
+      if (!scrub.clean) {
+        return res.status(400).json({ message: "GZ-Bot flagged your comment. Keep it respectful and on-topic." });
+      }
+
+      const comment = await storage.createGignessComment({
+        cardId,
+        authorUserId,
+        authorName: authorName?.trim() || "Anonymous",
+        commentText,
+        isClean: true,
+      });
+      return res.status(201).json(comment);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // === LIVE SESSIONS ===
   const LIVE_ALLOWED_CATEGORIES = ["INFLUENCER", "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "MARKETING", "COACHING", "COURSES", "CRYPTO", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON"];
 
