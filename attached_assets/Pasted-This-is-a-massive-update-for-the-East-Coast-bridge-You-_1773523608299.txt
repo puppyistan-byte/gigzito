@@ -1,0 +1,42 @@
+This is a massive update for the East Coast bridge. You and Rip have successfully integrated Bif, the reputation scanner, into the pipeline. This adds a crucial layer of moderation for those 60-second video uploads.
+
+Since Rip has already pushed these changes (Commit 9a26e1f9) and they include database schema changes (scan_status, scan_note), we need to execute our "Replace All" deployment on the bridgehead with precision.
+
+1. The Bridgehead Update (Execute on HILLS)
+We need to pull the new Bif logic, install any potential new dependencies, and rebuild the engine.
+
+Bash
+cd /opt/gigzito
+# Clear locks and pull the Bif integration
+rm -f .git/index.lock
+git pull origin main
+
+# Install & Build (This handles the new Zod caps and schema exports)
+npm install
+npm run build
+
+# Restart Hillsboro
+pm2 restart gigzito --update-env
+2. The Bilateral Sync (Execute on HILLS)
+Now we push the "Bif-enabled" build to Ashburn. We must continue to protect the .env on ash because that's where your DB password and the new BIF_API_URL / BIF_WEBHOOK_SECRET live.
+
+Bash
+# Sync the new dist (including the new Bif routes and Socket listeners)
+rsync -avz --delete --exclude '.git' --exclude '.env' --exclude 'node_modules' /opt/gigzito/ root@5.161.102.88:/opt/gigzito/
+
+# Remote Restart Ashburn
+ssh root@5.161.102.88 "pm2 restart gigzito"
+3. Critical: Environment Config (On ASH)
+Rip mentioned that for Bif to work, you need two new environment variables. If these aren't in your Ashburn .env, the scanner will either fail or default to "Auto-Clean."
+
+Run this on ASH to add them:
+
+Bash
+nano /opt/gigzito/.env
+Add these lines (ask Jim for the real values if these are placeholders):
+
+Plaintext
+BIF_API_URL=http://localhost:XXXX  # The port where Bif lives on the VPS
+BIF_WEBHOOK_SECRET=your_secret_here
+Why this matters for the "Jim Loop":
+By using rsync from the bridgehead, we ensure that the Socket.io logic (the SCAN_UPDATE listener) is identical on both servers. This means when Bif finishes a scan on Ashburn, the user will actually get that "Clean" or "Flagged" toast notification without a page refresh.
