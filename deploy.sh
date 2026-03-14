@@ -1,21 +1,38 @@
 #!/bin/bash
-
 set -e
 
-echo "Starting Gigzito deploy..."
+echo "=== Gigzito Deploy Script ==="
+echo "Host: $(hostname)"
+echo "Time: $(date)"
 
 cd /opt/gigzito
 
-echo "Pulling latest code..."
-git pull
+# Pull latest code from GitHub
+echo "--- Pulling latest code ---"
+git fetch origin
+git reset --hard origin/main
 
-echo "Installing dependencies..."
-npm install
+# Detect which server and set the correct DB URL
+if [[ "$(hostname)" == *"hil"* ]]; then
+  echo "--- Detected: Hillsboro (Oregon) ---"
+  export DATABASE_URL="postgresql://gigzito:postgres2626492@localhost:5432/gigzito"
+else
+  echo "--- Detected: Ashburn (Virginia) ---"
+  export DATABASE_URL="postgresql://jovial:Postgres2626492@localhost:5432/gigzito"
+fi
 
-echo "Restarting Gigzito app..."
-pm2 restart gigzito
+# Apply schema changes
+echo "--- Pushing schema ---"
+DATABASE_URL=$DATABASE_URL npx drizzle-kit push
 
-echo "Restarting Telegram bot..."
-pm2 restart gigzito-bot
+# Clean rebuild
+echo "--- Building ---"
+rm -rf dist
+npm run build
 
-echo "Deploy complete."
+# Restart app
+echo "--- Restarting PM2 ---"
+pm2 restart gigzito --update-env
+
+echo "=== Deploy complete ==="
+pm2 list
