@@ -1,9 +1,10 @@
-import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, serial, date, unique } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, serial, date, unique, json } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === ENUMS ===
+export const subscriptionTierEnum = pgEnum("subscription_tier", ["GZLurker", "GZ2", "GZ_PLUS", "GZ_PRO"]);
 export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "SUPERUSER", "ADMIN", "SUPER_ADMIN", "COORDINATOR"]);
 export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
@@ -19,6 +20,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: roleEnum("role").notNull().default("VISITOR"),
+  subscriptionTier: subscriptionTierEnum("subscription_tier").notNull().default("GZLurker"),
   status: text("status").notNull().default("active"),
   disclaimerAccepted: boolean("disclaimer_accepted").notNull().default(false),
   emailVerified: boolean("email_verified").notNull().default(false),
@@ -654,6 +656,41 @@ export type CreateZitoTVEventRequest = {
   durationMinutes: number;
   startAt: string;
 };
+
+// ─── Gigness Cards ────────────────────────────────────────────────────────────
+export const gignessCards = pgTable("gigness_cards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  qrUuid: text("qr_uuid").notNull().default(sql`gen_random_uuid()::text`),
+  slogan: text("slogan").notNull().default(""),
+  profilePic: text("profile_pic"),
+  gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
+  isPublic: boolean("is_public").notNull().default(true),
+  ageBracket: text("age_bracket"),
+  gender: text("gender"),
+  intent: text("intent"),
+  engagementCount: integer("engagement_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type GignessCard = typeof gignessCards.$inferSelect;
+export type InsertGignessCard = typeof gignessCards.$inferInsert;
+
+// ─── Card Messages ────────────────────────────────────────────────────────────
+export const cardMessages = pgTable("card_messages", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  toUserId: integer("to_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  gignessCardId: integer("gigness_card_id").notNull().references(() => gignessCards.id, { onDelete: "cascade" }),
+  messageText: text("message_text"),
+  emojiReaction: text("emoji_reaction"),
+  isClean: boolean("is_clean").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type CardMessage = typeof cardMessages.$inferSelect;
+export type InsertCardMessage = typeof cardMessages.$inferInsert;
 
 // ─── Marketer Audiences ───────────────────────────────────────────────────────
 export const marketerAudiences = pgTable(

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, marketerAudiences, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, marketerAudiences, gignessCards, cardMessages, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type GignessCard, type CardMessage } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -54,6 +54,19 @@ export interface IStorage {
   upsertMarketerAudience(data: { providerUserId: number; leadName: string; leadEmail: string; leadPhone?: string | null; sourceListingId?: number | null }): Promise<void>;
   getMarketerAudienceCount(providerUserId: number): Promise<number>;
   getMarketerAudience(providerUserId: number): Promise<import("@shared/schema").MarketerAudience[]>;
+
+  // Gigness Cards
+  upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard>;
+  getGignessCardByUserId(userId: number): Promise<GignessCard | undefined>;
+  getGignessCardById(cardId: number): Promise<GignessCard | undefined>;
+  getGignessCardByQrUuid(qrUuid: string): Promise<GignessCard | undefined>;
+  getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<GignessCard[]>;
+  incrementGignessEngagement(cardId: number): Promise<void>;
+  updateSubscriptionTier(userId: number, tier: string): Promise<void>;
+
+  // Card Messages
+  createCardMessage(data: { fromUserId: number; toUserId: number; gignessCardId: number; messageText?: string | null; emojiReaction?: string | null; isClean: boolean }): Promise<CardMessage>;
+  getCardMessages(toUserId: number): Promise<CardMessage[]>;
 
   // Live Sessions
   createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession>;
@@ -488,6 +501,95 @@ export class DatabaseStorage implements IStorage {
       .from(marketerAudiences)
       .where(eq(marketerAudiences.providerUserId, providerUserId))
       .orderBy(sql`${marketerAudiences.createdAt} DESC`);
+  }
+
+  // ── Gigness Cards ──────────────────────────────────────────────────────────
+
+  async upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard> {
+    const [card] = await db
+      .insert(gignessCards)
+      .values({ userId, ...data })
+      .onConflictDoUpdate({
+        target: gignessCards.userId,
+        set: {
+          ...(data.slogan !== undefined && { slogan: data.slogan }),
+          ...(data.profilePic !== undefined && { profilePic: data.profilePic }),
+          ...(data.gallery !== undefined && { gallery: data.gallery }),
+          ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
+          ...(data.ageBracket !== undefined && { ageBracket: data.ageBracket }),
+          ...(data.gender !== undefined && { gender: data.gender }),
+          ...(data.intent !== undefined && { intent: data.intent }),
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return card;
+  }
+
+  async getGignessCardByUserId(userId: number): Promise<GignessCard | undefined> {
+    const [card] = await db.select().from(gignessCards).where(eq(gignessCards.userId, userId));
+    return card;
+  }
+
+  async getGignessCardById(cardId: number): Promise<GignessCard | undefined> {
+    const [card] = await db.select().from(gignessCards).where(eq(gignessCards.id, cardId));
+    return card;
+  }
+
+  async getGignessCardByQrUuid(qrUuid: string): Promise<GignessCard | undefined> {
+    const [card] = await db.select().from(gignessCards).where(eq(gignessCards.qrUuid, qrUuid));
+    return card;
+  }
+
+  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<GignessCard[]> {
+    const conditions = [eq(gignessCards.isPublic, true)];
+    if (filters?.ageBracket) conditions.push(eq(gignessCards.ageBracket, filters.ageBracket));
+    if (filters?.gender) conditions.push(eq(gignessCards.gender, filters.gender));
+    if (filters?.intent) conditions.push(eq(gignessCards.intent, filters.intent));
+    return db
+      .select()
+      .from(gignessCards)
+      .where(and(...conditions))
+      .orderBy(sql`${gignessCards.engagementCount} DESC, ${gignessCards.createdAt} DESC`);
+  }
+
+  async incrementGignessEngagement(cardId: number): Promise<void> {
+    await db
+      .update(gignessCards)
+      .set({ engagementCount: sql`${gignessCards.engagementCount} + 1` })
+      .where(eq(gignessCards.id, cardId));
+  }
+
+  async updateSubscriptionTier(userId: number, tier: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ subscriptionTier: tier as any })
+      .where(eq(users.id, userId));
+  }
+
+  // ── Card Messages ──────────────────────────────────────────────────────────
+
+  async createCardMessage(data: { fromUserId: number; toUserId: number; gignessCardId: number; messageText?: string | null; emojiReaction?: string | null; isClean: boolean }): Promise<CardMessage> {
+    const [msg] = await db
+      .insert(cardMessages)
+      .values({
+        fromUserId: data.fromUserId,
+        toUserId: data.toUserId,
+        gignessCardId: data.gignessCardId,
+        messageText: data.messageText ?? null,
+        emojiReaction: data.emojiReaction ?? null,
+        isClean: data.isClean,
+      })
+      .returning();
+    return msg;
+  }
+
+  async getCardMessages(toUserId: number): Promise<CardMessage[]> {
+    return db
+      .select()
+      .from(cardMessages)
+      .where(eq(cardMessages.toUserId, toUserId))
+      .orderBy(sql`${cardMessages.createdAt} DESC`);
   }
 
   async createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession> {

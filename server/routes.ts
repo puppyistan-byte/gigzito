@@ -159,6 +159,44 @@ function requireSuperAdmin(req: any, res: any): boolean {
   return true;
 }
 
+function requireGZ2(req: any, res: any): boolean {
+  if (!req.session?.userId) {
+    res.status(401).json({ message: "Not authenticated" });
+    return false;
+  }
+  const tier = req.session?.subscriptionTier ?? "GZLurker";
+  if (tier === "GZLurker") {
+    res.status(403).json({ message: "Upgrade to GZ2 to engage!", upgradeRequired: true });
+    return false;
+  }
+  return true;
+}
+
+// GZ-Bot: Phase 1 regex naughty list (OpenAI wires in once OPENAI_API_KEY is set)
+const GZ_NAUGHTY_LIST = /\b(fuck|shit|ass|bitch|cunt|dick|pussy|nigger|faggot|whore|slut)\b/gi;
+async function gzBotScrub(text: string): Promise<{ clean: boolean; reason?: string }> {
+  if (GZ_NAUGHTY_LIST.test(text)) {
+    GZ_NAUGHTY_LIST.lastIndex = 0;
+    return { clean: false, reason: "Contains prohibited language." };
+  }
+  GZ_NAUGHTY_LIST.lastIndex = 0;
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const resp = await fetch("https://api.openai.com/v1/moderations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        body: JSON.stringify({ input: text }),
+        signal: AbortSignal.timeout(4000),
+      });
+      const data = await resp.json() as any;
+      if (data.results?.[0]?.flagged) return { clean: false, reason: "Content flagged by GZ-Bot." };
+    } catch {
+      // OpenAI unavailable — pass through to regex-only
+    }
+  }
+  return { clean: true };
+}
+
 function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
 }
@@ -320,6 +358,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (autoVerified) {
         (req.session as any).userId = user.id;
         (req.session as any).role = user.role;
+        (req.session as any).subscriptionTier = user.subscriptionTier ?? "GZLurker";
       }
       const resp: any = { requiresVerification: !autoVerified, email };
       if (emailResult.verifyUrl) resp.devVerifyUrl = emailResult.verifyUrl;
@@ -406,6 +445,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const profile = await storage.getProfileByUserId(user.id);
       (req.session as any).userId = user.id;
       (req.session as any).role = user.role;
+      (req.session as any).subscriptionTier = user.subscriptionTier ?? "GZLurker";
       // If "Remember me" checked, persist the session for 30 days; otherwise it expires when the browser closes
       if (rememberMe) {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
@@ -790,6 +830,123 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       storage.getMarketerAudience(userId),
     ]);
     return res.json({ count, members });
+  });
+
+  // === GIGNESS CARDS ===
+
+  // Public Rolodex feed — filtered by ageBracket, gender, intent
+  app.get("/api/gigness-cards", async (req, res) => {
+    const { ageBracket, gender, intent } = req.query as Record<string, string>;
+    const cards = await storage.getPublicGignessCards({
+      ageBracket: ageBracket || undefined,
+      gender: gender || undefined,
+      intent: intent || undefined,
+    });
+    return res.json(cards);
+  });
+
+  // Own card (auth)
+  app.get("/api/gigness-cards/mine", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const card = await storage.getGignessCardByUserId(userId);
+    return res.json(card ?? null);
+  });
+
+  // QR Master Card lookup by UUID (public)
+  app.get("/api/gigness-cards/qr/:uuid", async (req, res) => {
+    const card = await storage.getGignessCardByQrUuid(req.params.uuid);
+    if (!card) return res.status(404).json({ message: "Card not found" });
+    return res.json(card);
+  });
+
+  // Create / update own card (auth)
+  app.post("/api/gigness-cards", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const schema = z.object({
+      slogan: z.string().max(120).optional(),
+      profilePic: z.string().url().nullable().optional(),
+      gallery: z.array(z.string().url()).max(6).optional(),
+      isPublic: z.boolean().optional(),
+      ageBracket: z.enum(["18-25", "25-40", "40+"]).nullable().optional(),
+      gender: z.enum(["Male", "Female", "Other"]).nullable().optional(),
+      intent: z.enum(["marketing", "social", "activity"]).nullable().optional(),
+    });
+    try {
+      const data = schema.parse(req.body);
+      const card = await storage.upsertGignessCard(userId, data);
+      return res.json(card);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Engage (requires GZ2+) — increments engagement count
+  app.post("/api/gigness-cards/:id/engage", async (req, res) => {
+    if (!requireGZ2(req, res)) return;
+    const cardId = parseInt(req.params.id);
+    if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
+    await storage.incrementGignessEngagement(cardId);
+    return res.json({ success: true });
+  });
+
+  // Send message or emoji (requires GZ2+) with GZ-Bot scrub
+  app.post("/api/gigness-cards/:id/message", async (req, res) => {
+    if (!requireGZ2(req, res)) return;
+    const fromUserId = (req.session as any).userId;
+    const cardId = parseInt(req.params.id);
+    if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
+
+    const schema = z.object({
+      messageText: z.string().max(500).optional().nullable(),
+      emojiReaction: z.string().max(8).optional().nullable(),
+    });
+    try {
+      const { messageText, emojiReaction } = schema.parse(req.body);
+      if (!messageText && !emojiReaction) return res.status(400).json({ message: "Provide a message or emoji reaction." });
+
+      // GZ-Bot scrub on text messages
+      let isClean = true;
+      if (messageText) {
+        const scrub = await gzBotScrub(messageText);
+        if (!scrub.clean) {
+          return res.status(400).json({ message: "Hey! GeeZee stays PG. Clean up your pitch to engage with this card." });
+        }
+      }
+
+      // Find the card owner
+      const targetCard = await storage.getGignessCardById(cardId);
+      if (!targetCard) return res.status(404).json({ message: "Card not found" });
+
+      const msg = await storage.createCardMessage({
+        fromUserId,
+        toUserId: targetCard.userId,
+        gignessCardId: cardId,
+        messageText: messageText ?? null,
+        emojiReaction: emojiReaction ?? null,
+        isClean,
+      });
+      await storage.incrementGignessEngagement(cardId);
+      // Real-time delivery via Socket.io
+      try {
+        getIO().to(`user:${targetCard.userId}`).emit("GZ_MESSAGE", { from: fromUserId, cardId, emojiReaction, preview: messageText?.slice(0, 60) });
+      } catch (_) {}
+      return res.status(201).json({ success: true, messageId: msg.id });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // GZ Inbox (auth)
+  app.get("/api/gigness-cards/inbox", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const messages = await storage.getCardMessages(userId);
+    return res.json(messages);
   });
 
   // === LIVE SESSIONS ===
@@ -1221,6 +1378,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const profile = await storage.editUserProfile(id, { displayName, bio, avatarUrl, contactEmail, location, primaryCategory, username });
     await storage.createAuditLog({ actorUserId, actionType: "USER_PROFILE_EDIT", targetType: "USER", targetId: id, usedOverride: false });
     return res.json(profile ?? { success: true });
+  });
+
+  // Admin: manually set subscription tier (Phase D → Stripe; for now admin-only toggle)
+  app.patch("/api/admin/users/:id/subscription-tier", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { tier } = req.body;
+    const VALID_TIERS = ["GZLurker", "GZ2", "GZ_PLUS", "GZ_PRO"];
+    if (!VALID_TIERS.includes(tier)) return res.status(400).json({ message: "Invalid tier. Must be one of: " + VALID_TIERS.join(", ") });
+    await storage.updateSubscriptionTier(id, tier);
+    const actorUserId = (req.session as any).userId;
+    await storage.createAuditLog({ actorUserId, actionType: "SUBSCRIPTION_TIER_CHANGE", targetType: "USER", targetId: id, usedOverride: false });
+    return res.json({ success: true, userId: id, tier });
   });
 
   // === SUPER ADMIN: AUDIT LOG ===
