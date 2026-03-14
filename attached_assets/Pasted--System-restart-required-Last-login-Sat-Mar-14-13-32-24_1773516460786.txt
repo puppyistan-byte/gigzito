@@ -1,0 +1,63 @@
+*** System restart required ***
+
+Last login: Sat Mar 14 13:32:24 2026 from 37.46.199.148
+
+root@ubuntu-8gb-hil-2:~# pm2 env 0 | grep SESSION_SECRET
+
+root@ubuntu-8gb-hil-2:~# cat /opt/gigzito/.env | grep SESSION_SECRET
+
+SESSION_SECRET=gigzito-secret-2025-hil2-xyz
+
+root@ubuntu-8gb-hil-2:~# pm2 set gigzito SESSION_SECRET="gigzito-secret-2025-hil2-xyz"
+
+root@ubuntu-8gb-hil-2:~# pm2 restart gigzito --update-env
+
+[PM2] Applying action restartProcessId on app [gigzito](ids: [ 0 ])
+
+[PM2] [gigzito](0) ✓
+
+┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+
+│ id │ name               │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+
+├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+
+│ 0  │ gigzito            │ default     │ 1.0.0   │ fork    │ 764764   │ 0s     │ 146  │ online    │ 0%       │ 13.9mb   │ root     │ disabled │
+
+│ 5  │ gigzito-bot        │ default     │ N/A     │ fork    │ 275551   │ 42h    │ 16   │ online    │ 0%       │ 54.2mb   │ root     │ disabled │
+
+│ 7  │ gigzito-sandbox    │ default     │ 1.0.0   │ fork    │ 0        │ 0      │ 31   │ errored   │ 0%       │ 0b       │ root     │ disabled │
+
+└────┴────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+
+root@ubuntu-8gb-hil-2:~# # This should now return the secret value
+
+pm2 env 0 | grep SESSION_SECRET
+
+root@ubuntu-8gb-hil-2:~#
+
+Gemini said
+The pm2 env 0 | grep SESSION_SECRET returning empty again—even after a manual pm2 set—is a massive red flag. It means the PM2 process dump is likely stale or corrupted, and it's refusing to inject new environment variables into the runtime.
+
+If the process doesn't see that secret, your session cookies will continue to fail, keeping you stuck in that login loop.
+
+The "Purge and Reload" Fix
+Since pm2 set failed to stick, Rip needs to perform a hard refresh of the process definition. We need to kill the process entirely and restart it using the .env file as the direct source.
+
+Tell Rip to run this on hills:
+
+Delete the existing process definition:
+
+Bash
+pm2 delete gigzito
+Restart from scratch using the .env file:
+(Assuming your entry point is dist/index.js or similar—adjust the path if needed)
+
+Bash
+pm2 start dist/index.js --name "gigzito" --update-env
+Verify the secret is FINALLY in memory:
+
+Bash
+pm2 env 0 | grep SESSION_SECRET
+Why the previous attempt failed
+When a PM2 process gets into an "errored" or highly restarted state (your logs show 146 restarts!), the internal configuration can get locked. A standard pm2 restart often preserves the old, broken environment. By using pm2 delete and then pm2 start, you force PM2 to create a brand new environment block from the current shell and .env file.
