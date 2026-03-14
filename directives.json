@@ -1,0 +1,21 @@
+{
+  "nextId": 2,
+  "directives": [
+    {
+      "id": 1,
+      "text": "Have Ted complete a full styling assessment of the Gigzito frontend using the current Replit implementation as the source of truth.",
+      "owner": "Max",
+      "delegate": "Development Lead",
+      "priority": "high",
+      "status": "in_progress",
+      "createdAt": "2026-03-11T14:29:40.008Z",
+      "updatedAt": "2026-03-11T14:36:35.629Z",
+      "createdBy": {
+        "id": 1753989947,
+        "username": "Benjamin491",
+        "firstName": "Brandon222",
+        "lastName": ""
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+opencv-python-headless
+tensorflow-cpu==2.15.0
+tensorflow-hub==0.7.0
+nsfw-detector==1.1.1

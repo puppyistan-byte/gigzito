@@ -487,6 +487,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/upload/image", upload.single("file"), async (req, res) => {
     if (!requireAuth(req, res)) return;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    try { 
+      const path = require("path"); 
+      const axios = require("axios"); 
+      const fullPath = path.join(process.cwd(), "uploads", req.file.filename); 
+      const scan = await axios.post("http://localhost:8000/scan", { file_path: fullPath }); 
+      if (scan.data.scores.porn > 0.8 || scan.data.scores.hentai > 0.8) { 
+        const fs = require("fs"); 
+        if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath); 
+        return res.status(400).json({ message: "Content policy violation: Image rejected." }); 
+      } 
+    } catch (e) { console.log("Bif Web-Check bypassed or failed:", e.message); }
     const url = `/uploads/${req.file.filename}`;
     return res.json({ url });
   });
