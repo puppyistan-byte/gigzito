@@ -1,0 +1,58 @@
+## The Gigness Card: Technical Spec
+### 1. The Visual Profile (The "Rolodex" View)
+The card is a single, high-impact surface. No flipping required for the initial browse.
+
+Visuals: A sharp Profile Pic + the User’s Slogan (e.g., "Looking for a Marketing Collab").
+
+The Engage Button: This is the trigger.
+
+GZLurkers: Clicking this pops the $2/mo GZ2 upgrade modal.
+
+GZ2 Users: Opens the Interaction Tray.
+
+### 2. The Interaction Tray (Bot-Moderated)
+When a GZ2 user hits "Engage," they get two options:
+
+Emoji Reactions: Quick-tap sentiment (🔥, 🤝, 👋).
+
+Direct Message: A text field for "The Pitch."
+
+The Switchboard Scrub: Before the message hits the recipient's inbox, the GZ-Bot runs a regex and AI filter to strip out profanity, PII (if not allowed), and non-PG content.
+
+### 3. The Digital "Master Card" (The Vault)
+While the Rolodex card is simple, the Digital Master Card (accessed via the unique QR code) holds the "trimmings":
+
+Unique QR Code: Every card has one. This is what's scanned at a physical business.
+
+The 6-Pic Lifestyle Gallery: Revealed once the user engages or views the full profile.
+
+Metrics: We track how many "Engage" clicks each card gets.
+
+## The Pricing Tier Mindset for Rip
+Rip, keep these constraints in your head while coding the GignessCard component:
+
+GZLurker: They can scroll the Rolodex and see the slogans. The "Engage" button is a Sales Lead for us—it leads to the $2/mo subscription page.
+
+GZ2 ($2/mo): They are the "Vetted" participants. They can send the emojis and messages.
+
+GZ Pro ($15/mo): Their cards are Pinned or Highlighted in the library. They get the full metrics on who is looking at their "trimmings."
+
+## Jim’s Build Plan for Rip
+We’re doing a Replace-All on the GignessLibrary.js and the MessageService.js.
+
+The "GZ-Bot" Scrub Logic:
+JavaScript
+// Rip, implement this in the Message Switchboard
+async function processMessage(messageText) {
+    const cleanText = await gzBot.scrub(messageText); // Removes non-PG content
+    if (cleanText !== messageText) {
+        // Notify sender to keep it PG
+        return { success: false, error: "Keep it PG, buddy!" };
+    }
+    return { success: true, payload: cleanText };
+}
+The Rolodex Filter Tabs:
+Tabs: [18-25] [25-40] [40+] | [Male] [Female] | [Marketing] [Social] [Activity]
+
+Final Call for Rip:
+The Gigness Card is the bridge. It looks like a business card but acts like a social engine.
