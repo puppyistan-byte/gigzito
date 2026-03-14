@@ -35,7 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -46,6 +46,15 @@ const STATUS_COLORS: Record<string, string> = {
   PAUSED:  "bg-amber-500/15 text-amber-400 border border-amber-500/25",
   REMOVED: "bg-red-500/15 text-red-400 border border-red-500/25",
   PENDING: "bg-blue-500/15 text-blue-400 border border-blue-500/25",
+};
+
+const SCAN_BADGE: Record<string, { label: string; className: string; icon: typeof Shield }> = {
+  SCANNING:       { label: "Bif Scanning",    className: "bg-blue-500/15 text-blue-400 border border-blue-500/25",   icon: Loader2 },
+  CLEAN:          { label: "Bif: Clean",       className: "bg-green-500/12 text-green-500 border border-green-500/20", icon: Shield },
+  FLAGGED:        { label: "Bif: Flagged",     className: "bg-red-500/15 text-red-400 border border-red-500/25",     icon: AlertOctagon },
+  APPEAL_PENDING: { label: "Appeal Pending",   className: "bg-amber-500/15 text-amber-400 border border-amber-500/25", icon: Clock },
+  APPEAL_DENIED:  { label: "Appeal Denied",    className: "bg-red-600/15 text-red-500 border border-red-600/25",     icon: XCircle },
+  HUMAN_REVIEW:   { label: "Human Review",     className: "bg-violet-500/15 text-violet-400 border border-violet-500/25", icon: Users },
 };
 
 const GJ_STATUS: Record<string, { label: string; color: string }> = {
@@ -428,6 +437,19 @@ function ProviderDashboardInner() {
     onError: () => toast({ title: "Error updating listing", variant: "destructive" }),
   });
 
+  const appealMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("POST", `/api/listings/${id}/appeal`, {});
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listings/mine"] });
+      toast({ title: "Appeal submitted", description: "Your appeal is under review. We'll notify you when we have a decision." });
+    },
+    onError: (err: any) => toast({ title: "Appeal failed", description: err.message, variant: "destructive" }),
+  });
+
   const handlePostVideo = () => {
     if (completion && !completion.isComplete) {
       toast({
@@ -587,9 +609,22 @@ function ProviderDashboardInner() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[listing.status]}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[listing.status]}`} data-testid={`badge-status-${listing.id}`}>
                           {listing.status}
                         </span>
+                        {(() => {
+                          const scan = listing.scanStatus as string | undefined;
+                          if (!scan || scan === "CLEAN") return null;
+                          const b = SCAN_BADGE[scan];
+                          if (!b) return null;
+                          const Icon = b.icon;
+                          return (
+                            <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${b.className}`} data-testid={`badge-scan-${listing.id}`}>
+                              <Icon className={`w-3 h-3 ${scan === "SCANNING" ? "animate-spin" : ""}`} />
+                              {b.label}
+                            </span>
+                          );
+                        })()}
                         <Badge variant="secondary" className="text-xs bg-[#1a1a1a] text-[#888] border-[#2a2a2a]">{listing.vertical}</Badge>
                       </div>
                       <p className="font-semibold text-sm text-white truncate">{listing.title}</p>
@@ -600,6 +635,30 @@ function ProviderDashboardInner() {
                           {(listing.likeCount ?? 0).toLocaleString()} {(listing.likeCount ?? 0) === 1 ? "like" : "likes"}
                         </span>
                       </p>
+                      {listing.scanStatus === "FLAGGED" && (
+                        <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-500/8 border border-red-500/20 px-2.5 py-2">
+                          <AlertOctagon className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            {listing.scanNote && <p className="text-[11px] text-red-400/90 mb-1">{listing.scanNote}</p>}
+                            <p className="text-[10px] text-red-400/60">Bif flagged this video. You can appeal if you believe this is incorrect.</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={appealMutation.isPending}
+                            onClick={() => appealMutation.mutate(listing.id)}
+                            className="h-6 px-2.5 text-[10px] font-semibold shrink-0 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
+                            data-testid={`button-appeal-${listing.id}`}
+                          >
+                            Appeal
+                          </Button>
+                        </div>
+                      )}
+                      {listing.scanStatus === "APPEAL_DENIED" && listing.scanNote && (
+                        <p className="text-[11px] text-red-500/70 mt-1.5 pl-0.5">Appeal denied: {listing.scanNote}</p>
+                      )}
+                      {listing.scanStatus === "SCANNING" && (
+                        <p className="text-[10px] text-blue-400/60 mt-1.5 pl-0.5">Bif is scanning your video for reputation issues. This usually takes under a minute.</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Link href={`/listing/${listing.id}`}>

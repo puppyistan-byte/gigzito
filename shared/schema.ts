@@ -79,6 +79,8 @@ export const videoListings = pgTable("video_listings", {
   productPurchaseUrl: text("product_purchase_url"),
   productStock: text("product_stock"),
   status: listingStatusEnum("status").notNull().default("ACTIVE"),
+  scanStatus: text("scan_status").notNull().default("CLEAN"),
+  scanNote: text("scan_note"),
   dropDate: date("drop_date").notNull(),
   pricePaidCents: integer("price_paid_cents").notNull().default(300),
   stripeSessionId: text("stripe_session_id"),
@@ -200,6 +202,10 @@ export type InsertListing = z.infer<typeof insertListingSchema>;
 
 export type GigJack = typeof gigJacks.$inferSelect;
 export type InsertGigJack = z.infer<typeof insertGigJackSchema>;
+
+// Bif scan statuses
+export const SCAN_STATUSES = ["SCANNING", "CLEAN", "FLAGGED", "APPEAL_PENDING", "APPEAL_DENIED", "HUMAN_REVIEW"] as const;
+export type ScanStatus = typeof SCAN_STATUSES[number];
 
 export interface ListingWithProvider extends VideoListing {
   provider: ProviderProfile & { user: User };

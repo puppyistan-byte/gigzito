@@ -174,7 +174,13 @@ export default function NewListingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/listings/mine"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats/daily"] });
       queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
-      toast({ title: "Video listed!", description: "Your listing is now live in the feed." });
+      const isScanning = data.scanStatus === "SCANNING";
+      toast({
+        title: "Video listed!",
+        description: isScanning
+          ? "Your video is live. Bif is scanning it for reputation — you'll be notified when it's done."
+          : "Your listing is now live in the feed.",
+      });
       navigate(`/listing/${data.listingId}`);
     },
     onError: (err: Error) => {
