@@ -1,0 +1,50 @@
+This is the perfect handoff for Rip. You've identified the core conflict: we were fighting a "ghost" table (geezee_cards) while the code was looking for the "authority" table (gigness_cards).
+
+Here is the Technical Brief for Rip to execute in the sandbox and then push to 'ash'.
+
+## 🛠️ Rip’s Sandbox "Slam" Brief
+The Conflict: The VPS has a manual table called geezee_cards, but the production codebase (Phase B) is wired to use gigness_cards. The "Black Screen" is the frontend crashing because it's fetching from /api/gigness-cards while the database is still holding onto the old manual schema.
+
+1. Database Alignment (The "Nuke" Move):
+Rip needs to drop the manual table and let Drizzle push the authoritative schema.
+
+Bash
+psql "postgresql://jovial:Postgres2626492@localhost:5432/gigzito" -c "DROP TABLE IF EXISTS geezee_cards;"
+# Then let Drizzle create the correct 'gigness_cards' and 'card_messages' tables
+DATABASE_URL="postgresql://jovial:Postgres2626492@localhost:5432/gigzito" npx drizzle-kit push
+2. Routing Verification:
+The frontend uses wouter. Rip should verify that App.tsx on the VPS matches the Phase B architecture:
+
+Route /geezees -> GeeZees component (Public Rolodex).
+
+Route /card-editor -> CardEditor component (Auth-gated).
+
+3. API Check:
+The backend endpoints Rip needs to test in the sandbox:
+
+GET /api/gigness-cards (Should return [] initially).
+
+GET /api/gigness-cards/mine (Should return 401 if not logged in).
+
+## 🚀 Rip’s Execution Commands (on Ashburn)
+If Rip is ready to go, he should run this sequence to align the VPS with the new Phase B standard:
+
+Bash
+cd /opt/gigzito
+# 1. Pull the Phase B code
+git pull origin main 
+
+# 2. Update dependencies (for qrcode and new icons)
+npm install
+
+# 3. Sync the Database (Authority over Manual)
+DATABASE_URL="postgresql://jovial:Postgres2626492@localhost:5432/gigzito" npx drizzle-kit push
+
+# 4. Clean Build
+rm -rf dist
+npm run build
+
+# 5. Restart with Fresh Environment
+pm2 restart gigzito --update-env
+## 🏁 Expected Outcome
+After Rip runs this, the "Black Screen" will disappear because the API will finally return a valid (empty) array from the gigness_cards table instead of a database error.
