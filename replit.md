@@ -155,6 +155,43 @@ providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, desc
 - Mini player: embedded iframe (muted autoplay) with mute/unmute button; clicking navigates to full /live/:id view
 - Supports: music performances, product demos, influencer streams, coaching, corporate, flash sales, general
 
+## Gigness Card System (Phase A + B complete)
+
+### Subscription Tiers
+| Tier | Level | Abilities |
+|------|-------|-----------|
+| GZLurker | 0 | Create a card, view Rolodex (can't engage) |
+| GZ2 | 1 | Engage cards, send GZ-Bot-scrubbed messages |
+| GZ_PLUS | 2 | Priority Rolodex placement |
+| GZ_PRO | 3 | Featured VIP row (Phase C) |
+
+- Stored in `users.subscription_tier` column (enum); loaded into session on login as `req.session.subscriptionTier`
+- Admin toggle: `PATCH /api/admin/users/:id/subscription-tier` (ADMIN+ required)
+
+### Database Tables
+- `gigness_cards` — one per user; `qr_uuid` (gen_random_uuid), slogan, profilePic, gallery TEXT[], ageBracket, gender, intent, engagementCount, isPublic
+- `card_messages` — fromUserId, toUserId, gignessCardId, messageText, emojiReaction, isClean (GZ-Bot flag)
+
+### API Endpoints
+| Method | Route | Auth |
+|--------|-------|------|
+| GET | /api/gigness-cards | Public (optional filters: ageBracket, gender, intent) |
+| GET | /api/gigness-cards/mine | Auth |
+| GET | /api/gigness-cards/qr/:uuid | Public |
+| POST | /api/gigness-cards | Auth — upsert own card |
+| POST | /api/gigness-cards/:id/engage | GZ2+ |
+| POST | /api/gigness-cards/:id/message | GZ2+ + GZ-Bot scrub |
+| GET | /api/gigness-cards/inbox | Auth |
+
+### GZ-Bot Content Moderation
+- Phase 1: regex naughty-word list (active now)
+- Phase 2: OpenAI Moderation API auto-activates when `OPENAI_API_KEY` env var is set
+
+### Frontend Pages
+- `/geezees` — Public Rolodex with filter chips (age, gender, intent), engagement button, QR icon, tier badge
+- `/card-editor` — Auth-gated editor: slogan, profile photo, 6-photo gallery, isPublic toggle, metadata pickers, live card preview, QR code display
+- Both routes registered in `App.tsx`; "GeeZees Rolodex" + "My GeeZee Card" added to navbar dropdown
+
 ## Business Rules
 
 1. Daily cap: 100 ACTIVE listings per calendar day

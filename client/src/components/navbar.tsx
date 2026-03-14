@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Megaphone } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -104,6 +104,24 @@ export function Navbar() {
           >
             <Settings className="h-4 w-4" />
             Profile Settings
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-purple-500/10 focus:bg-purple-500/10 text-purple-300"
+            onClick={() => navigate("/geezees")}
+            data-testid="menu-item-geezees"
+          >
+            <Sparkles className="h-4 w-4" />
+            GeeZees Rolodex
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-purple-500/10 focus:bg-purple-500/10 text-purple-300"
+            onClick={() => navigate("/card-editor")}
+            data-testid="menu-item-card-editor"
+          >
+            <CreditCard className="h-4 w-4" />
+            My GeeZee Card
           </DropdownMenuItem>
 
           {isAdmin && (

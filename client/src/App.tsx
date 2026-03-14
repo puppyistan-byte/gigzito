@@ -26,6 +26,8 @@ import LeaderboardPage from "@/pages/leaderboard";
 import VerifyEmailPage from "@/pages/verify-email";
 import LogoutPage from "@/pages/logout";
 import AdvertisePage from "@/pages/advertise";
+import GeezeesPage from "@/pages/geezees";
+import CardEditorPage from "@/pages/card-editor";
 
 function Router() {
   return (
@@ -50,6 +52,8 @@ function Router() {
       <Route path="/logout" component={LogoutPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/advertise" component={AdvertisePage} />
+      <Route path="/geezees" component={GeezeesPage} />
+      <Route path="/card-editor" component={CardEditorPage} />
       <Route component={NotFound} />
     </Switch>
   );
