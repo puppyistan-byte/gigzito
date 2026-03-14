@@ -1,485 +1,297 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Download, Package, Loader2, RotateCcw, MapPin, Truck, Clock } from "lucide-react";
+import { Sparkles, CreditCard, Users, Edit3, Printer, QrCode, Lock } from "lucide-react";
 import type { ProviderProfile } from "@shared/schema";
-import gigzitoLogoPath from "@assets/reoverblack_1772857110054.jpg";
-
-const CARD_W = 350;
-const CARD_H = 200;
-
-const QUANTITIES = [50, 100, 250, 500];
 
 interface GigCardSectionProps {
   profile: ProviderProfile;
 }
 
-function CardFront({ qrDataUrl, size = CARD_W }: { qrDataUrl: string | null; size?: number }) {
-  const h = Math.round(size * (CARD_H / CARD_W));
-  const scale = size / CARD_W;
-  const qrSize = 108 * scale;
-  const qrRight = 14 * scale;
-  const qrTop = 16 * scale;
-  return (
-    <div
-      style={{
-        width: size,
-        height: h,
-        background: "#000",
-        borderRadius: 8 * scale,
-        position: "relative",
-        overflow: "hidden",
-        userSelect: "none",
-        flexShrink: 0,
-      }}
-      data-testid="gig-card-front"
-    >
-      {/* Official logo image – fills the left portion; black bg blends naturally */}
-      <img
-        src={gigzitoLogoPath}
-        alt="Gigzito"
-        style={{
-          position: "absolute",
-          left: -10 * scale,
-          top: "50%",
-          transform: "translateY(-52%)",
-          width: 220 * scale,
-          height: "auto",
-          objectFit: "contain",
-          pointerEvents: "none",
-        }}
-      />
+const TIER_COLORS: Record<string, string> = {
+  GZLurker: "#555",
+  GZ2: "#a78bfa",
+  GZ_PLUS: "#f59e0b",
+  GZ_PRO: "#10b981",
+};
 
-      {/* QR code - right column */}
-      <div
-        style={{
-          position: "absolute",
-          right: qrRight,
-          top: qrTop,
-          width: qrSize,
-          height: qrSize,
-          background: "#fff",
-          borderRadius: 4 * scale,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-        }}
-      >
-        {qrDataUrl ? (
-          <img src={qrDataUrl} alt="QR Code" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-        ) : (
-          <Loader2 size={20 * scale} style={{ color: "#999", animation: "spin 1s linear infinite" }} />
+const TIER_LABELS: Record<string, string> = {
+  GZLurker: "GZ Lurker",
+  GZ2: "GZ2",
+  GZ_PLUS: "GZ Plus",
+  GZ_PRO: "GZ Pro",
+};
+
+function GeeZeeCardPreview({ card }: { card: any }) {
+  const tier = card?.userId ? "GZ2" : "GZLurker";
+  const tierColor = TIER_COLORS[tier] ?? "#555";
+  const qrUrl = card?.qrUuid
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/geezees?card=${card.qrUuid}`)}`
+    : null;
+
+  return (
+    <div style={{
+      width: "100%",
+      background: "linear-gradient(135deg, #0d0d14 0%, #12101a 100%)",
+      borderRadius: 12,
+      border: "1px solid rgba(139,92,246,0.2)",
+      padding: "16px",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 3,
+        background: "linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed)",
+      }} />
+
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 26,
+          background: card?.profilePic ? "transparent" : "rgba(139,92,246,0.2)",
+          border: "2px solid rgba(139,92,246,0.4)",
+          overflow: "hidden", flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {card?.profilePic
+            ? <img src={card.profilePic} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <Sparkles style={{ width: 22, height: 22, color: "#a78bfa" }} />
+          }
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: tierColor,
+              border: `1px solid ${tierColor}40`,
+              borderRadius: 4, padding: "1px 6px",
+            }}>
+              {TIER_LABELS[tier] ?? tier}
+            </span>
+            {card?.intent && (
+              <span style={{
+                fontSize: 10, fontWeight: 600, color: "#888",
+                background: "#1a1a1a", borderRadius: 4, padding: "1px 6px",
+                textTransform: "capitalize",
+              }}>
+                {card.intent}
+              </span>
+            )}
+          </div>
+
+          <p style={{
+            fontSize: 12, color: "#ccc", fontStyle: card?.slogan ? "normal" : "italic",
+            lineHeight: 1.4, margin: 0,
+          }}>
+            {card?.slogan || "No slogan yet — add yours in the card editor"}
+          </p>
+
+          {(card?.ageBracket || card?.gender) && (
+            <p style={{ fontSize: 10, color: "#555", marginTop: 4, margin: "4px 0 0" }}>
+              {[card.ageBracket, card.gender].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
+
+        {qrUrl && (
+          <div style={{
+            width: 48, height: 48, background: "#fff",
+            borderRadius: 6, overflow: "hidden", flexShrink: 0,
+          }}>
+            <img src={qrUrl} alt="QR" style={{ width: "100%", height: "100%" }} />
+          </div>
         )}
       </div>
 
-      {/* Scan text */}
-      <div style={{
-        position: "absolute",
-        right: qrRight,
-        top: qrTop + qrSize + 4 * scale,
-        width: qrSize,
-        textAlign: "center",
-        fontSize: 7 * scale,
-        color: "rgba(255,255,255,0.35)",
-        letterSpacing: 0.3 * scale,
-        fontFamily: "Arial, sans-serif",
-      }}>
-        Scan to unlock my gigs
-      </div>
-
-      {/* Bottom red bar */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 24 * scale, background: "#ff2b2b", display: "flex", alignItems: "center", paddingLeft: 14 * scale }}>
-        <span style={{ fontSize: 7 * scale, color: "#fff", fontWeight: 700, letterSpacing: 1.2 * scale, textTransform: "uppercase", fontFamily: "Arial, sans-serif" }}>
-          gigzito.com
-        </span>
-      </div>
+      {card?.gallery?.filter(Boolean).length > 0 && (
+        <div style={{ display: "flex", gap: 4, marginTop: 12 }}>
+          {card.gallery.filter(Boolean).slice(0, 4).map((url: string, i: number) => (
+            <div key={i} style={{
+              flex: 1, aspectRatio: "1", borderRadius: 6,
+              overflow: "hidden", background: "#1a1a1a",
+            }}>
+              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function CardBack({ profile, size = CARD_W }: { profile: ProviderProfile; size?: number }) {
-  const h = Math.round(size * (CARD_H / CARD_W));
-  const scale = size / CARD_W;
-  const profileUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/provider/${profile.username ?? profile.id}`
-    : `/provider/${profile.username ?? profile.id}`;
-
-  const roleLabel = profile.primaryCategory
-    ? profile.primaryCategory.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Creator";
-
+function PrintVistaTab() {
   return (
-    <div
-      style={{
-        width: size,
-        height: h,
-        background: "#0a0a0a",
-        borderRadius: 8 * scale,
-        position: "relative",
-        overflow: "hidden",
-        fontFamily: "'Arial', sans-serif",
-        userSelect: "none",
-        flexShrink: 0,
-      }}
-      data-testid="gig-card-back"
-    >
-      {/* Red left border */}
-      <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 4 * scale, background: "#ff2b2b" }} />
-
-      {/* Red top-right corner decorative diamond */}
-      <div style={{
-        position: "absolute",
-        top: -24 * scale,
-        right: -24 * scale,
-        width: 80 * scale,
-        height: 80 * scale,
-        background: "rgba(255,43,43,0.12)",
-        transform: "rotate(45deg)",
-      }} />
-
-      {/* Content centered */}
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5 * scale }}>
-        <div style={{ fontSize: 19 * scale, fontWeight: 800, color: "#fff", letterSpacing: -0.5 * scale, textAlign: "center", paddingLeft: 8 * scale }}>
-          {profile.displayName || "Creator"}
-        </div>
-        <div style={{ fontSize: 9 * scale, color: "#ff2b2b", fontWeight: 700, letterSpacing: 1.5 * scale, textTransform: "uppercase", textAlign: "center" }}>
-          {roleLabel} · Gigzito
-        </div>
-        {profile.contactEmail && (
-          <div style={{ fontSize: 7.5 * scale, color: "rgba(255,255,255,0.35)", textAlign: "center", marginTop: 4 * scale }}>
-            {profile.contactEmail}
-          </div>
-        )}
-        <div style={{ fontSize: 7 * scale, color: "rgba(255,43,43,0.6)", textAlign: "center", marginTop: 2 * scale, wordBreak: "break-all", paddingLeft: 8 * scale }}>
-          {profileUrl}
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 22 * scale, background: "rgba(255,43,43,0.08)", borderTop: `1px solid rgba(255,43,43,0.2)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 6.5 * scale, color: "rgba(255,255,255,0.2)", letterSpacing: 2 * scale, textTransform: "uppercase" }}>
-          Getcho Gig On!
+    <div style={{
+      background: "#0b0b0b", borderRadius: 12,
+      border: "1px solid #1e1e1e", padding: 16,
+      display: "flex", flexDirection: "column", gap: 12,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Printer style={{ width: 16, height: 16, color: "#555" }} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: "#888" }}>
+          Physical GeeZee Cards via PrintVista
+        </span>
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: "#f59e0b",
+          background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)",
+          borderRadius: 4, padding: "2px 6px", marginLeft: "auto",
+        }}>
+          COMING SOON
         </span>
       </div>
+
+      <div style={{
+        background: "#0d0d0d", borderRadius: 8,
+        border: "1px dashed #2a2a2a",
+        padding: 20, textAlign: "center",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+      }}>
+        <QrCode style={{ width: 32, height: 32, color: "#2a2a2a" }} />
+        <p style={{ fontSize: 11, color: "#444", margin: 0, lineHeight: 1.5 }}>
+          Print premium business-style GeeZee Cards with your QR code, photo, slogan, and tier badge.
+          Fulfilled via PrintVista — 3.5 × 2 in, double-sided, shipped to your door.
+        </p>
+        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+          {["50 cards", "100 cards", "250 cards"].map((q) => (
+            <span key={q} style={{
+              fontSize: 10, color: "#333",
+              border: "1px solid #222", borderRadius: 4, padding: "3px 8px",
+            }}>
+              {q}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        disabled
+        className="w-full h-9 text-xs font-bold rounded-xl cursor-not-allowed"
+        style={{ background: "rgba(245,158,11,0.08)", color: "#6b5a2a", border: "1px solid rgba(245,158,11,0.15)" }}
+        data-testid="button-printvista-order"
+      >
+        <Printer style={{ width: 13, height: 13, marginRight: 6 }} />
+        Order Physical Cards
+        <span style={{
+          marginLeft: 8, fontSize: 9, background: "rgba(245,158,11,0.2)",
+          color: "#f59e0b", padding: "2px 5px", borderRadius: 3,
+        }}>
+          Soon
+        </span>
+      </Button>
     </div>
   );
 }
 
 export function GigCardSection({ profile }: GigCardSectionProps) {
-  const { toast } = useToast();
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [face, setFace] = useState<"front" | "back">("front");
-  const [showOrder, setShowOrder] = useState(false);
-  const [quantity, setQuantity] = useState(100);
-  const [generating, setGenerating] = useState(false);
-  const [orderForm, setOrderForm] = useState({ name: "", address: "", city: "", zip: "", country: "" });
+  const [tab, setTab] = useState<"digital" | "print">("digital");
+  const [, navigate] = useLocation();
 
-  const profileUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/provider/${profile.username ?? profile.id}`
-    : `/provider/${profile.username ?? profile.id}`;
+  const { data: card } = useQuery<any>({
+    queryKey: ["/api/gigness-cards/mine"],
+  });
 
-  useEffect(() => {
-    import("qrcode").then((mod) => {
-      const QRCode = mod.default ?? mod;
-      QRCode.toDataURL(profileUrl, {
-        width: 400,
-        margin: 1,
-        color: { dark: "#000000", light: "#ffffff" },
-        errorCorrectionLevel: "M",
-      }).then((url: string) => setQrDataUrl(url));
-    });
-  }, [profileUrl]);
-
-  const handleDownloadPDF = async () => {
-    if (!qrDataUrl) {
-      toast({ title: "QR code still loading", description: "Please wait a moment and try again.", variant: "destructive" });
-      return;
-    }
-    setGenerating(true);
-    try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ orientation: "landscape", unit: "in", format: [3.5, 2] });
-
-      // Fetch logo as base64 data URL for PDF embedding
-      const logoDataUrl = await fetch(gigzitoLogoPath)
-        .then((r) => r.blob())
-        .then((blob) => new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        }));
-
-      const roleLabel = profile.primaryCategory
-        ? profile.primaryCategory.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-        : "Creator";
-
-      // ── PAGE 1: FRONT ──
-      doc.setFillColor("#000000");
-      doc.rect(0, 0, 3.5, 2, "F");
-
-      // Official Gigzito logo image (left column, black bg blends)
-      // Logo native ratio: 1022×563 ≈ 1.815:1
-      // Target: 1.9" wide × 1.05" tall, nudged left so scripts don't clip
-      doc.addImage(logoDataUrl, "JPEG", -0.08, 0.35, 1.9, 1.05);
-
-      // QR code (right side)
-      doc.addImage(qrDataUrl, "PNG", 2.26, 0.17, 1.06, 1.06);
-
-      // "Scan to unlock my gigs"
-      doc.setFontSize(6);
-      doc.setTextColor(100, 100, 100);
-      doc.text("Scan to unlock my gigs", 2.79, 1.33, { align: "center" });
-
-      // Red bottom bar
-      doc.setFillColor("#ff2b2b");
-      doc.rect(0, 1.73, 3.5, 0.27, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
-      doc.setTextColor("#ffffff");
-      doc.text("GIGZITO.COM", 0.18, 1.9);
-
-      // ── PAGE 2: BACK ──
-      doc.addPage([3.5, 2], "landscape");
-
-      doc.setFillColor("#0a0a0a");
-      doc.rect(0, 0, 3.5, 2, "F");
-
-      // Red left border
-      doc.setFillColor("#ff2b2b");
-      doc.rect(0, 0, 0.05, 2, "F");
-
-      // Creator name
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.setTextColor("#ffffff");
-      doc.text(profile.displayName || "Creator", 1.75, 0.75, { align: "center" });
-
-      // Role
-      doc.setFontSize(8.5);
-      doc.setTextColor("#ff2b2b");
-      doc.text(`${roleLabel.toUpperCase()} · GIGZITO`, 1.75, 0.96, { align: "center" });
-
-      // Email
-      if (profile.contactEmail) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7);
-        doc.setTextColor(90, 90, 90);
-        doc.text(profile.contactEmail, 1.75, 1.13, { align: "center" });
-      }
-
-      // Profile URL
-      doc.setFontSize(6.5);
-      doc.setTextColor(120, 40, 40);
-      doc.text(profileUrl, 1.75, 1.32, { align: "center" });
-
-      // Bottom bar
-      doc.setFillColor(20, 5, 5);
-      doc.rect(0, 1.77, 3.5, 0.23, "F");
-      doc.setFontSize(5.5);
-      doc.setTextColor(50, 50, 50);
-      doc.text("GETCHO GIG ON!", 1.75, 1.92, { align: "center" });
-
-      doc.save(`gigzito-card-${profile.username ?? profile.id}.pdf`);
-      toast({ title: "Card downloaded!", description: "Print-ready PDF saved — 3.5 × 2 inches." });
-    } catch (err) {
-      console.error(err);
-      toast({ title: "PDF generation failed", variant: "destructive" });
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const pricePerCard = quantity >= 500 ? 0.12 : quantity >= 250 ? 0.15 : quantity >= 100 ? 0.18 : 0.22;
-  const subtotal = (quantity * pricePerCard + 4.99).toFixed(2);
+  const hasCard = card && (card.slogan || card.profilePic);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white" data-testid="text-gig-cards-title">Gig Cards</h2>
-        <span className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">Business Card Generator</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Sparkles style={{ width: 14, height: 14, color: "#a78bfa" }} />
+          <h2 className="text-sm font-semibold text-white" data-testid="text-gig-cards-title">
+            GeeZee Card
+          </h2>
+        </div>
+        <span className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">
+          Social Identity
+        </span>
       </div>
 
-      {/* Card Preview */}
-      <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
-
-        {/* Toggle front/back */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFace("front")}
-            className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${face === "front" ? "bg-[#ff2b2b] text-white" : "bg-[#1a1a1a] text-[#666] hover:text-white"}`}
-            data-testid="button-card-front"
-          >
-            Front
-          </button>
-          <button
-            onClick={() => setFace("back")}
-            className={`text-xs px-3 py-1 rounded-full font-semibold transition-colors ${face === "back" ? "bg-[#ff2b2b] text-white" : "bg-[#1a1a1a] text-[#666] hover:text-white"}`}
-            data-testid="button-card-back"
-          >
-            Back
-          </button>
-          <button
-            onClick={() => setFace(face === "front" ? "back" : "front")}
-            className="ml-auto text-[#555] hover:text-white transition-colors"
-            title="Flip card"
-            data-testid="button-flip-card"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {/* Card visual */}
-        <div className="flex justify-center">
-          {face === "front"
-            ? <CardFront qrDataUrl={qrDataUrl} />
-            : <CardBack profile={profile} />
-          }
-        </div>
-
-        {/* Actions */}
-        <div className="grid grid-cols-3 gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setFace(face === "front" ? "back" : "front")}
-            className="text-xs text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg h-8"
-            data-testid="button-generate-card"
-          >
-            <CreditCard className="h-3 w-3 mr-1.5" />
-            Generate
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleDownloadPDF}
-            disabled={generating || !qrDataUrl}
-            className="text-xs text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg h-8"
-            data-testid="button-download-pdf"
-          >
-            {generating
-              ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-              : <Download className="h-3 w-3 mr-1.5" />
-            }
-            Download PDF
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowOrder(!showOrder)}
-            className="text-xs text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg h-8"
-            data-testid="button-order-cards"
-          >
-            <Package className="h-3 w-3 mr-1.5" />
-            Order Cards
-          </Button>
-        </div>
-
-        <p className="text-[10px] text-[#444] text-center">
-          Print-ready PDF · 3.5 × 2 in · 300 DPI · Double-sided
-        </p>
+      <div style={{ display: "flex", gap: 6, marginBottom: 2 }}>
+        <button
+          onClick={() => setTab("digital")}
+          style={{
+            fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 999,
+            background: tab === "digital" ? "rgba(139,92,246,0.15)" : "#0d0d0d",
+            color: tab === "digital" ? "#a78bfa" : "#555",
+            border: tab === "digital" ? "1px solid rgba(139,92,246,0.35)" : "1px solid #1e1e1e",
+            cursor: "pointer",
+          }}
+          data-testid="tab-geezee-digital"
+        >
+          <Sparkles style={{ width: 10, height: 10, marginRight: 4, display: "inline" }} />
+          Digital Card
+        </button>
+        <button
+          onClick={() => setTab("print")}
+          style={{
+            fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 999,
+            background: tab === "print" ? "rgba(245,158,11,0.1)" : "#0d0d0d",
+            color: tab === "print" ? "#f59e0b" : "#555",
+            border: tab === "print" ? "1px solid rgba(245,158,11,0.25)" : "1px solid #1e1e1e",
+            cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 4,
+          }}
+          data-testid="tab-geezee-print"
+        >
+          <Printer style={{ width: 10, height: 10 }} />
+          Print Vista
+          <span style={{
+            fontSize: 8, background: "rgba(245,158,11,0.2)",
+            color: "#f59e0b", padding: "1px 4px", borderRadius: 3,
+          }}>
+            Soon
+          </span>
+        </button>
       </div>
 
-      {/* Order System */}
-      {showOrder && (
-        <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4" data-testid="section-order-cards">
+      {tab === "digital" && (
+        <div className="space-y-3">
+          <GeeZeeCardPreview card={card} />
 
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Order Printed Cards</h3>
-            <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-semibold">
-              Coming Soon
-            </span>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Button
+              size="sm"
+              onClick={() => navigate("/card-editor")}
+              className="h-9 text-xs font-bold rounded-xl"
+              style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}
+              data-testid="button-edit-geezee-card"
+            >
+              <Edit3 style={{ width: 12, height: 12, marginRight: 5 }} />
+              {hasCard ? "Edit My Card" : "Create My Card"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate("/geezees")}
+              variant="ghost"
+              className="h-9 text-xs font-bold rounded-xl border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444]"
+              data-testid="button-view-rolodex"
+            >
+              <Users style={{ width: 12, height: 12, marginRight: 5 }} />
+              View Rolodex
+            </Button>
           </div>
 
-          {/* Card mini preview */}
-          <div className="flex gap-3 items-center overflow-hidden">
-            <CardFront qrDataUrl={qrDataUrl} size={140} />
-            <CardBack profile={profile} size={140} />
-          </div>
-
-          {/* Quantity selector */}
-          <div className="space-y-2">
-            <Label className="text-[#aaa] text-xs">Quantity</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {QUANTITIES.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => setQuantity(q)}
-                  className={`rounded-lg border py-2 text-xs font-bold transition-colors ${quantity === q ? "border-[#ff2b2b] bg-[#ff2b2b]/10 text-[#ff2b2b]" : "border-[#2a2a2a] text-[#666] hover:text-white hover:border-[#444]"}`}
-                  data-testid={`button-qty-${q}`}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-            <p className="text-[10px] text-[#555]">
-              ${pricePerCard.toFixed(2)}/card · Est. total: <strong className="text-[#ff2b2b]">${subtotal}</strong> (incl. shipping)
+          {!hasCard && (
+            <p style={{ fontSize: 10, color: "#444", textAlign: "center", margin: 0 }}>
+              Your GeeZee Card is your social identity on the platform — create it to appear in the Rolodex and connect with others.
             </p>
-          </div>
+          )}
 
-          {/* Shipping address */}
-          <div className="space-y-3">
-            <Label className="text-[#aaa] text-xs flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> Shipping Address
-            </Label>
-            <Input
-              placeholder="Full name"
-              value={orderForm.name}
-              onChange={(e) => setOrderForm((p) => ({ ...p, name: e.target.value }))}
-              className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm h-9"
-              data-testid="input-order-name"
-            />
-            <Input
-              placeholder="Street address"
-              value={orderForm.address}
-              onChange={(e) => setOrderForm((p) => ({ ...p, address: e.target.value }))}
-              className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm h-9"
-              data-testid="input-order-address"
-            />
-            <div className="grid grid-cols-3 gap-2">
-              <Input
-                placeholder="City"
-                value={orderForm.city}
-                onChange={(e) => setOrderForm((p) => ({ ...p, city: e.target.value }))}
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm h-9 col-span-1"
-                data-testid="input-order-city"
-              />
-              <Input
-                placeholder="ZIP"
-                value={orderForm.zip}
-                onChange={(e) => setOrderForm((p) => ({ ...p, zip: e.target.value }))}
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm h-9"
-                data-testid="input-order-zip"
-              />
-              <Input
-                placeholder="Country"
-                value={orderForm.country}
-                onChange={(e) => setOrderForm((p) => ({ ...p, country: e.target.value }))}
-                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm h-9"
-                data-testid="input-order-country"
-              />
+          {card?.isPublic === false && hasCard && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6,
+              fontSize: 10, color: "#666", background: "#111",
+              borderRadius: 8, padding: "6px 10px",
+              border: "1px solid #2a2a2a",
+            }}>
+              <Lock style={{ width: 10, height: 10, color: "#444" }} />
+              Your card is set to private — toggle it public in the editor to appear in the Rolodex.
             </div>
-          </div>
-
-          {/* Checkout CTA */}
-          <Button
-            className="w-full bg-[#ff1a1a]/30 hover:bg-[#ff1a1a]/40 text-[#ff6666] font-bold rounded-xl h-10 text-sm border border-[#ff1a1a]/20 cursor-not-allowed"
-            disabled
-            data-testid="button-order-checkout"
-          >
-            <Truck className="h-4 w-4 mr-2" />
-            Proceed to Checkout
-            <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-semibold">Soon</span>
-          </Button>
-
-          <div className="flex items-center gap-2 text-[10px] text-[#444]">
-            <Clock className="h-3 w-3 shrink-0" />
-            <span>Cards printed and shipped within 5–7 business days. Fulfilled via a print partner. A small processing fee is added above printing cost.</span>
-          </div>
+          )}
         </div>
       )}
+
+      {tab === "print" && <PrintVistaTab />}
     </div>
   );
 }
