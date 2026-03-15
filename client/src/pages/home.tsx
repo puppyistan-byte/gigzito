@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
-import { CategoryCarousel } from "@/components/category-carousel";
 import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
 import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
@@ -12,7 +11,22 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye } from "lucide-react";
+import { useLocation } from "wouter";
+
+const CATEGORIES = [
+  { key: "ALL",           label: "All Videos" },
+  { key: "MUSIC_GIGS",   label: "Music Gigs" },
+  { key: "EVENTS",       label: "Events" },
+  { key: "INFLUENCERS",  label: "Influencers" },
+  { key: "MARKETING",    label: "Marketing" },
+  { key: "COURSES",      label: "Courses" },
+  { key: "PRODUCTS",     label: "Products" },
+  { key: "CRYPTO",       label: "Crypto" },
+  { key: "GIG_BLITZ",    label: "Gig Blitz" },
+  { key: "FLASH_SALE",   label: "Flash Sale" },
+  { key: "FLASH_COUPONS",label: "Flash Coupons" },
+];
 
 import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
 
@@ -29,6 +43,21 @@ export default function HomePage() {
   const [showSplash, setShowSplash] = useState(true);
   const [fadeSplash, setFadeSplash] = useState(false);
   const [showOffers, setShowOffers] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [, navigate] = useLocation();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   // Global muted state — persisted in localStorage and shared across all cards
   const [globalMuted, setGlobalMuted] = useState<boolean>(readPersistedMuted);
@@ -219,7 +248,119 @@ export default function HomePage() {
 
       <MiniLivePlayer />
 
-      <CategoryCarousel activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
+      {/* ── Hamburger menu ── */}
+      <div ref={menuRef} style={{ position: "fixed", top: 10, left: 12, zIndex: 9998 }}>
+        {/* Trigger button */}
+        <button
+          onClick={() => setMenuOpen((o) => !o)}
+          data-testid="button-hamburger-menu"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: "rgba(0,0,0,0.55)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "999px",
+            padding: "6px 12px 6px 10px",
+            cursor: "pointer",
+            color: "#fff",
+          }}
+        >
+          {menuOpen
+            ? <X style={{ width: 16, height: 16, color: "#ff2b2b" }} />
+            : <Menu style={{ width: 16, height: 16, color: "#fff" }} />
+          }
+          <span style={{ fontSize: "11px", fontWeight: 600, color: menuOpen ? "#ff2b2b" : "rgba(255,255,255,0.7)", letterSpacing: "0.02em" }}>
+            {menuOpen ? "Close" : (CATEGORIES.find(c => c.key === activeVertical)?.label ?? "All Videos")}
+          </span>
+        </button>
+
+        {/* Dropdown panel */}
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            left: 0,
+            width: 200,
+            background: "rgba(10,10,10,0.92)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 14,
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+            padding: "6px 0",
+            transformOrigin: "top left",
+            transform: menuOpen ? "scale(1)" : "scale(0.92)",
+            opacity: menuOpen ? 1 : 0,
+            pointerEvents: menuOpen ? "auto" : "none",
+            transition: "transform 0.18s ease, opacity 0.18s ease",
+          }}
+          data-testid="category-menu-panel"
+        >
+          {CATEGORIES.map(({ key, label }) => {
+            const isActive = activeVertical === key;
+            return (
+              <button
+                key={key}
+                onClick={() => { setActiveVertical(key); setMenuOpen(false); }}
+                data-testid={`cat-tab-${key.toLowerCase()}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  width: "100%",
+                  padding: "9px 16px",
+                  background: isActive ? "rgba(255,43,43,0.12)" : "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "background 0.12s ease",
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? "rgba(255,43,43,0.12)" : "transparent"; }}
+              >
+                {isActive && (
+                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#ff2b2b", flexShrink: 0 }} />
+                )}
+                {!isActive && <span style={{ width: 4, flexShrink: 0 }} />}
+                <span style={{
+                  fontSize: "13px",
+                  fontWeight: isActive ? 700 : 400,
+                  color: isActive ? "#ff2b2b" : "rgba(255,255,255,0.75)",
+                  letterSpacing: "0.01em",
+                }}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Divider + All Eyes On Me */}
+          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/all-eyes-on-me"); }}
+            data-testid="button-all-eyes-on-me"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "9px 16px",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Eye style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#ff2b2b", letterSpacing: "0.01em" }}>
+              All Eyes On Me
+            </span>
+          </button>
+        </div>
+      </div>
 
       <AllEyesBanner />
 
