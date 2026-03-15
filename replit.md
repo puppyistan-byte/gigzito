@@ -201,7 +201,7 @@ providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, desc
 - Admin toggle: `PATCH /api/admin/users/:id/subscription-tier` (ADMIN+ required)
 
 ### Database Tables
-- `gigness_cards` — one per user; `qr_uuid` (gen_random_uuid), slogan, profilePic, gallery TEXT[], ageBracket, gender, intent, engagementCount, isPublic
+- `gigness_cards` — one per user; `qr_uuid` (gen_random_uuid), slogan, profilePic, gallery TEXT[], ageBracket, gender, intent, engagementCount, isPublic, locationServicesEnabled, allowMessaging
 - `card_messages` — fromUserId, toUserId, gignessCardId, messageText, emojiReaction, isClean (GZ-Bot flag)
 
 ### API Endpoints

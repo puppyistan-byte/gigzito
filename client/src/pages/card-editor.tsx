@@ -195,6 +195,7 @@ export default function CardEditorPage() {
   const [gallery, setGallery]       = useState<string[]>([]);
   const [isPublic, setIsPublic]                           = useState(false);
   const [locationServicesEnabled, setLocationServices]    = useState(false);
+  const [allowMessaging, setAllowMessaging]               = useState(true);
   const [ageBracket, setAgeBracket]                       = useState("");
   const [gender, setGender]                               = useState("");
   const [intent, setIntent]                               = useState("");
@@ -222,6 +223,7 @@ export default function CardEditorPage() {
       setGallery(existingCard.gallery ?? []);
       setIsPublic(existingCard.isPublic ?? false);
       setLocationServices(existingCard.locationServicesEnabled ?? false);
+      setAllowMessaging(existingCard.allowMessaging ?? true);
       setAgeBracket(existingCard.ageBracket ?? "");
       setGender(existingCard.gender ?? "");
       setIntent(existingCard.intent ?? "");
@@ -236,6 +238,7 @@ export default function CardEditorPage() {
         gallery: gallery.filter(Boolean),
         isPublic,
         locationServicesEnabled,
+        allowMessaging,
         ageBracket: ageBracket || null,
         gender: gender || null,
         intent: intent || null,
@@ -453,6 +456,39 @@ export default function CardEditorPage() {
                 checked={locationServicesEnabled}
                 onCheckedChange={(v) => { setLocationServices(v); markDirty(); }}
                 data-testid="switch-location-services"
+              />
+            </div>
+
+            {/* Allow Incoming Messaging toggle */}
+            <div className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
+              allowMessaging
+                ? "bg-[#060d0d] border-teal-500/30"
+                : "bg-[#0d0d0d] border-[#1e1e1e]"
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  allowMessaging ? "bg-teal-500/15 border border-teal-500/25" : "bg-[#1a1a1a] border border-[#2a2a2a]"
+                }`}>
+                  <MessageSquare className={`h-4 w-4 ${allowMessaging ? "text-teal-400" : "text-[#555]"}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Allow Incoming Messaging</p>
+                  <p className="text-xs text-[#555] mt-0.5">
+                    {allowMessaging
+                      ? "Others can send you messages and emoji reactions on your GeeZee Card"
+                      : "Messaging is off — no one can contact you via your card"}
+                  </p>
+                  {allowMessaging && (
+                    <p className="text-[10px] text-teal-500/70 mt-1.5 font-medium">
+                      💬 Open — GZ-Bot filters all incoming messages for safety
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Switch
+                checked={allowMessaging}
+                onCheckedChange={(v) => { setAllowMessaging(v); markDirty(); }}
+                data-testid="switch-allow-messaging"
               />
             </div>
 

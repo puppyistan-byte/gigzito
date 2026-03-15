@@ -953,6 +953,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       gallery: z.array(z.string().url()).max(6).optional(),
       isPublic: z.boolean().optional(),
       locationServicesEnabled: z.boolean().optional(),
+      allowMessaging: z.boolean().optional(),
       ageBracket: z.enum(["18-25", "25-40", "40+"]).nullable().optional(),
       gender: z.enum(["Male", "Female", "Other"]).nullable().optional(),
       intent: z.enum(["marketing", "social", "activity"]).nullable().optional(),

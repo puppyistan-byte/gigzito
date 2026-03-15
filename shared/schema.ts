@@ -673,6 +673,7 @@ export const gignessCards = pgTable("gigness_cards", {
   gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
   isPublic: boolean("is_public").notNull().default(true),
   locationServicesEnabled: boolean("location_services_enabled").notNull().default(false),
+  allowMessaging: boolean("allow_messaging").notNull().default(true),
   ageBracket: text("age_bracket"),
   gender: text("gender"),
   intent: text("intent"),
