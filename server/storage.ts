@@ -79,6 +79,7 @@ export interface IStorage {
   createCardMessage(data: { fromUserId: number; toUserId: number; gignessCardId: number; messageText?: string | null; emojiReaction?: string | null; isClean: boolean }): Promise<CardMessage>;
   getCardMessages(toUserId: number): Promise<CardMessage[]>;
   deleteCardMessage(id: number, toUserId: number): Promise<void>;
+  bulkDeleteCardMessages(ids: number[], toUserId: number): Promise<void>;
 
   // Card Comments
   createGignessComment(data: { cardId: number; authorUserId?: number | null; authorName: string; commentText: string; isClean: boolean }): Promise<GignessCardComment>;
@@ -163,6 +164,8 @@ export interface IStorage {
   getAdInquiries(advertiserUsername: string): Promise<AdInquiry[]>;
   markAdInquiryRead(id: number): Promise<void>;
   deleteAdInquiry(id: number, advertiserUsername: string): Promise<void>;
+  bulkDeleteAdInquiries(ids: number[], advertiserUsername: string): Promise<void>;
+  bulkDeleteListingComments(ids: number[], providerUserId: number): Promise<void>;
   // Inbox read tracking
   markListingCommentRead(id: number): Promise<void>;
   markCardMessageRead(id: number): Promise<void>;
@@ -638,6 +641,11 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCardMessage(id: number, toUserId: number): Promise<void> {
     await db.delete(cardMessages).where(and(eq(cardMessages.id, id), eq(cardMessages.toUserId, toUserId)));
+  }
+
+  async bulkDeleteCardMessages(ids: number[], toUserId: number): Promise<void> {
+    if (!ids.length) return;
+    await db.delete(cardMessages).where(and(inArray(cardMessages.id, ids), eq(cardMessages.toUserId, toUserId)));
   }
 
   async createGignessComment(data: { cardId: number; authorUserId?: number | null; authorName: string; commentText: string; isClean: boolean }): Promise<GignessCardComment> {
@@ -1563,6 +1571,21 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAdInquiry(id: number, advertiserUsername: string): Promise<void> {
     await db.delete(adInquiries).where(and(eq(adInquiries.id, id), eq(adInquiries.advertiserUsername, advertiserUsername)));
+  }
+
+  async bulkDeleteAdInquiries(ids: number[], advertiserUsername: string): Promise<void> {
+    if (!ids.length) return;
+    await db.delete(adInquiries).where(and(inArray(adInquiries.id, ids), eq(adInquiries.advertiserUsername, advertiserUsername)));
+  }
+
+  async bulkDeleteListingComments(ids: number[], providerUserId: number): Promise<void> {
+    if (!ids.length) return;
+    const [profile] = await db.select({ id: providerProfiles.id }).from(providerProfiles).where(eq(providerProfiles.userId, providerUserId)).limit(1);
+    if (!profile) return;
+    const myListingIds = await db.select({ id: videoListings.id }).from(videoListings).where(eq(videoListings.providerId, profile.id));
+    const listingIds = myListingIds.map((l) => l.id);
+    if (!listingIds.length) return;
+    await db.delete(listingComments).where(and(inArray(listingComments.id, ids), inArray(listingComments.listingId, listingIds)));
   }
 
   async markListingCommentRead(id: number): Promise<void> {

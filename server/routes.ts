@@ -2210,6 +2210,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) { return res.status(500).json({ message: "Failed" }); }
   });
 
+  app.post("/api/ad-inquiries/bulk-delete", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const { ids } = req.body as { ids?: number[] };
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ message: "ids required" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      if (!profile?.username) return res.status(403).json({ message: "Forbidden" });
+      await storage.bulkDeleteAdInquiries(ids, profile.username);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
   app.post("/api/ad-inquiries/:id/reply", async (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const { replyText } = req.body as { replyText?: string };
@@ -2241,6 +2253,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
     try {
       await storage.deleteListingComment(parseInt(req.params.id), req.session.userId);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.post("/api/listings/comments/bulk-delete", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const { ids } = req.body as { ids?: number[] };
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ message: "ids required" });
+    try {
+      await storage.bulkDeleteListingComments(ids, req.session.userId);
       return res.json({ ok: true });
     } catch (e) { return res.status(500).json({ message: "Failed" }); }
   });
@@ -2277,6 +2299,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
     try {
       await storage.deleteCardMessage(parseInt(req.params.id), req.session.userId);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.post("/api/gigness-cards/messages/bulk-delete", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const { ids } = req.body as { ids?: number[] };
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ message: "ids required" });
+    try {
+      await storage.bulkDeleteCardMessages(ids, req.session.userId);
       return res.json({ ok: true });
     } catch (e) { return res.status(500).json({ message: "Failed" }); }
   });

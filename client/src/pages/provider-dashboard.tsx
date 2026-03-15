@@ -443,6 +443,12 @@ function ProviderDashboardInner() {
 
   // ── Inbox ──────────────────────────────────────────────────────────────────
   const [inboxTab, setInboxTab] = useState<"geezees" | "comments" | "inquiries">("geezees");
+  const [selectedGeezees, setSelectedGeezees] = useState<Set<number>>(new Set());
+  const [selectedComments, setSelectedComments] = useState<Set<number>>(new Set());
+  const [selectedInquiries, setSelectedInquiries] = useState<Set<number>>(new Set());
+  const toggleGeezee = (id: number) => setSelectedGeezees((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleComment = (id: number) => setSelectedComments((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleInquiry = (id: number) => setSelectedInquiries((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const { data: geezeesMessages = [], isLoading: geezeesLoading } = useQuery<CardMessage[]>({
     queryKey: ["/api/gigness-cards/inbox"],
@@ -504,6 +510,21 @@ function ProviderDashboardInner() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/ad-inquiries/${id}`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ad-inquiries"] }),
   });
+  const bulkDeleteGeezeeMutation = useMutation({
+    mutationFn: (ids: number[]) => apiRequest("POST", "/api/gigness-cards/messages/bulk-delete", { ids }),
+    onSuccess: () => { setSelectedGeezees(new Set()); queryClient.invalidateQueries({ queryKey: ["/api/gigness-cards/inbox"] }); },
+    onError: () => toast({ title: "Bulk delete failed", variant: "destructive" }),
+  });
+  const bulkDeleteCommentMutation = useMutation({
+    mutationFn: (ids: number[]) => apiRequest("POST", "/api/listings/comments/bulk-delete", { ids }),
+    onSuccess: () => { setSelectedComments(new Set()); queryClient.invalidateQueries({ queryKey: ["/api/listings/comments/mine"] }); },
+    onError: () => toast({ title: "Bulk delete failed", variant: "destructive" }),
+  });
+  const bulkDeleteInquiryMutation = useMutation({
+    mutationFn: (ids: number[]) => apiRequest("POST", "/api/ad-inquiries/bulk-delete", { ids }),
+    onSuccess: () => { setSelectedInquiries(new Set()); queryClient.invalidateQueries({ queryKey: ["/api/ad-inquiries"] }); },
+    onError: () => toast({ title: "Bulk delete failed", variant: "destructive" }),
+  });
   const replyInquiryMutation = useMutation({
     mutationFn: ({ id, text }: { id: number; text: string }) => apiRequest("POST", `/api/ad-inquiries/${id}/reply`, { replyText: text }),
     onSuccess: () => { setReplyingId(null); setReplyText(""); toast({ title: "Reply sent" }); },
@@ -542,17 +563,21 @@ function ProviderDashboardInner() {
 
   const exportLeadsCSV = () => {
     if (!leads.length) return;
-    const headers = ["ID", "Name", "Email", "Phone", "Message", "Video Title", "Category", "Date"];
-    const rows = leads.map((l) => [
-      l.id,
-      `"${(l.firstName ?? "").replace(/"/g, '""')}"`,
-      `"${(l.email ?? "").replace(/"/g, '""')}"`,
-      `"${(l.phone ?? "").replace(/"/g, '""')}"`,
-      `"${(l.message ?? "").replace(/"/g, '""')}"`,
-      `"${(l.videoTitle ?? "").replace(/"/g, '""')}"`,
-      `"${(l.category ?? "").replace(/"/g, '""')}"`,
-      new Date(l.createdAt).toLocaleString(),
-    ]);
+    const headers = ["Name", "Username", "Email", "Text", "Location"];
+    const rows = leads.map((l) => {
+      const isUS = (l as any).viewerCountry === "United States";
+      const location = isUS
+        ? [(l as any).viewerState, (l as any).viewerCity].filter(Boolean).join(", ")
+        : [(l as any).viewerCountry, (l as any).viewerCity].filter(Boolean).join(", ");
+      const text = (l.message ?? "").slice(0, 120);
+      return [
+        `"${(l.firstName ?? "").replace(/"/g, '""')}"`,
+        `"${((l as any).viewerUsername ?? "").replace(/"/g, '""')}"`,
+        `"${(l.email ?? "").replace(/"/g, '""')}"`,
+        `"${text.replace(/"/g, '""')}"`,
+        `"${location.replace(/"/g, '""')}"`,
+      ];
+    });
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -1141,7 +1166,7 @@ function ProviderDashboardInner() {
               return (
                 <button
                   key={tab}
-                  onClick={() => setInboxTab(tab)}
+                  onClick={() => { setInboxTab(tab); setSelectedGeezees(new Set()); setSelectedComments(new Set()); setSelectedInquiries(new Set()); }}
                   data-testid={`tab-inbox-${tab}`}
                   className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
                     inboxTab === tab ? "bg-[#1a1a1a] text-white" : "text-[#555] hover:text-[#888]"
@@ -1167,55 +1192,82 @@ function ProviderDashboardInner() {
               </div>
             ) : (
               <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[#555] hover:text-[#888]" data-testid="checkbox-select-all-geezees">
+                    <input type="checkbox" className="accent-[#ff2b2b] w-3.5 h-3.5"
+                      checked={selectedGeezees.size === geezeesMessages.length && geezeesMessages.length > 0}
+                      onChange={(e) => setSelectedGeezees(e.target.checked ? new Set(geezeesMessages.map((m) => m.id)) : new Set())}
+                    />
+                    Select all
+                  </label>
+                  {selectedGeezees.size > 0 && (
+                    <button
+                      onClick={() => bulkDeleteGeezeeMutation.mutate(Array.from(selectedGeezees))}
+                      disabled={bulkDeleteGeezeeMutation.isPending}
+                      className="text-[11px] font-semibold px-3 py-1 rounded-lg bg-[#ff2b2b]/10 border border-[#ff2b2b]/30 text-[#ff4444] hover:bg-[#ff2b2b]/20 transition-all disabled:opacity-50"
+                      data-testid="button-bulk-delete-geezees"
+                    >Delete selected ({selectedGeezees.size})</button>
+                  )}
+                </div>
                 {geezeesMessages.map((m) => (
                   <div
                     key={m.id}
                     onClick={() => { if (!m.isRead) markGeezeeMutation.mutate(m.id); }}
-                    className={`rounded-xl border p-3.5 transition-colors ${m.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#110808] border-[#ff2b2b]/20"}`}
+                    className={`rounded-xl border p-3.5 transition-colors ${m.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#110808] border-[#ff2b2b]/20"} ${selectedGeezees.has(m.id) ? "ring-1 ring-[#ff2b2b]/40" : ""}`}
                     data-testid={`card-geezee-${m.id}`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5">
+                      <input type="checkbox" className="accent-[#ff2b2b] w-3.5 h-3.5 mt-0.5 shrink-0 cursor-pointer"
+                        checked={selectedGeezees.has(m.id)}
+                        onChange={() => toggleGeezee(m.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`checkbox-geezee-${m.id}`}
+                      />
                       <div className="flex-1 min-w-0">
-                        {m.emojiReaction && <span className="text-xl mr-2">{m.emojiReaction}</span>}
-                        {m.messageText && <p className="text-sm text-white inline">{m.messageText}</p>}
-                        <p className="text-[10px] text-[#555] mt-1">from user #{m.fromUserId}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!m.isRead && <span className="w-2 h-2 rounded-full bg-[#ff2b2b]" />}
-                        <span className="text-[10px] text-[#444]">{new Date(m.createdAt).toLocaleDateString()}</span>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            {m.emojiReaction && <span className="text-xl mr-2">{m.emojiReaction}</span>}
+                            {m.messageText && <p className="text-sm text-white inline">{m.messageText}</p>}
+                            <p className="text-[10px] text-[#555] mt-1">from user #{m.fromUserId}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {!m.isRead && <span className="w-2 h-2 rounded-full bg-[#ff2b2b]" />}
+                            <span className="text-[10px] text-[#444]">{new Date(m.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => { setReplyingId(replyingId === `geezee-${m.id}` ? null : `geezee-${m.id}`); setReplyText(""); }}
+                            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+                            data-testid={`button-reply-geezee-${m.id}`}
+                          >Reply</button>
+                          <button
+                            onClick={() => deleteGeezeeMutation.mutate(m.id)}
+                            disabled={deleteGeezeeMutation.isPending}
+                            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
+                            data-testid={`button-delete-geezee-${m.id}`}
+                          >Delete</button>
+                        </div>
+                        {replyingId === `geezee-${m.id}` && (
+                          <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Type your reply…"
+                              rows={2}
+                              className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444]"
+                              data-testid={`input-reply-geezee-${m.id}`}
+                            />
+                            <button
+                              onClick={() => replyGeezeeMutation.mutate({ id: m.id, text: replyText })}
+                              disabled={!replyText.trim() || replyGeezeeMutation.isPending}
+                              className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
+                              data-testid={`button-send-reply-geezee-${m.id}`}
+                            >Send</button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => { setReplyingId(replyingId === `geezee-${m.id}` ? null : `geezee-${m.id}`); setReplyText(""); }}
-                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
-                        data-testid={`button-reply-geezee-${m.id}`}
-                      >Reply</button>
-                      <button
-                        onClick={() => deleteGeezeeMutation.mutate(m.id)}
-                        disabled={deleteGeezeeMutation.isPending}
-                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
-                        data-testid={`button-delete-geezee-${m.id}`}
-                      >Delete</button>
-                    </div>
-                    {replyingId === `geezee-${m.id}` && (
-                      <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <textarea
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Type your reply…"
-                          rows={2}
-                          className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444]"
-                          data-testid={`input-reply-geezee-${m.id}`}
-                        />
-                        <button
-                          onClick={() => replyGeezeeMutation.mutate({ id: m.id, text: replyText })}
-                          disabled={!replyText.trim() || replyGeezeeMutation.isPending}
-                          className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
-                          data-testid={`button-send-reply-geezee-${m.id}`}
-                        >Send</button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -1233,63 +1285,90 @@ function ProviderDashboardInner() {
               </div>
             ) : (
               <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[#555] hover:text-[#888]" data-testid="checkbox-select-all-comments">
+                    <input type="checkbox" className="accent-[#ff2b2b] w-3.5 h-3.5"
+                      checked={selectedComments.size === videoComments.length && videoComments.length > 0}
+                      onChange={(e) => setSelectedComments(e.target.checked ? new Set(videoComments.map((c) => c.id)) : new Set())}
+                    />
+                    Select all
+                  </label>
+                  {selectedComments.size > 0 && (
+                    <button
+                      onClick={() => bulkDeleteCommentMutation.mutate(Array.from(selectedComments))}
+                      disabled={bulkDeleteCommentMutation.isPending}
+                      className="text-[11px] font-semibold px-3 py-1 rounded-lg bg-[#ff2b2b]/10 border border-[#ff2b2b]/30 text-[#ff4444] hover:bg-[#ff2b2b]/20 transition-all disabled:opacity-50"
+                      data-testid="button-bulk-delete-comments"
+                    >Delete selected ({selectedComments.size})</button>
+                  )}
+                </div>
                 {videoComments.map((c) => {
                   const geo = [(c as any).viewerCity, (c as any).viewerState, (c as any).viewerCountry].filter(Boolean).join(", ");
                   return (
                     <div
                       key={c.id}
                       onClick={() => { if (!c.isRead) markCommentMutation.mutate(c.id); }}
-                      className={`rounded-xl border p-3.5 transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"}`}
+                      className={`rounded-xl border p-3.5 transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"} ${selectedComments.has(c.id) ? "ring-1 ring-[#ff2b2b]/40" : ""}`}
                       data-testid={`card-comment-${c.id}`}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-0.5">
-                        <p className="text-sm font-semibold text-white">
-                          {c.authorName}
-                          {(c as any).viewerUsername && <span className="text-[#555] font-normal text-xs ml-1">@{(c as any).viewerUsername}</span>}
-                        </p>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {!c.isRead && <span className="w-2 h-2 rounded-full bg-blue-400" />}
-                          <span className="text-[10px] text-[#444]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                      <div className="flex items-start gap-2.5">
+                        <input type="checkbox" className="accent-[#ff2b2b] w-3.5 h-3.5 mt-0.5 shrink-0 cursor-pointer"
+                          checked={selectedComments.has(c.id)}
+                          onChange={() => toggleComment(c.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`checkbox-comment-${c.id}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-0.5">
+                            <p className="text-sm font-semibold text-white">
+                              {c.authorName}
+                              {(c as any).viewerUsername && <span className="text-[#555] font-normal text-xs ml-1">@{(c as any).viewerUsername}</span>}
+                            </p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {!c.isRead && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+                              <span className="text-[10px] text-[#444]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          {c.listingTitle && <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>}
+                          <p className="text-xs text-[#888] mb-1">{c.commentText}</p>
+                          <div className="text-[10px] text-[#555] flex flex-wrap gap-x-3 mb-2">
+                            {(c as any).viewerEmail && <span>✉ {(c as any).viewerEmail}</span>}
+                            {geo && <span>📍 {geo}</span>}
+                          </div>
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => { setReplyingId(replyingId === `comment-${c.id}` ? null : `comment-${c.id}`); setReplyText(""); }}
+                              className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+                              data-testid={`button-reply-comment-${c.id}`}
+                            >Reply</button>
+                            <button
+                              onClick={() => deleteCommentMutation.mutate(c.id)}
+                              disabled={deleteCommentMutation.isPending}
+                              className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
+                              data-testid={`button-delete-comment-${c.id}`}
+                            >Delete</button>
+                          </div>
+                          {replyingId === `comment-${c.id}` && (
+                            <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <textarea
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder={`Reply to ${(c as any).viewerEmail ? c.authorName : "commenter (no email on file)"}…`}
+                                rows={2}
+                                disabled={!(c as any).viewerEmail}
+                                className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444] disabled:opacity-40"
+                                data-testid={`input-reply-comment-${c.id}`}
+                              />
+                              <button
+                                onClick={() => replyCommentMutation.mutate({ id: c.id, text: replyText })}
+                                disabled={!replyText.trim() || replyCommentMutation.isPending || !(c as any).viewerEmail}
+                                className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
+                                data-testid={`button-send-reply-comment-${c.id}`}
+                              >Send</button>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      {c.listingTitle && <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>}
-                      <p className="text-xs text-[#888] mb-1">{c.commentText}</p>
-                      <div className="text-[10px] text-[#555] flex flex-wrap gap-x-3 mb-2">
-                        {(c as any).viewerEmail && <span>✉ {(c as any).viewerEmail}</span>}
-                        {geo && <span>📍 {geo}</span>}
-                      </div>
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => { setReplyingId(replyingId === `comment-${c.id}` ? null : `comment-${c.id}`); setReplyText(""); }}
-                          className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
-                          data-testid={`button-reply-comment-${c.id}`}
-                        >Reply</button>
-                        <button
-                          onClick={() => deleteCommentMutation.mutate(c.id)}
-                          disabled={deleteCommentMutation.isPending}
-                          className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
-                          data-testid={`button-delete-comment-${c.id}`}
-                        >Delete</button>
-                      </div>
-                      {replyingId === `comment-${c.id}` && (
-                        <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          <textarea
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            placeholder={`Reply to ${(c as any).viewerEmail ? c.authorName : "commenter (no email on file)"}…`}
-                            rows={2}
-                            disabled={!(c as any).viewerEmail}
-                            className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444] disabled:opacity-40"
-                            data-testid={`input-reply-comment-${c.id}`}
-                          />
-                          <button
-                            onClick={() => replyCommentMutation.mutate({ id: c.id, text: replyText })}
-                            disabled={!replyText.trim() || replyCommentMutation.isPending || !(c as any).viewerEmail}
-                            className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
-                            data-testid={`button-send-reply-comment-${c.id}`}
-                          >Send</button>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -1308,69 +1387,96 @@ function ProviderDashboardInner() {
               </div>
             ) : (
               <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[#555] hover:text-[#888]" data-testid="checkbox-select-all-inquiries">
+                    <input type="checkbox" className="accent-[#ff2b2b] w-3.5 h-3.5"
+                      checked={selectedInquiries.size === adInquiries.length && adInquiries.length > 0}
+                      onChange={(e) => setSelectedInquiries(e.target.checked ? new Set(adInquiries.map((i) => i.id)) : new Set())}
+                    />
+                    Select all
+                  </label>
+                  {selectedInquiries.size > 0 && (
+                    <button
+                      onClick={() => bulkDeleteInquiryMutation.mutate(Array.from(selectedInquiries))}
+                      disabled={bulkDeleteInquiryMutation.isPending}
+                      className="text-[11px] font-semibold px-3 py-1 rounded-lg bg-[#ff2b2b]/10 border border-[#ff2b2b]/30 text-[#ff4444] hover:bg-[#ff2b2b]/20 transition-all disabled:opacity-50"
+                      data-testid="button-bulk-delete-inquiries"
+                    >Delete selected ({selectedInquiries.size})</button>
+                  )}
+                </div>
                 {adInquiries.map((inq) => (
                   <div
                     key={inq.id}
                     onClick={() => { if (!inq.isRead) markInquiryMutation.mutate(inq.id); }}
-                    className={`rounded-xl border p-3.5 transition-colors ${inq.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b08] border-green-500/20"}`}
+                    className={`rounded-xl border p-3.5 transition-colors ${inq.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b08] border-green-500/20"} ${selectedInquiries.has(inq.id) ? "ring-1 ring-[#ff2b2b]/40" : ""}`}
                     data-testid={`card-inquiry-${inq.id}`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {inq.viewerName}
-                          {inq.viewerUsername && <span className="text-[#888] font-normal ml-1.5">@{inq.viewerUsername}</span>}
-                        </p>
-                        {(inq.viewerCity || inq.viewerState || inq.viewerCountry) && (
-                          <p className="text-[10px] text-[#555] flex items-center gap-1 mt-0.5">
-                            <span>📍</span>
-                            {[inq.viewerCity, inq.viewerState, inq.viewerCountry].filter(Boolean).join(", ")}
+                    <div className="flex items-start gap-2.5">
+                      <input type="checkbox" className="accent-[#ff2b2b] w-3.5 h-3.5 mt-0.5 shrink-0 cursor-pointer"
+                        checked={selectedInquiries.has(inq.id)}
+                        onChange={() => toggleInquiry(inq.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`checkbox-inquiry-${inq.id}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div>
+                            <p className="text-sm font-semibold text-white">
+                              {inq.viewerName}
+                              {inq.viewerUsername && <span className="text-[#888] font-normal ml-1.5">@{inq.viewerUsername}</span>}
+                            </p>
+                            {(inq.viewerCity || inq.viewerState || inq.viewerCountry) && (
+                              <p className="text-[10px] text-[#555] flex items-center gap-1 mt-0.5">
+                                <span>📍</span>
+                                {[inq.viewerCity, inq.viewerState, inq.viewerCountry].filter(Boolean).join(", ")}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {!inq.isRead && <span className="w-2 h-2 rounded-full bg-green-400" />}
+                            <span className="text-[10px] text-[#444]">{new Date(inq.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        {inq.viewerEmail && (
+                          <p className="text-xs text-[#555] flex items-center gap-1 mb-1.5">
+                            <Mail className="h-3 w-3" />{inq.viewerEmail}
                           </p>
                         )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!inq.isRead && <span className="w-2 h-2 rounded-full bg-green-400" />}
-                        <span className="text-[10px] text-[#444]">{new Date(inq.createdAt).toLocaleDateString()}</span>
+                        <p className="text-xs text-[#aaa] mb-2">{inq.viewerMessage}</p>
+                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => { setReplyingId(replyingId === `inquiry-${inq.id}` ? null : `inquiry-${inq.id}`); setReplyText(""); }}
+                            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+                            data-testid={`button-reply-inquiry-${inq.id}`}
+                          >Reply</button>
+                          <button
+                            onClick={() => deleteInquiryMutation.mutate(inq.id)}
+                            disabled={deleteInquiryMutation.isPending}
+                            className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
+                            data-testid={`button-delete-inquiry-${inq.id}`}
+                          >Delete</button>
+                        </div>
+                        {replyingId === `inquiry-${inq.id}` && (
+                          <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={`Reply to ${inq.viewerEmail ? inq.viewerName : "sender (no email on file)"}…`}
+                              rows={2}
+                              disabled={!inq.viewerEmail}
+                              className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444] disabled:opacity-40"
+                              data-testid={`input-reply-inquiry-${inq.id}`}
+                            />
+                            <button
+                              onClick={() => replyInquiryMutation.mutate({ id: inq.id, text: replyText })}
+                              disabled={!replyText.trim() || replyInquiryMutation.isPending || !inq.viewerEmail}
+                              className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
+                              data-testid={`button-send-reply-inquiry-${inq.id}`}
+                            >Send</button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {inq.viewerEmail && (
-                      <p className="text-xs text-[#555] flex items-center gap-1 mb-1.5">
-                        <Mail className="h-3 w-3" />{inq.viewerEmail}
-                      </p>
-                    )}
-                    <p className="text-xs text-[#aaa] mb-2">{inq.viewerMessage}</p>
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => { setReplyingId(replyingId === `inquiry-${inq.id}` ? null : `inquiry-${inq.id}`); setReplyText(""); }}
-                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
-                        data-testid={`button-reply-inquiry-${inq.id}`}
-                      >Reply</button>
-                      <button
-                        onClick={() => deleteInquiryMutation.mutate(inq.id)}
-                        disabled={deleteInquiryMutation.isPending}
-                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
-                        data-testid={`button-delete-inquiry-${inq.id}`}
-                      >Delete</button>
-                    </div>
-                    {replyingId === `inquiry-${inq.id}` && (
-                      <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <textarea
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder={`Reply to ${inq.viewerEmail ? inq.viewerName : "sender (no email on file)"}…`}
-                          rows={2}
-                          disabled={!inq.viewerEmail}
-                          className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444] disabled:opacity-40"
-                          data-testid={`input-reply-inquiry-${inq.id}`}
-                        />
-                        <button
-                          onClick={() => replyInquiryMutation.mutate({ id: inq.id, text: replyText })}
-                          disabled={!replyText.trim() || replyInquiryMutation.isPending || !inq.viewerEmail}
-                          className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
-                          data-testid={`button-send-reply-inquiry-${inq.id}`}
-                        >Send</button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
