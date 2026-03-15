@@ -186,12 +186,13 @@ function requireSuperAdmin(req: any, res: any): boolean {
   return true;
 }
 
-function requireGZ2(req: any, res: any): boolean {
+async function requireGZ2(req: any, res: any): Promise<boolean> {
   if (!req.session?.userId) {
     res.status(401).json({ message: "Not authenticated" });
     return false;
   }
-  const tier = req.session?.subscriptionTier ?? "GZLurker";
+  const user = await storage.getUserById(req.session.userId);
+  const tier = user?.subscriptionTier ?? "GZLurker";
   if (tier === "GZLurker") {
     res.status(403).json({ message: "Upgrade to GZ2 to engage!", upgradeRequired: true });
     return false;
@@ -967,7 +968,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Engage (requires GZ2+) — increments engagement count
   app.post("/api/gigness-cards/:id/engage", async (req, res) => {
-    if (!requireGZ2(req, res)) return;
+    if (!await requireGZ2(req, res)) return;
     const cardId = parseInt(req.params.id);
     if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
     await storage.incrementGignessEngagement(cardId);
@@ -976,7 +977,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Send message or emoji (requires GZ2+) with GZ-Bot scrub
   app.post("/api/gigness-cards/:id/message", async (req, res) => {
-    if (!requireGZ2(req, res)) return;
+    if (!await requireGZ2(req, res)) return;
     const fromUserId = (req.session as any).userId;
     const cardId = parseInt(req.params.id);
     if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
