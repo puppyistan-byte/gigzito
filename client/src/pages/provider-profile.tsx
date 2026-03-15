@@ -22,8 +22,20 @@ function ImageUploadField({
   testId?: string; aspect?: "square" | "wide";
 }) {
   const [uploading, setUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState<string>(() => value?.startsWith("/uploads/") ? value : "");
+  const [urlInput, setUrlInput] = useState<string>(() => value && !value?.startsWith("/uploads/") ? value : "");
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (value?.startsWith("/uploads/")) {
+      setUploadedUrl(value);
+      setUrlInput("");
+    } else {
+      setUrlInput(value ?? "");
+      setUploadedUrl("");
+    }
+  }, [value]);
 
   const handleFile = async (file: File) => {
     setUploading(true);
@@ -33,6 +45,8 @@ function ImageUploadField({
       const res = await fetch("/api/upload/image", { method: "POST", body: fd });
       if (!res.ok) throw new Error("Upload failed");
       const { url } = await res.json();
+      setUploadedUrl(url);
+      setUrlInput("");
       onChange(url);
     } catch {
       toast({ title: "Upload failed", description: "Please try again or paste a URL.", variant: "destructive" });
@@ -41,66 +55,74 @@ function ImageUploadField({
     }
   };
 
-  const previewClass = aspect === "wide"
-    ? "w-full h-28 object-cover rounded-lg border border-[#2a2a2a]"
-    : "w-20 h-20 object-cover rounded-full border-2 border-[#2a2a2a]";
+  const handleUrlChange = (v: string) => {
+    setUrlInput(v);
+    setUploadedUrl("");
+    onChange(v);
+  };
+
+  const imgClass = aspect === "wide"
+    ? "w-full h-24 object-cover rounded-lg border border-[#2a2a2a]"
+    : "w-16 h-16 object-cover rounded-full border-2 border-[#2a2a2a]";
 
   return (
     <div className="space-y-2">
       <Label className="text-[#aaa] text-sm">{label}{required && " *"}{hint && <span className="text-[#555] font-normal"> {hint}</span>}</Label>
-      <div className="flex items-start gap-3">
-        <div className="relative shrink-0 group">
-          {value ? (
-            <img src={value} alt="" className={previewClass} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          ) : (
-            <div className={`${aspect === "wide" ? "w-28 h-20" : "w-20 h-20 rounded-full"} bg-[#1a1a1a] border border-dashed border-[#333] flex items-center justify-center rounded-${aspect === "wide" ? "lg" : "full"}`}>
-              <Camera className="h-5 w-5 text-[#444]" />
-            </div>
-          )}
+
+      {/* Upload section */}
+      <div className="rounded-lg border border-[#1e1e1e] bg-[#080808] p-3 space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#444]">Upload file</p>
+        {uploadedUrl ? (
+          <div className="flex items-center gap-3">
+            <img src={uploadedUrl} alt="" className={imgClass} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <button type="button" onClick={() => { setUploadedUrl(""); onChange(urlInput); }} className="text-xs text-[#555] hover:text-red-400 transition-colors flex items-center gap-1">
+              <X className="h-3 w-3" /> Remove
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
-            data-testid={testId ? `button-upload-${testId}` : undefined}
             disabled={uploading}
+            className="flex items-center gap-2 text-sm text-[#666] hover:text-white border border-dashed border-[#2a2a2a] hover:border-[#ff1a1a] rounded-lg px-4 py-2.5 w-full justify-center transition-colors"
+            data-testid={testId ? `button-upload-${testId}` : undefined}
           >
-            {uploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Upload className="h-4 w-4 text-white" />}
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? "Uploading…" : "Browse & upload"}
           </button>
-        </div>
-        <div className="flex-1 space-y-1.5">
-          <Input
-            type="text"
-            placeholder="https://... or upload ↙"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a] text-sm"
-            data-testid={testId}
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-              className="text-xs text-[#888] hover:text-white transition-colors flex items-center gap-1"
-            >
-              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-              Upload photo
-            </button>
-            {value && (
-              <button type="button" onClick={() => onChange("")} className="text-xs text-[#555] hover:text-red-400 transition-colors flex items-center gap-1">
-                <X className="h-3 w-3" /> Remove
-              </button>
-            )}
-          </div>
-        </div>
+        )}
       </div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
-      />
+
+      {/* Divider */}
+      <div className="flex items-center gap-2">
+        <div className="h-px flex-1 bg-[#1a1a1a]" />
+        <span className="text-[10px] text-[#3a3a3a]">or paste URL</span>
+        <div className="h-px flex-1 bg-[#1a1a1a]" />
+      </div>
+
+      {/* URL section */}
+      <div className="rounded-lg border border-[#1e1e1e] bg-[#080808] p-3 space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#444]">Image URL</p>
+        <Input
+          type="text"
+          placeholder="https://example.com/image.jpg"
+          value={urlInput}
+          onChange={(e) => handleUrlChange(e.target.value)}
+          className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff1a1a] text-sm"
+          data-testid={testId}
+        />
+        {urlInput && (
+          <div className="flex items-center gap-3">
+            <img src={urlInput} alt="Preview" className={imgClass} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <button type="button" onClick={() => handleUrlChange("")} className="text-xs text-[#555] hover:text-red-400 transition-colors flex items-center gap-1">
+              <X className="h-3 w-3" /> Clear
+            </button>
+          </div>
+        )}
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
     </div>
   );
 }

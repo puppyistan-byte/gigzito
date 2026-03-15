@@ -349,6 +349,7 @@ export default function AdminPage() {
 
   // ── Ads state + mutations ────────────────────────────────────────────────────
   const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 });
+  const [adUploadedUrl, setAdUploadedUrl] = useState("");
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
   const [adFormOpen, setAdFormOpen] = useState(false);
   const [adUploading, setAdUploading] = useState(false);
@@ -359,7 +360,7 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); toast({ title: "Ad created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); toast({ title: "Ad created" }); },
     onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
   });
 
@@ -1823,7 +1824,7 @@ export default function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
               <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
               <button
-                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdFormOpen(true); }}
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormOpen(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
                 data-testid="button-ad-new"
               >
@@ -1857,59 +1858,85 @@ export default function AdminPage() {
                       data-testid="input-ad-body"
                     />
                   </div>
-                  <div className="col-span-2">
-                    <label className="text-xs text-[#666] mb-1 block">
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-xs text-[#666] block">
                       Ad Image *{" "}
-                      <span className="text-[#444]">
-                        Upload at 760×520px → auto-processed &amp; displayed at 380×260px (retina) · PNG/JPG/WebP · max 8 MB
-                      </span>
+                      <span className="text-[#444]">760×520px recommended · PNG/JPG/WebP · max 8 MB</span>
                     </label>
-                    {/* File picker */}
-                    <label
-                      className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-dashed cursor-pointer transition-colors text-sm font-semibold mb-2 ${adUploading ? "border-[#444] text-[#555] cursor-not-allowed" : "border-[#3a3a3a] text-[#888] hover:border-[#ff2b2b] hover:text-[#ff2b2b]"}`}
-                      data-testid="label-ad-file-upload"
-                    >
-                      <ImagePlus className="h-4 w-4" />
-                      {adUploading ? "Uploading…" : adForm.imageUrl ? "Replace image file" : "Upload image file"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={adUploading}
-                        data-testid="input-ad-file"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setAdUploading(true);
-                          try {
-                            const formData = new FormData();
-                            formData.append("image", file);
-                            const res = await fetch("/api/admin/upload-ad-image", {
-                              method: "POST",
-                              credentials: "include",
-                              body: formData,
-                            });
-                            if (!res.ok) { const err = await res.json(); throw new Error(err.message ?? "Upload failed"); }
-                            const { url } = await res.json();
-                            setAdForm((f) => ({ ...f, imageUrl: url }));
-                            toast({ title: "Image uploaded", description: url });
-                          } catch (err: any) {
-                            toast({ title: err.message ?? "Upload failed", variant: "destructive" });
-                          } finally {
-                            setAdUploading(false);
-                            e.target.value = "";
-                          }
-                        }}
+
+                    {/* Upload section */}
+                    <div className="rounded-lg border border-[#1e1e1e] bg-[#080808] p-3 space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#444]">Upload file</p>
+                      {adUploadedUrl ? (
+                        <div className="flex items-center gap-3">
+                          <img src={adUploadedUrl} alt="Uploaded" className="h-16 w-24 object-cover rounded-lg border border-[#2a2a2a]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          <button type="button" onClick={() => setAdUploadedUrl("")} className="text-xs text-[#555] hover:text-red-400 transition-colors flex items-center gap-1">
+                            <X className="h-3 w-3" /> Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-dashed cursor-pointer transition-colors text-sm font-semibold ${adUploading ? "border-[#444] text-[#555] cursor-not-allowed" : "border-[#2a2a2a] text-[#666] hover:border-[#ff2b2b] hover:text-[#ff2b2b]"}`}
+                          data-testid="label-ad-file-upload"
+                        >
+                          <ImagePlus className="h-4 w-4" />
+                          {adUploading ? "Uploading…" : "Browse & upload file"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={adUploading}
+                            data-testid="input-ad-file"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setAdUploading(true);
+                              try {
+                                const formData = new FormData();
+                                formData.append("image", file);
+                                const res = await fetch("/api/admin/upload-ad-image", { method: "POST", credentials: "include", body: formData });
+                                if (!res.ok) { const err = await res.json(); throw new Error(err.message ?? "Upload failed"); }
+                                const { url } = await res.json();
+                                setAdUploadedUrl(url);
+                                toast({ title: "Image uploaded" });
+                              } catch (err: any) {
+                                toast({ title: err.message ?? "Upload failed", variant: "destructive" });
+                              } finally {
+                                setAdUploading(false);
+                                e.target.value = "";
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-[#1a1a1a]" />
+                      <span className="text-[10px] text-[#3a3a3a]">or paste URL</span>
+                      <div className="h-px flex-1 bg-[#1a1a1a]" />
+                    </div>
+
+                    {/* URL section */}
+                    <div className="rounded-lg border border-[#1e1e1e] bg-[#080808] p-3 space-y-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#444]">Image URL</p>
+                      <Input
+                        value={adForm.imageUrl}
+                        onChange={(e) => setAdForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                        placeholder="https://example.com/ad-image.jpg"
+                        className="bg-[#111] border-[#2a2a2a] text-white text-sm placeholder:text-[#333]"
+                        data-testid="input-ad-image-url"
                       />
-                    </label>
-                    {/* Manual URL fallback */}
-                    <Input
-                      value={adForm.imageUrl}
-                      onChange={(e) => setAdForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                      placeholder="/ads/filename.png or https://..."
-                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
-                      data-testid="input-ad-image-url"
-                    />
+                      {adForm.imageUrl && (
+                        <div className="flex items-center gap-3">
+                          <img src={adForm.imageUrl} alt="URL preview" className="h-16 w-24 object-cover rounded-lg border border-[#2a2a2a]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          <button type="button" onClick={() => setAdForm((f) => ({ ...f, imageUrl: "" }))} className="text-xs text-[#555] hover:text-red-400 transition-colors flex items-center gap-1">
+                            <X className="h-3 w-3" /> Clear
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-[#666] mb-1 block">Destination URL *</label>
@@ -1949,7 +1976,7 @@ export default function AdminPage() {
                 )}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setAdFormOpen(false); setEditingAd(null); }}
+                    onClick={() => { setAdFormOpen(false); setEditingAd(null); setAdUploadedUrl(""); }}
                     className="px-4 py-2 rounded-lg text-xs font-semibold text-[#666] hover:text-white border border-[#2a2a2a] transition-colors"
                     data-testid="button-ad-cancel"
                   >
@@ -1957,12 +1984,14 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => {
-                      const missing = [!adForm.title && "Headline", !adForm.imageUrl && "Ad Image", !adForm.targetUrl && "Destination URL"].filter(Boolean);
+                      const effectiveImageUrl = adUploadedUrl || adForm.imageUrl;
+                      const missing = [!adForm.title && "Headline", !effectiveImageUrl && "Ad Image", !adForm.targetUrl && "Destination URL"].filter(Boolean);
                       if (missing.length > 0) return toast({ title: `Missing required fields: ${missing.join(", ")}`, variant: "destructive" });
+                      const payload = { ...adForm, imageUrl: effectiveImageUrl };
                       if (editingAd) {
-                        updateAdMutation.mutate({ id: editingAd.id, data: adForm });
+                        updateAdMutation.mutate({ id: editingAd.id, data: payload });
                       } else {
-                        createAdMutation.mutate(adForm);
+                        createAdMutation.mutate(payload);
                       }
                     }}
                     disabled={createAdMutation.isPending || updateAdMutation.isPending}
@@ -2014,7 +2043,9 @@ export default function AdminPage() {
                     <button
                       onClick={() => {
                         setEditingAd(ad);
-                        setAdForm({ title: ad.title, body: ad.body, imageUrl: ad.imageUrl, targetUrl: ad.targetUrl, cta: ad.cta, sortOrder: ad.sortOrder });
+                        const isLocalUpload = ad.imageUrl?.startsWith("/ads/") || ad.imageUrl?.startsWith("/uploads/");
+                        setAdUploadedUrl(isLocalUpload ? ad.imageUrl : "");
+                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl, cta: ad.cta, sortOrder: ad.sortOrder });
                         setAdFormOpen(true);
                       }}
                       className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-white/5 transition-colors"
