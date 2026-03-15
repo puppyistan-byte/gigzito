@@ -256,23 +256,20 @@ export default function HomePage() {
             onClick={() => setMenuOpen((o) => !o)}
             data-testid="button-hamburger-menu"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              backdropFilter: "blur(10px)",
+              display: "flex", alignItems: "center", gap: 6,
+              background: "linear-gradient(135deg, #ff2b2b, #cc0000)",
+              border: "none",
               borderRadius: "999px",
-              padding: "6px 12px 6px 10px",
+              padding: "7px 13px 7px 11px",
               cursor: "pointer",
-              color: "#fff",
+              boxShadow: "0 2px 10px rgba(255,43,43,0.45)",
             }}
           >
             {menuOpen
-              ? <X style={{ width: 16, height: 16, color: "#ff2b2b" }} />
-              : <Menu style={{ width: 16, height: 16, color: "#fff" }} />
+              ? <X style={{ width: 15, height: 15, color: "#fff" }} />
+              : <Menu style={{ width: 15, height: 15, color: "#fff" }} />
             }
-            <span style={{ fontSize: "11px", fontWeight: 600, color: menuOpen ? "#ff2b2b" : "rgba(255,255,255,0.7)", letterSpacing: "0.02em" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#fff", letterSpacing: "0.03em" }}>
               {menuOpen ? "Close" : (CATEGORIES.find(c => c.key === activeVertical)?.label ?? "All Videos")}
             </span>
           </button>
@@ -282,20 +279,20 @@ export default function HomePage() {
             data-testid="button-topbar-pricing"
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              backdropFilter: "blur(10px)",
+              background: "linear-gradient(135deg, #ff2b2b, #cc0000)",
+              border: "none",
               borderRadius: "999px",
-              padding: "6px 12px",
+              padding: "7px 13px",
               cursor: "pointer",
-              color: "rgba(255,255,255,0.75)",
+              color: "#fff",
               fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.02em",
+              fontWeight: 700,
+              letterSpacing: "0.03em",
               whiteSpace: "nowrap",
+              boxShadow: "0 2px 10px rgba(255,43,43,0.45)",
             }}
           >
-            <Layers style={{ width: 12, height: 12 }} />
+            <Layers style={{ width: 12, height: 12, color: "#fff" }} />
             Tiers
           </button>
 
@@ -304,20 +301,20 @@ export default function HomePage() {
             data-testid="button-topbar-geezee"
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              background: "rgba(0,0,0,0.55)",
-              border: "1px solid rgba(245,158,11,0.35)",
-              backdropFilter: "blur(10px)",
+              background: "linear-gradient(135deg, #ff2b2b, #cc0000)",
+              border: "none",
               borderRadius: "999px",
-              padding: "6px 12px",
+              padding: "7px 13px",
               cursor: "pointer",
-              color: "#f59e0b",
+              color: "#fff",
               fontSize: "11px",
               fontWeight: 700,
-              letterSpacing: "0.02em",
+              letterSpacing: "0.03em",
               whiteSpace: "nowrap",
+              boxShadow: "0 2px 10px rgba(255,43,43,0.45)",
             }}
           >
-            <Flame style={{ width: 12, height: 12 }} />
+            <Flame style={{ width: 12, height: 12, color: "#fff" }} />
             Keeping it Geezee
           </button>
         </div>
