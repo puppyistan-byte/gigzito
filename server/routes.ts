@@ -2095,23 +2095,32 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         viewerCountry,
       });
 
-      // Send email notification to the ad's contactEmail
+      // Send email notification to the ad owner
       try {
         const ad = await storage.getSponsorAdById(data.adId);
-        const contactEmail = ad?.contactEmail ?? null;
-        if (contactEmail) {
-          sendAdInquiryNotification({
-            toEmail: contactEmail,
-            advertiserUsername: data.advertiserUsername ?? "",
-            viewerName: data.viewerName,
-            viewerEmail: data.viewerEmail || undefined,
-            viewerMessage: data.viewerMessage,
-            viewerUsername: data.viewerUsername,
-            viewerCity,
-            viewerState,
-            viewerCountry,
-            adTitle: ad.title,
-          }).catch((e) => console.error("[ad-inquiry email]", e));
+        if (ad) {
+          // Prefer explicit contactEmail; fall back to the ad creator's account email
+          let toEmail = ad.contactEmail ?? null;
+          if (!toEmail && ad.createdBy) {
+            const creator = await storage.getUserById(ad.createdBy);
+            toEmail = creator?.email ?? null;
+          }
+          if (toEmail) {
+            sendAdInquiryNotification({
+              toEmail,
+              advertiserUsername: ad.contactUsername ?? data.advertiserUsername ?? "",
+              viewerName: data.viewerName,
+              viewerEmail: data.viewerEmail || undefined,
+              viewerMessage: data.viewerMessage,
+              viewerUsername: data.viewerUsername,
+              viewerCity,
+              viewerState,
+              viewerCountry,
+              adTitle: ad.title,
+            }).catch((e) => console.error("[ad-inquiry email]", e));
+          } else {
+            console.warn("[ad-inquiry email] no email address found for ad", ad.id);
+          }
         }
       } catch (e) { console.error("[ad-inquiry email lookup]", e); }
 
