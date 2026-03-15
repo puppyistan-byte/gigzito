@@ -465,17 +465,49 @@ function ProviderDashboardInner() {
   const unreadInquiries = adInquiries.filter((i) => !i.isRead).length;
   const totalUnread = unreadGeezees + unreadComments + unreadInquiries;
 
+  const [replyingId, setReplyingId] = useState<string | null>(null); // "geezee-5" | "comment-3" | "inquiry-7"
+  const [replyText, setReplyText] = useState("");
+
   const markGeezeeMutation = useMutation({
     mutationFn: (id: number) => apiRequest("PATCH", `/api/gigness-cards/messages/${id}/read`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/gigness-cards/inbox"] }),
   });
+  const deleteGeezeeMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/gigness-cards/messages/${id}`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/gigness-cards/inbox"] }),
+  });
+  const replyGeezeeMutation = useMutation({
+    mutationFn: ({ id, text }: { id: number; text: string }) => apiRequest("POST", `/api/gigness-cards/messages/${id}/reply`, { replyText: text }),
+    onSuccess: () => { setReplyingId(null); setReplyText(""); toast({ title: "Reply sent" }); },
+    onError: (e: Error) => toast({ title: "Reply failed", description: e.message, variant: "destructive" }),
+  });
+
   const markCommentMutation = useMutation({
     mutationFn: (id: number) => apiRequest("PATCH", `/api/listings/comments/${id}/read`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/listings/comments/mine"] }),
   });
+  const deleteCommentMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/listings/comments/${id}`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/listings/comments/mine"] }),
+  });
+  const replyCommentMutation = useMutation({
+    mutationFn: ({ id, text }: { id: number; text: string }) => apiRequest("POST", `/api/listings/comments/${id}/reply`, { replyText: text }),
+    onSuccess: () => { setReplyingId(null); setReplyText(""); toast({ title: "Reply sent" }); },
+    onError: (e: Error) => toast({ title: "Reply failed", description: e.message, variant: "destructive" }),
+  });
+
   const markInquiryMutation = useMutation({
     mutationFn: (id: number) => apiRequest("PATCH", `/api/ad-inquiries/${id}/read`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ad-inquiries"] }),
+  });
+  const deleteInquiryMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/ad-inquiries/${id}`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ad-inquiries"] }),
+  });
+  const replyInquiryMutation = useMutation({
+    mutationFn: ({ id, text }: { id: number; text: string }) => apiRequest("POST", `/api/ad-inquiries/${id}/reply`, { replyText: text }),
+    onSuccess: () => { setReplyingId(null); setReplyText(""); toast({ title: "Reply sent" }); },
+    onError: (e: Error) => toast({ title: "Reply failed", description: e.message, variant: "destructive" }),
   });
 
   const exportCSV = (tab: typeof inboxTab) => {
@@ -1139,7 +1171,7 @@ function ProviderDashboardInner() {
                   <div
                     key={m.id}
                     onClick={() => { if (!m.isRead) markGeezeeMutation.mutate(m.id); }}
-                    className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${m.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#110808] border-[#ff2b2b]/20"}`}
+                    className={`rounded-xl border p-3.5 transition-colors ${m.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#110808] border-[#ff2b2b]/20"}`}
                     data-testid={`card-geezee-${m.id}`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -1153,6 +1185,37 @@ function ProviderDashboardInner() {
                         <span className="text-[10px] text-[#444]">{new Date(m.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
+                    <div className="flex gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => { setReplyingId(replyingId === `geezee-${m.id}` ? null : `geezee-${m.id}`); setReplyText(""); }}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+                        data-testid={`button-reply-geezee-${m.id}`}
+                      >Reply</button>
+                      <button
+                        onClick={() => deleteGeezeeMutation.mutate(m.id)}
+                        disabled={deleteGeezeeMutation.isPending}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
+                        data-testid={`button-delete-geezee-${m.id}`}
+                      >Delete</button>
+                    </div>
+                    {replyingId === `geezee-${m.id}` && (
+                      <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Type your reply…"
+                          rows={2}
+                          className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444]"
+                          data-testid={`input-reply-geezee-${m.id}`}
+                        />
+                        <button
+                          onClick={() => replyGeezeeMutation.mutate({ id: m.id, text: replyText })}
+                          disabled={!replyText.trim() || replyGeezeeMutation.isPending}
+                          className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
+                          data-testid={`button-send-reply-geezee-${m.id}`}
+                        >Send</button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1176,7 +1239,7 @@ function ProviderDashboardInner() {
                     <div
                       key={c.id}
                       onClick={() => { if (!c.isRead) markCommentMutation.mutate(c.id); }}
-                      className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"}`}
+                      className={`rounded-xl border p-3.5 transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"}`}
                       data-testid={`card-comment-${c.id}`}
                     >
                       <div className="flex items-start justify-between gap-2 mb-0.5">
@@ -1191,10 +1254,42 @@ function ProviderDashboardInner() {
                       </div>
                       {c.listingTitle && <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>}
                       <p className="text-xs text-[#888] mb-1">{c.commentText}</p>
-                      <div className="text-[10px] text-[#555] flex flex-wrap gap-x-3">
+                      <div className="text-[10px] text-[#555] flex flex-wrap gap-x-3 mb-2">
                         {(c as any).viewerEmail && <span>✉ {(c as any).viewerEmail}</span>}
                         {geo && <span>📍 {geo}</span>}
                       </div>
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => { setReplyingId(replyingId === `comment-${c.id}` ? null : `comment-${c.id}`); setReplyText(""); }}
+                          className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+                          data-testid={`button-reply-comment-${c.id}`}
+                        >Reply</button>
+                        <button
+                          onClick={() => deleteCommentMutation.mutate(c.id)}
+                          disabled={deleteCommentMutation.isPending}
+                          className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
+                          data-testid={`button-delete-comment-${c.id}`}
+                        >Delete</button>
+                      </div>
+                      {replyingId === `comment-${c.id}` && (
+                        <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                          <textarea
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder={`Reply to ${(c as any).viewerEmail ? c.authorName : "commenter (no email on file)"}…`}
+                            rows={2}
+                            disabled={!(c as any).viewerEmail}
+                            className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444] disabled:opacity-40"
+                            data-testid={`input-reply-comment-${c.id}`}
+                          />
+                          <button
+                            onClick={() => replyCommentMutation.mutate({ id: c.id, text: replyText })}
+                            disabled={!replyText.trim() || replyCommentMutation.isPending || !(c as any).viewerEmail}
+                            className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
+                            data-testid={`button-send-reply-comment-${c.id}`}
+                          >Send</button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1217,7 +1312,7 @@ function ProviderDashboardInner() {
                   <div
                     key={inq.id}
                     onClick={() => { if (!inq.isRead) markInquiryMutation.mutate(inq.id); }}
-                    className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${inq.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b08] border-green-500/20"}`}
+                    className={`rounded-xl border p-3.5 transition-colors ${inq.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b08] border-green-500/20"}`}
                     data-testid={`card-inquiry-${inq.id}`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
@@ -1243,7 +1338,39 @@ function ProviderDashboardInner() {
                         <Mail className="h-3 w-3" />{inq.viewerEmail}
                       </p>
                     )}
-                    <p className="text-xs text-[#aaa]">{inq.viewerMessage}</p>
+                    <p className="text-xs text-[#aaa] mb-2">{inq.viewerMessage}</p>
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => { setReplyingId(replyingId === `inquiry-${inq.id}` ? null : `inquiry-${inq.id}`); setReplyText(""); }}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+                        data-testid={`button-reply-inquiry-${inq.id}`}
+                      >Reply</button>
+                      <button
+                        onClick={() => deleteInquiryMutation.mutate(inq.id)}
+                        disabled={deleteInquiryMutation.isPending}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] text-[#ff4444]/70 hover:text-[#ff4444] hover:border-[#ff4444]/30 transition-all"
+                        data-testid={`button-delete-inquiry-${inq.id}`}
+                      >Delete</button>
+                    </div>
+                    {replyingId === `inquiry-${inq.id}` && (
+                      <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder={`Reply to ${inq.viewerEmail ? inq.viewerName : "sender (no email on file)"}…`}
+                          rows={2}
+                          disabled={!inq.viewerEmail}
+                          className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white resize-none outline-none focus:border-[#444] disabled:opacity-40"
+                          data-testid={`input-reply-inquiry-${inq.id}`}
+                        />
+                        <button
+                          onClick={() => replyInquiryMutation.mutate({ id: inq.id, text: replyText })}
+                          disabled={!replyText.trim() || replyInquiryMutation.isPending || !inq.viewerEmail}
+                          className="self-end text-[10px] font-bold px-3 py-1.5 rounded-lg bg-[#ff2b2b] text-white disabled:opacity-40"
+                          data-testid={`button-send-reply-inquiry-${inq.id}`}
+                        >Send</button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1271,7 +1398,7 @@ function ProviderDashboardInner() {
 
           {leadsLoading ? (
             <div className="space-y-1">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full bg-[#111] rounded-lg" />)}
+              {[1, 2].map((i) => <Skeleton key={i} className="h-8 w-full bg-[#111] rounded" />)}
             </div>
           ) : leads.length === 0 ? (
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-leads">
@@ -1279,28 +1406,39 @@ function ProviderDashboardInner() {
               <p className="text-[#555] text-sm">No CTA leads yet. When visitors click a CTA button on your listings, their contact info will appear here.</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#1a1a1a]">
-              {leads.map((lead) => {
-                const geo = [(lead as any).viewerCity, (lead as any).viewerState, (lead as any).viewerCountry].filter(Boolean).join(", ");
-                return (
-                  <div key={lead.id} className="py-2.5 px-1" data-testid={`card-lead-${lead.id}`}>
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-sm font-semibold text-white">
-                        {lead.firstName}
-                        {(lead as any).viewerUsername && <span className="text-[#555] font-normal ml-1">@{(lead as any).viewerUsername}</span>}
-                      </span>
-                      <span className="text-[10px] text-[#444] shrink-0">{new Date(lead.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    {lead.videoTitle && <p className="text-[11px] text-[#ff2b2b] mt-0.5">{lead.videoTitle}</p>}
-                    <div className="text-[11px] text-[#666] mt-0.5 space-x-3">
-                      {lead.email && <span>{lead.email}</span>}
-                      {lead.phone && <span>{lead.phone}</span>}
-                      {geo && <span>📍 {geo}</span>}
-                    </div>
-                    {lead.message && <p className="text-[11px] text-[#555] mt-0.5 italic">"{lead.message}"</p>}
-                  </div>
-                );
-              })}
+            <div className="overflow-x-auto rounded-lg border border-[#1e1e1e]" data-testid="table-cta-leads">
+              <table className="w-full text-[11px] font-mono border-collapse">
+                <thead>
+                  <tr className="bg-[#111] border-b border-[#1e1e1e]">
+                    {["Name", "Username", "Email", "Text", "Location"].map((h) => (
+                      <th key={h} className="text-left px-3 py-2 text-[#555] font-semibold uppercase tracking-wider whitespace-nowrap border-r border-[#1a1a1a] last:border-r-0">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {leads.map((lead, idx) => {
+                    const isUS = (lead as any).viewerCountry === "United States";
+                    const location = isUS
+                      ? [(lead as any).viewerState, (lead as any).viewerCity].filter(Boolean).join(", ")
+                      : [(lead as any).viewerCountry, (lead as any).viewerCity].filter(Boolean).join(", ");
+                    return (
+                      <tr
+                        key={lead.id}
+                        className={`border-b border-[#111] ${idx % 2 === 0 ? "bg-[#0a0a0a]" : "bg-[#070707]"} hover:bg-[#0f0f0f] transition-colors`}
+                        data-testid={`row-lead-${lead.id}`}
+                      >
+                        <td className="px-3 py-1.5 text-white whitespace-nowrap border-r border-[#111]">{lead.firstName}</td>
+                        <td className="px-3 py-1.5 text-[#888] whitespace-nowrap border-r border-[#111]">{(lead as any).viewerUsername ? `@${(lead as any).viewerUsername}` : "—"}</td>
+                        <td className="px-3 py-1.5 text-[#aaa] whitespace-nowrap border-r border-[#111]">{lead.email || "—"}</td>
+                        <td className="px-3 py-1.5 text-[#777] max-w-[160px] border-r border-[#111]">
+                          <span className="block truncate" title={lead.message ?? ""}>{lead.message ? lead.message.slice(0, 120) : "—"}</span>
+                        </td>
+                        <td className="px-3 py-1.5 text-[#666] whitespace-nowrap">{location || "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

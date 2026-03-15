@@ -78,6 +78,7 @@ export interface IStorage {
   // Card Messages
   createCardMessage(data: { fromUserId: number; toUserId: number; gignessCardId: number; messageText?: string | null; emojiReaction?: string | null; isClean: boolean }): Promise<CardMessage>;
   getCardMessages(toUserId: number): Promise<CardMessage[]>;
+  deleteCardMessage(id: number, toUserId: number): Promise<void>;
 
   // Card Comments
   createGignessComment(data: { cardId: number; authorUserId?: number | null; authorName: string; commentText: string; isClean: boolean }): Promise<GignessCardComment>;
@@ -87,6 +88,7 @@ export interface IStorage {
   createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string; viewerUsername?: string | null; viewerEmail?: string | null; viewerCity?: string | null; viewerState?: string | null; viewerCountry?: string | null }): Promise<ListingComment>;
   getListingComments(listingId: number): Promise<ListingComment[]>;
   getListingCommentsByProvider(providerUserId: number): Promise<(ListingComment & { listingTitle: string | null })[]>;
+  deleteListingComment(id: number, providerUserId: number): Promise<void>;
 
   // Live Sessions
   createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession>;
@@ -160,6 +162,7 @@ export interface IStorage {
   createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string; viewerUsername?: string; viewerCity?: string; viewerState?: string; viewerCountry?: string }): Promise<AdInquiry>;
   getAdInquiries(advertiserUsername: string): Promise<AdInquiry[]>;
   markAdInquiryRead(id: number): Promise<void>;
+  deleteAdInquiry(id: number, advertiserUsername: string): Promise<void>;
   // Inbox read tracking
   markListingCommentRead(id: number): Promise<void>;
   markCardMessageRead(id: number): Promise<void>;
@@ -631,6 +634,10 @@ export class DatabaseStorage implements IStorage {
       .from(cardMessages)
       .where(eq(cardMessages.toUserId, toUserId))
       .orderBy(sql`${cardMessages.createdAt} DESC`);
+  }
+
+  async deleteCardMessage(id: number, toUserId: number): Promise<void> {
+    await db.delete(cardMessages).where(and(eq(cardMessages.id, id), eq(cardMessages.toUserId, toUserId)));
   }
 
   async createGignessComment(data: { cardId: number; authorUserId?: number | null; authorName: string; commentText: string; isClean: boolean }): Promise<GignessCardComment> {
@@ -1554,8 +1561,21 @@ export class DatabaseStorage implements IStorage {
     await db.update(adInquiries).set({ isRead: true }).where(eq(adInquiries.id, id));
   }
 
+  async deleteAdInquiry(id: number, advertiserUsername: string): Promise<void> {
+    await db.delete(adInquiries).where(and(eq(adInquiries.id, id), eq(adInquiries.advertiserUsername, advertiserUsername)));
+  }
+
   async markListingCommentRead(id: number): Promise<void> {
     await db.update(listingComments).set({ isRead: true }).where(eq(listingComments.id, id));
+  }
+
+  async deleteListingComment(id: number, providerUserId: number): Promise<void> {
+    const [profile] = await db.select({ id: providerProfiles.id }).from(providerProfiles).where(eq(providerProfiles.userId, providerUserId)).limit(1);
+    if (!profile) return;
+    const myListingIds = await db.select({ id: videoListings.id }).from(videoListings).where(eq(videoListings.providerId, profile.id));
+    const ids = myListingIds.map((l) => l.id);
+    if (!ids.length) return;
+    await db.delete(listingComments).where(and(eq(listingComments.id, id), inArray(listingComments.listingId, ids)));
   }
 
   async markCardMessageRead(id: number): Promise<void> {

@@ -2200,6 +2200,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) { return res.status(500).json({ message: "Failed" }); }
   });
 
+  app.delete("/api/ad-inquiries/:id", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      if (!profile?.username) return res.status(403).json({ message: "Forbidden" });
+      await storage.deleteAdInquiry(parseInt(req.params.id), profile.username);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.post("/api/ad-inquiries/:id/reply", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const { replyText } = req.body as { replyText?: string };
+    if (!replyText?.trim()) return res.status(400).json({ message: "Reply text required" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      const inquiries = await storage.getAdInquiries(profile?.username ?? "");
+      const inq = inquiries.find((i) => i.id === parseInt(req.params.id));
+      if (!inq) return res.status(404).json({ message: "Not found" });
+      if (!inq.viewerEmail) return res.status(400).json({ message: "No email on record for this inquiry" });
+      await sendEmail({
+        toEmail: inq.viewerEmail,
+        subject: `Reply from ${profile?.displayName ?? "Gigzito Provider"}`,
+        html: `<p>${replyText.trim().replace(/\n/g, "<br>")}</p>`,
+      });
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed to send reply" }); }
+  });
+
   app.patch("/api/listings/comments/:id/read", async (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
     try {
@@ -2208,12 +2237,68 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) { return res.status(500).json({ message: "Failed" }); }
   });
 
+  app.delete("/api/listings/comments/:id", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      await storage.deleteListingComment(parseInt(req.params.id), req.session.userId);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.post("/api/listings/comments/:id/reply", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const { replyText } = req.body as { replyText?: string };
+    if (!replyText?.trim()) return res.status(400).json({ message: "Reply text required" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      const allComments = await storage.getListingCommentsByProvider(req.session.userId);
+      const comment = allComments.find((c) => c.id === parseInt(req.params.id));
+      if (!comment) return res.status(404).json({ message: "Not found" });
+      const viewerEmail = (comment as any).viewerEmail as string | null;
+      if (!viewerEmail) return res.status(400).json({ message: "No email on record for this comment" });
+      await sendEmail({
+        toEmail: viewerEmail,
+        subject: `Reply from ${profile?.displayName ?? "Gigzito Provider"}`,
+        html: `<p>${replyText.trim().replace(/\n/g, "<br>")}</p>`,
+      });
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed to send reply" }); }
+  });
+
   app.patch("/api/gigness-cards/messages/:id/read", async (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
     try {
       await storage.markCardMessageRead(parseInt(req.params.id));
       return res.json({ ok: true });
     } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.delete("/api/gigness-cards/messages/:id", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      await storage.deleteCardMessage(parseInt(req.params.id), req.session.userId);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.post("/api/gigness-cards/messages/:id/reply", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const { replyText } = req.body as { replyText?: string };
+    if (!replyText?.trim()) return res.status(400).json({ message: "Reply text required" });
+    try {
+      const messages = await storage.getCardMessages(req.session.userId);
+      const msg = messages.find((m) => m.id === parseInt(req.params.id));
+      if (!msg) return res.status(404).json({ message: "Not found" });
+      const sender = await storage.getUserById(msg.fromUserId);
+      if (!sender?.email) return res.status(400).json({ message: "No email on record for this sender" });
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      await sendEmail({
+        toEmail: sender.email,
+        subject: `Reply from ${profile?.displayName ?? "Gigzito Provider"}`,
+        html: `<p>${replyText.trim().replace(/\n/g, "<br>")}</p>`,
+      });
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed to send reply" }); }
   });
 
   // === SPONSOR ADS (ADMIN) ===
