@@ -773,3 +773,39 @@ export const marketerAudiences = pgTable(
 
 export type MarketerAudience = typeof marketerAudiences.$inferSelect;
 export type InsertMarketerAudience = typeof marketerAudiences.$inferInsert;
+
+// ─── Audience Broadcasts ──────────────────────────────────────────────────────
+export const audienceBroadcasts = pgTable("audience_broadcasts", {
+  id: serial("id").primaryKey(),
+  providerUserId: integer("provider_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
+export type AudienceBroadcast = typeof audienceBroadcasts.$inferSelect;
+export type InsertAudienceBroadcast = typeof audienceBroadcasts.$inferInsert;
+
+// ─── Geo Target Campaigns ─────────────────────────────────────────────────────
+export const geoCampaignStatusEnum = pgEnum("geo_campaign_status", ["ACTIVE", "PAUSED", "ENDED"]);
+
+export const geoTargetCampaigns = pgTable("geo_target_campaigns", {
+  id: serial("id").primaryKey(),
+  providerUserId: integer("provider_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  offer: text("offer").notNull(),
+  radiusMiles: integer("radius_miles").notNull().default(10),
+  city: text("city"),
+  state: text("state"),
+  country: text("country").notNull().default("US"),
+  lat: text("lat"),
+  lng: text("lng"),
+  imageUrl: text("image_url"),
+  status: geoCampaignStatusEnum("status").notNull().default("ACTIVE"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type GeoTargetCampaign = typeof geoTargetCampaigns.$inferSelect;
+export type InsertGeoTargetCampaign = typeof geoTargetCampaigns.$inferInsert;

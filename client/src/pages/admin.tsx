@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -16,11 +16,11 @@ import {
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
-  ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power,
+  ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power, MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
-import type { GigJackWithProvider, UserWithProfile, InjectedFeed, SponsorAd } from "@shared/schema";
+import type { GigJackWithProvider, UserWithProfile, InjectedFeed, SponsorAd, GeoTargetCampaign } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -75,7 +75,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -209,7 +209,7 @@ function UserListingsPanel({
 }
 
 export default function AdminPage() {
-  const { user, isLoading: authLoading, logout } = useAuth();
+  const { user, isLoading: authLoading, isFetching: authFetching, logout } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -264,11 +264,11 @@ export default function AdminPage() {
   const isSuperAdmin = userRole === "SUPER_ADMIN";
   const isSuperUser = userRole === "SUPERUSER";
 
-  const shouldRedirect = !authLoading && !isAdmin;
-  if (shouldRedirect) {
-    navigate("/");
-    return null;
-  }
+  const shouldRedirect = !authLoading && !authFetching && !isAdmin;
+
+  useEffect(() => {
+    if (shouldRedirect) navigate("/");
+  }, [shouldRedirect]);
 
   const enabled = isAdmin;
 
@@ -296,6 +296,11 @@ export default function AdminPage() {
   const { data: sponsorAds = [], isLoading: adsLoading } = useQuery<SponsorAd[]>({
     queryKey: ["/api/admin/sponsor-ads"],
     enabled: enabled && activeTab === "ads",
+  });
+
+  const { data: adminGeoCampaigns = [], isLoading: geoLoading } = useQuery<GeoTargetCampaign[]>({
+    queryKey: ["/api/admin/geo-campaigns"],
+    enabled: enabled && activeTab === "geo",
   });
 
   const createInjMutation = useMutation({
@@ -640,6 +645,14 @@ export default function AdminPage() {
 
   const availableRoles = isSuperAdmin ? SUPER_ROLES : BASE_ROLES;
 
+  if (authLoading || authFetching || shouldRedirect) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-[#555] text-sm">Loading…</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -730,6 +743,7 @@ export default function AdminPage() {
           <TabBtn label="GigJacks" icon={Zap} active={activeTab === "gigjacks"} onClick={() => setActiveTab("gigjacks")} badge={pendingCount} />
           <TabBtn label="Live Injection" icon={Radio} active={activeTab === "injection"} onClick={() => setActiveTab("injection")} />
           <TabBtn label="Ads" icon={Megaphone} active={activeTab === "ads"} onClick={() => setActiveTab("ads")} />
+          <TabBtn label="Geo Campaigns" icon={MapPin} active={activeTab === "geo"} onClick={() => setActiveTab("geo")} />
           {/* Always-visible Sign Out — right edge of tab bar */}
           <button
             onClick={async () => { await logout(); navigate("/"); }}
@@ -2136,6 +2150,66 @@ export default function AdminPage() {
               <p>Place image files in <span className="text-[#999]">client/public/ads/</span> and reference them as <span className="text-[#999]">/ads/filename.png</span></p>
               <p>Ads rotate every 25 seconds in the right-rail sponsor panel. Active ads only rotate.</p>
             </div>
+          </div>
+        )}
+
+        {/* ── Geo Campaigns Tab ── */}
+        {activeTab === "geo" && (
+          <div className="space-y-4" data-testid="section-admin-geo">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-[#ff2b2b]" />
+              <h2 className="text-sm font-semibold text-white">Geo Campaigns</h2>
+              <span className="ml-auto text-xs text-[#444]">{adminGeoCampaigns.length} campaign{adminGeoCampaigns.length !== 1 ? "s" : ""}</span>
+            </div>
+
+            {geoLoading ? (
+              <div className="text-center py-10 text-[#555] text-sm">Loading…</div>
+            ) : adminGeoCampaigns.length === 0 ? (
+              <div className="text-center py-10 text-[#555] text-sm">No geo campaigns yet.</div>
+            ) : (
+              <div className="space-y-3">
+                {adminGeoCampaigns.map((campaign) => {
+                  const statusColor =
+                    campaign.status === "ACTIVE" ? "text-green-400 bg-green-500/10 border-green-500/30" :
+                    campaign.status === "PAUSED" ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/30" :
+                    "text-[#555] bg-[#111] border-[#2a2a2a]";
+                  return (
+                    <div
+                      key={campaign.id}
+                      className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-2"
+                      data-testid={`card-geo-campaign-${campaign.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {campaign.imageUrl && (
+                          <img src={campaign.imageUrl} alt={campaign.title} className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-white truncate">{campaign.title}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColor}`}>
+                              {campaign.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#888] mt-0.5">{campaign.offer}</p>
+                          <p className="text-xs text-[#555] mt-1 flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {[campaign.city, campaign.state, campaign.country].filter(Boolean).join(", ")}
+                            {campaign.radiusMiles ? ` · ${campaign.radiusMiles} mi radius` : ""}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-[#444]">Provider ID</p>
+                          <p className="text-xs text-[#666] font-mono">{campaign.providerUserId}</p>
+                          {campaign.createdAt && (
+                            <p className="text-[10px] text-[#444] mt-1">{new Date(campaign.createdAt).toLocaleDateString()}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

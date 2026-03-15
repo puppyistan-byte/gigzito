@@ -5,6 +5,7 @@ import type { CurrentUserResponse } from "@shared/schema";
 interface AuthContextType {
   user: CurrentUserResponse;
   isLoading: boolean;
+  isFetching: boolean;
   logout: () => Promise<void>;
   refetch: () => void;
 }
@@ -12,6 +13,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
+  isFetching: true,
   logout: async () => {},
   refetch: () => {},
 });
@@ -19,7 +21,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading, refetch } = useQuery<CurrentUserResponse>({
+  const { data: user, isLoading, isFetching, refetch } = useQuery<CurrentUserResponse>({
     queryKey: ["/api/auth/me"],
     retry: false,
   });
@@ -32,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user: user ?? null, isLoading, logout, refetch }}>
+    <AuthContext.Provider value={{ user: user ?? null, isLoading, isFetching, logout, refetch }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -936,6 +936,108 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ count, members });
   });
 
+  // Audience broadcast — send email to all subscribers
+  app.post("/api/my-audience/broadcast", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const { subject, body } = req.body as { subject: string; body: string };
+    if (!subject?.trim() || !body?.trim()) {
+      return res.status(400).json({ message: "Subject and body are required" });
+    }
+    try {
+      const [profile, members] = await Promise.all([
+        storage.getProfileByUserId(userId),
+        storage.getMarketerAudience(userId),
+      ]);
+      const senderName = profile?.displayName ?? "Your Provider";
+      // Fire-and-forget emails (don't await each one)
+      let sent = 0;
+      const emailPromises = members.map(async (m) => {
+        try {
+          await sendAudienceBroadcast({ toEmail: m.leadEmail, senderName, subject: subject.trim(), body: body.trim() });
+          sent++;
+        } catch { /* individual failures silently swallowed */ }
+      });
+      await Promise.all(emailPromises);
+      const broadcast = await storage.createAudienceBroadcast({ providerUserId: userId, subject: subject.trim(), body: body.trim(), recipientCount: sent });
+      return res.json({ ok: true, recipientCount: sent, broadcast });
+    } catch (e) {
+      console.error("[broadcast]", e);
+      return res.status(500).json({ message: "Failed to send broadcast" });
+    }
+  });
+
+  // Get past broadcasts
+  app.get("/api/my-audience/broadcasts", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    try {
+      const broadcasts = await storage.getAudienceBroadcasts(userId);
+      return res.json(broadcasts);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch broadcasts" });
+    }
+  });
+
+  // === GEO TARGET CAMPAIGNS ===
+
+  app.post("/api/geo-campaigns", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const { title, offer, radiusMiles, city, state, country, lat, lng, imageUrl } = req.body as {
+      title: string; offer: string; radiusMiles?: number; city?: string; state?: string; country?: string; lat?: string; lng?: string; imageUrl?: string;
+    };
+    if (!title?.trim() || !offer?.trim()) {
+      return res.status(400).json({ message: "Title and offer are required" });
+    }
+    try {
+      const campaign = await storage.createGeoTargetCampaign({
+        providerUserId: userId,
+        title: title.trim(),
+        offer: offer.trim(),
+        radiusMiles: radiusMiles ?? 10,
+        city: city?.trim() || null,
+        state: state?.trim() || null,
+        country: country?.trim() || "US",
+        lat: lat?.trim() || null,
+        lng: lng?.trim() || null,
+        imageUrl: imageUrl?.trim() || null,
+      });
+      return res.json(campaign);
+    } catch (e) {
+      console.error("[geo-campaigns]", e);
+      return res.status(500).json({ message: "Failed to create campaign" });
+    }
+  });
+
+  app.get("/api/geo-campaigns", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    try {
+      const campaigns = await storage.getGeoTargetCampaignsByProvider(userId);
+      return res.json(campaigns);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch campaigns" });
+    }
+  });
+
+  app.patch("/api/geo-campaigns/:id/status", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const id = parseInt(req.params.id);
+    const { status } = req.body as { status: "ACTIVE" | "PAUSED" | "ENDED" };
+    if (!["ACTIVE", "PAUSED", "ENDED"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    try {
+      const campaign = await storage.updateGeoTargetCampaignStatus(id, userId, status);
+      if (!campaign) return res.status(404).json({ message: "Campaign not found" });
+      return res.json(campaign);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to update campaign" });
+    }
+  });
+
   // === GIGNESS CARDS ===
 
   // Public Rolodex feed — filtered by ageBracket, gender, intent
@@ -1610,6 +1712,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const actorUserId = (req.session as any).userId;
     await storage.createAuditLog({ actorUserId, actionType: "SUBSCRIPTION_TIER_CHANGE", targetType: "USER", targetId: id, usedOverride: false });
     return res.json({ success: true, userId: id, tier });
+  });
+
+  // Admin: all geo campaigns
+  app.get("/api/admin/geo-campaigns", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const campaigns = await storage.getAllGeoTargetCampaigns();
+      return res.json(campaigns);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch campaigns" });
+    }
   });
 
   // === SUPER ADMIN: AUDIT LOG ===

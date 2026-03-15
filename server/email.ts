@@ -280,6 +280,44 @@ export async function sendAdInquiryNotification(opts: {
   return { devMode: false };
 }
 
+export async function sendAudienceBroadcast(opts: {
+  toEmail: string;
+  senderName: string;
+  subject: string;
+  body: string;
+}): Promise<{ devMode: boolean }> {
+  const html = `
+    <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+      <p style="color:#888;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;">Message from ${opts.senderName}</p>
+      <h2 style="color:#fff;font-size:20px;margin:0 0 20px;">${opts.subject}</h2>
+      <div style="background:#111;border:1px solid #222;border-radius:10px;padding:20px;margin-bottom:24px;color:#ccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${opts.body}</div>
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
+      <p style="color:#444;font-size:11px;margin:0;">You received this because you opted in via a Gigzito provider listing. To unsubscribe, reply with "unsubscribe".</p>
+    </div>
+  `;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Audience broadcast for:", opts.toEmail);
+    console.log("  From:", opts.senderName);
+    console.log("  Subject:", opts.subject);
+    console.log("  Body:", opts.body.substring(0, 100));
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: opts.toEmail,
+    subject: `${opts.subject} — via Gigzito`,
+    html,
+    text: `${opts.senderName}: ${opts.subject}\n\n${opts.body}`,
+  });
+
+  return { devMode: false };
+}
+
 export async function sendMfaCode(toEmail: string, code: string): Promise<SendMfaCodeResult> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">

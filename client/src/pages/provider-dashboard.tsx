@@ -36,10 +36,12 @@ import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
+  Send, Radio, MapPin, Globe, X as XIcon,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -383,6 +385,57 @@ function ProviderDashboardInner() {
     queryKey: ["/api/my-audience"],
   });
 
+  const { data: audienceBroadcasts = [] } = useQuery<AudienceBroadcast[]>({
+    queryKey: ["/api/my-audience/broadcasts"],
+    enabled: !!user,
+  });
+
+  const { data: geoCampaigns = [] } = useQuery<GeoTargetCampaign[]>({
+    queryKey: ["/api/geo-campaigns"],
+    enabled: !!user,
+  });
+
+  // Broadcast modal state
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [bcSubject, setBcSubject] = useState("");
+  const [bcBody, setBcBody] = useState("");
+
+  const broadcastMutation = useMutation({
+    mutationFn: (data: { subject: string; body: string }) => apiRequest("POST", "/api/my-audience/broadcast", data),
+    onSuccess: (data: any) => {
+      toast({ title: "Broadcast sent", description: `Delivered to ${data.recipientCount} subscriber${data.recipientCount !== 1 ? "s" : ""}.` });
+      setBcSubject(""); setBcBody(""); setShowBroadcast(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/my-audience/broadcasts"] });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to send broadcast.", variant: "destructive" }),
+  });
+
+  // Geo campaign form state
+  const [showGeoForm, setShowGeoForm] = useState(false);
+  const [geoTitle, setGeoTitle] = useState("");
+  const [geoOffer, setGeoOffer] = useState("");
+  const [geoRadius, setGeoRadius] = useState("10");
+  const [geoCity, setGeoCity] = useState("");
+  const [geoState, setGeoState] = useState("");
+  const [geoCountry, setGeoCountry] = useState("US");
+  const [geoImageUrl, setGeoImageUrl] = useState("");
+
+  const createCampaignMutation = useMutation({
+    mutationFn: (data: object) => apiRequest("POST", "/api/geo-campaigns", data),
+    onSuccess: () => {
+      toast({ title: "Campaign created" });
+      setShowGeoForm(false); setGeoTitle(""); setGeoOffer(""); setGeoRadius("10"); setGeoCity(""); setGeoState(""); setGeoCountry("US"); setGeoImageUrl("");
+      queryClient.invalidateQueries({ queryKey: ["/api/geo-campaigns"] });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to create campaign.", variant: "destructive" }),
+  });
+
+  const updateCampaignStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => apiRequest("PATCH", `/api/geo-campaigns/${id}/status`, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/geo-campaigns"] }),
+    onError: () => toast({ title: "Error", description: "Failed to update campaign.", variant: "destructive" }),
+  });
+
   const { data: leads = [], isLoading: leadsLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads/mine"],
     enabled: !!user,
@@ -536,6 +589,71 @@ function ProviderDashboardInner() {
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
+
+      {/* ── Broadcast Modal Overlay ── */}
+      {showBroadcast && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.88)" }}
+          data-testid="modal-broadcast"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-[#0a0a0a] border border-[#222] p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Send className="h-4 w-4 text-[#ff2b2b]" />
+                <h2 className="text-sm font-bold text-white">Send Broadcast</h2>
+              </div>
+              <button onClick={() => { setShowBroadcast(false); setBcSubject(""); setBcBody(""); }} data-testid="button-close-broadcast">
+                <XIcon className="h-4 w-4 text-[#555]" />
+              </button>
+            </div>
+            <p className="text-[11px] text-[#555]">
+              This message will be emailed to all {audienceData?.count ?? 0} subscriber{(audienceData?.count ?? 0) !== 1 ? "s" : ""} in your audience.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">Subject *</label>
+                <Input
+                  placeholder="e.g. Big announcement — don't miss this"
+                  value={bcSubject} onChange={(e) => setBcSubject(e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white"
+                  data-testid="input-broadcast-subject"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">Message *</label>
+                <Textarea
+                  placeholder="Write your message..."
+                  value={bcBody} onChange={(e) => setBcBody(e.target.value)}
+                  rows={5}
+                  className="bg-[#111] border-[#2a2a2a] text-white resize-none"
+                  data-testid="input-broadcast-body"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => { setShowBroadcast(false); setBcSubject(""); setBcBody(""); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#888] border border-[#2a2a2a] hover:border-[#444] transition-all"
+                data-testid="button-cancel-broadcast"
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  if (!bcSubject.trim() || !bcBody.trim()) { toast({ title: "Subject and message are required", variant: "destructive" }); return; }
+                  broadcastMutation.mutate({ subject: bcSubject, body: bcBody });
+                }}
+                disabled={broadcastMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg,#ff2b2b,#cc0000)" }}
+                data-testid="button-send-broadcast"
+              >
+                {broadcastMutation.isPending ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Sending...</> : <><Send className="h-3.5 w-3.5" /> Send Now</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
         {/* Return to Main + Admin Console + Sign Out */}
@@ -752,15 +870,29 @@ function ProviderDashboardInner() {
         {/* ─── Your Audience ─── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white" data-testid="text-audience-title">Your Audience</h2>
+            <div className="flex items-center gap-2">
+              <Radio className="h-4 w-4 text-[#ff2b2b]" />
+              <h2 className="text-sm font-semibold text-white" data-testid="text-audience-title">Your Audience</h2>
+              {(audienceData?.count ?? 0) > 0 && (
+                <span
+                  className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: "#ff2b2b22", color: "#ff2b2b", border: "1px solid #ff2b2b44" }}
+                  data-testid="badge-audience-count"
+                >
+                  {audienceData!.count}
+                </span>
+              )}
+            </div>
             {(audienceData?.count ?? 0) > 0 && (
-              <span
-                className="text-xs font-bold px-2.5 py-0.5 rounded-full"
-                style={{ background: "#ff2b2b22", color: "#ff2b2b", border: "1px solid #ff2b2b44" }}
-                data-testid="badge-audience-count"
+              <button
+                onClick={() => setShowBroadcast(true)}
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all"
+                style={{ background: "linear-gradient(135deg,#ff2b2b,#cc0000)", color: "#fff" }}
+                data-testid="button-broadcast-audience"
               >
-                {audienceData!.count} subscriber{audienceData!.count !== 1 ? "s" : ""}
-              </span>
+                <Send className="h-3 w-3" />
+                Broadcast
+              </button>
             )}
           </div>
 
@@ -782,10 +914,10 @@ function ProviderDashboardInner() {
                 </div>
                 <div>
                   <p className="text-white text-sm font-semibold">Broadcast-Ready Subscribers</p>
-                  <p className="text-[#555] text-xs">These contacts will be targeted during your next GigJack event.</p>
+                  <p className="text-[#555] text-xs">These contacts receive your email broadcasts directly.</p>
                 </div>
               </div>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                 {audienceData.members.slice(0, 20).map((m) => (
                   <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-[#161616] last:border-0" data-testid={`row-audience-${m.id}`}>
                     <div className="flex items-center gap-2 min-w-0">
@@ -804,6 +936,143 @@ function ProviderDashboardInner() {
                   <p className="text-center text-[10px] text-[#444] pt-1">+{audienceData.count - 20} more</p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Past broadcasts */}
+          {audienceBroadcasts.length > 0 && (
+            <div className="mt-3 rounded-xl bg-[#070707] border border-[#181818] p-3" data-testid="card-past-broadcasts">
+              <p className="text-[10px] font-semibold text-[#555] uppercase tracking-wider mb-2">Sent Broadcasts</p>
+              <div className="space-y-2">
+                {audienceBroadcasts.slice(0, 5).map((b) => (
+                  <div key={b.id} className="flex items-center justify-between gap-2" data-testid={`row-broadcast-${b.id}`}>
+                    <div className="min-w-0">
+                      <p className="text-xs text-white font-medium truncate">{b.subject}</p>
+                      <p className="text-[10px] text-[#555]">{b.recipientCount} sent · {new Date(b.sentAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Geo Target Campaigns ─── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-amber-400" />
+              <h2 className="text-sm font-semibold text-white" data-testid="text-geocampaigns-title">Geo Campaigns</h2>
+              {geoCampaigns.filter((c) => c.status === "ACTIVE").length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                  {geoCampaigns.filter((c) => c.status === "ACTIVE").length} active
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowGeoForm(!showGeoForm)}
+              className="text-xs font-bold px-3 py-1.5 rounded-lg border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-all"
+              data-testid="button-new-geo-campaign"
+            >
+              {showGeoForm ? "Cancel" : "+ New Campaign"}
+            </button>
+          </div>
+
+          {showGeoForm && (
+            <div className="rounded-xl bg-[#0a0a0a] border border-amber-400/20 p-4 mb-3 space-y-3" data-testid="form-geo-campaign">
+              <Input
+                placeholder="Campaign title *"
+                value={geoTitle} onChange={(e) => setGeoTitle(e.target.value)}
+                className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                data-testid="input-geo-title"
+              />
+              <Textarea
+                placeholder="Offer / message (e.g. '20% off when you're within 5 miles') *"
+                value={geoOffer} onChange={(e) => setGeoOffer(e.target.value)}
+                rows={2}
+                className="bg-[#111] border-[#2a2a2a] text-white text-sm resize-none"
+                data-testid="input-geo-offer"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="City" value={geoCity} onChange={(e) => setGeoCity(e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white text-sm" data-testid="input-geo-city" />
+                <Input placeholder="State / Province" value={geoState} onChange={(e) => setGeoState(e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white text-sm" data-testid="input-geo-state" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="Country (e.g. US)" value={geoCountry} onChange={(e) => setGeoCountry(e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white text-sm" data-testid="input-geo-country" />
+                <Input placeholder="Radius (miles)" type="number" value={geoRadius} onChange={(e) => setGeoRadius(e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white text-sm" data-testid="input-geo-radius" />
+              </div>
+              <Input placeholder="Image URL (optional)" value={geoImageUrl} onChange={(e) => setGeoImageUrl(e.target.value)} className="bg-[#111] border-[#2a2a2a] text-white text-sm" data-testid="input-geo-image-url" />
+              <button
+                onClick={() => {
+                  if (!geoTitle.trim() || !geoOffer.trim()) { toast({ title: "Title and offer are required", variant: "destructive" }); return; }
+                  createCampaignMutation.mutate({ title: geoTitle, offer: geoOffer, radiusMiles: parseInt(geoRadius) || 10, city: geoCity || null, state: geoState || null, country: geoCountry || "US", imageUrl: geoImageUrl || null });
+                }}
+                disabled={createCampaignMutation.isPending}
+                className="w-full py-2.5 rounded-lg text-sm font-bold text-black transition-all"
+                style={{ background: "linear-gradient(135deg,#f59e0b,#d97706)" }}
+                data-testid="button-submit-geo-campaign"
+              >
+                {createCampaignMutation.isPending ? "Creating..." : "Launch Campaign"}
+              </button>
+            </div>
+          )}
+
+          {geoCampaigns.length === 0 && !showGeoForm ? (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-geo-campaigns">
+              <Globe className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-sm">No geo campaigns yet. Target customers by location with a radius-based campaign.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {geoCampaigns.map((c) => (
+                <div key={c.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3" data-testid={`card-geo-campaign-${c.id}`}>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{c.title}</p>
+                      <p className="text-[11px] text-[#888] mt-0.5">{c.offer}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        c.status === "ACTIVE" ? "bg-green-500/10 text-green-400 border-green-500/20" :
+                        c.status === "PAUSED" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                        "bg-red-500/10 text-red-400 border-red-500/20"
+                      }`}
+                    >{c.status}</span>
+                  </div>
+                  {(c.city || c.state || c.country) && (
+                    <p className="text-[10px] text-[#555] flex items-center gap-1 mb-2">
+                      <MapPin className="h-2.5 w-2.5" />
+                      {[c.city, c.state, c.country].filter(Boolean).join(", ")} · {c.radiusMiles}mi radius
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    {c.status !== "ACTIVE" && (
+                      <button
+                        onClick={() => updateCampaignStatusMutation.mutate({ id: c.id, status: "ACTIVE" })}
+                        disabled={updateCampaignStatusMutation.isPending}
+                        className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all"
+                        data-testid={`button-activate-campaign-${c.id}`}
+                      >Activate</button>
+                    )}
+                    {c.status === "ACTIVE" && (
+                      <button
+                        onClick={() => updateCampaignStatusMutation.mutate({ id: c.id, status: "PAUSED" })}
+                        disabled={updateCampaignStatusMutation.isPending}
+                        className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+                        data-testid={`button-pause-campaign-${c.id}`}
+                      >Pause</button>
+                    )}
+                    {c.status !== "ENDED" && (
+                      <button
+                        onClick={() => updateCampaignStatusMutation.mutate({ id: c.id, status: "ENDED" })}
+                        disabled={updateCampaignStatusMutation.isPending}
+                        className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
+                        data-testid={`button-end-campaign-${c.id}`}
+                      >End</button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

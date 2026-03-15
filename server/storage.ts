@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, gignessCards, cardMessages, gignessCardComments, listingComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -54,7 +54,17 @@ export interface IStorage {
   // Marketer Audiences
   upsertMarketerAudience(data: { providerUserId: number; leadName: string; leadEmail: string; leadPhone?: string | null; sourceListingId?: number | null }): Promise<void>;
   getMarketerAudienceCount(providerUserId: number): Promise<number>;
-  getMarketerAudience(providerUserId: number): Promise<import("@shared/schema").MarketerAudience[]>;
+  getMarketerAudience(providerUserId: number): Promise<MarketerAudience[]>;
+
+  // Audience Broadcasts
+  createAudienceBroadcast(data: { providerUserId: number; subject: string; body: string; recipientCount: number }): Promise<AudienceBroadcast>;
+  getAudienceBroadcasts(providerUserId: number): Promise<AudienceBroadcast[]>;
+
+  // Geo Target Campaigns
+  createGeoTargetCampaign(data: { providerUserId: number; title: string; offer: string; radiusMiles: number; city?: string | null; state?: string | null; country: string; lat?: string | null; lng?: string | null; imageUrl?: string | null }): Promise<GeoTargetCampaign>;
+  getGeoTargetCampaignsByProvider(providerUserId: number): Promise<GeoTargetCampaign[]>;
+  updateGeoTargetCampaignStatus(id: number, providerUserId: number, status: "ACTIVE" | "PAUSED" | "ENDED"): Promise<GeoTargetCampaign>;
+  getAllGeoTargetCampaigns(): Promise<GeoTargetCampaign[]>;
 
   // Gigness Cards
   upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; locationServicesEnabled?: boolean; allowMessaging?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard>;
@@ -1597,6 +1607,42 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAdBooking(id: number): Promise<void> {
     await db.delete(adBookings).where(eq(adBookings.id, id));
+  }
+
+  // ─── Audience Broadcasts ───────────────────────────────────────────────────
+  async createAudienceBroadcast(data: { providerUserId: number; subject: string; body: string; recipientCount: number }): Promise<AudienceBroadcast> {
+    const [row] = await db.insert(audienceBroadcasts).values(data).returning();
+    return row;
+  }
+
+  async getAudienceBroadcasts(providerUserId: number): Promise<AudienceBroadcast[]> {
+    return db.select().from(audienceBroadcasts)
+      .where(eq(audienceBroadcasts.providerUserId, providerUserId))
+      .orderBy(desc(audienceBroadcasts.sentAt));
+  }
+
+  // ─── Geo Target Campaigns ──────────────────────────────────────────────────
+  async createGeoTargetCampaign(data: { providerUserId: number; title: string; offer: string; radiusMiles: number; city?: string | null; state?: string | null; country: string; lat?: string | null; lng?: string | null; imageUrl?: string | null }): Promise<GeoTargetCampaign> {
+    const [row] = await db.insert(geoTargetCampaigns).values(data).returning();
+    return row;
+  }
+
+  async getGeoTargetCampaignsByProvider(providerUserId: number): Promise<GeoTargetCampaign[]> {
+    return db.select().from(geoTargetCampaigns)
+      .where(eq(geoTargetCampaigns.providerUserId, providerUserId))
+      .orderBy(desc(geoTargetCampaigns.createdAt));
+  }
+
+  async updateGeoTargetCampaignStatus(id: number, providerUserId: number, status: "ACTIVE" | "PAUSED" | "ENDED"): Promise<GeoTargetCampaign> {
+    const [row] = await db.update(geoTargetCampaigns)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(geoTargetCampaigns.id, id), eq(geoTargetCampaigns.providerUserId, providerUserId)))
+      .returning();
+    return row;
+  }
+
+  async getAllGeoTargetCampaigns(): Promise<GeoTargetCampaign[]> {
+    return db.select().from(geoTargetCampaigns).orderBy(desc(geoTargetCampaigns.createdAt));
   }
 }
 
