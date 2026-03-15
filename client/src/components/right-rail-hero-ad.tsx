@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { X, User, Mail, MessageSquare, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 import type { SponsorAd } from "@shared/schema";
 
 const ROTATION_MS = 25_000;
@@ -15,6 +16,8 @@ const FALLBACK_GRADIENTS = [
 const todayDate = new Date().toISOString().slice(0, 10);
 
 function AdInquiryModal({ ad, onClose }: { ad: SponsorAd; onClose: () => void }) {
+  const { user } = useAuth();
+  const viewerUsername = user?.profile?.username ?? undefined;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -30,6 +33,7 @@ function AdInquiryModal({ ad, onClose }: { ad: SponsorAd; onClose: () => void })
         viewerName: name,
         viewerEmail: email || undefined,
         viewerMessage: message,
+        viewerUsername,
       }),
     onSuccess: () => setSubmitted(true),
   });

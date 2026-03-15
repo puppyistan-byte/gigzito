@@ -139,6 +139,7 @@ export interface IStorage {
 
   // Sponsor Ads
   getSponsorAds(): Promise<SponsorAd[]>;
+  getSponsorAdById(id: number): Promise<SponsorAd | undefined>;
   getActiveSponsorAds(): Promise<SponsorAd[]>;
   getAdsForDate(date: string): Promise<SponsorAd[]>;
   createSponsorAd(data: InsertSponsorAd): Promise<SponsorAd>;
@@ -146,8 +147,12 @@ export interface IStorage {
   toggleSponsorAd(id: number, active: boolean): Promise<SponsorAd>;
   deleteSponsorAd(id: number): Promise<void>;
   // Ad inquiries
-  createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string }): Promise<AdInquiry>;
+  createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string; viewerUsername?: string; viewerCity?: string; viewerState?: string; viewerCountry?: string }): Promise<AdInquiry>;
   getAdInquiries(advertiserUsername: string): Promise<AdInquiry[]>;
+  markAdInquiryRead(id: number): Promise<void>;
+  // Inbox read tracking
+  markListingCommentRead(id: number): Promise<void>;
+  markCardMessageRead(id: number): Promise<void>;
   // Ad bookings
   getBookingsForDate(date: string): Promise<AdBookingWithAd[]>;
   getAvailabilityForRange(startDate: string, endDate: string): Promise<Record<string, number[]>>;
@@ -1482,6 +1487,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ── Sponsor Ads ─────────────────────────────────────────────────────────────
+  async getSponsorAdById(id: number): Promise<SponsorAd | undefined> {
+    const [ad] = await db.select().from(sponsorAds).where(eq(sponsorAds.id, id)).limit(1);
+    return ad;
+  }
+
   async getSponsorAds(): Promise<SponsorAd[]> {
     return db.select().from(sponsorAds).orderBy(sponsorAds.sortOrder, sponsorAds.createdAt);
   }
@@ -1511,7 +1521,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(sponsorAds).where(eq(sponsorAds.id, id));
   }
 
-  async createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string }): Promise<AdInquiry> {
+  async createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string; viewerUsername?: string; viewerCity?: string; viewerState?: string; viewerCountry?: string }): Promise<AdInquiry> {
     const [inquiry] = await db.insert(adInquiries).values(data).returning();
     return inquiry;
   }
@@ -1520,6 +1530,18 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(adInquiries)
       .where(eq(adInquiries.advertiserUsername, advertiserUsername))
       .orderBy(desc(adInquiries.createdAt));
+  }
+
+  async markAdInquiryRead(id: number): Promise<void> {
+    await db.update(adInquiries).set({ isRead: true }).where(eq(adInquiries.id, id));
+  }
+
+  async markListingCommentRead(id: number): Promise<void> {
+    await db.update(listingComments).set({ isRead: true }).where(eq(listingComments.id, id));
+  }
+
+  async markCardMessageRead(id: number): Promise<void> {
+    await db.update(cardMessages).set({ isRead: true }).where(eq(cardMessages.id, id));
   }
 
   async getAdsForDate(date: string): Promise<SponsorAd[]> {

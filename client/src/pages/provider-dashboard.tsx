@@ -407,6 +407,24 @@ function ProviderDashboardInner() {
     enabled: !!user,
   });
 
+  const unreadGeezees = geezeesMessages.filter((m) => !m.isRead).length;
+  const unreadComments = videoComments.filter((c) => !c.isRead).length;
+  const unreadInquiries = adInquiries.filter((i) => !i.isRead).length;
+  const totalUnread = unreadGeezees + unreadComments + unreadInquiries;
+
+  const markGeezeeMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/gigness-cards/messages/${id}/read`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/gigness-cards/inbox"] }),
+  });
+  const markCommentMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/listings/comments/${id}/read`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/listings/comments/mine"] }),
+  });
+  const markInquiryMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/ad-inquiries/${id}/read`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/ad-inquiries"] }),
+  });
+
   const exportCSV = (tab: typeof inboxTab) => {
     let headers: string[];
     let rows: (string | number)[][];
@@ -797,14 +815,8 @@ function ProviderDashboardInner() {
             <div className="flex items-center gap-2">
               <Inbox className="h-4 w-4 text-[#ff2b2b]" />
               <h2 className="text-sm font-semibold text-white" data-testid="text-inbox-title">Inbox</h2>
-              {inboxTab === "geezees" && geezeesMessages.length > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff2b2b]/15 text-[#ff2b2b] border border-[#ff2b2b]/25">{geezeesMessages.length}</span>
-              )}
-              {inboxTab === "comments" && videoComments.length > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">{videoComments.length}</span>
-              )}
-              {inboxTab === "inquiries" && adInquiries.length > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">{adInquiries.length}</span>
+              {totalUnread > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff2b2b] text-white" data-testid="badge-inbox-unread">{totalUnread}</span>
               )}
             </div>
             <Button
@@ -823,18 +835,21 @@ function ProviderDashboardInner() {
           <div className="flex gap-1 mb-3 p-1 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a]">
             {(["geezees", "comments", "inquiries"] as const).map((tab) => {
               const labels: Record<typeof tab, string> = { geezees: "GeeZees", comments: "Video Comments", inquiries: "Inquiries" };
+              const unreadCounts = { geezees: unreadGeezees, comments: unreadComments, inquiries: unreadInquiries };
+              const u = unreadCounts[tab];
               return (
                 <button
                   key={tab}
                   onClick={() => setInboxTab(tab)}
                   data-testid={`tab-inbox-${tab}`}
-                  className={`flex-1 text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
-                    inboxTab === tab
-                      ? "bg-[#1a1a1a] text-white"
-                      : "text-[#555] hover:text-[#888]"
+                  className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
+                    inboxTab === tab ? "bg-[#1a1a1a] text-white" : "text-[#555] hover:text-[#888]"
                   }`}
                 >
                   {labels[tab]}
+                  {u > 0 && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${inboxTab === tab ? "bg-[#ff2b2b] text-white" : "bg-[#ff2b2b]/20 text-[#ff2b2b]"}`}>{u}</span>
+                  )}
                 </button>
               );
             })}
@@ -852,18 +867,22 @@ function ProviderDashboardInner() {
             ) : (
               <div className="space-y-2">
                 {geezeesMessages.map((m) => (
-                  <div key={m.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-geezee-${m.id}`}>
+                  <div
+                    key={m.id}
+                    onClick={() => { if (!m.isRead) markGeezeeMutation.mutate(m.id); }}
+                    className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${m.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#110808] border-[#ff2b2b]/20"}`}
+                    data-testid={`card-geezee-${m.id}`}
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        {m.emojiReaction && (
-                          <span className="text-xl mr-2">{m.emojiReaction}</span>
-                        )}
-                        {m.messageText && (
-                          <p className="text-sm text-white inline">{m.messageText}</p>
-                        )}
+                        {m.emojiReaction && <span className="text-xl mr-2">{m.emojiReaction}</span>}
+                        {m.messageText && <p className="text-sm text-white inline">{m.messageText}</p>}
                         <p className="text-[10px] text-[#555] mt-1">from user #{m.fromUserId}</p>
                       </div>
-                      <span className="text-[10px] text-[#444] shrink-0">{new Date(m.createdAt).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!m.isRead && <span className="w-2 h-2 rounded-full bg-[#ff2b2b]" />}
+                        <span className="text-[10px] text-[#444]">{new Date(m.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -883,14 +902,20 @@ function ProviderDashboardInner() {
             ) : (
               <div className="space-y-2">
                 {videoComments.map((c) => (
-                  <div key={c.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-comment-${c.id}`}>
+                  <div
+                    key={c.id}
+                    onClick={() => { if (!c.isRead) markCommentMutation.mutate(c.id); }}
+                    className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"}`}
+                    data-testid={`card-comment-${c.id}`}
+                  >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <p className="text-sm font-semibold text-white">{c.authorName}</p>
-                      <span className="text-[10px] text-[#444] shrink-0">{new Date(c.createdAt).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!c.isRead && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+                        <span className="text-[10px] text-[#444]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    {c.listingTitle && (
-                      <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>
-                    )}
+                    {c.listingTitle && <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>}
                     <p className="text-xs text-[#888]">{c.commentText}</p>
                   </div>
                 ))}
@@ -909,18 +934,37 @@ function ProviderDashboardInner() {
               </div>
             ) : (
               <div className="space-y-2">
-                {adInquiries.map((i) => (
-                  <div key={i.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-inquiry-${i.id}`}>
+                {adInquiries.map((inq) => (
+                  <div
+                    key={inq.id}
+                    onClick={() => { if (!inq.isRead) markInquiryMutation.mutate(inq.id); }}
+                    className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${inq.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b08] border-green-500/20"}`}
+                    data-testid={`card-inquiry-${inq.id}`}
+                  >
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm font-semibold text-white">{i.viewerName}</p>
-                      <span className="text-[10px] text-[#444] shrink-0">{new Date(i.createdAt).toLocaleDateString()}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {inq.viewerName}
+                          {inq.viewerUsername && <span className="text-[#888] font-normal ml-1.5">@{inq.viewerUsername}</span>}
+                        </p>
+                        {(inq.viewerCity || inq.viewerState || inq.viewerCountry) && (
+                          <p className="text-[10px] text-[#555] flex items-center gap-1 mt-0.5">
+                            <span>📍</span>
+                            {[inq.viewerCity, inq.viewerState, inq.viewerCountry].filter(Boolean).join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!inq.isRead && <span className="w-2 h-2 rounded-full bg-green-400" />}
+                        <span className="text-[10px] text-[#444]">{new Date(inq.createdAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    {i.viewerEmail && (
-                      <p className="text-xs text-[#555] flex items-center gap-1 mb-1">
-                        <Mail className="h-3 w-3" />{i.viewerEmail}
+                    {inq.viewerEmail && (
+                      <p className="text-xs text-[#555] flex items-center gap-1 mb-1.5">
+                        <Mail className="h-3 w-3" />{inq.viewerEmail}
                       </p>
                     )}
-                    <p className="text-xs text-[#888]">{i.viewerMessage}</p>
+                    <p className="text-xs text-[#aaa]">{inq.viewerMessage}</p>
                   </div>
                 ))}
               </div>

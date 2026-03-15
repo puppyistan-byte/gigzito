@@ -225,6 +225,61 @@ export async function sendVerificationEmail(toEmail: string, verifyUrl: string):
   return { devMode: false };
 }
 
+export async function sendAdInquiryNotification(opts: {
+  toEmail: string;
+  advertiserUsername: string;
+  viewerName: string;
+  viewerEmail: string | undefined | null;
+  viewerMessage: string;
+  viewerUsername: string | null | undefined;
+  viewerCity: string | null | undefined;
+  viewerState: string | null | undefined;
+  viewerCountry: string | null | undefined;
+  adTitle: string;
+}): Promise<{ devMode: boolean }> {
+  const geoLine = [opts.viewerCity, opts.viewerState, opts.viewerCountry].filter(Boolean).join(", ");
+  const html = `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+      <h2 style="color:#ff2b2b;font-size:20px;margin:0 0 8px;">New Ad Inquiry</h2>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Someone responded to your sponsor ad on Gigzito.</p>
+      <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Ad</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 14px;">${opts.adTitle}</p>
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">From</p>
+        <p style="color:#fff;font-size:14px;margin:0 0 2px;">${opts.viewerName}${opts.viewerUsername ? ` (@${opts.viewerUsername})` : ""}</p>
+        ${opts.viewerEmail ? `<p style="color:#888;font-size:13px;margin:0 0 14px;">${opts.viewerEmail}</p>` : "<br/>"}
+        ${geoLine ? `<p style="color:#888;font-size:12px;margin:0 0 14px;">📍 ${geoLine}</p>` : ""}
+        <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Message</p>
+        <p style="color:#fff;font-size:14px;margin:0;">${opts.viewerMessage}</p>
+      </div>
+      <a href="https://gigzito.com/provider/me" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none;margin-bottom:24px;">View in Dashboard</a>
+      <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
+      <p style="color:#555;font-size:12px;margin:0;">Reply directly to ${opts.viewerEmail ?? "the inquirer"} or check your Inquiries inbox at gigzito.com/provider/me.</p>
+    </div>
+  `;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Ad inquiry notification for:", toEmail);
+    console.log("  Ad:", opts.adTitle);
+    console.log("  From:", opts.viewerName, opts.viewerEmail ?? "");
+    console.log("  Message:", opts.viewerMessage);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: toEmail,
+    subject: `New inquiry on your Gigzito ad "${opts.adTitle}"`,
+    html,
+    text: `New inquiry from ${opts.viewerName}${opts.viewerEmail ? ` (${opts.viewerEmail})` : ""}: ${opts.viewerMessage}. View at gigzito.com/provider/me`,
+  });
+
+  return { devMode: false };
+}
+
 export async function sendMfaCode(toEmail: string, code: string): Promise<SendMfaCodeResult> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">

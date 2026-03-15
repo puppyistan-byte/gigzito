@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -1948,13 +1948,60 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         advertiserUsername: z.string().optional(),
         viewerName: z.string().min(1).max(80),
         viewerEmail: z.string().email().optional().or(z.literal("")),
-        viewerMessage: z.string().min(1).max(120),
+        viewerMessage: z.string().min(1).max(500),
+        viewerUsername: z.string().optional(),
       });
       const data = schema.parse(req.body);
+
+      // Geo lookup from IP
+      let viewerCity: string | undefined;
+      let viewerState: string | undefined;
+      let viewerCountry: string | undefined;
+      try {
+        const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "";
+        const ip = rawIp.replace("::ffff:", "");
+        if (ip && ip !== "127.0.0.1" && ip !== "::1" && !/^10\./.test(ip) && !/^192\.168\./.test(ip)) {
+          const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=city,regionName,country,status`);
+          if (geoRes.ok) {
+            const geo = await geoRes.json() as { status: string; city?: string; regionName?: string; country?: string };
+            if (geo.status === "success") {
+              viewerCity = geo.city;
+              viewerState = geo.regionName;
+              viewerCountry = geo.country;
+            }
+          }
+        }
+      } catch { /* geo is best-effort */ }
+
       const inquiry = await storage.createAdInquiry({
         ...data,
         viewerEmail: data.viewerEmail || undefined,
+        viewerUsername: data.viewerUsername || undefined,
+        viewerCity,
+        viewerState,
+        viewerCountry,
       });
+
+      // Send email notification to the ad's contactEmail
+      try {
+        const ad = await storage.getSponsorAdById(data.adId);
+        const contactEmail = ad?.contactEmail ?? null;
+        if (contactEmail) {
+          sendAdInquiryNotification({
+            toEmail: contactEmail,
+            advertiserUsername: data.advertiserUsername ?? "",
+            viewerName: data.viewerName,
+            viewerEmail: data.viewerEmail || undefined,
+            viewerMessage: data.viewerMessage,
+            viewerUsername: data.viewerUsername,
+            viewerCity,
+            viewerState,
+            viewerCountry,
+            adTitle: ad.title,
+          }).catch((e) => console.error("[ad-inquiry email]", e));
+        }
+      } catch (e) { console.error("[ad-inquiry email lookup]", e); }
+
       return res.json(inquiry);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -1973,6 +2020,31 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) {
       return res.status(500).json({ message: "Failed to fetch inquiries" });
     }
+  });
+
+  // Mark inbox items as read
+  app.patch("/api/ad-inquiries/:id/read", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      await storage.markAdInquiryRead(parseInt(req.params.id));
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.patch("/api/listings/comments/:id/read", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      await storage.markListingCommentRead(parseInt(req.params.id));
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.patch("/api/gigness-cards/messages/:id/read", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      await storage.markCardMessageRead(parseInt(req.params.id));
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Failed" }); }
   });
 
   // === SPONSOR ADS (ADMIN) ===

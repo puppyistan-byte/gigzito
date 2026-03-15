@@ -606,6 +606,11 @@ export const adInquiries = pgTable("ad_inquiries", {
   viewerName: text("viewer_name").notNull(),
   viewerEmail: text("viewer_email"),
   viewerMessage: text("viewer_message").notNull(),
+  viewerUsername: text("viewer_username"),
+  viewerCity: text("viewer_city"),
+  viewerState: text("viewer_state"),
+  viewerCountry: text("viewer_country"),
+  isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 export type AdInquiry = typeof adInquiries.$inferSelect;
@@ -713,6 +718,7 @@ export const cardMessages = pgTable("card_messages", {
   messageText: text("message_text"),
   emojiReaction: text("emoji_reaction"),
   isClean: boolean("is_clean").notNull().default(true),
+  isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -741,6 +747,7 @@ export const listingComments = pgTable("listing_comments", {
   authorName: text("author_name").notNull().default("Anonymous"),
   commentText: text("comment_text").notNull(),
   isClean: boolean("is_clean").notNull().default(true),
+  isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
