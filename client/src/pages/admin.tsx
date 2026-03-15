@@ -14,13 +14,13 @@ import {
   Shield, DollarSign, BarChart2, Eye, EyeOff, Trash2, Zap,
   Users, Video, UserCheck, UserX, LayoutDashboard, CalendarDays, Clock,
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
-  ClipboardList, ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
+  ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
   ChevronDown, ChevronUp, Film, Link2, LogOut, Megaphone, ImagePlus, Power,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
-import type { GigJackWithProvider, UserWithProfile, AuditLog, InjectedFeed, SponsorAd } from "@shared/schema";
+import type { GigJackWithProvider, UserWithProfile, InjectedFeed, SponsorAd } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -75,7 +75,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "audit" | "injection" | "ads";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -286,11 +286,6 @@ export default function AdminPage() {
   const { data: adminUsers, isLoading: usersLoading } = useQuery<UserWithProfile[]>({
     queryKey: ["/api/admin/users"],
     enabled,
-  });
-
-  const { data: auditLogs, isLoading: auditLoading } = useQuery<AuditLog[]>({
-    queryKey: ["/api/admin/audit-log"],
-    enabled: enabled && isSuperAdmin && activeTab === "audit",
   });
 
   const { data: injectedFeeds = [], isLoading: injLoading } = useQuery<InjectedFeed[]>({
@@ -725,9 +720,6 @@ export default function AdminPage() {
           <TabBtn label="GigJacks" icon={Zap} active={activeTab === "gigjacks"} onClick={() => setActiveTab("gigjacks")} badge={pendingCount} />
           <TabBtn label="Live Injection" icon={Radio} active={activeTab === "injection"} onClick={() => setActiveTab("injection")} />
           <TabBtn label="Ads" icon={Megaphone} active={activeTab === "ads"} onClick={() => setActiveTab("ads")} />
-          {isSuperAdmin && (
-            <TabBtn label="Audit Log" icon={ClipboardList} active={activeTab === "audit"} onClick={() => setActiveTab("audit")} superOnly />
-          )}
           {/* Always-visible Sign Out — right edge of tab bar */}
           <button
             onClick={async () => { await logout(); navigate("/"); }}
@@ -2083,58 +2075,6 @@ export default function AdminPage() {
               <p>Place image files in <span className="text-[#999]">client/public/ads/</span> and reference them as <span className="text-[#999]">/ads/filename.png</span></p>
               <p>Ads rotate every 25 seconds in the right-rail sponsor panel. Active ads only rotate.</p>
             </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════ AUDIT LOG ═══════════════════════════════ */}
-        {activeTab === "audit" && isSuperAdmin && (
-          <div className="space-y-3" data-testid="section-admin-audit">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-violet-400" />
-              <h2 className="text-sm font-semibold text-white">Audit Log</h2>
-              <span className="ml-auto text-xs text-[#444]">{auditLogs?.length ?? 0} entries</span>
-            </div>
-
-            {auditLoading ? (
-              <div className="space-y-2">{[1,2,3,4,5].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-            ) : (auditLogs?.length ?? 0) === 0 ? (
-              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center text-[#444] text-sm">
-                No audit log entries yet.
-              </div>
-            ) : (
-              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
-                {(auditLogs ?? []).map((log, i) => (
-                  <div
-                    key={log.id}
-                    className={`flex items-start gap-3 px-4 py-3 text-xs ${i !== (auditLogs!.length - 1) ? "border-b border-[#1a1a1a]" : ""} ${log.usedOverride ? "bg-violet-500/05" : ""}`}
-                    data-testid={`row-audit-${log.id}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className={`font-mono font-semibold text-[11px] ${log.usedOverride ? "text-violet-300" : "text-[#ff2b2b]"}`}>
-                          {log.actionType}
-                        </span>
-                        {log.usedOverride && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300">
-                            OVERRIDE
-                          </span>
-                        )}
-                        <span className="text-[#444]">·</span>
-                        <span className="text-[#666]">{log.targetType} #{log.targetId ?? "—"}</span>
-                      </div>
-                      <div className="flex gap-3 text-[10px] text-[#444]">
-                        {log.oldValue && <span>from: <span className="text-[#666]">{log.oldValue}</span></span>}
-                        {log.newValue && <span>to: <span className="text-[#666]">{log.newValue}</span></span>}
-                        <span className="ml-auto">actor: <span className="text-[#666]">user #{log.actorUserId ?? "—"}</span></span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-[#444] shrink-0 mt-0.5 whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
