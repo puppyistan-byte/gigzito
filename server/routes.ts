@@ -853,6 +853,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const vProfile = await storage.getProfileByUserId(req.session.userId);
         viewerUsername = vProfile?.username ?? null;
       }
+      // Geo lookup from IP
+      let viewerCity: string | null = null;
+      let viewerState: string | null = null;
+      let viewerCountry: string | null = null;
+      try {
+        const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "";
+        const ip = rawIp.replace("::ffff:", "");
+        if (ip && ip !== "127.0.0.1" && ip !== "::1" && !/^10\./.test(ip) && !/^192\.168\./.test(ip)) {
+          const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=city,regionName,country,status`);
+          if (geoRes.ok) {
+            const geo = await geoRes.json() as { status: string; city?: string; regionName?: string; country?: string };
+            if (geo.status === "success") { viewerCity = geo.city ?? null; viewerState = geo.regionName ?? null; viewerCountry = geo.country ?? null; }
+          }
+        }
+      } catch { /* geo best-effort */ }
       const lead = await storage.createLead({
         videoId: data.videoId,
         creatorUserId: data.creatorUserId,
@@ -863,6 +878,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         videoTitle: data.videoTitle ?? undefined,
         category: data.category ?? undefined,
         viewerUsername: viewerUsername ?? undefined,
+        viewerCity,
+        viewerState,
+        viewerCountry,
       });
       // Auto-aggregate into marketer's audience if an email was provided
       if (data.email) {
@@ -1240,26 +1258,49 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const schema = z.object({
       commentText: z.string().min(1).max(300),
       authorName: z.string().max(60).optional(),
+      viewerEmail: z.string().email().optional().or(z.literal("")),
     });
     try {
-      const { commentText, authorName } = schema.parse(req.body);
+      const { commentText, authorName, viewerEmail } = schema.parse(req.body);
       const listing = await storage.getListingById(listingId);
       if (!listing) return res.status(404).json({ message: "Listing not found" });
       // Resolve display name: prefer passed authorName, then provider profile, then user email prefix
       let resolvedAuthorName = authorName?.trim() || "";
+      let viewerUsername: string | null = null;
+      const profile = await storage.getProfileByUserId(authorUserId);
+      if (profile?.username) viewerUsername = profile.username;
       if (!resolvedAuthorName) {
-        const profile = await storage.getProfileByUserId(authorUserId);
         if (profile?.displayName) resolvedAuthorName = profile.displayName;
         else {
           const user = await storage.getUserById(authorUserId);
           resolvedAuthorName = user?.email?.split("@")[0] || "Anonymous";
         }
       }
+      // Geo lookup from IP
+      let viewerCity: string | undefined;
+      let viewerState: string | undefined;
+      let viewerCountry: string | undefined;
+      try {
+        const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "";
+        const ip = rawIp.replace("::ffff:", "");
+        if (ip && ip !== "127.0.0.1" && ip !== "::1" && !/^10\./.test(ip) && !/^192\.168\./.test(ip)) {
+          const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=city,regionName,country,status`);
+          if (geoRes.ok) {
+            const geo = await geoRes.json() as { status: string; city?: string; regionName?: string; country?: string };
+            if (geo.status === "success") { viewerCity = geo.city; viewerState = geo.regionName; viewerCountry = geo.country; }
+          }
+        }
+      } catch { /* geo best-effort */ }
       const comment = await storage.createListingComment({
         listingId,
         authorUserId,
         authorName: resolvedAuthorName,
         commentText,
+        viewerUsername,
+        viewerEmail: viewerEmail || null,
+        viewerCity,
+        viewerState,
+        viewerCountry,
       });
       return res.status(201).json(comment);
     } catch (err) {

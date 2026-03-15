@@ -1170,24 +1170,34 @@ function ProviderDashboardInner() {
               </div>
             ) : (
               <div className="space-y-2">
-                {videoComments.map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => { if (!c.isRead) markCommentMutation.mutate(c.id); }}
-                    className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"}`}
-                    data-testid={`card-comment-${c.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-sm font-semibold text-white">{c.authorName}</p>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {!c.isRead && <span className="w-2 h-2 rounded-full bg-blue-400" />}
-                        <span className="text-[10px] text-[#444]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                {videoComments.map((c) => {
+                  const geo = [(c as any).viewerCity, (c as any).viewerState, (c as any).viewerCountry].filter(Boolean).join(", ");
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => { if (!c.isRead) markCommentMutation.mutate(c.id); }}
+                      className={`rounded-xl border p-3.5 cursor-pointer transition-colors ${c.isRead ? "bg-[#0b0b0b] border-[#1e1e1e]" : "bg-[#080b11] border-blue-500/20"}`}
+                      data-testid={`card-comment-${c.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
+                        <p className="text-sm font-semibold text-white">
+                          {c.authorName}
+                          {(c as any).viewerUsername && <span className="text-[#555] font-normal text-xs ml-1">@{(c as any).viewerUsername}</span>}
+                        </p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!c.isRead && <span className="w-2 h-2 rounded-full bg-blue-400" />}
+                          <span className="text-[10px] text-[#444]">{new Date(c.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      {c.listingTitle && <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>}
+                      <p className="text-xs text-[#888] mb-1">{c.commentText}</p>
+                      <div className="text-[10px] text-[#555] flex flex-wrap gap-x-3">
+                        {(c as any).viewerEmail && <span>✉ {(c as any).viewerEmail}</span>}
+                        {geo && <span>📍 {geo}</span>}
                       </div>
                     </div>
-                    {c.listingTitle && <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>}
-                    <p className="text-xs text-[#888]">{c.commentText}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )
           )}
@@ -1260,8 +1270,8 @@ function ProviderDashboardInner() {
           </div>
 
           {leadsLoading ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full bg-[#111] rounded-xl" />)}
+            <div className="space-y-1">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full bg-[#111] rounded-lg" />)}
             </div>
           ) : leads.length === 0 ? (
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-leads">
@@ -1269,34 +1279,28 @@ function ProviderDashboardInner() {
               <p className="text-[#555] text-sm">No CTA leads yet. When visitors click a CTA button on your listings, their contact info will appear here.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {leads.map((lead) => (
-                <div key={lead.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-lead-${lead.id}`}>
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="text-sm font-semibold text-white">{lead.firstName}</p>
-                    <span className="text-[10px] text-[#444] shrink-0">{new Date(lead.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  {lead.videoTitle && (
-                    <p className="text-xs text-[#ff2b2b] mb-1.5">{lead.videoTitle}</p>
-                  )}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <span className="flex items-center gap-1 text-xs text-[#777]">
-                      <Mail className="h-3 w-3" /> {lead.email}
-                    </span>
-                    {lead.phone && (
-                      <span className="flex items-center gap-1 text-xs text-[#777]">
-                        <Phone className="h-3 w-3" /> {lead.phone}
+            <div className="divide-y divide-[#1a1a1a]">
+              {leads.map((lead) => {
+                const geo = [(lead as any).viewerCity, (lead as any).viewerState, (lead as any).viewerCountry].filter(Boolean).join(", ");
+                return (
+                  <div key={lead.id} className="py-2.5 px-1" data-testid={`card-lead-${lead.id}`}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-semibold text-white">
+                        {lead.firstName}
+                        {(lead as any).viewerUsername && <span className="text-[#555] font-normal ml-1">@{(lead as any).viewerUsername}</span>}
                       </span>
-                    )}
+                      <span className="text-[10px] text-[#444] shrink-0">{new Date(lead.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {lead.videoTitle && <p className="text-[11px] text-[#ff2b2b] mt-0.5">{lead.videoTitle}</p>}
+                    <div className="text-[11px] text-[#666] mt-0.5 space-x-3">
+                      {lead.email && <span>{lead.email}</span>}
+                      {lead.phone && <span>{lead.phone}</span>}
+                      {geo && <span>📍 {geo}</span>}
+                    </div>
+                    {lead.message && <p className="text-[11px] text-[#555] mt-0.5 italic">"{lead.message}"</p>}
                   </div>
-                  {lead.message && (
-                    <p className="text-xs text-[#555] mt-1.5 flex gap-1">
-                      <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
-                      {lead.message}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

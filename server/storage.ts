@@ -84,7 +84,7 @@ export interface IStorage {
   getGignessComments(cardId: number): Promise<GignessCardComment[]>;
 
   // Listing Comments
-  createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string }): Promise<ListingComment>;
+  createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string; viewerUsername?: string | null; viewerEmail?: string | null; viewerCity?: string | null; viewerState?: string | null; viewerCountry?: string | null }): Promise<ListingComment>;
   getListingComments(listingId: number): Promise<ListingComment[]>;
   getListingCommentsByProvider(providerUserId: number): Promise<(ListingComment & { listingTitle: string | null })[]>;
 
@@ -497,6 +497,9 @@ export class DatabaseStorage implements IStorage {
         videoTitle: data.videoTitle ?? null,
         category: data.category ?? null,
         viewerUsername: data.viewerUsername ?? null,
+        viewerCity: data.viewerCity ?? null,
+        viewerState: data.viewerState ?? null,
+        viewerCountry: data.viewerCountry ?? null,
       })
       .returning();
     return lead;
@@ -653,7 +656,7 @@ export class DatabaseStorage implements IStorage {
       .limit(50);
   }
 
-  async createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string }): Promise<ListingComment> {
+  async createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string; viewerUsername?: string | null; viewerEmail?: string | null; viewerCity?: string | null; viewerState?: string | null; viewerCountry?: string | null }): Promise<ListingComment> {
     const [comment] = await db
       .insert(listingComments)
       .values({
@@ -662,6 +665,11 @@ export class DatabaseStorage implements IStorage {
         authorName: data.authorName,
         commentText: data.commentText,
         isClean: true,
+        viewerUsername: data.viewerUsername ?? null,
+        viewerEmail: data.viewerEmail ?? null,
+        viewerCity: data.viewerCity ?? null,
+        viewerState: data.viewerState ?? null,
+        viewerCountry: data.viewerCountry ?? null,
       })
       .returning();
     return comment;

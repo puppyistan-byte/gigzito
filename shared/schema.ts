@@ -277,6 +277,9 @@ export const leads = pgTable("leads", {
   videoTitle: text("video_title"),
   category: text("category"),
   viewerUsername: text("viewer_username"),
+  viewerCity: text("viewer_city"),
+  viewerState: text("viewer_state"),
+  viewerCountry: text("viewer_country"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -298,6 +301,9 @@ export type CreateLeadRequest = {
   videoTitle?: string | null;
   category?: string | null;
   viewerUsername?: string | null;
+  viewerCity?: string | null;
+  viewerState?: string | null;
+  viewerCountry?: string | null;
 };
 
 // === LIVE SESSIONS TABLE ===
@@ -748,6 +754,11 @@ export const listingComments = pgTable("listing_comments", {
   commentText: text("comment_text").notNull(),
   isClean: boolean("is_clean").notNull().default(true),
   isRead: boolean("is_read").notNull().default(false),
+  viewerUsername: text("viewer_username"),
+  viewerEmail: text("viewer_email"),
+  viewerCity: text("viewer_city"),
+  viewerState: text("viewer_state"),
+  viewerCountry: text("viewer_country"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

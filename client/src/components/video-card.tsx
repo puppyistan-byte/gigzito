@@ -263,6 +263,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [linkCopied, setLinkCopied] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
+  const [commentEmail, setCommentEmail] = useState("");
 
   const { data: commentsData = [], refetch: refetchComments } = useQuery<{ id: number; authorName: string; commentText: string; createdAt: string }[]>({
     queryKey: [`/api/listings/${listing.id}/comments`],
@@ -271,9 +272,13 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   });
 
   const commentMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/listings/${listing.id}/comments`, { commentText: commentInput.trim() }),
+    mutationFn: () => apiRequest("POST", `/api/listings/${listing.id}/comments`, {
+      commentText: commentInput.trim(),
+      viewerEmail: commentEmail.trim() || undefined,
+    }),
     onSuccess: () => {
       setCommentInput("");
+      setCommentEmail("");
       refetchComments();
     },
     onError: (err: Error) => {
@@ -881,33 +886,47 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </div>
 
             {/* Input */}
-            <div style={{ padding: "10px 12px 16px", borderTop: "1px solid #1e1e1e", display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ padding: "10px 12px 16px", borderTop: "1px solid #1e1e1e" }}>
               {user ? (
                 <>
                   <input
-                    value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && commentInput.trim() && !commentMutation.isPending) commentMutation.mutate(); }}
-                    placeholder="Add a comment…"
-                    maxLength={300}
+                    value={commentEmail}
+                    onChange={(e) => setCommentEmail(e.target.value)}
+                    placeholder="Your email (optional, for replies)"
+                    type="email"
                     style={{
-                      flex: 1, background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10,
-                      padding: "8px 12px", color: "#fff", fontSize: 13, outline: "none",
+                      width: "100%", background: "#161616", border: "1px solid #222", borderRadius: 8,
+                      padding: "6px 10px", color: "#aaa", fontSize: 11, outline: "none",
+                      marginBottom: 6, boxSizing: "border-box",
                     }}
-                    data-testid={`input-comment-${listing.id}`}
+                    data-testid={`input-comment-email-${listing.id}`}
                   />
-                  <button
-                    onClick={() => { if (commentInput.trim()) commentMutation.mutate(); }}
-                    disabled={!commentInput.trim() || commentMutation.isPending}
-                    style={{
-                      background: "#ff2b2b", border: "none", borderRadius: 10, padding: "8px 14px",
-                      color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                      opacity: !commentInput.trim() || commentMutation.isPending ? 0.4 : 1,
-                    }}
-                    data-testid={`button-submit-comment-${listing.id}`}
-                  >
-                    Post
-                  </button>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      value={commentInput}
+                      onChange={(e) => setCommentInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && commentInput.trim() && !commentMutation.isPending) commentMutation.mutate(); }}
+                      placeholder="Add a comment…"
+                      maxLength={300}
+                      style={{
+                        flex: 1, background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10,
+                        padding: "8px 12px", color: "#fff", fontSize: 13, outline: "none",
+                      }}
+                      data-testid={`input-comment-${listing.id}`}
+                    />
+                    <button
+                      onClick={() => { if (commentInput.trim()) commentMutation.mutate(); }}
+                      disabled={!commentInput.trim() || commentMutation.isPending}
+                      style={{
+                        background: "#ff2b2b", border: "none", borderRadius: 10, padding: "8px 14px",
+                        color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        opacity: !commentInput.trim() || commentMutation.isPending ? 0.4 : 1,
+                      }}
+                      data-testid={`button-submit-comment-${listing.id}`}
+                    >
+                      Post
+                    </button>
+                  </div>
                 </>
               ) : (
                 <p style={{ fontSize: 13, color: "#555", textAlign: "center", flex: 1 }}>
