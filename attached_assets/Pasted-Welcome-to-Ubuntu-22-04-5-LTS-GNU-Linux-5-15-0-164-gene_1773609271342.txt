@@ -1,0 +1,141 @@
+Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-164-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun Mar 15 09:13:03 PM UTC 2026
+
+  System load:  0.3                Processes:             190
+  Usage of /:   8.0% of 149.92GB   Users logged in:       1
+  Memory usage: 15%                IPv4 address for eth0: 5.78.128.185
+  Swap usage:   0%                 IPv6 address for eth0: 2a01:4ff:1f0:cd5c::1
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+6 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+3 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+New release '24.04.4 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+*** System restart required ***
+Last login: Sun Mar 15 13:33:19 2026 from 37.46.199.148
+root@ubuntu-8gb-hil-2:~# psql "postgresql://gigzito:Postgres2626492@127.0.0.1:5432/gigzito" <<EOF
+-- Step 1: Create enum safely
+DO \$\$ BEGIN
+  CREATE TYPE geo_campaign_status AS ENUM ('ACTIVE', 'PAUSED', 'ENDED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END \$\$;
+
+-- Step 2: Audience broadcasts log table
+CREATE TABLE IF NOT EXISTS audience_broadcasts (
+  id                SERIAL PRIMARY KEY,
+  provider_user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject           TEXT NOT NULL,
+  body              TEXT NOT NULL,
+  recipient_count   INTEGER NOT NULL DEFAULT 0,
+  sent_at           TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Step 3: Geo target campaigns table
+CREATE TABLE IF NOT EXISTS geo_target_campaigns (
+  id                SERIAL PRIMARY KEY,
+  provider_user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title             TEXT NOT NULL,
+  offer             TEXT NOT NULL,
+  radius_miles      INTEGER NOT NULL DEFAULT 10,
+  city              TEXT,
+  state             TEXT,
+  country           TEXT NOT NULL DEFAULT 'US',
+  lat               TEXT,
+  lng               TEXT,
+  image_url         TEXT,
+  status            geo_campaign_status NOT NULL DEFAULT 'ACTIVE',
+  created_at        TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMP NOT NULL DEFAULT NOW()
+);
+EOF
+DO
+CREATE TABLE
+CREATE TABLE
+root@ubuntu-8gb-hil-2:~# cd /opt/gigzito
+git fetch origin main
+git reset --hard origin/main
+
+# Re-bake the site to apply the React Hook fixes in admin.tsx
+npm run build && pm2 restart gigzito --update-env
+remote: Enumerating objects: 50, done.
+remote: Counting objects: 100% (50/50), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 32 (delta 26), reused 32 (delta 26), pack-reused 0 (from 0)
+Unpacking objects: 100% (32/32), 94.81 KiB | 198.00 KiB/s, done.
+From https://github.com/puppyistan-byte/gigzito
+ * branch            main       -> FETCH_HEAD
+   8c43737..405b9df  main       -> origin/main
+HEAD is now at 405b9df Add new features to admin and provider dashboards
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 1906 modules transformed.
+[esbuild css minify]
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5617:5:
+      5617 │      {
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5628:5:
+      5628 │      { min-width: 300px !important; }
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:6208:5:
+      6208 │      {
+           ╵      ^
+
+
+../dist/public/index.html                                                2.13 kB │ gzip:   0.79 kB
+../dist/public/assets/gigzito-logo-tight_1772926617316-cM3caTgX.png    252.93 kB
+../dist/public/assets/index-pfcVEY1Q.css                               148.27 kB │ gzip:  25.89 kB
+../dist/public/assets/index-CmALNU0p.js                              1,072.17 kB │ gzip: 285.93 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.25s
+building server...
+
+  dist/index.cjs  1.6mb ⚠️
+
+⚡ Done in 126ms
+[PM2] Applying action restartProcessId on app [gigzito](ids: [ 0 ])
+[PM2] [gigzito](0) ✓
+┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name               │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ gigzito            │ default     │ 1.0.0   │ fork    │ 1266708  │ 0s     │ 206  │ online    │ 0%       │ 8.1mb    │ root     │ disabled │
+│ 5  │ gigzito-bot        │ default     │ N/A     │ fork    │ 275551   │ 2D     │ 16   │ online    │ 0%       │ 55.9mb   │ root     │ disabled │
+│ 7  │ gigzito-sandbox    │ default     │ 1.0.0   │ fork    │ 0        │ 0      │ 31   │ errored   │ 0%       │ 0b       │ root     │ disabled │
+└────┴────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-8gb-hil-2:/opt/gigzito#
