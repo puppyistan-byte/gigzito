@@ -1,0 +1,43 @@
+That’s a solid strategy. Splitting the Live Streaming (the heavy lifting) onto a dedicated zito.tv server is a classic professional move—it’s called Service Decoupling. It means your web traffic servers (.88 and .77) won't crash just because 10,000 people started watching a stream at once.
+
+Since we are focused on the 1-minute sync for your main site right now, let's keep the CPU on hills and ash lean.
+
+The 1-Minute Cron "Safety Sync"
+For Postgres, we won't do a full dump/restore every minute (that's actually very heavy on CPU/Disk). Instead, we use Postgres Logical Replication. It’s more "Big Time Company" style, but surprisingly easy on the CPU.
+
+Why it’s better than a Dump/Restore:
+
+Dump: High CPU (compressing data) + High Disk (writing a massive file).
+
+Logical Replication: Low CPU. It only sends the changes (the "Delta") as they happen.
+
+Step 1: The File Sync (The "Replace All" Nano)
+Since you want your nano changes on hills to hit ash almost immediately, we'll put this in your crontab on hills.
+
+Bash
+# Every minute, sync all files from hills to ash
+* * * * * rsync -avz --delete /var/www/html/ root@5.161.102.88:/var/www/html/
+Result: You save the file, and within 0–59 seconds, it’s live on the other coast.
+
+Step 2: The Postgres "Pulse"
+On your current plan, we’ll set up Logical Replication. Here is the 1-minute logic:
+
+Hillsboro (Publisher) keeps a log of every change.
+
+Ashburn (Subscriber) checks in every few seconds and "pulls" only the new rows.
+
+CPU Impact: Almost zero. It’s like a text message vs. sending a whole book.
+
+Step 3: Handling the "Slammed" Server
+Once this sync is running, we go back to your Cloudflare screen (image_a809a4.png):
+
+Steering: Random
+
+The Result: If hills gets slammed, Cloudflare starts sending 50% of the users to ash.
+
+The Streaming Factor: Later, when you launch zito.tv, your web servers will stay fast because they aren't handling the video data—only the website code and the database.
+
+Where to commit?
+hills.
+
+Since Hillsboro is the Publisher for the DB and the Source for the rsync, it is the master of the universe for your code.
