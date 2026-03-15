@@ -250,31 +250,77 @@ export default function HomePage() {
 
       {/* ── Hamburger menu ── */}
       <div ref={menuRef} style={{ position: "fixed", top: 10, left: 12, zIndex: 9998 }}>
-        {/* Trigger button */}
-        <button
-          onClick={() => setMenuOpen((o) => !o)}
-          data-testid="button-hamburger-menu"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            background: "rgba(0,0,0,0.55)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            backdropFilter: "blur(10px)",
-            borderRadius: "999px",
-            padding: "6px 12px 6px 10px",
-            cursor: "pointer",
-            color: "#fff",
-          }}
-        >
-          {menuOpen
-            ? <X style={{ width: 16, height: 16, color: "#ff2b2b" }} />
-            : <Menu style={{ width: 16, height: 16, color: "#fff" }} />
-          }
-          <span style={{ fontSize: "11px", fontWeight: 600, color: menuOpen ? "#ff2b2b" : "rgba(255,255,255,0.7)", letterSpacing: "0.02em" }}>
-            {menuOpen ? "Close" : (CATEGORIES.find(c => c.key === activeVertical)?.label ?? "All Videos")}
-          </span>
-        </button>
+        {/* Top bar row: hamburger + quick links */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            data-testid="button-hamburger-menu"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "rgba(0,0,0,0.55)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(10px)",
+              borderRadius: "999px",
+              padding: "6px 12px 6px 10px",
+              cursor: "pointer",
+              color: "#fff",
+            }}
+          >
+            {menuOpen
+              ? <X style={{ width: 16, height: 16, color: "#ff2b2b" }} />
+              : <Menu style={{ width: 16, height: 16, color: "#fff" }} />
+            }
+            <span style={{ fontSize: "11px", fontWeight: 600, color: menuOpen ? "#ff2b2b" : "rgba(255,255,255,0.7)", letterSpacing: "0.02em" }}>
+              {menuOpen ? "Close" : (CATEGORIES.find(c => c.key === activeVertical)?.label ?? "All Videos")}
+            </span>
+          </button>
+
+          <button
+            onClick={() => navigate("/pricing")}
+            data-testid="button-topbar-pricing"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              background: "rgba(0,0,0,0.55)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(10px)",
+              borderRadius: "999px",
+              padding: "6px 12px",
+              cursor: "pointer",
+              color: "rgba(255,255,255,0.75)",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Layers style={{ width: 12, height: 12 }} />
+            Tiers
+          </button>
+
+          <button
+            onClick={() => navigate("/keeping-it-geezee")}
+            data-testid="button-topbar-geezee"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              background: "rgba(0,0,0,0.55)",
+              border: "1px solid rgba(245,158,11,0.35)",
+              backdropFilter: "blur(10px)",
+              borderRadius: "999px",
+              padding: "6px 12px",
+              cursor: "pointer",
+              color: "#f59e0b",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Flame style={{ width: 12, height: 12 }} />
+            Keeping it Geezee
+          </button>
+        </div>
 
         {/* Dropdown panel */}
         <div
