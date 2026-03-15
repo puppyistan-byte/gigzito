@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard, Layers } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard, Layers, Flame } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -131,6 +131,15 @@ export function Navbar() {
           >
             <Layers className="h-4 w-4" />
             Membership Tiers
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-orange-500/10 focus:bg-orange-500/10 text-orange-300"
+            onClick={() => navigate("/keeping-it-geezee")}
+            data-testid="menu-item-keeping-it-geezee"
+          >
+            <Flame className="h-4 w-4" />
+            Keeping it Geezee
           </DropdownMenuItem>
 
           {isAdmin && (

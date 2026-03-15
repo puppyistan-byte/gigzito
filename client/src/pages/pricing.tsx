@@ -32,7 +32,7 @@ const TIERS = [
   {
     id: "GZBusiness",
     name: "GZBusiness",
-    price: "$20",
+    price: "$25",
     priceNote: "/ month",
     type: "Local Business Engine",
     highlight: false,

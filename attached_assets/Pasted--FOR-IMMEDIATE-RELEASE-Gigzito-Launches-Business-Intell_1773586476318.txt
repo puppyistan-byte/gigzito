@@ -1,0 +1,33 @@
+**FOR IMMEDIATE RELEASE**
+
+**Gigzito Launches Business Intelligence Platform for the Creator and Local Commerce Economy**
+
+Gigzito today announced the launch of its next-generation platform designed to bridge the gap between content creation, marketing intelligence, and local commerce. Built from the ground up as a business intelligence system, Gigzito empowers creators, marketers, and local businesses with tools that combine video distribution, audience engagement, campaign management, and real-world customer activation.
+
+At its core, Gigzito transforms digital interaction into actionable business insight. The platform integrates creator tools, marketing automation, and advanced analytics into one ecosystem, allowing users to understand and grow their audience while converting engagement into measurable results.
+
+Gigzito’s membership ecosystem is structured across four tiers designed to support the entire digital engagement pipeline—from viewers to creators to local businesses.
+
+The platform begins with **GZLurker**, the free registration tier that allows users to watch content through Zito TV, engage with posts, and create their own GeeZee digital identity card. These GeeZee cards can be published to the platform’s Rolodex network, allowing individuals to participate socially and professionally without the friction of paid entry.
+
+The next tier, **GZMarketer**, unlocks unlimited video publishing capabilities for creators and marketers. This tier enables users to distribute content across the platform while maintaining their GeeZee identity presence, turning Gigzito into a dynamic creator ecosystem.
+
+For advanced marketing capabilities, **GZMarketerPro** introduces **GZMetrics**, Gigzito’s business intelligence engine. GZMetrics provides creators and marketers with the same level of insight used by major digital platforms, including analytics such as average watch time, repeat visits, audience demographics, home city data, and engagement performance. The system also captures lead information from calls-to-action, allowing marketers to build contact lists that can be exported via CSV or used for integrated campaign management.
+
+Campaign tools allow marketers to organize audience segments and push notifications directly through the Gigzito mobile application or through SMTP email broadcasts, turning video posts into full marketing campaigns.
+
+The platform’s most powerful tier, **GZBusiness**, extends these capabilities into the physical world through Gigzito’s proprietary **GigJack** location marketing technology. Businesses can register their location and deploy promotional campaigns tied to geographic proximity. When a Gigzito user enters a participating business location with mobile location services enabled, the system can trigger a targeted promotional message, coupon, or offer—creating an immediate opportunity for pedestrian traffic conversion.
+
+By combining creator tools, marketing analytics, and proximity-based promotions, Gigzito establishes a unified ecosystem where digital engagement directly drives real-world commerce.
+
+To accelerate adoption, Gigzito will offer a **three-month complimentary GZBusiness membership** to participating businesses during its launch phase. This initiative allows early partners to build campaigns, deploy location-based offers, and establish customer engagement before the platform’s broader rollout.
+
+“Gigzito is not just another video platform,” said the company’s founders. “It’s a business intelligence system that connects content, marketing, and local commerce into a single operational framework. Our goal is to give creators and businesses the same data and engagement capabilities traditionally reserved for the largest technology platforms.”
+
+With its integrated approach to analytics, campaign automation, and real-world engagement, Gigzito positions itself as a new category of digital platform—one that converts attention into measurable economic activity.
+
+For more information about Gigzito or to register for early access, visit **Gigzito.com**.
+
+**Media Contact**
+Gigzito Media Relations
+[press@gigzito.com](mailto:press@gigzito.com)

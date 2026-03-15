@@ -29,6 +29,7 @@ import AdvertisePage from "@/pages/advertise";
 import GeezeesPage from "@/pages/geezees";
 import CardEditorPage from "@/pages/card-editor";
 import PricingPage from "@/pages/pricing";
+import KeepingItGeezeePage from "@/pages/keeping-it-geezee";
 
 function Router() {
   return (
@@ -56,6 +57,7 @@ function Router() {
       <Route path="/geezees" component={GeezeesPage} />
       <Route path="/card-editor" component={CardEditorPage} />
       <Route path="/pricing" component={PricingPage} />
+      <Route path="/keeping-it-geezee" component={KeepingItGeezeePage} />
       <Route component={NotFound} />
     </Switch>
   );
