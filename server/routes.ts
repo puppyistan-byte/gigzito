@@ -1119,10 +1119,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const { commentText, authorName } = schema.parse(req.body);
       const listing = await storage.getListingById(listingId);
       if (!listing) return res.status(404).json({ message: "Listing not found" });
+      // Resolve display name: prefer passed authorName, then provider profile, then user email prefix
+      let resolvedAuthorName = authorName?.trim() || "";
+      if (!resolvedAuthorName) {
+        const profile = await storage.getProfileByUserId(authorUserId);
+        if (profile?.displayName) resolvedAuthorName = profile.displayName;
+        else {
+          const user = await storage.getUserById(authorUserId);
+          resolvedAuthorName = user?.email?.split("@")[0] || "Anonymous";
+        }
+      }
       const comment = await storage.createListingComment({
         listingId,
         authorUserId,
-        authorName: authorName?.trim() || "Anonymous",
+        authorName: resolvedAuthorName,
         commentText,
       });
       return res.status(201).json(comment);

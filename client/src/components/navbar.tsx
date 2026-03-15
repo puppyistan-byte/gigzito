@@ -51,13 +51,13 @@ export function Navbar() {
       data-testid="navbar-profile"
     >
       <Link href="/advertise">
-        <a
-          style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: "11px", padding: "6px 12px", borderRadius: "999px", textDecoration: "none", letterSpacing: "0.03em", boxShadow: "0 2px 8px rgba(255,43,43,0.4)" }}
+        <div
+          style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: "11px", padding: "6px 12px", borderRadius: "999px", textDecoration: "none", letterSpacing: "0.03em", boxShadow: "0 2px 8px rgba(255,43,43,0.4)", cursor: "pointer" }}
           data-testid="link-advertise-with-us"
         >
           <Megaphone style={{ width: "12px", height: "12px" }} />
           Advertise
-        </a>
+        </div>
       </Link>
       {/* Avatar dropdown for navigation */}
       <DropdownMenu>
