@@ -11,7 +11,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame } from "lucide-react";
 import { useLocation } from "wouter";
 
 const CATEGORIES = [
@@ -357,6 +357,34 @@ export default function HomePage() {
             <Eye style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
             <span style={{ fontSize: "13px", fontWeight: 600, color: "#ff2b2b", letterSpacing: "0.01em" }}>
               All Eyes On Me
+            </span>
+          </button>
+
+          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/pricing"); }}
+            data-testid="button-menu-pricing"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Layers style={{ width: 13, height: 13, color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: "0.01em" }}>
+              Membership Tiers
+            </span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/keeping-it-geezee"); }}
+            data-testid="button-menu-keeping-it-geezee"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Flame style={{ width: 13, height: 13, color: "#f59e0b", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>
+              Keeping it Geezee
             </span>
           </button>
         </div>
