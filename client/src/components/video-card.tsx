@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle } from "lucide-react";
@@ -8,6 +8,7 @@ import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { ListingWithProvider } from "@shared/schema";
 
 const MAX_PLAY_SECONDS = 60;
@@ -237,6 +238,8 @@ function ProductBlock({ price, purchaseUrl, stock, onGuestAction }: { price?: st
 
 export function VideoCard({ listing, className = "", isActive = false, onEnd, isMuted = true, onMuteChange, initialIsLiked, suppressLikeQuery = false }: VideoCardProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const provider = listing.provider;
   const initials = provider.displayName
     ? provider.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -272,6 +275,14 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
     onSuccess: () => {
       setCommentInput("");
       refetchComments();
+    },
+    onError: (err: Error) => {
+      if (err.message.startsWith("401")) {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+        toast({ title: "Session expired", description: "Please sign in again to post a comment.", variant: "destructive" });
+      } else {
+        toast({ title: "Couldn't post comment", description: err.message || "Something went wrong.", variant: "destructive" });
+      }
     },
   });
 
