@@ -57,7 +57,7 @@ export interface IStorage {
   getMarketerAudience(providerUserId: number): Promise<import("@shared/schema").MarketerAudience[]>;
 
   // Gigness Cards
-  upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard>;
+  upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; locationServicesEnabled?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard>;
   getGignessCardByUserId(userId: number): Promise<GignessCard | undefined>;
   getGignessCardById(cardId: number): Promise<GignessCard | undefined>;
   getGignessCardByQrUuid(qrUuid: string): Promise<GignessCard | undefined>;
@@ -521,7 +521,7 @@ export class DatabaseStorage implements IStorage {
 
   // ── Gigness Cards ──────────────────────────────────────────────────────────
 
-  async upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard> {
+  async upsertGignessCard(userId: number, data: { slogan?: string; profilePic?: string | null; gallery?: string[]; isPublic?: boolean; locationServicesEnabled?: boolean; ageBracket?: string | null; gender?: string | null; intent?: string | null }): Promise<GignessCard> {
     const [card] = await db
       .insert(gignessCards)
       .values({ userId, ...data })
@@ -532,6 +532,7 @@ export class DatabaseStorage implements IStorage {
           ...(data.profilePic !== undefined && { profilePic: data.profilePic }),
           ...(data.gallery !== undefined && { gallery: data.gallery }),
           ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
+          ...(data.locationServicesEnabled !== undefined && { locationServicesEnabled: data.locationServicesEnabled }),
           ...(data.ageBracket !== undefined && { ageBracket: data.ageBracket }),
           ...(data.gender !== undefined && { gender: data.gender }),
           ...(data.intent !== undefined && { intent: data.intent }),

@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, Globe, Lock, Image, Trash2,
-  Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio,
+  Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { GignessCard } from "@shared/schema";
@@ -193,11 +193,12 @@ export default function CardEditorPage() {
   const [slogan, setSlogan]         = useState("");
   const [profilePic, setProfilePic] = useState("");
   const [gallery, setGallery]       = useState<string[]>([]);
-  const [isPublic, setIsPublic]     = useState(false);
-  const [ageBracket, setAgeBracket] = useState("");
-  const [gender, setGender]         = useState("");
-  const [intent, setIntent]         = useState("");
-  const [dirty, setDirty]           = useState(false);
+  const [isPublic, setIsPublic]                           = useState(false);
+  const [locationServicesEnabled, setLocationServices]    = useState(false);
+  const [ageBracket, setAgeBracket]                       = useState("");
+  const [gender, setGender]                               = useState("");
+  const [intent, setIntent]                               = useState("");
+  const [dirty, setDirty]                                 = useState(false);
 
   // Redirect unauthenticated
   useEffect(() => {
@@ -220,6 +221,7 @@ export default function CardEditorPage() {
       setProfilePic(existingCard.profilePic ?? "");
       setGallery(existingCard.gallery ?? []);
       setIsPublic(existingCard.isPublic ?? false);
+      setLocationServices(existingCard.locationServicesEnabled ?? false);
       setAgeBracket(existingCard.ageBracket ?? "");
       setGender(existingCard.gender ?? "");
       setIntent(existingCard.intent ?? "");
@@ -233,6 +235,7 @@ export default function CardEditorPage() {
         profilePic: profilePic || null,
         gallery: gallery.filter(Boolean),
         isPublic,
+        locationServicesEnabled,
         ageBracket: ageBracket || null,
         gender: gender || null,
         intent: intent || null,
@@ -417,6 +420,39 @@ export default function CardEditorPage() {
                 checked={isPublic}
                 onCheckedChange={(v) => { setIsPublic(v); markDirty(); }}
                 data-testid="switch-is-public"
+              />
+            </div>
+
+            {/* Location Services toggle */}
+            <div className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
+              locationServicesEnabled
+                ? "bg-[#100a00] border-yellow-500/30"
+                : "bg-[#0d0d0d] border-[#1e1e1e]"
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  locationServicesEnabled ? "bg-yellow-500/15 border border-yellow-500/25" : "bg-[#1a1a1a] border border-[#2a2a2a]"
+                }`}>
+                  <MapPin className={`h-4 w-4 ${locationServicesEnabled ? "text-yellow-400" : "text-[#555]"}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Preemptive Marketing</p>
+                  <p className="text-xs text-[#555] mt-0.5">
+                    {locationServicesEnabled
+                      ? "Location services on — you'll receive geo-targeted ads from Gigzito partner shops near you"
+                      : "Turn on to receive location-enabled offers when you're near a Gigzito partner shop"}
+                  </p>
+                  {locationServicesEnabled && (
+                    <p className="text-[10px] text-yellow-500/70 mt-1.5 font-medium">
+                      📍 Active — partner shops can reach you with proximity offers
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Switch
+                checked={locationServicesEnabled}
+                onCheckedChange={(v) => { setLocationServices(v); markDirty(); }}
+                data-testid="switch-location-services"
               />
             </div>
 
