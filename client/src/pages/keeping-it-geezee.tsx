@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Check, Zap, BarChart3, MapPin, Users, Video, CreditCard, Bell, Mail, Download, Tag, TrendingUp } from "lucide-react";
+import { Check, Zap, BarChart3, MapPin, Users, Video, CreditCard, Bell, Mail, Download, Tag, TrendingUp, ArrowLeft } from "lucide-react";
 
 const TIER_JOURNEY = [
   {
@@ -82,6 +82,16 @@ const GZMETRICS_STATS = [
 export default function KeepingItGeezeePage() {
   return (
     <div style={{ minHeight: "100vh", background: "#050505", color: "#fff", overflowX: "hidden" }}>
+
+      {/* Back button */}
+      <div style={{ padding: "16px 24px" }}>
+        <Link href="/">
+          <div data-testid="link-back-home-geezee" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 16px rgba(255,43,43,0.35)", letterSpacing: "0.02em" }}>
+            <ArrowLeft size={14} />
+            Back to Gigzito
+          </div>
+        </Link>
+      </div>
 
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
       <div style={{ position: "relative", minHeight: "92vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 24px 80px", textAlign: "center", overflow: "hidden" }}>
