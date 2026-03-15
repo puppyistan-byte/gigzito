@@ -1,0 +1,46 @@
+
+/root/.pm2/logs/gigzito-out.log last 15 lines:
+0|gigzito  | 9:40:02 PM [express] GET /api/all-eyes/active 304 in 2ms
+0|gigzito  | 9:40:04 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:07 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:10 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:12 PM [express] GET /api/live/active 304 in 4ms :: []
+0|gigzito  | 9:40:12 PM [express] GET /api/love/leaderboard 304 in 4ms :: [{"providerId":7,"displayName":"Admin","avatarUrl":"https://i.pravatar.cc/150?img=1","username":"admin","voteCount":1}]
+0|gigzito  | 9:40:12 PM [express] GET /api/gigjacks/today 304 in 4ms :: []
+0|gigzito  | 9:40:13 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:16 PM [express] GET /api/gigjacks/live-state 304 in 5ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:17 PM [express] POST /api/ad-inquiries 500 in 65ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:40:18 PM [express] POST /api/ad-inquiries 500 in 19ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:40:19 PM [express] POST /api/ad-inquiries 500 in 20ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:40:19 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:22 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:40:22 PM [express] GET /api/all-eyes/active 304 in 4ms
+
+0|gigzito  | 9:42:32 PM [express] GET /api/sponsor-ads 304 in 6ms :: [{"id":1,"title":"AI Bot Trading Continually Performs","body":"Let an advanced AI trade for you 24/7. Set it up once and let it work around the clock.","imageUrl":"/ads/aurum4.png","targetUrl":"https://aiwealthsecret.io/?ref_code=ERUEUE&disable_popups=true","ctaMode":"url","contactUsername":null,"contactEmail":null,"contactMessage":null,"cta":"Learn More","active":true,"sortOrder":0,"createdBy":null,"createdAt":"2026-03-12T15:00:30.962Z","updatedAt":"2026-03-12T15:15:05.831Z"},{"id":8,"title":"Marketing Pro Wanted!","body":"Earn 25% Monthly Commissions! ","imageUrl":"/ads/ad-1773604060485-f5781e50.png","targetUrl":"https://AiWealthSecret.io/?ref_code=Y20R0D&disable_popups=true","ctaMode":"profile","contactUsername":"admin","contactEmail":"admin@gigzito.com","contactMessage":"","cta":"Learn More","active":true,"sortOrder":0,"createdBy":7,"createdAt":"2026-03-15T19:50:03.307Z","updatedAt":"2026-03-15T19:59:56.409Z"},{"id":2,"title":"Introducing Aurum EX-AI Trading BOT","body":"How I make daily profits from an AI trading robot who compounds my daily gains. ","imageUrl":"/ads/ad-1773365060418-bb8dd0e7.png","targetUrl":"https://aiwealthsecret.io/?ref_code=ERUEUE&disable_popups=true","ctaMode":"profile","contactUsername":"admin","contactEmail":"admin@gigzito.com","contactMessage":"","cta":"Learn More","active":true,"sortOrder":1,"createdBy":7,"createdAt":"2026-03-13T01:25:12.609Z","updatedAt":"2026-03-15T19:30:13.367Z"}]
+0|gigzito  | 9:42:32 PM [express] GET /api/gigjacks/live-state 304 in 6ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:42:32 PM [express] GET /api/gigjacks/today 304 in 5ms :: []
+0|gigzito  | 9:42:34 PM [express] POST /api/ad-inquiries 500 in 19ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:34 PM [express] POST /api/ad-inquiries 500 in 9ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:34 PM [express] POST /api/ad-inquiries 500 in 17ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:35 PM [express] POST /api/ad-inquiries 500 in 31ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:35 PM [express] POST /api/ad-inquiries 500 in 17ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:35 PM [express] POST /api/ad-inquiries 500 in 19ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:35 PM [express] POST /api/ad-inquiries 500 in 17ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:35 PM [express] GET /api/gigjacks/live-state 304 in 4ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:42:35 PM [express] POST /api/ad-inquiries 500 in 16ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:36 PM [express] POST /api/ad-inquiries 500 in 18ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:36 PM [express] POST /api/ad-inquiries 500 in 15ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:38 PM [express] GET /api/gigjacks/live-state 304 in 4ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:42:39 PM [express] POST /api/ad-inquiries 500 in 33ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:39 PM [express] POST /api/ad-inquiries 500 in 16ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:39 PM [express] POST /api/ad-inquiries 500 in 17ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:39 PM [express] POST /api/ad-inquiries 500 in 14ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:40 PM [express] POST /api/ad-inquiries 500 in 16ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:41 PM [express] POST /api/ad-inquiries 500 in 16ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:41 PM [express] POST /api/ad-inquiries 500 in 15ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:41 PM [express] GET /api/gigjacks/live-state 304 in 3ms :: {"phase":"hidden","gj":null,"flashSecondsRemaining":null,"offerEndsAt":null}
+0|gigzito  | 9:42:41 PM [express] POST /api/ad-inquiries 500 in 16ms :: {"message":"Failed to submit inquiry"}
+0|gigzito  | 9:42:42 PM [express] GET /api/injected-feed/active 304 in 3ms :: {"id":12,"platform":"YouTube","sourceUrl":"https://www.youtube.com/live/H5cWx-bR4tM?si=WhGVoQc4t1fWBgaZ","displayTitle":"Admin Live Feed","category":null,"injectMode":"immediate","status":"active","startsAt":null,"endsAt":null,"createdBy":7,"createdAt":"2026-03-10T14:02:35.474Z","updatedAt":"2026-03-10T14:02:35.474Z"}
+0|gigzito  | 9:42:42 PM [express] GET /api/live/active 304 in 3ms :: []
+0|gigzito  | 9:42:42 PM [express] GET /api/love/leaderboard 304 in 4ms :: [{"providerId":7,"displayName":"Admin","avatarUrl":"https://i.pravatar.cc/150?img=1","username":"admin","voteCount":1}]
+0|gigzito  | 9:42:42 PM [express] GET /api/all-eyes/active 304 in 3ms
