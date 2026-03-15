@@ -261,7 +261,7 @@ export async function sendAdInquiryNotification(opts: {
 
   if (DEV_MODE) {
     console.log("\n" + "=".repeat(60));
-    console.log("  [DEV MODE] Ad inquiry notification for:", toEmail);
+    console.log("  [DEV MODE] Ad inquiry notification for:", opts.toEmail);
     console.log("  Ad:", opts.adTitle);
     console.log("  From:", opts.viewerName, opts.viewerEmail ?? "");
     console.log("  Message:", opts.viewerMessage);
@@ -271,7 +271,7 @@ export async function sendAdInquiryNotification(opts: {
 
   await getTransporter().sendMail({
     from: SMTP_FROM,
-    to: toEmail,
+    to: opts.toEmail,
     subject: `New inquiry on your Gigzito ad "${opts.adTitle}"`,
     html,
     text: `New inquiry from ${opts.viewerName}${opts.viewerEmail ? ` (${opts.viewerEmail})` : ""}: ${opts.viewerMessage}. View at gigzito.com/provider/me`,
