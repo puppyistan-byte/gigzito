@@ -35,7 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -515,13 +515,12 @@ function ProviderDashboardInner() {
           <h1 className="text-xl font-bold text-white" data-testid="text-dashboard-title">My Dashboard</h1>
           <Button
             size="sm"
-            onClick={handlePostVideo}
-            disabled={dailyStats?.capReached}
-            className="bg-[#ff1a1a] hover:bg-[#ff2a2a] text-white font-bold rounded-xl shrink-0"
-            data-testid="button-post-new"
+            onClick={() => navigate("/provider/profile")}
+            className="bg-[#111] hover:bg-[#1a1a1a] text-white font-semibold rounded-xl shrink-0 border border-[#2a2a2a]"
+            data-testid="button-my-profile"
           >
-            <PlusCircle className="h-4 w-4 mr-1.5" />
-            Post Video
+            <UserCircle className="h-4 w-4 mr-1.5 text-[#ff2b2b]" />
+            My Profile
           </Button>
         </div>
 
