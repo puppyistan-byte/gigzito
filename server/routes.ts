@@ -1985,8 +1985,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         createdBy: (req.session as any).userId,
       });
       return res.status(201).json(ad);
-    } catch (e) {
-      return res.status(500).json({ message: "Failed to create ad" });
+    } catch (e: any) {
+      console.error("[create ad error]", e?.message ?? e);
+      return res.status(500).json({ message: e?.message ?? "Failed to create ad" });
     }
   });
 

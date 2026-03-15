@@ -343,7 +343,7 @@ export default function AdminPage() {
   });
 
   // ── Ads state + mutations ────────────────────────────────────────────────────
-  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More", sortOrder: 0 });
+  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More" });
   const [adUploadedUrl, setAdUploadedUrl] = useState("");
   const [adFormErrors, setAdFormErrors] = useState({ title: false, image: false });
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
@@ -356,7 +356,7 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More" }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
     onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
   });
 
@@ -1817,7 +1817,7 @@ export default function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
               <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
               <button
-                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: user?.profile?.username ?? "", contactEmail: user?.user?.email ?? "", contactMessage: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: user?.profile?.username ?? "", contactEmail: user?.user?.email ?? "", contactMessage: "", cta: "Learn More" }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
                 data-testid="button-ad-new"
               >
@@ -2015,16 +2015,6 @@ export default function AdminPage() {
                       data-testid="input-ad-cta"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs text-[#666] mb-1 block">Sort Order</label>
-                    <Input
-                      type="number"
-                      value={adForm.sortOrder}
-                      onChange={(e) => setAdForm((f) => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
-                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
-                      data-testid="input-ad-sort-order"
-                    />
-                  </div>
                 </div>
                 {adForm.imageUrl && (
                   <div className="rounded-lg overflow-hidden border border-[#2a2a2a]" style={{ height: "120px" }}>
@@ -2083,11 +2073,12 @@ export default function AdminPage() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{ad.title}</p>
-                      <a href={ad.targetUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[#ff2b2b] hover:underline truncate block">{ad.targetUrl}</a>
+                      {(ad as any).ctaMode === "profile" ? (
+                        <span className="text-xs text-emerald-500 truncate block">👤 Contact Profile · @{(ad as any).contactUsername}</span>
+                      ) : (
+                        <a href={ad.targetUrl ?? "#"} target="_blank" rel="noopener noreferrer" className="text-xs text-[#ff2b2b] hover:underline truncate block">{ad.targetUrl}</a>
+                      )}
                     </div>
-
-                    {/* Order badge */}
-                    <span className="text-xs text-[#444] font-mono">#{ad.sortOrder}</span>
 
                     {/* Status toggle */}
                     <button
@@ -2105,7 +2096,7 @@ export default function AdminPage() {
                         setEditingAd(ad);
                         const isLocalUpload = ad.imageUrl?.startsWith("/ads/") || ad.imageUrl?.startsWith("/uploads/");
                         setAdUploadedUrl(isLocalUpload ? ad.imageUrl : "");
-                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl ?? "", ctaMode: ad.ctaMode ?? "url", contactUsername: ad.contactUsername ?? "", contactEmail: ad.contactEmail ?? "", contactMessage: ad.contactMessage ?? "", cta: ad.cta, sortOrder: ad.sortOrder });
+                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl ?? "", ctaMode: ad.ctaMode ?? "url", contactUsername: ad.contactUsername ?? "", contactEmail: ad.contactEmail ?? "", contactMessage: ad.contactMessage ?? "", cta: ad.cta });
                         setAdFormErrors({ title: false, image: false });
                         setAdFormOpen(true);
                       }}
