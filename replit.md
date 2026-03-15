@@ -203,6 +203,8 @@ providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, desc
 ### Database Tables
 - `gigness_cards` — one per user; `qr_uuid` (gen_random_uuid), slogan, profilePic, gallery TEXT[], ageBracket, gender, intent, engagementCount, isPublic, locationServicesEnabled, allowMessaging
 - `card_messages` — fromUserId, toUserId, gignessCardId, messageText, emojiReaction, isClean (GZ-Bot flag)
+- `ad_inquiries` — adId, advertiserUsername, viewerName, viewerEmail, viewerMessage; written by `POST /api/ad-inquiries` (public); read by `GET /api/ad-inquiries` (auth, scoped to logged-in user's username)
+- `sponsor_ads` — now has `ctaMode` (url|profile), `contactUsername`, `contactEmail`, `contactMessage` for Contact Profile ad mode
 
 ### API Endpoints
 | Method | Route | Auth |

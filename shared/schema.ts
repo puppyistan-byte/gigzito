@@ -580,6 +580,10 @@ export const sponsorAds = pgTable("sponsor_ads", {
   body: text("body").notNull().default(""),
   imageUrl: text("image_url").notNull(),
   targetUrl: text("target_url"),
+  ctaMode: text("cta_mode").notNull().default("url"),
+  contactUsername: text("contact_username"),
+  contactEmail: text("contact_email"),
+  contactMessage: text("contact_message"),
   cta: text("cta").notNull().default("Learn More"),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
@@ -591,6 +595,19 @@ export const sponsorAds = pgTable("sponsor_ads", {
 export type SponsorAd = typeof sponsorAds.$inferSelect;
 export const insertSponsorAdSchema = createInsertSchema(sponsorAds).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertSponsorAd = z.infer<typeof insertSponsorAdSchema>;
+
+// === AD INQUIRIES TABLE ===
+export const adInquiries = pgTable("ad_inquiries", {
+  id: serial("id").primaryKey(),
+  adId: integer("ad_id").notNull().references(() => sponsorAds.id, { onDelete: "cascade" }),
+  advertiserUsername: text("advertiser_username"),
+  viewerName: text("viewer_name").notNull(),
+  viewerEmail: text("viewer_email"),
+  viewerMessage: text("viewer_message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type AdInquiry = typeof adInquiries.$inferSelect;
+export type InsertAdInquiry = typeof adInquiries.$inferInsert;
 
 // === AD BOOKINGS TABLE ===
 export const AD_BOOKING_STATUSES = ["pending", "confirmed", "cancelled"] as const;

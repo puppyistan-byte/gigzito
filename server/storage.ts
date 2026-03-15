@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, marketerAudiences, gignessCards, cardMessages, gignessCardComments, listingComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, gignessCards, cardMessages, gignessCardComments, listingComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -144,6 +144,9 @@ export interface IStorage {
   updateSponsorAd(id: number, data: Partial<InsertSponsorAd>): Promise<SponsorAd>;
   toggleSponsorAd(id: number, active: boolean): Promise<SponsorAd>;
   deleteSponsorAd(id: number): Promise<void>;
+  // Ad inquiries
+  createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string }): Promise<AdInquiry>;
+  getAdInquiries(advertiserUsername: string): Promise<AdInquiry[]>;
   // Ad bookings
   getBookingsForDate(date: string): Promise<AdBookingWithAd[]>;
   getAvailabilityForRange(startDate: string, endDate: string): Promise<Record<string, number[]>>;
@@ -1488,6 +1491,17 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSponsorAd(id: number): Promise<void> {
     await db.delete(sponsorAds).where(eq(sponsorAds.id, id));
+  }
+
+  async createAdInquiry(data: { adId: number; advertiserUsername?: string; viewerName: string; viewerEmail?: string; viewerMessage: string }): Promise<AdInquiry> {
+    const [inquiry] = await db.insert(adInquiries).values(data).returning();
+    return inquiry;
+  }
+
+  async getAdInquiries(advertiserUsername: string): Promise<AdInquiry[]> {
+    return db.select().from(adInquiries)
+      .where(eq(adInquiries.advertiserUsername, advertiserUsername))
+      .orderBy(desc(adInquiries.createdAt));
   }
 
   async getAdsForDate(date: string): Promise<SponsorAd[]> {

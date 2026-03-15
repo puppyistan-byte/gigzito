@@ -1919,6 +1919,41 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Public: submit an inquiry from a contact-profile ad
+  app.post("/api/ad-inquiries", async (req, res) => {
+    try {
+      const schema = z.object({
+        adId: z.number().int().positive(),
+        advertiserUsername: z.string().optional(),
+        viewerName: z.string().min(1).max(80),
+        viewerEmail: z.string().email().optional().or(z.literal("")),
+        viewerMessage: z.string().min(1).max(120),
+      });
+      const data = schema.parse(req.body);
+      const inquiry = await storage.createAdInquiry({
+        ...data,
+        viewerEmail: data.viewerEmail || undefined,
+      });
+      return res.json(inquiry);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Failed to submit inquiry" });
+    }
+  });
+
+  // Get ad inquiries for the logged-in user's username
+  app.get("/api/ad-inquiries", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const profile = await storage.getProviderProfile(req.session.userId);
+      if (!profile?.username) return res.json([]);
+      const inquiries = await storage.getAdInquiries(profile.username);
+      return res.json(inquiries);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch inquiries" });
+    }
+  });
+
   // === SPONSOR ADS (ADMIN) ===
   app.get("/api/admin/sponsor-ads", async (req, res) => {
     if (!requireAdmin(req, res)) return;
@@ -1933,13 +1968,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/admin/sponsor-ads", async (req, res) => {
     if (!requireAdmin(req, res)) return;
     try {
-      const { title, body, imageUrl, targetUrl, cta, sortOrder } = req.body;
+      const { title, body, imageUrl, targetUrl, ctaMode, contactUsername, contactEmail, contactMessage, cta, sortOrder } = req.body;
       if (!title || !imageUrl) return res.status(400).json({ message: "title and imageUrl are required" });
       const ad = await storage.createSponsorAd({
         title,
         body: body ?? "",
         imageUrl,
-        targetUrl,
+        targetUrl: targetUrl || null,
+        ctaMode: ctaMode ?? "url",
+        contactUsername: contactUsername || null,
+        contactEmail: contactEmail || null,
+        contactMessage: contactMessage || null,
         cta: cta ?? "Learn More",
         active: true,
         sortOrder: sortOrder ?? 0,
@@ -1955,8 +1994,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!requireAdmin(req, res)) return;
     try {
       const id = parseInt(req.params.id);
-      const { title, body, imageUrl, targetUrl, cta, sortOrder, active } = req.body;
-      const ad = await storage.updateSponsorAd(id, { title, body, imageUrl, targetUrl, cta, sortOrder, active });
+      const { title, body, imageUrl, targetUrl, ctaMode, contactUsername, contactEmail, contactMessage, cta, sortOrder, active } = req.body;
+      const ad = await storage.updateSponsorAd(id, { title, body, imageUrl, targetUrl, ctaMode, contactUsername, contactEmail, contactMessage, cta, sortOrder, active });
       return res.json(ad);
     } catch (e) {
       return res.status(500).json({ message: "Failed to update ad" });

@@ -343,7 +343,7 @@ export default function AdminPage() {
   });
 
   // ── Ads state + mutations ────────────────────────────────────────────────────
-  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 });
+  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More", sortOrder: 0 });
   const [adUploadedUrl, setAdUploadedUrl] = useState("");
   const [adFormErrors, setAdFormErrors] = useState({ title: false, image: false });
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
@@ -356,7 +356,7 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
     onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
   });
 
@@ -1817,7 +1817,7 @@ export default function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
               <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
               <button
-                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: user?.profile?.username ?? "", contactEmail: user?.user?.email ?? "", contactMessage: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
                 data-testid="button-ad-new"
               >
@@ -1934,15 +1934,76 @@ export default function AdminPage() {
                     </div>
                     {adFormErrors.image && <p className="text-xs text-red-500">An image is required — upload a file or paste a URL above</p>}
                   </div>
+                  {/* CTA Mode toggle */}
                   <div className="col-span-2">
-                    <label className="text-xs mb-1 block text-[#666]">Destination URL <span className="text-[#444]">(optional — where clicks go)</span></label>
-                    <Input
-                      value={adForm.targetUrl}
-                      onChange={(e) => setAdForm((f) => ({ ...f, targetUrl: e.target.value }))}
-                      placeholder="https://your-landing-page.com/"
-                      className="bg-[#111] text-white text-sm border-[#2a2a2a]"
-                      data-testid="input-ad-target-url"
-                    />
+                    <label className="text-xs text-[#666] mb-2 block">Click Action</label>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setAdForm((f) => ({ ...f, ctaMode: "url" }))}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-colors ${adForm.ctaMode === "url" ? "bg-[#1a0a0a] border-[#ff2b2b] text-white" : "bg-transparent border-[#2a2a2a] text-[#555] hover:text-[#888]"}`}
+                        data-testid="btn-cta-mode-url"
+                      >
+                        🔗 Destination URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdForm((f) => ({ ...f, ctaMode: "profile", contactUsername: f.contactUsername || (user?.profile?.username ?? ""), contactEmail: f.contactEmail || (user?.user?.email ?? "") }))}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-colors ${adForm.ctaMode === "profile" ? "bg-[#0a120a] border-emerald-600 text-emerald-400" : "bg-transparent border-[#2a2a2a] text-[#555] hover:text-[#888]"}`}
+                        data-testid="btn-cta-mode-profile"
+                      >
+                        👤 Contact Profile
+                      </button>
+                    </div>
+
+                    {adForm.ctaMode === "url" ? (
+                      <Input
+                        value={adForm.targetUrl}
+                        onChange={(e) => setAdForm((f) => ({ ...f, targetUrl: e.target.value }))}
+                        placeholder="https://your-landing-page.com/"
+                        className="bg-[#111] text-white text-sm border-[#2a2a2a]"
+                        data-testid="input-ad-target-url"
+                      />
+                    ) : (
+                      <div className="rounded-lg border border-emerald-900/40 bg-[#080f08] p-3 space-y-2">
+                        <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wider">Inquiries go to your profile inbox</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-[#666] mb-1 block">Username</label>
+                            <Input
+                              value={adForm.contactUsername}
+                              onChange={(e) => setAdForm((f) => ({ ...f, contactUsername: e.target.value }))}
+                              placeholder="yourusername"
+                              className="bg-[#111] text-white text-xs border-[#2a2a2a]"
+                              data-testid="input-ad-contact-username"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-[#666] mb-1 block">Contact Email</label>
+                            <Input
+                              type="email"
+                              value={adForm.contactEmail}
+                              onChange={(e) => setAdForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                              placeholder="you@example.com"
+                              className="bg-[#111] text-white text-xs border-[#2a2a2a]"
+                              data-testid="input-ad-contact-email"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#666] mb-1 block">Brief Message <span className="text-[#333]">shown when viewer clicks ad · max 120 chars</span></label>
+                          <Input
+                            value={adForm.contactMessage}
+                            onChange={(e) => setAdForm((f) => ({ ...f, contactMessage: e.target.value.slice(0, 120) }))}
+                            placeholder="Click to ask me anything about this offer…"
+                            className="bg-[#111] text-white text-xs border-[#2a2a2a]"
+                            maxLength={120}
+                            data-testid="input-ad-contact-message"
+                          />
+                          <p className="text-[10px] text-[#444] mt-0.5">{adForm.contactMessage.length}/120</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs text-[#666] mb-1 block">CTA Button Label</label>
@@ -2044,7 +2105,7 @@ export default function AdminPage() {
                         setEditingAd(ad);
                         const isLocalUpload = ad.imageUrl?.startsWith("/ads/") || ad.imageUrl?.startsWith("/uploads/");
                         setAdUploadedUrl(isLocalUpload ? ad.imageUrl : "");
-                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl, cta: ad.cta, sortOrder: ad.sortOrder });
+                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl ?? "", ctaMode: ad.ctaMode ?? "url", contactUsername: ad.contactUsername ?? "", contactEmail: ad.contactEmail ?? "", contactMessage: ad.contactMessage ?? "", cta: ad.cta, sortOrder: ad.sortOrder });
                         setAdFormErrors({ title: false, image: false });
                         setAdFormOpen(true);
                       }}
