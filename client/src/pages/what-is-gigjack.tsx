@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowLeft, Zap, Users, BarChart3, Globe, Radio, TrendingUp, Clock } from "lucide-react";
+import MoreBelow from "@/components/more-below";
 
 const HOW_IT_WORKS = [
   {
@@ -41,6 +42,7 @@ const STATS = [
 
 export default function WhatIsGigJackPage() {
   return (
+    <>
     <div style={{ minHeight: "100vh", background: "#050505", color: "#fff", overflowX: "hidden" }}>
 
       {/* Back button */}
@@ -198,5 +200,7 @@ export default function WhatIsGigJackPage() {
       </div>
 
     </div>
+    <MoreBelow />
+    </>
   );
 }

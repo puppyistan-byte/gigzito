@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowLeft, MapPin, Bell, Tag, Zap, Navigation, Store, Smartphone, Target } from "lucide-react";
+import MoreBelow from "@/components/more-below";
 
 const FEATURES = [
   {
@@ -50,6 +51,7 @@ const STEPS = [
 
 export default function PreemptiveMarketingPage() {
   return (
+    <>
     <div style={{ minHeight: "100vh", background: "#050505", color: "#fff", overflowX: "hidden" }}>
 
       {/* Back button */}
@@ -199,5 +201,7 @@ export default function PreemptiveMarketingPage() {
       </div>
 
     </div>
+    <MoreBelow />
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Check, Zap, BarChart3, MapPin, Users, Video, CreditCard, Bell, Mail, Download, Tag, TrendingUp, ArrowLeft } from "lucide-react";
+import MoreBelow from "@/components/more-below";
 
 const TIER_JOURNEY = [
   {
@@ -81,6 +82,7 @@ const GZMETRICS_STATS = [
 
 export default function KeepingItGeezeePage() {
   return (
+    <>
     <div style={{ minHeight: "100vh", background: "#050505", color: "#fff", overflowX: "hidden" }}>
 
       {/* Back button */}
@@ -396,5 +398,7 @@ export default function KeepingItGeezeePage() {
       </div>
 
     </div>
+    <MoreBelow />
+    </>
   );
 }
