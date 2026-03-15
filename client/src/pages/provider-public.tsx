@@ -2,6 +2,7 @@ import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
+import MoreBelow from "@/components/more-below";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle, Megaphone } from "lucide-react";
@@ -70,6 +71,7 @@ export default function ProviderPublicPage() {
   const voteCount = loveStatus?.voteCount ?? 0;
 
   return (
+    <>
     <div className="min-h-screen bg-black">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -321,5 +323,7 @@ export default function ProviderPublicPage() {
         )}
       </div>
     </div>
+    <MoreBelow />
+    </>
   );
 }

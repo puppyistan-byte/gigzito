@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
+import MoreBelow from "@/components/more-below";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,6 +132,7 @@ export default function AllEyesOnMePage() {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-black pb-20">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
@@ -369,5 +371,7 @@ export default function AllEyesOnMePage() {
 
       {showGuestModal && <GuestCtaModal reason="general" onClose={() => setShowGuestModal(false)} />}
     </div>
+    <MoreBelow />
+    </>
   );
 }

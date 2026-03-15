@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, Minus, HelpCircle, ArrowLeft } from "lucide-react";
+import MoreBelow from "@/components/more-below";
 
 const TIERS = [
   {
@@ -209,6 +210,7 @@ function FeatureTooltip({ label, tooltip }: { label: string; tooltip: string }) 
 
 export default function PricingPage() {
   return (
+    <>
     <div
       style={{
         minHeight: "100vh",
@@ -532,5 +534,7 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+    <MoreBelow />
+    </>
   );
 }

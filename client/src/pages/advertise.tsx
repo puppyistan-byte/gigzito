@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSearch } from "wouter";
+import MoreBelow from "@/components/more-below";
 import { Navbar } from "@/components/navbar";
 import { Link } from "wouter";
 import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
@@ -120,6 +121,7 @@ export default function AdvertisePage() {
   const monthLabel = displayMonth.toLocaleString("default", { month: "long", year: "numeric" });
 
   return (
+    <>
     <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#fff" }}>
       <Navbar />
 
@@ -456,5 +458,7 @@ export default function AdvertisePage() {
         <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)" }}>© 2025 Gigzito. All rights reserved.</p>
       </div>
     </div>
+    <MoreBelow />
+    </>
   );
 }
