@@ -350,6 +350,7 @@ export default function AdminPage() {
   // ── Ads state + mutations ────────────────────────────────────────────────────
   const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 });
   const [adUploadedUrl, setAdUploadedUrl] = useState("");
+  const [adFormErrors, setAdFormErrors] = useState({ title: false, image: false, targetUrl: false });
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
   const [adFormOpen, setAdFormOpen] = useState(false);
   const [adUploading, setAdUploading] = useState(false);
@@ -360,7 +361,7 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); toast({ title: "Ad created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false, targetUrl: false }); toast({ title: "Ad created" }); },
     onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
   });
 
@@ -1824,7 +1825,7 @@ export default function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
               <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
               <button
-                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormOpen(true); }}
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false, targetUrl: false }); setAdFormOpen(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
                 data-testid="button-ad-new"
               >
@@ -1842,11 +1843,12 @@ export default function AdminPage() {
                     <label className="text-xs text-[#666] mb-1 block">Headline *</label>
                     <Input
                       value={adForm.title}
-                      onChange={(e) => setAdForm((f) => ({ ...f, title: e.target.value }))}
+                      onChange={(e) => { setAdForm((f) => ({ ...f, title: e.target.value })); if (adFormErrors.title) setAdFormErrors((p) => ({ ...p, title: false })); }}
                       placeholder="Ad headline (max 60 chars)"
-                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      className={`bg-[#111] text-white text-sm ${adFormErrors.title ? "border-red-500 focus:border-red-500" : "border-[#2a2a2a]"}`}
                       data-testid="input-ad-title"
                     />
+                    {adFormErrors.title && <p className="text-xs text-red-500 mt-1">Headline is required</p>}
                   </div>
                   <div className="col-span-2">
                     <label className="text-xs text-[#666] mb-1 block">Body Text</label>
@@ -1859,9 +1861,9 @@ export default function AdminPage() {
                     />
                   </div>
                   <div className="col-span-2 space-y-2">
-                    <label className="text-xs text-[#666] block">
+                    <label className={`text-xs block ${adFormErrors.image ? "text-red-500" : "text-[#666]"}`}>
                       Ad Image *{" "}
-                      <span className="text-[#444]">760×520px recommended · PNG/JPG/WebP · max 8 MB</span>
+                      <span className="text-[#444] font-normal">760×520px recommended · PNG/JPG/WebP · max 8 MB</span>
                     </label>
 
                     {/* Upload section */}
@@ -1898,6 +1900,7 @@ export default function AdminPage() {
                                 if (!res.ok) { const err = await res.json(); throw new Error(err.message ?? "Upload failed"); }
                                 const { url } = await res.json();
                                 setAdUploadedUrl(url);
+                                setAdFormErrors((p) => ({ ...p, image: false }));
                                 toast({ title: "Image uploaded" });
                               } catch (err: any) {
                                 toast({ title: err.message ?? "Upload failed", variant: "destructive" });
@@ -1923,7 +1926,7 @@ export default function AdminPage() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-[#444]">Image URL</p>
                       <Input
                         value={adForm.imageUrl}
-                        onChange={(e) => setAdForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                        onChange={(e) => { setAdForm((f) => ({ ...f, imageUrl: e.target.value })); if (adFormErrors.image) setAdFormErrors((p) => ({ ...p, image: false })); }}
                         placeholder="https://example.com/ad-image.jpg"
                         className="bg-[#111] border-[#2a2a2a] text-white text-sm placeholder:text-[#333]"
                         data-testid="input-ad-image-url"
@@ -1937,16 +1940,18 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
+                    {adFormErrors.image && <p className="text-xs text-red-500">An image is required — upload a file or paste a URL above</p>}
                   </div>
                   <div className="col-span-2">
-                    <label className="text-xs text-[#666] mb-1 block">Destination URL *</label>
+                    <label className={`text-xs mb-1 block ${adFormErrors.targetUrl ? "text-red-500" : "text-[#666]"}`}>Destination URL *</label>
                     <Input
                       value={adForm.targetUrl}
-                      onChange={(e) => setAdForm((f) => ({ ...f, targetUrl: e.target.value }))}
+                      onChange={(e) => { setAdForm((f) => ({ ...f, targetUrl: e.target.value })); if (adFormErrors.targetUrl) setAdFormErrors((p) => ({ ...p, targetUrl: false })); }}
                       placeholder="https://yoursite.com/?ref_code=..."
-                      className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                      className={`bg-[#111] text-white text-sm ${adFormErrors.targetUrl ? "border-red-500 focus:border-red-500" : "border-[#2a2a2a]"}`}
                       data-testid="input-ad-target-url"
                     />
+                    {adFormErrors.targetUrl && <p className="text-xs text-red-500 mt-1">Destination URL is required — where should the ad link to?</p>}
                   </div>
                   <div>
                     <label className="text-xs text-[#666] mb-1 block">CTA Button Label</label>
@@ -1976,7 +1981,7 @@ export default function AdminPage() {
                 )}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setAdFormOpen(false); setEditingAd(null); setAdUploadedUrl(""); }}
+                    onClick={() => { setAdFormOpen(false); setEditingAd(null); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false, targetUrl: false }); }}
                     className="px-4 py-2 rounded-lg text-xs font-semibold text-[#666] hover:text-white border border-[#2a2a2a] transition-colors"
                     data-testid="button-ad-cancel"
                   >
@@ -1985,8 +1990,11 @@ export default function AdminPage() {
                   <button
                     onClick={() => {
                       const effectiveImageUrl = adUploadedUrl || adForm.imageUrl;
-                      const missing = [!adForm.title && "Headline", !effectiveImageUrl && "Ad Image", !adForm.targetUrl && "Destination URL"].filter(Boolean);
-                      if (missing.length > 0) return toast({ title: `Missing required fields: ${missing.join(", ")}`, variant: "destructive" });
+                      const errors = { title: !adForm.title, image: !effectiveImageUrl, targetUrl: !adForm.targetUrl };
+                      if (errors.title || errors.image || errors.targetUrl) {
+                        setAdFormErrors(errors);
+                        return;
+                      }
                       const payload = { ...adForm, imageUrl: effectiveImageUrl };
                       if (editingAd) {
                         updateAdMutation.mutate({ id: editingAd.id, data: payload });
@@ -2046,6 +2054,7 @@ export default function AdminPage() {
                         const isLocalUpload = ad.imageUrl?.startsWith("/ads/") || ad.imageUrl?.startsWith("/uploads/");
                         setAdUploadedUrl(isLocalUpload ? ad.imageUrl : "");
                         setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl, cta: ad.cta, sortOrder: ad.sortOrder });
+                        setAdFormErrors({ title: false, image: false, targetUrl: false });
                         setAdFormOpen(true);
                       }}
                       className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-white/5 transition-colors"
