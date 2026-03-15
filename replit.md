@@ -18,20 +18,29 @@ A TikTok-style vertical scrolling video directory for providers. Providers pay $
 
 Seeded super admin: `admin@gigzito.com` / `Arizona22` (auto-upgraded to SUPER_ADMIN on startup)
 
-## Hillsboro (Production) Deploy Procedure
+## Production Servers
 
-GitHub push is blocked (token lacks `workflow` scope due to `.github/workflows/deploy.yml`). Use the **direct SHA deploy** on the server instead:
+| Server | IP | Location | Role |
+|--------|-----|----------|------|
+| Hillsboro | 5.78.128.185 | Oregon | Primary (production DNS, primary DB) |
+| Ashburn | 5.161.102.88 | Virginia | Secondary |
+
+- App lives at `/opt/gigzito` on both servers
+- DB (Hillsboro): `postgresql://gigzito:postgres2626492@localhost:5432/gigzito`
+- PM2 process name: `gigzito`
+
+### Deploy Procedure (both servers)
+
+With a valid GitHub token (`repo` + `workflow` scopes) set on the remote, push from Replit Shell then GitHub Actions auto-deploys. If push is blocked, use the **direct SHA deploy** instead:
 
 ```bash
-# Get current commit SHA from Replit: check .git/refs/heads/main
 cd /opt/gigzito
-git fetch github 2>/dev/null || git remote add github https://<YOUR_GITHUB_TOKEN>@github.com/puppyistan-byte/gigzito.git
-git fetch github
+git fetch origin
 git reset --hard <COMMIT_SHA>
 npm run build && pm2 restart gigzito --update-env
 ```
 
-The commit SHA of the current Replit build is always in `.git/refs/heads/main`. This bypasses GitHub entirely.
+Current Replit commit SHA is always in `.git/refs/heads/main` — or ask and I'll look it up. Run the same block on both servers to keep them in sync.
 
 ## Gigness Card System (Phase A — Complete)
 
