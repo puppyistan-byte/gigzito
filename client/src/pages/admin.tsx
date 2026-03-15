@@ -1947,7 +1947,7 @@ export default function AdminPage() {
                     <Input
                       value={adForm.targetUrl}
                       onChange={(e) => { setAdForm((f) => ({ ...f, targetUrl: e.target.value })); if (adFormErrors.targetUrl) setAdFormErrors((p) => ({ ...p, targetUrl: false })); }}
-                      placeholder="https://yoursite.com/?ref_code=..."
+                      placeholder="https://your-landing-page.com/ (where clicks go)"
                       className={`bg-[#111] text-white text-sm ${adFormErrors.targetUrl ? "border-red-500 focus:border-red-500" : "border-[#2a2a2a]"}`}
                       data-testid="input-ad-target-url"
                     />
@@ -2002,11 +2002,11 @@ export default function AdminPage() {
                         createAdMutation.mutate(payload);
                       }
                     }}
-                    disabled={createAdMutation.isPending || updateAdMutation.isPending}
-                    className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors disabled:opacity-50"
+                    disabled={createAdMutation.isPending || updateAdMutation.isPending || adUploading}
+                    className="flex-1 px-4 py-2 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-ad-save"
                   >
-                    {createAdMutation.isPending || updateAdMutation.isPending ? "Saving…" : editingAd ? "Save Changes" : "Create Ad"}
+                    {adUploading ? "Waiting for image upload…" : createAdMutation.isPending || updateAdMutation.isPending ? "Saving…" : editingAd ? "Save Changes" : "Create Ad"}
                   </button>
                 </div>
               </div>
