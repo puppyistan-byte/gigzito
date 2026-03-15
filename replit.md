@@ -25,7 +25,7 @@ GitHub push is blocked (token lacks `workflow` scope due to `.github/workflows/d
 ```bash
 # Get current commit SHA from Replit: check .git/refs/heads/main
 cd /opt/gigzito
-git fetch github 2>/dev/null || git remote add github https://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@github.com/puppyistan-byte/gigzito.git
+git fetch github 2>/dev/null || git remote add github https://<YOUR_GITHUB_TOKEN>@github.com/puppyistan-byte/gigzito.git
 git fetch github
 git reset --hard <COMMIT_SHA>
 npm run build && pm2 restart gigzito --update-env
