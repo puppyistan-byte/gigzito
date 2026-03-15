@@ -3,7 +3,7 @@ export interface RightRailAd {
   title: string;
   body: string;
   imageUrl: string;
-  targetUrl: string;
+  targetUrl?: string | null;
   cta: string;
   active: boolean;
 }

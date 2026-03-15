@@ -579,7 +579,7 @@ export const sponsorAds = pgTable("sponsor_ads", {
   title: text("title").notNull(),
   body: text("body").notNull().default(""),
   imageUrl: text("image_url").notNull(),
-  targetUrl: text("target_url").notNull(),
+  targetUrl: text("target_url"),
   cta: text("cta").notNull().default("Learn More"),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),

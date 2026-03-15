@@ -67,8 +67,8 @@ export function RightRailHeroAd() {
       data-testid="right-rail-ad"
     >
       <a
-        href={ad.targetUrl}
-        target="_blank"
+        href={ad.targetUrl ?? "#"}
+        target={ad.targetUrl ? "_blank" : undefined}
         rel="noopener noreferrer"
         style={{
           display: "block",

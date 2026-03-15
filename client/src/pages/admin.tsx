@@ -345,7 +345,7 @@ export default function AdminPage() {
   // ── Ads state + mutations ────────────────────────────────────────────────────
   const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 });
   const [adUploadedUrl, setAdUploadedUrl] = useState("");
-  const [adFormErrors, setAdFormErrors] = useState({ title: false, image: false, targetUrl: false });
+  const [adFormErrors, setAdFormErrors] = useState({ title: false, image: false });
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
   const [adFormOpen, setAdFormOpen] = useState(false);
   const [adUploading, setAdUploading] = useState(false);
@@ -356,7 +356,7 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false, targetUrl: false }); toast({ title: "Ad created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
     onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
   });
 
@@ -1817,7 +1817,7 @@ export default function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
               <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
               <button
-                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false, targetUrl: false }); setAdFormOpen(true); }}
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", cta: "Learn More", sortOrder: 0 }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
                 data-testid="button-ad-new"
               >
@@ -1935,15 +1935,14 @@ export default function AdminPage() {
                     {adFormErrors.image && <p className="text-xs text-red-500">An image is required — upload a file or paste a URL above</p>}
                   </div>
                   <div className="col-span-2">
-                    <label className={`text-xs mb-1 block ${adFormErrors.targetUrl ? "text-red-500" : "text-[#666]"}`}>Destination URL *</label>
+                    <label className="text-xs mb-1 block text-[#666]">Destination URL <span className="text-[#444]">(optional — where clicks go)</span></label>
                     <Input
                       value={adForm.targetUrl}
-                      onChange={(e) => { setAdForm((f) => ({ ...f, targetUrl: e.target.value })); if (adFormErrors.targetUrl) setAdFormErrors((p) => ({ ...p, targetUrl: false })); }}
-                      placeholder="https://your-landing-page.com/ (where clicks go)"
-                      className={`bg-[#111] text-white text-sm ${adFormErrors.targetUrl ? "border-red-500 focus:border-red-500" : "border-[#2a2a2a]"}`}
+                      onChange={(e) => setAdForm((f) => ({ ...f, targetUrl: e.target.value }))}
+                      placeholder="https://your-landing-page.com/"
+                      className="bg-[#111] text-white text-sm border-[#2a2a2a]"
                       data-testid="input-ad-target-url"
                     />
-                    {adFormErrors.targetUrl && <p className="text-xs text-red-500 mt-1">Destination URL is required — where should the ad link to?</p>}
                   </div>
                   <div>
                     <label className="text-xs text-[#666] mb-1 block">CTA Button Label</label>
@@ -1973,7 +1972,7 @@ export default function AdminPage() {
                 )}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setAdFormOpen(false); setEditingAd(null); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false, targetUrl: false }); }}
+                    onClick={() => { setAdFormOpen(false); setEditingAd(null); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); }}
                     className="px-4 py-2 rounded-lg text-xs font-semibold text-[#666] hover:text-white border border-[#2a2a2a] transition-colors"
                     data-testid="button-ad-cancel"
                   >
@@ -1982,8 +1981,8 @@ export default function AdminPage() {
                   <button
                     onClick={() => {
                       const effectiveImageUrl = adUploadedUrl || adForm.imageUrl;
-                      const errors = { title: !adForm.title, image: !effectiveImageUrl, targetUrl: !adForm.targetUrl };
-                      if (errors.title || errors.image || errors.targetUrl) {
+                      const errors = { title: !adForm.title, image: !effectiveImageUrl };
+                      if (errors.title || errors.image) {
                         setAdFormErrors(errors);
                         return;
                       }
@@ -2046,7 +2045,7 @@ export default function AdminPage() {
                         const isLocalUpload = ad.imageUrl?.startsWith("/ads/") || ad.imageUrl?.startsWith("/uploads/");
                         setAdUploadedUrl(isLocalUpload ? ad.imageUrl : "");
                         setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl, cta: ad.cta, sortOrder: ad.sortOrder });
-                        setAdFormErrors({ title: false, image: false, targetUrl: false });
+                        setAdFormErrors({ title: false, image: false });
                         setAdFormOpen(true);
                       }}
                       className="p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-white/5 transition-colors"

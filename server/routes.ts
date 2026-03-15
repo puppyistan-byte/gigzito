@@ -1933,7 +1933,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!requireAdmin(req, res)) return;
     try {
       const { title, body, imageUrl, targetUrl, cta, sortOrder } = req.body;
-      if (!title || !imageUrl || !targetUrl) return res.status(400).json({ message: "title, imageUrl and targetUrl are required" });
+      if (!title || !imageUrl) return res.status(400).json({ message: "title and imageUrl are required" });
       const ad = await storage.createSponsorAd({
         title,
         body: body ?? "",
