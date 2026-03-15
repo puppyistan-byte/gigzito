@@ -844,6 +844,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       videoTitle: z.string().max(200).optional().nullable(),
       category: z.string().max(50).optional().nullable(),
       viewerUsername: z.string().max(80).optional().nullable(),
+      viewerCity: z.string().max(100).optional().nullable(),
+      viewerState: z.string().max(100).optional().nullable(),
+      viewerCountry: z.string().max(100).optional().nullable(),
     });
     try {
       const data = schema.parse(req.body);
@@ -853,21 +856,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const vProfile = await storage.getProfileByUserId(req.session.userId);
         viewerUsername = vProfile?.username ?? null;
       }
-      // Geo lookup from IP
-      let viewerCity: string | null = null;
-      let viewerState: string | null = null;
-      let viewerCountry: string | null = null;
-      try {
-        const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "";
-        const ip = rawIp.replace("::ffff:", "");
-        if (ip && ip !== "127.0.0.1" && ip !== "::1" && !/^10\./.test(ip) && !/^192\.168\./.test(ip)) {
-          const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=city,regionName,country,status`);
-          if (geoRes.ok) {
-            const geo = await geoRes.json() as { status: string; city?: string; regionName?: string; country?: string };
-            if (geo.status === "success") { viewerCity = geo.city ?? null; viewerState = geo.regionName ?? null; viewerCountry = geo.country ?? null; }
+      // Use client-sent geo if available; fall back to server-side IP lookup
+      let viewerCity: string | null = data.viewerCity ?? null;
+      let viewerState: string | null = data.viewerState ?? null;
+      let viewerCountry: string | null = data.viewerCountry ?? null;
+      if (!viewerCity) {
+        try {
+          const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "";
+          const ip = rawIp.replace("::ffff:", "");
+          if (ip && ip !== "127.0.0.1" && ip !== "::1" && !/^10\./.test(ip) && !/^192\.168\./.test(ip)) {
+            const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=city,regionName,country,status`);
+            if (geoRes.ok) {
+              const geo = await geoRes.json() as { status: string; city?: string; regionName?: string; country?: string };
+              if (geo.status === "success") { viewerCity = geo.city ?? null; viewerState = geo.regionName ?? null; viewerCountry = geo.country ?? null; }
+            }
           }
-        }
-      } catch { /* geo best-effort */ }
+        } catch { /* geo best-effort */ }
+      }
       const lead = await storage.createLead({
         videoId: data.videoId,
         creatorUserId: data.creatorUserId,

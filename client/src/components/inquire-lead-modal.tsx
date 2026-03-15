@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -30,6 +30,23 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
   const { user } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const viewerUsername = user?.profile?.username ?? null;
+  const [geoCity, setGeoCity] = useState<string | null>(null);
+  const [geoState, setGeoState] = useState<string | null>(null);
+  const [geoCountry, setGeoCountry] = useState<string | null>(null);
+
+  // Client-side geo: browser request uses real public IP, works in dev + prod
+  useEffect(() => {
+    fetch("http://ip-api.com/json/?fields=city,regionName,country,status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.status === "success") {
+          setGeoCity(d.city ?? null);
+          setGeoState(d.regionName ?? null);
+          setGeoCountry(d.country ?? null);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const collectEmail = listing.collectEmail !== false;
 
@@ -57,6 +74,9 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
         videoTitle: listing.title,
         category: listing.vertical,
         viewerUsername: viewerUsername,
+        viewerCity: geoCity,
+        viewerState: geoState,
+        viewerCountry: geoCountry,
       });
       return res.json();
     },
