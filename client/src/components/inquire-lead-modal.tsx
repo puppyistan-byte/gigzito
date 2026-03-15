@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 import type { ListingWithProvider } from "@shared/schema";
 
 const CTA_LABEL_MAP: Record<string, string> = {
@@ -26,7 +27,9 @@ interface InquireLeadModalProps {
 
 export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [submitted, setSubmitted] = useState(false);
+  const viewerUsername = user?.profile?.username ?? null;
 
   const collectEmail = listing.collectEmail !== false;
 
@@ -53,6 +56,7 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
         email: collectEmail ? data.email : null,
         videoTitle: listing.title,
         category: listing.vertical,
+        viewerUsername: viewerUsername,
       });
       return res.json();
     },

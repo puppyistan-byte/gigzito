@@ -76,6 +76,7 @@ export interface IStorage {
   // Listing Comments
   createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string }): Promise<ListingComment>;
   getListingComments(listingId: number): Promise<ListingComment[]>;
+  getListingCommentsByProvider(providerUserId: number): Promise<(ListingComment & { listingTitle: string | null })[]>;
 
   // Live Sessions
   createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession>;
@@ -480,6 +481,7 @@ export class DatabaseStorage implements IStorage {
         message: data.message ?? null,
         videoTitle: data.videoTitle ?? null,
         category: data.category ?? null,
+        viewerUsername: data.viewerUsername ?? null,
       })
       .returning();
     return lead;
@@ -657,6 +659,22 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(listingComments.listingId, listingId), eq(listingComments.isClean, true)))
       .orderBy(desc(listingComments.createdAt))
       .limit(100);
+  }
+
+  async getListingCommentsByProvider(providerUserId: number): Promise<(ListingComment & { listingTitle: string | null })[]> {
+    const [profile] = await db.select({ id: providerProfiles.id }).from(providerProfiles).where(eq(providerProfiles.userId, providerUserId)).limit(1);
+    if (!profile) return [];
+    const myListings = await db.select({ id: videoListings.id, title: videoListings.title }).from(videoListings).where(eq(videoListings.providerId, profile.id));
+    if (!myListings.length) return [];
+    const listingIds = myListings.map((l) => l.id);
+    const titleMap = new Map(myListings.map((l) => [l.id, l.title]));
+    const comments = await db
+      .select()
+      .from(listingComments)
+      .where(and(inArray(listingComments.listingId, listingIds), eq(listingComments.isClean, true)))
+      .orderBy(desc(listingComments.createdAt))
+      .limit(200);
+    return comments.map((c) => ({ ...c, listingTitle: titleMap.get(c.listingId) ?? null }));
   }
 
   async createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession> {

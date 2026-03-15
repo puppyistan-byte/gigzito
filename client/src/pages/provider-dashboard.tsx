@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -387,6 +387,55 @@ function ProviderDashboardInner() {
     queryKey: ["/api/leads/mine"],
     enabled: !!user,
   });
+
+  // ── Inbox ──────────────────────────────────────────────────────────────────
+  const [inboxTab, setInboxTab] = useState<"geezees" | "comments" | "inquiries">("geezees");
+
+  const { data: geezeesMessages = [], isLoading: geezeesLoading } = useQuery<CardMessage[]>({
+    queryKey: ["/api/gigness-cards/inbox"],
+    enabled: !!user,
+  });
+
+  type VideoCommentWithTitle = ListingComment & { listingTitle: string | null };
+  const { data: videoComments = [], isLoading: commentsLoading } = useQuery<VideoCommentWithTitle[]>({
+    queryKey: ["/api/listings/comments/mine"],
+    enabled: !!user,
+  });
+
+  const { data: adInquiries = [], isLoading: inquiriesLoading } = useQuery<AdInquiry[]>({
+    queryKey: ["/api/ad-inquiries"],
+    enabled: !!user,
+  });
+
+  const exportCSV = (tab: typeof inboxTab) => {
+    let headers: string[];
+    let rows: (string | number)[][];
+    let filename: string;
+    if (tab === "geezees") {
+      if (!geezeesMessages.length) return;
+      headers = ["ID", "From User ID", "Message", "Emoji", "Date"];
+      rows = geezeesMessages.map((m) => [m.id, m.fromUserId, `"${(m.messageText ?? "").replace(/"/g, '""')}"`, m.emojiReaction ?? "", new Date(m.createdAt).toLocaleString()]);
+      filename = `gigzito-geezees-${new Date().toISOString().slice(0, 10)}.csv`;
+    } else if (tab === "comments") {
+      if (!videoComments.length) return;
+      headers = ["ID", "Author", "Video", "Comment", "Date"];
+      rows = videoComments.map((c) => [c.id, `"${(c.authorName ?? "").replace(/"/g, '""')}"`, `"${(c.listingTitle ?? "").replace(/"/g, '""')}"`, `"${c.commentText.replace(/"/g, '""')}"`, new Date(c.createdAt).toLocaleString()]);
+      filename = `gigzito-video-comments-${new Date().toISOString().slice(0, 10)}.csv`;
+    } else {
+      if (!adInquiries.length) return;
+      headers = ["ID", "Name", "Email", "Message", "Date"];
+      rows = adInquiries.map((i) => [i.id, `"${(i.viewerName ?? "").replace(/"/g, '""')}"`, `"${(i.viewerEmail ?? "").replace(/"/g, '""')}"`, `"${(i.viewerMessage ?? "").replace(/"/g, '""')}"`, new Date(i.createdAt).toLocaleString()]);
+      filename = `gigzito-inquiries-${new Date().toISOString().slice(0, 10)}.csv`;
+    }
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const exportLeadsCSV = () => {
     if (!leads.length) return;
@@ -738,6 +787,144 @@ function ProviderDashboardInner() {
                 )}
               </div>
             </div>
+          )}
+        </div>
+
+        {/* ── Inbox section ─────────────────────────────────────────────── */}
+        <div>
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-[#ff2b2b]" />
+              <h2 className="text-sm font-semibold text-white" data-testid="text-inbox-title">Inbox</h2>
+              {inboxTab === "geezees" && geezeesMessages.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ff2b2b]/15 text-[#ff2b2b] border border-[#ff2b2b]/25">{geezeesMessages.length}</span>
+              )}
+              {inboxTab === "comments" && videoComments.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">{videoComments.length}</span>
+              )}
+              {inboxTab === "inquiries" && adInquiries.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">{adInquiries.length}</span>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => exportCSV(inboxTab)}
+              className="text-xs text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg h-7 px-2.5"
+              data-testid="button-export-inbox-csv"
+            >
+              <Download className="h-3 w-3 mr-1.5" />
+              Export CSV
+            </Button>
+          </div>
+
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-3 p-1 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a]">
+            {(["geezees", "comments", "inquiries"] as const).map((tab) => {
+              const labels: Record<typeof tab, string> = { geezees: "GeeZees", comments: "Video Comments", inquiries: "Inquiries" };
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setInboxTab(tab)}
+                  data-testid={`tab-inbox-${tab}`}
+                  className={`flex-1 text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
+                    inboxTab === tab
+                      ? "bg-[#1a1a1a] text-white"
+                      : "text-[#555] hover:text-[#888]"
+                  }`}
+                >
+                  {labels[tab]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* GeeZees tab */}
+          {inboxTab === "geezees" && (
+            geezeesLoading ? (
+              <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-14 w-full bg-[#111] rounded-xl" />)}</div>
+            ) : geezeesMessages.length === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-geezees">
+                <Inbox className="h-5 w-5 text-[#333] mx-auto mb-2" />
+                <p className="text-[#555] text-sm">No GeeZee messages yet. When someone engages with your Gigness Card, messages will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {geezeesMessages.map((m) => (
+                  <div key={m.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-geezee-${m.id}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        {m.emojiReaction && (
+                          <span className="text-xl mr-2">{m.emojiReaction}</span>
+                        )}
+                        {m.messageText && (
+                          <p className="text-sm text-white inline">{m.messageText}</p>
+                        )}
+                        <p className="text-[10px] text-[#555] mt-1">from user #{m.fromUserId}</p>
+                      </div>
+                      <span className="text-[10px] text-[#444] shrink-0">{new Date(m.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* Video Comments tab */}
+          {inboxTab === "comments" && (
+            commentsLoading ? (
+              <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-14 w-full bg-[#111] rounded-xl" />)}</div>
+            ) : videoComments.length === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-video-comments">
+                <MessageSquare className="h-5 w-5 text-[#333] mx-auto mb-2" />
+                <p className="text-[#555] text-sm">No video comments yet. Comments left on your listings will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {videoComments.map((c) => (
+                  <div key={c.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-comment-${c.id}`}>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="text-sm font-semibold text-white">{c.authorName}</p>
+                      <span className="text-[10px] text-[#444] shrink-0">{new Date(c.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {c.listingTitle && (
+                      <p className="text-[10px] text-[#ff2b2b] mb-1">{c.listingTitle}</p>
+                    )}
+                    <p className="text-xs text-[#888]">{c.commentText}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* Inquiries tab */}
+          {inboxTab === "inquiries" && (
+            inquiriesLoading ? (
+              <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-14 w-full bg-[#111] rounded-xl" />)}</div>
+            ) : adInquiries.length === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-inquiries">
+                <Mail className="h-5 w-5 text-[#333] mx-auto mb-2" />
+                <p className="text-[#555] text-sm">No ad inquiries yet. When someone contacts you via a sponsor ad, their message appears here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {adInquiries.map((i) => (
+                  <div key={i.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3.5" data-testid={`card-inquiry-${i.id}`}>
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <p className="text-sm font-semibold text-white">{i.viewerName}</p>
+                      <span className="text-[10px] text-[#444] shrink-0">{new Date(i.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {i.viewerEmail && (
+                      <p className="text-xs text-[#555] flex items-center gap-1 mb-1">
+                        <Mail className="h-3 w-3" />{i.viewerEmail}
+                      </p>
+                    )}
+                    <p className="text-xs text-[#888]">{i.viewerMessage}</p>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 

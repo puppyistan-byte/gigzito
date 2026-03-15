@@ -843,9 +843,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       message: z.string().max(500).optional().nullable(),
       videoTitle: z.string().max(200).optional().nullable(),
       category: z.string().max(50).optional().nullable(),
+      viewerUsername: z.string().max(80).optional().nullable(),
     });
     try {
       const data = schema.parse(req.body);
+      // If no viewerUsername provided but session is active, auto-resolve from profile
+      let viewerUsername = data.viewerUsername ?? null;
+      if (!viewerUsername && req.session?.userId) {
+        const vProfile = await storage.getProfileByUserId(req.session.userId);
+        viewerUsername = vProfile?.username ?? null;
+      }
       const lead = await storage.createLead({
         videoId: data.videoId,
         creatorUserId: data.creatorUserId,
@@ -855,6 +862,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         message: data.message ?? undefined,
         videoTitle: data.videoTitle ?? undefined,
         category: data.category ?? undefined,
+        viewerUsername: viewerUsername ?? undefined,
       });
       // Auto-aggregate into marketer's audience if an email was provided
       if (data.email) {
@@ -902,6 +910,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any).userId;
     const leads = await storage.getLeadsByProvider(userId);
     return res.json(leads);
+  });
+
+  // Listing comments inbox for the logged-in provider
+  app.get("/api/listings/comments/mine", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    try {
+      const comments = await storage.getListingCommentsByProvider(userId);
+      return res.json(comments);
+    } catch (err) {
+      console.error("[comments/mine]", err);
+      return res.status(500).json({ message: "Failed to fetch comments" });
+    }
   });
 
   // Marketer audience

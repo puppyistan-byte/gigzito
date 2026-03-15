@@ -276,6 +276,7 @@ export const leads = pgTable("leads", {
   message: text("message"),
   videoTitle: text("video_title"),
   category: text("category"),
+  viewerUsername: text("viewer_username"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -296,6 +297,7 @@ export type CreateLeadRequest = {
   message?: string | null;
   videoTitle?: string | null;
   category?: string | null;
+  viewerUsername?: string | null;
 };
 
 // === LIVE SESSIONS TABLE ===
