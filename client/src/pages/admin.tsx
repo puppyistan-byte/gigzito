@@ -16,7 +16,7 @@ import {
   CheckCircle, XCircle, AlertCircle, Pencil, X, Search, RotateCcw,
   ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
-  ChevronDown, ChevronUp, Film, Link2, LogOut, Megaphone, ImagePlus, Power,
+  ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
@@ -663,6 +663,16 @@ export default function AdminPage() {
           )}
           <div className="ml-auto flex items-center gap-3">
             <span className="text-xs text-[#555] font-mono hidden sm:block" data-testid="text-admin-email">{user?.user?.email}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 px-3 text-xs font-semibold text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] hover:bg-white/5"
+              onClick={() => navigate("/provider/me")}
+              data-testid="button-admin-back-to-profile"
+            >
+              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+              My Profile
+            </Button>
             <Button
               size="sm"
               variant="ghost"
