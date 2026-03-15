@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Tv, Calendar, Clock, ChevronLeft, ChevronRight, Plus, X, ExternalLink, Loader2, ArrowLeft, Mic, Users, BookOpen, Music, Presentation, Radio, MessageSquare, Zap } from "lucide-react";
+import { Tv, Calendar, Clock, ChevronLeft, ChevronRight, Plus, X, ExternalLink, Loader2, ArrowLeft, Mic, Users, BookOpen, Music, Presentation, Radio, MessageSquare, Zap, MonitorPlay, Trash2, CheckCircle2, CircleSlash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { apiRequest } from "@/lib/queryClient";
-import type { ZitoTVEventWithHost } from "@shared/schema";
+import type { ZitoTVEventWithHost, InjectedFeed } from "@shared/schema";
 import { ZITO_TV_CATEGORIES } from "@shared/schema";
 
 const CATEGORY_META: Record<string, { icon: any; label: string; color: string }> = {
@@ -281,6 +281,161 @@ function BookingForm({ selectedDate, onClose, onSuccess, user, profile }: Bookin
   );
 }
 
+// ── Super Admin: Inject Live Frame Modal ───────────────────────────────────
+function InjectFrameModal({ activeFeed, onClose }: { activeFeed: InjectedFeed | null; onClose: () => void }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [platform, setPlatform] = useState("YouTube");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [displayTitle, setDisplayTitle] = useState("");
+
+  const injectMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/injected-feeds", {
+        platform,
+        sourceUrl,
+        displayTitle: displayTitle || undefined,
+        injectMode: "immediate",
+        status: "active",
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/injected-feed/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/injected-feeds"] });
+      toast({ title: "Frame injected", description: "The Zito TV main frame is now live." });
+      onClose();
+    },
+    onError: (err: any) => toast({ title: "Injection failed", description: err.message, variant: "destructive" }),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeFeed) return;
+      const res = await apiRequest("PATCH", `/api/admin/injected-feeds/${activeFeed.id}`, { status: "inactive" });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/injected-feed/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/injected-feeds"] });
+      toast({ title: "Frame cleared", description: "Zito TV main frame deactivated." });
+      onClose();
+    },
+    onError: (err: any) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>
+      <div className="w-full max-w-md rounded-2xl border border-[#ff2b2b]/20 bg-[#0d0d0d] p-5 space-y-4 shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#ff2b2b]/15 border border-[#ff2b2b]/20 flex items-center justify-center">
+              <MonitorPlay className="w-4 h-4 text-[#ff2b2b]" />
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">Insert Zito TV Frame</p>
+              <p className="text-[#555] text-[10px]">Super Admin · Immediate injection</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[#555] hover:text-white transition-colors" data-testid="button-close-inject-modal">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Active feed notice */}
+        {activeFeed && (
+          <div className="flex items-start gap-3 rounded-xl bg-[#0a0a0a] border border-yellow-500/20 p-3">
+            <CheckCircle2 className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-yellow-400 text-xs font-semibold">Frame currently active</p>
+              <p className="text-[#666] text-[10px] truncate mt-0.5">{activeFeed.displayTitle || activeFeed.sourceUrl}</p>
+            </div>
+            <button
+              onClick={() => deactivateMutation.mutate()}
+              disabled={deactivateMutation.isPending}
+              className="shrink-0 flex items-center gap-1 text-[10px] font-semibold text-red-400 hover:text-red-300 transition-colors"
+              data-testid="button-deactivate-feed"
+            >
+              {deactivateMutation.isPending
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <CircleSlash className="w-3 h-3" />
+              }
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Platform */}
+        <div className="space-y-1.5">
+          <Label className="text-[#aaa] text-xs">Platform</Label>
+          <Select value={platform} onValueChange={setPlatform}>
+            <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm focus:border-[#ff2b2b]" data-testid="select-platform">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#111] border-[#2a2a2a]">
+              {["YouTube", "Twitch", "Vimeo", "Custom"].map(p => (
+                <SelectItem key={p} value={p} className="text-white">{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* URL */}
+        <div className="space-y-1.5">
+          <Label className="text-[#aaa] text-xs">Embed / Stream URL</Label>
+          <Input
+            value={sourceUrl}
+            onChange={e => setSourceUrl(e.target.value)}
+            placeholder="https://www.youtube.com/embed/..."
+            className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] h-9 text-sm"
+            data-testid="input-inject-url"
+          />
+          <p className="text-[#444] text-[10px]">Use an embed URL (not a watch URL) for YouTube/Twitch/Vimeo</p>
+        </div>
+
+        {/* Display title */}
+        <div className="space-y-1.5">
+          <Label className="text-[#aaa] text-xs">Display Title <span className="text-[#555]">(optional)</span></Label>
+          <Input
+            value={displayTitle}
+            onChange={e => setDisplayTitle(e.target.value)}
+            placeholder="e.g. Gigzito Live Q&A"
+            className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] focus:border-[#ff2b2b] h-9 text-sm"
+            data-testid="input-inject-title"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="flex-1 border-[#2a2a2a] text-[#aaa] hover:text-white bg-transparent h-9 text-sm"
+            data-testid="button-cancel-inject"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => injectMutation.mutate()}
+            disabled={injectMutation.isPending || !sourceUrl.trim()}
+            className="flex-1 bg-[#ff2b2b] hover:bg-[#e01e1e] text-white font-bold h-9 text-sm"
+            data-testid="button-submit-inject"
+          >
+            {injectMutation.isPending
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Injecting…</>
+              : <><MonitorPlay className="w-3.5 h-3.5 mr-1.5" /> Go Live</>
+            }
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ZitoTVPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -292,6 +447,9 @@ export default function ZitoTVPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [showBooking, setShowBooking] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [showInjectModal, setShowInjectModal] = useState(false);
+
+  const isSuperAdmin = user?.user?.role === "SUPER_ADMIN";
 
   const monthStart = new Date(viewYear, viewMonth, 1);
   const monthEnd = new Date(viewYear, viewMonth + 1, 0, 23, 59, 59);
@@ -300,6 +458,12 @@ export default function ZitoTVPage() {
     queryKey: ["/api/zitotv/events", viewYear, viewMonth],
     queryFn: () => fetch(`/api/zitotv/events?from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`).then(r => r.json()),
     refetchInterval: 60000,
+  });
+
+  const { data: activeFeed = null } = useQuery<InjectedFeed | null>({
+    queryKey: ["/api/injected-feed/active"],
+    enabled: isSuperAdmin,
+    refetchInterval: isSuperAdmin ? 15000 : false,
   });
 
   const deleteMutation = useMutation({
@@ -363,14 +527,32 @@ export default function ZitoTVPage() {
             <span className="text-[#ff2b2b] text-[10px] font-bold ml-1.5 opacity-70">Live Events Calendar</span>
           </div>
         </div>
-        <Button
-          onClick={handleBookClick}
-          size="sm"
-          className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white text-xs font-bold rounded-full px-3 h-8"
-          data-testid="button-book-event"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1" /> Book a Live Event
-        </Button>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <Button
+              onClick={() => setShowInjectModal(true)}
+              size="sm"
+              className="text-xs font-bold rounded-full px-3 h-8 border"
+              style={{
+                background: activeFeed ? "rgba(255,43,43,0.12)" : "rgba(255,255,255,0.05)",
+                borderColor: activeFeed ? "rgba(255,43,43,0.35)" : "rgba(255,255,255,0.1)",
+                color: activeFeed ? "#ff6b6b" : "#888",
+              }}
+              data-testid="button-inject-frame"
+            >
+              <MonitorPlay className="w-3.5 h-3.5 mr-1" />
+              {activeFeed ? "Frame Live" : "Insert Frame"}
+            </Button>
+          )}
+          <Button
+            onClick={handleBookClick}
+            size="sm"
+            className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white text-xs font-bold rounded-full px-3 h-8"
+            data-testid="button-book-event"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Book a Live Event
+          </Button>
+        </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
@@ -552,6 +734,9 @@ export default function ZitoTVPage() {
       </div>
 
       {showGuestModal && <GuestCtaModal reason="general" onClose={() => setShowGuestModal(false)} />}
+      {isSuperAdmin && showInjectModal && (
+        <InjectFrameModal activeFeed={activeFeed} onClose={() => setShowInjectModal(false)} />
+      )}
     </div>
   );
 }
