@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, marketerAudiences, gignessCards, cardMessages, gignessCardComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type GignessCard, type CardMessage, type GignessCardComment } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, marketerAudiences, gignessCards, cardMessages, gignessCardComments, listingComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -72,6 +72,10 @@ export interface IStorage {
   // Card Comments
   createGignessComment(data: { cardId: number; authorUserId?: number | null; authorName: string; commentText: string; isClean: boolean }): Promise<GignessCardComment>;
   getGignessComments(cardId: number): Promise<GignessCardComment[]>;
+
+  // Listing Comments
+  createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string }): Promise<ListingComment>;
+  getListingComments(listingId: number): Promise<ListingComment[]>;
 
   // Live Sessions
   createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession>;
@@ -625,6 +629,29 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(gignessCardComments.cardId, cardId), eq(gignessCardComments.isClean, true)))
       .orderBy(desc(gignessCardComments.createdAt))
       .limit(50);
+  }
+
+  async createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string }): Promise<ListingComment> {
+    const [comment] = await db
+      .insert(listingComments)
+      .values({
+        listingId: data.listingId,
+        authorUserId: data.authorUserId ?? null,
+        authorName: data.authorName,
+        commentText: data.commentText,
+        isClean: true,
+      })
+      .returning();
+    return comment;
+  }
+
+  async getListingComments(listingId: number): Promise<ListingComment[]> {
+    return db
+      .select()
+      .from(listingComments)
+      .where(and(eq(listingComments.listingId, listingId), eq(listingComments.isClean, true)))
+      .orderBy(desc(listingComments.createdAt))
+      .limit(100);
   }
 
   async createLiveSession(data: CreateLiveSessionRequest & { creatorUserId: number; providerId: number; platform?: string }): Promise<LiveSession> {

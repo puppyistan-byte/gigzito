@@ -258,6 +258,22 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [optimisticCount, setOptimisticCount] = useState<number | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentInput, setCommentInput] = useState("");
+
+  const { data: commentsData = [], refetch: refetchComments } = useQuery<{ id: number; authorName: string; commentText: string; createdAt: string }[]>({
+    queryKey: [`/api/listings/${listing.id}/comments`],
+    enabled: showComments,
+    staleTime: 0,
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/listings/${listing.id}/comments`, { commentText: commentInput.trim() }),
+    onSuccess: () => {
+      setCommentInput("");
+      refetchComments();
+    },
+  });
 
   const { data: likeData } = useQuery<{ likeCount: number; isLiked: boolean }>({
     queryKey: [`/api/videos/${listing.id}/likes`],
@@ -631,10 +647,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             data-testid={`comments-container-${listing.id}`}
           >
             <button
-              onClick={() => {
-                const el = document.getElementById(`comments-${listing.id}`);
-                if (el) el.scrollIntoView({ behavior: "smooth" });
-              }}
+              onClick={() => setShowComments(true)}
               style={{
                 width: 44, height: 44, borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -808,6 +821,92 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             )}
           </div>
       </div>
+
+      {/* Comments Drawer */}
+      {showComments && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowComments(false)}
+            style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.45)" }}
+          />
+          {/* Panel */}
+          <div
+            style={{
+              position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 51,
+              background: "#111", borderRadius: "18px 18px 0 0",
+              maxHeight: "72%", display: "flex", flexDirection: "column",
+              boxShadow: "0 -4px 32px rgba(0,0,0,0.7)",
+            }}
+            data-testid={`comments-drawer-${listing.id}`}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 10px", borderBottom: "1px solid #222" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>
+                Comments {commentsData.length > 0 ? `(${commentsData.length})` : ""}
+              </span>
+              <button
+                onClick={() => setShowComments(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#888", padding: 4 }}
+                data-testid={`button-close-comments-${listing.id}`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Comment list */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "10px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+              {commentsData.length === 0 ? (
+                <p style={{ color: "#555", fontSize: 13, textAlign: "center", marginTop: 24 }}>No comments yet. Be the first!</p>
+              ) : (
+                commentsData.map((c) => (
+                  <div key={c.id} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#ff4444" }}>{c.authorName}</span>
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.4 }}>{c.commentText}</span>
+                    <span style={{ fontSize: 10, color: "#555" }}>{new Date(c.createdAt).toLocaleDateString()}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: "10px 12px 16px", borderTop: "1px solid #1e1e1e", display: "flex", gap: 8, alignItems: "center" }}>
+              {user ? (
+                <>
+                  <input
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && commentInput.trim() && !commentMutation.isPending) commentMutation.mutate(); }}
+                    placeholder="Add a comment…"
+                    maxLength={300}
+                    style={{
+                      flex: 1, background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10,
+                      padding: "8px 12px", color: "#fff", fontSize: 13, outline: "none",
+                    }}
+                    data-testid={`input-comment-${listing.id}`}
+                  />
+                  <button
+                    onClick={() => { if (commentInput.trim()) commentMutation.mutate(); }}
+                    disabled={!commentInput.trim() || commentMutation.isPending}
+                    style={{
+                      background: "#ff2b2b", border: "none", borderRadius: 10, padding: "8px 14px",
+                      color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      opacity: !commentInput.trim() || commentMutation.isPending ? 0.4 : 1,
+                    }}
+                    data-testid={`button-submit-comment-${listing.id}`}
+                  >
+                    Post
+                  </button>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: "#555", textAlign: "center", flex: 1 }}>
+                  <a href="/auth" style={{ color: "#ff4444", textDecoration: "underline" }}>Sign in</a> to leave a comment.
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modals */}
       {showInquire && (

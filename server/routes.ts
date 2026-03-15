@@ -1093,6 +1093,46 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // === LISTING COMMENTS ===
+  app.get("/api/listings/:id/comments", async (req, res) => {
+    const listingId = parseInt(req.params.id);
+    if (isNaN(listingId)) return res.status(400).json({ message: "Invalid listing id" });
+    try {
+      const comments = await storage.getListingComments(listingId);
+      return res.json(comments);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/listings/:id/comments", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const authorUserId = (req.session as any).userId;
+    const listingId = parseInt(req.params.id);
+    if (isNaN(listingId)) return res.status(400).json({ message: "Invalid listing id" });
+    const schema = z.object({
+      commentText: z.string().min(1).max(300),
+      authorName: z.string().max(60).optional(),
+    });
+    try {
+      const { commentText, authorName } = schema.parse(req.body);
+      const listing = await storage.getListingById(listingId);
+      if (!listing) return res.status(404).json({ message: "Listing not found" });
+      const comment = await storage.createListingComment({
+        listingId,
+        authorUserId,
+        authorName: authorName?.trim() || "Anonymous",
+        commentText,
+      });
+      return res.status(201).json(comment);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // === LIVE SESSIONS ===
   const LIVE_ALLOWED_CATEGORIES = ["INFLUENCER", "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "MARKETING", "COACHING", "COURSES", "CRYPTO", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON"];
 
