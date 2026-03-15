@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard, Layers, Flame } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard, Layers, Flame, Zap, MapPin } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -140,6 +140,24 @@ export function Navbar() {
           >
             <Flame className="h-4 w-4" />
             Keeping it Geezee
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-red-500/10 focus:bg-red-500/10 text-red-400"
+            onClick={() => navigate("/what-is-gigjack")}
+            data-testid="menu-item-what-is-gigjack"
+          >
+            <Zap className="h-4 w-4" />
+            What is GigJack?
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-yellow-500/10 focus:bg-yellow-500/10 text-yellow-400"
+            onClick={() => navigate("/preemptive-marketing")}
+            data-testid="menu-item-preemptive-marketing"
+          >
+            <MapPin className="h-4 w-4" />
+            Preemptive Marketing
           </DropdownMenuItem>
 
           {isAdmin && (

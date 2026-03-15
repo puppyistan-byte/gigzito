@@ -30,6 +30,8 @@ import GeezeesPage from "@/pages/geezees";
 import CardEditorPage from "@/pages/card-editor";
 import PricingPage from "@/pages/pricing";
 import KeepingItGeezeePage from "@/pages/keeping-it-geezee";
+import WhatIsGigJackPage from "@/pages/what-is-gigjack";
+import PreemptiveMarketingPage from "@/pages/preemptive-marketing";
 
 function Router() {
   return (
@@ -58,6 +60,8 @@ function Router() {
       <Route path="/card-editor" component={CardEditorPage} />
       <Route path="/pricing" component={PricingPage} />
       <Route path="/keeping-it-geezee" component={KeepingItGeezeePage} />
+      <Route path="/what-is-gigjack" component={WhatIsGigJackPage} />
+      <Route path="/preemptive-marketing" component={PreemptiveMarketingPage} />
       <Route component={NotFound} />
     </Switch>
   );

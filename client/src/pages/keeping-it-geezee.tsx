@@ -57,11 +57,11 @@ const TIER_JOURNEY = [
     glow: "rgba(245,158,11,0.35)",
     label: "Local Business Engine",
     icon: MapPin,
-    description: "Take it physical. GigJack location marketing activates customers the moment they walk through your door.",
+    description: "Take it physical. Preemptive Marketing activates customers the moment they enter your zone — before they even walk through your door.",
     perks: [
       "Everything in GZMarketerPro",
-      "GigJack location marketing",
-      "Geo-based campaigns",
+      "Preemptive Marketing (location ads)",
+      "Geo-based push notifications",
       "Automatic coupon triggers",
       "Proximity offer delivery",
     ],
@@ -253,7 +253,7 @@ export default function KeepingItGeezeePage() {
         </div>
       </div>
 
-      {/* ── GIGJACK ─────────────────────────────────────────────────────────── */}
+      {/* ── PREEMPTIVE MARKETING ────────────────────────────────────────────── */}
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "80px 24px" }}>
         <div style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.03) 100%)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 24, padding: "48px 40px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -60, right: -60, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
@@ -265,26 +265,32 @@ export default function KeepingItGeezeePage() {
                 GZBusiness Exclusive
               </div>
               <h2 style={{ fontSize: "clamp(22px, 3.5vw, 38px)", fontWeight: 800, margin: "0 0 16px", lineHeight: 1.15 }}>
-                <span style={{ background: "linear-gradient(135deg, #f59e0b, #fbbf24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>GigJack —</span>
-                <span style={{ color: "#fff" }}> Location<br />Marketing Technology</span>
+                <span style={{ background: "linear-gradient(135deg, #f59e0b, #fbbf24)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Preemptive Marketing —</span>
+                <span style={{ color: "#fff" }}> Location-Enabled<br />Ads &amp; Notifications</span>
               </h2>
               <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.75, marginBottom: 20, maxWidth: 500 }}>
-                When a Gigzito user enters a participating business location with mobile location services enabled, GigJack automatically triggers a targeted promotional message, coupon, or offer — creating an immediate, hyper-relevant customer activation.
+                Gigzito partners drop a push pin on the map and set up a pre-designed ad. When a user with location services enabled enters the zone, a targeted notification fires directly to their phone — automatically. No manual activation, no missed foot traffic.
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
                 {["Proximity Detection", "Auto Coupon Trigger", "Geo-Based Campaigns", "Real-World Commerce"].map((tag) => (
                   <div key={tag} style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 999, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>
                     {tag}
                   </div>
                 ))}
               </div>
+              <Link href="/preemptive-marketing">
+                <div data-testid="link-preemptive-marketing" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#000", fontWeight: 800, fontSize: 13, padding: "10px 22px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 24px rgba(245,158,11,0.3)" }}>
+                  <MapPin style={{ width: 13, height: 13 }} />
+                  Preemptive Marketing
+                </div>
+              </Link>
             </div>
 
             <div style={{ textAlign: "center", flexShrink: 0 }}>
               <div style={{ width: 100, height: 100, borderRadius: "50%", background: "linear-gradient(135deg, rgba(245,158,11,0.25), rgba(245,158,11,0.08))", border: "2px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", boxShadow: "0 0 60px rgba(245,158,11,0.2)" }}>
                 <MapPin style={{ width: 44, height: 44, color: "#f59e0b" }} />
               </div>
-              <div style={{ fontSize: 11, color: "rgba(245,158,11,0.7)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>GigJack</div>
+              <div style={{ fontSize: 11, color: "rgba(245,158,11,0.7)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Location Ads</div>
             </div>
           </div>
         </div>
@@ -352,7 +358,7 @@ export default function KeepingItGeezeePage() {
             </p>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-              {["GZMetrics Analytics", "GigJack Location", "Geo Campaigns", "Coupon Triggers", "Full Lead Capture"].map((feature) => (
+              {["GZMetrics Analytics", "Preemptive Marketing", "Geo Campaigns", "Coupon Triggers", "Full Lead Capture"].map((feature) => (
                 <div key={feature} style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 999, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}>
                   {feature}
                 </div>
