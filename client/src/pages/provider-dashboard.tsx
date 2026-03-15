@@ -129,15 +129,6 @@ function GigJackCenter() {
             </span>
           )}
         </div>
-        <Button
-          size="sm"
-          onClick={() => navigate("/gigjack/new")}
-          className="text-xs h-7 px-2.5 rounded-lg font-semibold"
-          style={{ background: "#ff2b2b", color: "#fff", border: "none" }}
-          data-testid="button-new-gigjack"
-        >
-          <PlusCircle className="h-3 w-3 mr-1" /> New GigJack
-        </Button>
       </div>
 
       {/* Info note */}
@@ -145,7 +136,7 @@ function GigJackCenter() {
         className="rounded-lg mb-3 px-3 py-2 text-[11px] leading-relaxed"
         style={{ background: "rgba(255,43,43,0.04)", border: "1px solid rgba(255,43,43,0.12)", color: "rgba(255,255,255,0.35)" }}
       >
-        GigJacks are 5–10 second platform-wide flash events. Max <strong className="text-[rgba(255,255,255,0.5)]">2 per hour</strong>, with a <strong className="text-[rgba(255,255,255,0.5)]">15-minute</strong> gap between each. Click &ldquo;New GigJack&rdquo; to book a slot using the scheduling calendar (up to 90 days ahead).
+        GigJacks are 5–10 second platform-wide flash events. Max <strong className="text-[rgba(255,255,255,0.5)]">2 per hour</strong>, with a <strong className="text-[rgba(255,255,255,0.5)]">15-minute</strong> gap between each. Book a slot using the scheduling calendar (up to 90 days ahead).
       </div>
 
       {/* GigJack list */}
@@ -164,7 +155,7 @@ function GigJackCenter() {
             style={{ background: "#ff2b2b", color: "#fff", border: "none" }}
             data-testid="button-first-gigjack"
           >
-            <Calendar className="h-3 w-3 mr-1" /> Book Your First GigJack Slot
+            <Calendar className="h-3 w-3 mr-1" /> Book a GigJack
           </Button>
         </div>
       ) : (
