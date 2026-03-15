@@ -28,6 +28,7 @@ import LogoutPage from "@/pages/logout";
 import AdvertisePage from "@/pages/advertise";
 import GeezeesPage from "@/pages/geezees";
 import CardEditorPage from "@/pages/card-editor";
+import PricingPage from "@/pages/pricing";
 
 function Router() {
   return (
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/advertise" component={AdvertisePage} />
       <Route path="/geezees" component={GeezeesPage} />
       <Route path="/card-editor" component={CardEditorPage} />
+      <Route path="/pricing" component={PricingPage} />
       <Route component={NotFound} />
     </Switch>
   );

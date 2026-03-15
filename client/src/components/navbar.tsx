@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard, Layers } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -122,6 +122,15 @@ export function Navbar() {
           >
             <CreditCard className="h-4 w-4" />
             My GeeZee Card
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5 text-zinc-300"
+            onClick={() => navigate("/pricing")}
+            data-testid="menu-item-pricing"
+          >
+            <Layers className="h-4 w-4" />
+            Membership Tiers
           </DropdownMenuItem>
 
           {isAdmin && (

@@ -1,0 +1,516 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, Minus, HelpCircle } from "lucide-react";
+
+const TIERS = [
+  {
+    id: "GZLurker",
+    name: "GZLurker",
+    price: "Free",
+    priceNote: "",
+    type: "Viewer / Participant",
+    highlight: false,
+    color: "#6b7280",
+  },
+  {
+    id: "GZMarketer",
+    name: "GZMarketer",
+    price: "$12",
+    priceNote: "/ month",
+    type: "Creator",
+    highlight: false,
+    color: "#7c3aed",
+  },
+  {
+    id: "GZMarketerPro",
+    name: "GZMarketerPro",
+    price: "$15",
+    priceNote: "/ month",
+    type: "Advanced Marketer",
+    highlight: true,
+    color: "#ff2b2b",
+  },
+  {
+    id: "GZBusiness",
+    name: "GZBusiness",
+    price: "$20",
+    priceNote: "/ month",
+    type: "Local Business Engine",
+    highlight: false,
+    color: "#f59e0b",
+  },
+];
+
+type CellValue = boolean | string | "check" | "dash";
+
+interface Feature {
+  label: string;
+  tooltip: string;
+  values: CellValue[];
+}
+
+const FEATURES: Feature[] = [
+  {
+    label: "Registration Required",
+    tooltip: "A Gigzito account is required to access all features on the platform.",
+    values: [true, true, true, true],
+  },
+  {
+    label: "Access to Zito TV",
+    tooltip: "Watch and interact with all live and recorded content in the Zito TV feed.",
+    values: [true, true, true, true],
+  },
+  {
+    label: "Like / Comment / Engage",
+    tooltip: "React to, comment on, and engage with videos and creator profiles across the platform.",
+    values: [true, true, true, true],
+  },
+  {
+    label: "Upload Videos",
+    tooltip: "Upload promotional videos that appear in the Zito TV vertical feed for viewers to discover.",
+    values: [false, "Unlimited", "Unlimited", "Unlimited"],
+  },
+  {
+    label: "GeeZee Cards",
+    tooltip: "Create and publish your digital Gigness Card — your scannable networking identity on Gigzito.",
+    values: ["Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish"],
+  },
+  {
+    label: "GeeZee Rolodex Listing",
+    tooltip: "Appear in the GeeZee public directory so other users can discover and connect with your card.",
+    values: [true, true, true, true],
+  },
+  {
+    label: "Campaign Creation",
+    tooltip: "Build structured marketing campaigns to organize your video drops, CTAs, and lead capture goals.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "Campaign Tagging",
+    tooltip: "Tag individual videos and leads to specific campaigns for segmented tracking and reporting.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "Mailing List Management",
+    tooltip: "Organize captured leads into mailing lists you can manage, segment, and export directly from your dashboard.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "CSV Export of Leads",
+    tooltip: "Download all collected leads as a CSV file to use in your own CRM, email tool, or spreadsheet.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "Push Notifications",
+    tooltip: "Send push alerts directly to followers and subscribers when you drop new content or launch a campaign.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "SMTP Campaigns",
+    tooltip: "Send email campaigns to your mailing list directly from your Gigzito dashboard using your own SMTP credentials.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "GZMetrics Analytics",
+    tooltip:
+      "Advanced creator analytics suite. Captures average watch time, total views, repeat visitors, viewer city, age range, CTA click rate, engagement rate, campaign engagement, video completion rate, and returning viewer %. Leads captured via CTA are automatically stored and can be exported or tagged to campaigns.",
+    values: [false, false, true, true],
+  },
+  {
+    label: "GigJack Location Marketing",
+    tooltip: "Pin your business or campaign to a GigJack — a geo-targeted marketing slot that surfaces your content to viewers in a specific area.",
+    values: [false, false, false, true],
+  },
+  {
+    label: "Geo-Based Campaigns",
+    tooltip: "Target your campaigns to viewers within a defined geographic radius — city, zip code, or region.",
+    values: [false, false, false, true],
+  },
+  {
+    label: "Automatic Coupon Trigger",
+    tooltip: "Automatically send a coupon or discount code to a viewer when they complete a specific action — like finishing a video or clicking a CTA.",
+    values: [false, false, false, true],
+  },
+];
+
+function Cell({ value, tierColor }: { value: CellValue; tierColor: string }) {
+  if (value === true) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <Check style={{ width: 18, height: 18, color: tierColor }} strokeWidth={2.5} />
+      </div>
+    );
+  }
+  if (value === false) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <Minus style={{ width: 16, height: 16, color: "#374151" }} />
+      </div>
+    );
+  }
+  return (
+    <div style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: tierColor }}>
+      {value}
+    </div>
+  );
+}
+
+function FeatureTooltip({ label, tooltip }: { label: string; tooltip: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>{label}</span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              color: "#6b7280",
+              flexShrink: 0,
+            }}
+            data-testid={`tooltip-${label.replace(/\s+/g, "-").toLowerCase()}`}
+          >
+            <HelpCircle style={{ width: 13, height: 13 }} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="right"
+          style={{
+            maxWidth: 280,
+            background: "#1a1a1a",
+            border: "1px solid #2a2a2a",
+            color: "rgba(255,255,255,0.85)",
+            fontSize: 12,
+            lineHeight: 1.5,
+            padding: "8px 12px",
+            borderRadius: 8,
+          }}
+        >
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0a0a0a",
+        color: "#fff",
+        paddingTop: 60,
+        paddingBottom: 80,
+      }}
+    >
+      {/* Header */}
+      <div style={{ textAlign: "center", padding: "40px 24px 48px" }}>
+        <div
+          style={{
+            display: "inline-block",
+            background: "rgba(255,43,43,0.12)",
+            border: "1px solid rgba(255,43,43,0.25)",
+            borderRadius: 999,
+            padding: "4px 16px",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            color: "#ff4444",
+            textTransform: "uppercase",
+            marginBottom: 16,
+          }}
+        >
+          Membership Ecosystem
+        </div>
+        <h1
+          style={{
+            fontSize: "clamp(28px, 5vw, 48px)",
+            fontWeight: 800,
+            margin: "0 0 12px",
+            background: "linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          Gigzito Membership Tiers
+        </h1>
+        <p style={{ fontSize: 15, color: "rgba(255,255,255,0.45)", maxWidth: 480, margin: "0 auto" }}>
+          Every tier is free to start. Monetization launches soon.
+        </p>
+      </div>
+
+      {/* Tier cards — mobile stack, desktop row */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          padding: "0 24px 48px",
+          maxWidth: 960,
+          margin: "0 auto",
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        {TIERS.map((tier) => (
+          <div
+            key={tier.id}
+            data-testid={`tier-card-${tier.id.toLowerCase()}`}
+            style={{
+              flex: "1 1 180px",
+              maxWidth: 210,
+              background: tier.highlight
+                ? "linear-gradient(145deg, rgba(255,43,43,0.12), rgba(255,43,43,0.04))"
+                : "rgba(255,255,255,0.03)",
+              border: tier.highlight ? "1px solid rgba(255,43,43,0.4)" : "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 16,
+              padding: "24px 20px",
+              position: "relative",
+            }}
+          >
+            {tier.highlight && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: -12,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  background: "#ff2b2b",
+                  color: "#fff",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  padding: "3px 12px",
+                  borderRadius: 999,
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Most Popular
+              </div>
+            )}
+            <div style={{ fontSize: 13, fontWeight: 800, color: tier.color, marginBottom: 8 }}>
+              {tier.name}
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+              <span style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{tier.price}</span>
+              {tier.priceNote && (
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{tier.priceNote}</span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.3 }}>
+              {tier.type}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Feature comparison table */}
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 16px" }}>
+        <div
+          style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 16,
+            overflow: "hidden",
+          }}
+        >
+          {/* Table header */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr repeat(4, minmax(80px, 1fr))",
+              background: "rgba(255,255,255,0.04)",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+              padding: "14px 20px",
+              gap: 8,
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              Feature
+            </div>
+            {TIERS.map((tier) => (
+              <div key={tier.id} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: tier.color }}>{tier.name}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Feature rows */}
+          {FEATURES.map((feature, i) => (
+            <div
+              key={feature.label}
+              data-testid={`feature-row-${i}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr repeat(4, minmax(80px, 1fr))",
+                padding: "13px 20px",
+                gap: 8,
+                borderBottom: i < FEATURES.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)",
+                alignItems: "center",
+              }}
+            >
+              <FeatureTooltip label={feature.label} tooltip={feature.tooltip} />
+              {feature.values.map((val, ti) => (
+                <Cell key={ti} value={val} tierColor={TIERS[ti].color} />
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* GZMetrics deep-dive */}
+        <div
+          style={{
+            marginTop: 48,
+            background: "linear-gradient(145deg, rgba(255,43,43,0.07), rgba(255,43,43,0.02))",
+            border: "1px solid rgba(255,43,43,0.2)",
+            borderRadius: 16,
+            padding: "32px 28px",
+          }}
+          data-testid="gzmetrics-section"
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <div
+              style={{
+                background: "rgba(255,43,43,0.15)",
+                borderRadius: 8,
+                padding: "4px 12px",
+                fontSize: 11,
+                fontWeight: 800,
+                color: "#ff4444",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              GZMarketerPro &amp; GZBusiness
+            </div>
+          </div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 6px", color: "#fff" }}>
+            GZMetrics — Advanced Creator Analytics
+          </h2>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", margin: "0 0 28px", lineHeight: 1.6 }}>
+            The same level of insight used by major platforms — built directly into your Gigzito dashboard.
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
+            {/* Viewer Intelligence */}
+            <div
+              style={{
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12,
+                padding: "18px 20px",
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#ff4444", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>
+                Viewer Intelligence
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  "Average watch time",
+                  "Total video views",
+                  "Re-visits / repeat viewers",
+                  "Viewer home city",
+                  "Age range of viewers",
+                ].map((item) => (
+                  <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Check style={{ width: 13, height: 13, color: "#ff4444", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Engagement Metrics */}
+            <div
+              style={{
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12,
+                padding: "18px 20px",
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#ff4444", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>
+                Engagement Metrics
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  "CTA click rate",
+                  "Engagement rate",
+                  "Campaign engagement",
+                  "Video completion rate",
+                  "Returning viewer percentage",
+                ].map((item) => (
+                  <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Check style={{ width: 13, height: 13, color: "#ff4444", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Lead Capture */}
+            <div
+              style={{
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12,
+                padding: "18px 20px",
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#ff4444", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>
+                Lead Capture Integration
+              </div>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", margin: "0 0 10px" }}>
+                When a viewer interacts with a CTA, you capture:
+              </p>
+              <ul style={{ margin: "0 0 14px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                {["Name", "Email"].map((item) => (
+                  <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Check style={{ width: 13, height: 13, color: "#ff4444", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", margin: "0 0 8px" }}>
+                Leads are stored in your profile and can be:
+              </p>
+              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+                {["Exported via CSV", "Tagged to campaigns"].map((item) => (
+                  <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Check style={{ width: 13, height: 13, color: "#ff4444", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Coming soon footer */}
+        <div style={{ textAlign: "center", marginTop: 48, padding: "0 24px" }}>
+          <div
+            style={{
+              display: "inline-block",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12,
+              padding: "16px 32px",
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)", marginBottom: 4 }}>
+              Payments launching soon
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
+              All features are currently available free while we build out billing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
