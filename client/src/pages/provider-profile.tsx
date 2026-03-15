@@ -69,7 +69,7 @@ function ImageUploadField({
         </div>
         <div className="flex-1 space-y-1.5">
           <Input
-            type="url"
+            type="text"
             placeholder="https://... or upload ↙"
             value={value}
             onChange={(e) => onChange(e.target.value)}

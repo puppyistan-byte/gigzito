@@ -1957,7 +1957,8 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (!adForm.title || !adForm.imageUrl || !adForm.targetUrl) return toast({ title: "Title, Image URL and Destination URL are required", variant: "destructive" });
+                      const missing = [!adForm.title && "Headline", !adForm.imageUrl && "Ad Image", !adForm.targetUrl && "Destination URL"].filter(Boolean);
+                      if (missing.length > 0) return toast({ title: `Missing required fields: ${missing.join(", ")}`, variant: "destructive" });
                       if (editingAd) {
                         updateAdMutation.mutate({ id: editingAd.id, data: adForm });
                       } else {
