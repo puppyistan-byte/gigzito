@@ -9,7 +9,7 @@ export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "MEMBER", "MARKET
 export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
-  "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
+  "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "ARTISTS", "BUSINESS",
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED", "TRIAGED"]);
 export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT", "DENIED"]);

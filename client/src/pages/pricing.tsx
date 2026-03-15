@@ -39,6 +39,16 @@ const TIERS = [
     highlight: false,
     color: "#f59e0b",
   },
+  {
+    id: "GZEnterprise",
+    name: "GZEnterprise",
+    price: "TBD",
+    priceNote: "",
+    type: "Enterprise Scale",
+    highlight: false,
+    color: "#06b6d4",
+    comingSoon: true,
+  },
 ];
 
 type CellValue = boolean | string | "check" | "dash";
@@ -266,48 +276,42 @@ export default function PricingPage() {
           justifyContent: "center",
         }}
       >
-        {TIERS.map((tier) => (
+        {TIERS.map((tier: any) => (
           <div
             key={tier.id}
             data-testid={`tier-card-${tier.id.toLowerCase()}`}
             style={{
               flex: "1 1 180px",
               maxWidth: 210,
-              background: tier.highlight
-                ? "linear-gradient(145deg, rgba(255,43,43,0.12), rgba(255,43,43,0.04))"
-                : "rgba(255,255,255,0.03)",
-              border: tier.highlight ? "1px solid rgba(255,43,43,0.4)" : "1px solid rgba(255,255,255,0.07)",
+              background: tier.comingSoon
+                ? "rgba(6,182,212,0.04)"
+                : tier.highlight
+                  ? "linear-gradient(145deg, rgba(255,43,43,0.12), rgba(255,43,43,0.04))"
+                  : "rgba(255,255,255,0.03)",
+              border: tier.comingSoon
+                ? "1px dashed rgba(6,182,212,0.3)"
+                : tier.highlight ? "1px solid rgba(255,43,43,0.4)" : "1px solid rgba(255,255,255,0.07)",
               borderRadius: 16,
               padding: "24px 20px",
               position: "relative",
+              opacity: tier.comingSoon ? 0.75 : 1,
             }}
           >
             {tier.highlight && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: -12,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  background: "#ff2b2b",
-                  color: "#fff",
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  padding: "3px 12px",
-                  borderRadius: 999,
-                  textTransform: "uppercase",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "#ff2b2b", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 12px", borderRadius: 999, textTransform: "uppercase", whiteSpace: "nowrap" }}>
                 Most Popular
+              </div>
+            )}
+            {tier.comingSoon && (
+              <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg, #06b6d4, #0891b2)", color: "#fff", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 12px", borderRadius: 999, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                Coming Soon
               </div>
             )}
             <div style={{ fontSize: 13, fontWeight: 800, color: tier.color, marginBottom: 8 }}>
               {tier.name}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{tier.price}</span>
+              <span style={{ fontSize: 28, fontWeight: 800, color: tier.comingSoon ? "rgba(255,255,255,0.4)" : "#fff" }}>{tier.price}</span>
               {tier.priceNote && (
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{tier.priceNote}</span>
               )}
@@ -315,6 +319,11 @@ export default function PricingPage() {
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", lineHeight: 1.3 }}>
               {tier.type}
             </div>
+            {tier.comingSoon && (
+              <div style={{ marginTop: 12, fontSize: 10, color: "#06b6d4", fontWeight: 700, letterSpacing: "0.06em" }}>
+                Details announced soon
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -343,7 +352,7 @@ export default function PricingPage() {
             <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Feature
             </div>
-            {TIERS.map((tier) => (
+            {TIERS.filter((t: any) => !t.comingSoon).map((tier) => (
               <div key={tier.id} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: tier.color }}>{tier.name}</div>
               </div>

@@ -222,7 +222,7 @@ providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, desc
 ### Frontend Pages
 - `/geezees` — Public Rolodex with filter chips (age, gender, intent), engagement button, QR icon, tier badge
 - `/card-editor` — Auth-gated editor: slogan, profile photo, 6-photo gallery, isPublic toggle, metadata pickers, live card preview, QR code display
-- Both routes registered in `App.tsx`; "GeeZees Rolodex" + "My GeeZee Card" added to navbar dropdown
+- Both routes registered in `App.tsx`; "GeeZees Rolodex" + "GeeZee Social Cards" (styled red) added to navbar dropdown
 
 ## Business Rules
 
@@ -230,7 +230,7 @@ providerId, artworkUrl, offerTitle, tagline, category, ctaLink, companyUrl, desc
 2. Listing fee: $3 (simulated; Stripe not yet connected)
 3. Video duration: max 20 seconds (honor system with warning)
 4. Profile completion required: displayName + bio + avatarUrl + primaryCategory + at least one contact method
-5. Eleven postable verticals: INFLUENCER, MARKETING, COACHING, COURSES, PRODUCTS, FLASH_SALE, FLASH_COUPON, MUSIC_GIGS, EVENTS, CRYPTO, CORPORATE_DEALS
+5. Thirteen postable verticals: INFLUENCER, MARKETING, COACHING, COURSES, PRODUCTS, FLASH_SALE, FLASH_COUPON, MUSIC_GIGS, EVENTS, CRYPTO, CORPORATE_DEALS, ARTISTS, BUSINESS
 6. Flash Sale listings float to the top of the ALL feed
 
 ## Styling

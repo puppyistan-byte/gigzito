@@ -116,12 +116,12 @@ export function Navbar() {
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            className="gap-2 cursor-pointer hover:bg-purple-500/10 focus:bg-purple-500/10 text-purple-300"
+            className="gap-2 cursor-pointer hover:bg-red-500/10 focus:bg-red-500/10 text-red-400"
             onClick={() => navigate("/card-editor")}
             data-testid="menu-item-card-editor"
           >
             <CreditCard className="h-4 w-4" />
-            My GeeZee Card
+            GeeZee Social Cards
           </DropdownMenuItem>
 
           <DropdownMenuItem

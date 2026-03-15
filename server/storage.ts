@@ -257,7 +257,7 @@ export class DatabaseStorage implements IStorage {
     const DB_VERTICALS = new Set([
       "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
       "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
-      "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
+      "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "ARTISTS", "BUSINESS",
     ]);
     const FRONTEND_MAP: Record<string, string> = {
       GIG_BLITZ:    "MUSIC_GIGS",
