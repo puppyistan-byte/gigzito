@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "UoUL3EFhcxcfR1lGEnGFx"
+uri = "file://gigzito-tech-spec-audit-hillsboro.md"
+type = "text"
+title = "Gigzito Tech Spec Audit — Hillsboro VPS (March 15, 2026)"
