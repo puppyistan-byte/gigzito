@@ -2135,11 +2135,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/ad-inquiries", async (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ message: "Unauthorized" });
     try {
-      const profile = await storage.getProviderProfile(req.session.userId);
+      const profile = await storage.getProfileByUserId(req.session.userId);
       if (!profile?.username) return res.json([]);
       const inquiries = await storage.getAdInquiries(profile.username);
       return res.json(inquiries);
     } catch (e) {
+      console.error("[ad-inquiries GET]", e);
       return res.status(500).json({ message: "Failed to fetch inquiries" });
     }
   });
