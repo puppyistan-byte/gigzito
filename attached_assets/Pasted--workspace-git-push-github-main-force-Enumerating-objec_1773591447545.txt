@@ -1,0 +1,40 @@
+~/workspace$ git push github main --force
+Enumerating objects: 481, done.
+Counting objects: 100% (462/462), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (414/414), done.
+Writing objects: 100% (419/419), 6.59 MiB | 5.75 MiB/s, done.
+Total 419 (delta 337), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (337/337), completed with 24 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:      (?) This repository does not have Secret Scanning enabled, but is eligible. Enable Secret Scanning to view and manage detected secrets.
+remote:      Visit the repository settings page, https://github.com/puppyistan-byte/gigzito/settings/security_analysis
+remote:     
+remote:     
+remote:       —— GitHub Personal Access Token ——————————————————————
+remote:        locations:
+remote:          - commit: 2dd817b42acc6720afcaa0e0f3d7d871033332e7
+remote:            path: replit.md:28
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/puppyistan-byte/gigzito/security/secret-scanning/unblock-secret/3AzKD7NMDQS4ARdO2nUNZUK6z1x
+remote:     
+remote: 
+remote: 
+To https://github.com/puppyistan-byte/gigzito.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/puppyistan-byte/gigzito.git'
+~/workspace$ ^C
+~/workspace$ ^C
+~/workspace$ 
