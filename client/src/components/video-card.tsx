@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
@@ -572,7 +572,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <button
               onClick={toggleMute}
               style={{
-                position: "absolute", bottom: 196, right: 12, zIndex: 30,
+                position: "absolute", bottom: 188, right: 12, zIndex: 30,
                 width: 44, height: 44, borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
@@ -625,10 +625,34 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </span>
           </div>
 
+          {/* COMMENTS BUTTON */}
+          <div
+            style={{ position: "absolute", bottom: 76, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+            data-testid={`comments-container-${listing.id}`}
+          >
+            <button
+              onClick={() => {
+                const el = document.getElementById(`comments-${listing.id}`);
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
+              style={{
+                width: 44, height: 44, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
+                border: "1.5px solid rgba(255,255,255,0.2)",
+                cursor: "pointer",
+              }}
+              data-testid={`button-comments-${listing.id}`}
+              title="Comments"
+            >
+              <MessageCircle className="w-5 h-5 text-white/80" />
+            </button>
+          </div>
+
           {/* FLOATING CREATOR AVATAR */}
           <Link href={`/provider/${listing.provider.id}`}>
             <div
-              style={{ position: "absolute", bottom: 76, right: 16, zIndex: 30, cursor: "pointer", transition: "transform 0.15s ease" }}
+              style={{ position: "absolute", bottom: 20, right: 12, zIndex: 30, cursor: "pointer", transition: "transform 0.15s ease" }}
               data-testid={`avatar-creator-${listing.id}`}
               title={`View ${provider.displayName}'s profile`}
               onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
