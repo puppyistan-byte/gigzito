@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X, Video, AlignLeft } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X, Video, AlignLeft } from "lucide-react";
 import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
@@ -337,11 +337,6 @@ export default function NewListingPage() {
             Daily cap of {dailyStats.maxCap} listings reached. Try again tomorrow.
           </div>
         )}
-
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-[#ff1a1a]/8 border border-[#ff1a1a]/20 text-sm text-[#ff6666]">
-          <DollarSign className="h-4 w-4 shrink-0" />
-          <span><strong className="text-[#ff1a1a]">$3.00 listing fee</strong> — simulated checkout.</span>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -724,11 +719,8 @@ export default function NewListingPage() {
             data-testid="button-submit-listing"
           >
             {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-            Pay $3.00 &amp; List Video
+            {postType === "TEXT" ? "Post Text Ad" : "Post Video"}
           </Button>
-          <p className="text-xs text-center text-[#444]">
-            Payment is simulated. Stripe can be connected for real charges.
-          </p>
         </form>
       </div>
     </div>
