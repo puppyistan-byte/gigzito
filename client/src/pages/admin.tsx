@@ -17,6 +17,7 @@ import {
   ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
   ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power, MapPin,
+  FileText, Bot, Info,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
@@ -348,7 +349,7 @@ export default function AdminPage() {
   });
 
   // ── Ads state + mutations ────────────────────────────────────────────────────
-  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More" });
+  const [adForm, setAdForm] = useState({ title: "", body: "", imageUrl: "", videoUrl: "", adFormat: "TEXT", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More" });
   const [adUploadedUrl, setAdUploadedUrl] = useState("");
   const [adFormErrors, setAdFormErrors] = useState({ title: false, image: false });
   const [editingAd, setEditingAd] = useState<SponsorAd | null>(null);
@@ -361,7 +362,7 @@ export default function AdminPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed"); }
       return res.json();
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More" }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/sponsor-ads"] }); queryClient.invalidateQueries({ queryKey: ["/api/sponsor-ads"] }); setAdFormOpen(false); setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", videoUrl: "", adFormat: "TEXT", targetUrl: "", ctaMode: "url", contactUsername: "", contactEmail: "", contactMessage: "", cta: "Learn More" }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); toast({ title: "Ad created" }); },
     onError: (e: any) => toast({ title: e.message ?? "Error creating ad", variant: "destructive" }),
   });
 
@@ -1841,7 +1842,7 @@ export default function AdminPage() {
               <h2 className="text-sm font-semibold text-white">Sponsor Ad Rail</h2>
               <span className="ml-auto text-xs text-[#444]">{sponsorAds.length} ad{sponsorAds.length !== 1 ? "s" : ""}</span>
               <button
-                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", targetUrl: "", ctaMode: "url", contactUsername: user?.profile?.username ?? "", contactEmail: user?.user?.email ?? "", contactMessage: "", cta: "Learn More" }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
+                onClick={() => { setEditingAd(null); setAdForm({ title: "", body: "", imageUrl: "", videoUrl: "", adFormat: "TEXT", targetUrl: "", ctaMode: "url", contactUsername: user?.profile?.username ?? "", contactEmail: user?.user?.email ?? "", contactMessage: "", cta: "Learn More" }); setAdUploadedUrl(""); setAdFormErrors({ title: false, image: false }); setAdFormOpen(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#ff2b2b] hover:bg-[#cc0000] text-white transition-colors"
                 data-testid="button-ad-new"
               >
@@ -1854,6 +1855,79 @@ export default function AdminPage() {
             {adFormOpen && (
               <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-white">{editingAd ? "Edit Ad" : "Create New Ad"}</h3>
+
+                {/* ── Ad Format picker ── */}
+                <div className="space-y-2">
+                  <label className="text-xs text-[#666] block">Ad Format</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "TEXT",  label: "Text Ad",  icon: FileText, desc: "Image + copy" },
+                      { value: "VIDEO", label: "Video Ad", icon: Film,     desc: "Short-form clip" },
+                    ] as const).map(({ value, label, icon: Icon, desc }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        data-testid={`button-adform-format-${value.toLowerCase()}`}
+                        onClick={() => setAdForm((f) => ({ ...f, adFormat: value }))}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-all text-left ${adForm.adFormat === value ? "border-[#ff2b2b] bg-[#ff2b2b]/10 text-white" : "border-[#1e1e1e] bg-[#080808] text-[#555] hover:border-[#333] hover:text-[#aaa]"}`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold">{label}</p>
+                          <p className="text-[10px] opacity-60">{desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Guidance panel ── */}
+                <div className="rounded-lg border border-[#1a1a1a] bg-[#060606] p-3 space-y-2.5">
+                  <div className="flex items-start gap-2">
+                    <Bot className="h-3.5 w-3.5 text-[#ff2b2b] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-semibold text-white">Build your ad with AI first</p>
+                      <p className="text-[10px] text-[#666] leading-relaxed mt-0.5">
+                        Draft your ad using ChatGPT, Claude, or Gemini before uploading. Give it your product, audience, and goal — ask it to write a headline, body, and CTA.{adForm.adFormat === "VIDEO" ? " For video ads, have it script your 15–30 second clip and suggest visuals." : ""}
+                      </p>
+                    </div>
+                  </div>
+                  {adForm.adFormat === "VIDEO" && (
+                    <div className="flex items-start gap-2">
+                      <Film className="h-3.5 w-3.5 text-[#888] mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[11px] font-semibold text-white mb-1">Accepted video dimensions</p>
+                        <div className="flex gap-2">
+                          {[
+                            { ratio: "9:16", size: "1080×1920", note: "✓ Recommended" },
+                            { ratio: "1:1",  size: "1080×1080", note: "" },
+                            { ratio: "16:9", size: "1920×1080", note: "" },
+                          ].map(({ ratio, size, note }) => (
+                            <div key={ratio} className={`rounded border px-2 py-1.5 text-center flex-1 ${note ? "border-[#ff2b2b]/40 bg-[#ff2b2b]/5" : "border-[#1e1e1e] bg-[#0a0a0a]"}`}>
+                              <p className="text-[11px] font-bold text-white">{ratio}</p>
+                              <p className="text-[9px] text-[#555]">{size}</p>
+                              {note && <p className="text-[9px] text-[#ff2b2b]">{note}</p>}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[9px] text-[#444] mt-1.5">Max 30 sec · MP4/MOV · max 500 MB</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 text-[#444] mt-0.5 shrink-0" />
+                    <p className="text-[10px] text-[#555] leading-relaxed">
+                      <span className="text-[#666]">No server-side media processing in this phase</span> — export your final {adForm.adFormat === "VIDEO" ? "video" : "image"} before uploading. Full multimedia production tools are coming soon.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2 rounded border border-[#1e1e1e] bg-[#0a0a0a] p-2">
+                    <Bot className="h-3.5 w-3.5 text-[#ff2b2b] mt-0.5 shrink-0" />
+                    <p className="text-[10px] text-[#777] leading-relaxed">
+                      <span className="text-white font-semibold">Ads are scanned before going live.</span> Our content intelligence bots review every ad for policy compliance. Ads that pass go live; flagged ads are held for manual review.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
                     <label className="text-xs text-[#666] mb-1 block">Headline *</label>
@@ -1876,9 +1950,22 @@ export default function AdminPage() {
                       data-testid="input-ad-body"
                     />
                   </div>
-                  <div className="col-span-2 space-y-2">
+                  {adForm.adFormat === "VIDEO" && (
+                    <div className="col-span-2 space-y-1.5">
+                      <label className="text-xs text-[#666] block">Video URL *</label>
+                      <Input
+                        value={adForm.videoUrl}
+                        onChange={(e) => setAdForm((f) => ({ ...f, videoUrl: e.target.value }))}
+                        placeholder="https://your-cdn.com/your-ad.mp4"
+                        className="bg-[#111] border-[#2a2a2a] text-white text-sm"
+                        data-testid="input-ad-video-url"
+                      />
+                      <p className="text-[10px] text-[#444]">Paste a direct link to your exported video file (MP4/MOV).</p>
+                    </div>
+                  )}
+                  <div className={`col-span-2 space-y-2 ${adForm.adFormat === "VIDEO" ? "opacity-40 pointer-events-none" : ""}`}>
                     <label className={`text-xs block ${adFormErrors.image ? "text-red-500" : "text-[#666]"}`}>
-                      Ad Image *{" "}
+                      {adForm.adFormat === "VIDEO" ? "Thumbnail Image (optional)" : "Ad Image *"}{" "}
                       <span className="text-[#444] font-normal">760×520px recommended · PNG/JPG/WebP · max 8 MB</span>
                     </label>
 
@@ -2056,12 +2143,16 @@ export default function AdminPage() {
                   <button
                     onClick={() => {
                       const effectiveImageUrl = adUploadedUrl || adForm.imageUrl;
-                      const errors = { title: !adForm.title, image: !effectiveImageUrl };
+                      const isVideo = adForm.adFormat === "VIDEO";
+                      const errors = {
+                        title: !adForm.title,
+                        image: !isVideo && !effectiveImageUrl,
+                      };
                       if (errors.title || errors.image) {
                         setAdFormErrors(errors);
                         return;
                       }
-                      const payload = { ...adForm, imageUrl: effectiveImageUrl };
+                      const payload = { ...adForm, imageUrl: isVideo ? (effectiveImageUrl || "") : effectiveImageUrl };
                       if (editingAd) {
                         updateAdMutation.mutate({ id: editingAd.id, data: payload });
                       } else {
@@ -2120,7 +2211,7 @@ export default function AdminPage() {
                         setEditingAd(ad);
                         const isLocalUpload = ad.imageUrl?.startsWith("/ads/") || ad.imageUrl?.startsWith("/uploads/");
                         setAdUploadedUrl(isLocalUpload ? ad.imageUrl : "");
-                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), targetUrl: ad.targetUrl ?? "", ctaMode: ad.ctaMode ?? "url", contactUsername: ad.contactUsername ?? "", contactEmail: ad.contactEmail ?? "", contactMessage: ad.contactMessage ?? "", cta: ad.cta });
+                        setAdForm({ title: ad.title, body: ad.body, imageUrl: isLocalUpload ? "" : (ad.imageUrl ?? ""), videoUrl: (ad as any).videoUrl ?? "", adFormat: (ad as any).adFormat ?? "TEXT", targetUrl: ad.targetUrl ?? "", ctaMode: ad.ctaMode ?? "url", contactUsername: ad.contactUsername ?? "", contactEmail: ad.contactEmail ?? "", contactMessage: ad.contactMessage ?? "", cta: ad.cta });
                         setAdFormErrors({ title: false, image: false });
                         setAdFormOpen(true);
                       }}

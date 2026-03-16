@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
@@ -139,6 +139,7 @@ const VERTICALS = [
   { value: "EVENTS",          label: "Events" },
   { value: "CRYPTO",          label: "Crypto" },
   { value: "CORPORATE_DEALS", label: "Corporate Deals" },
+  { value: "FOR_SALE",        label: "For Sale" },
 ];
 
 type FormState = {
@@ -166,6 +167,7 @@ type FormState = {
   photo5Url: string;
   photo6Url: string;
   webhookUrl: string;
+  adFormat: string;
 };
 
 const EMPTY: FormState = {
@@ -174,7 +176,7 @@ const EMPTY: FormState = {
   contactTelegram: "", websiteUrl: "", instagramUrl: "", youtubeUrl: "", tiktokUrl: "",
   facebookUrl: "", discordUrl: "", twitterUrl: "",
   photo1Url: "", photo2Url: "", photo3Url: "", photo4Url: "", photo5Url: "", photo6Url: "",
-  webhookUrl: "",
+  webhookUrl: "", adFormat: "",
 };
 
 const inputCls = "bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]";
@@ -222,6 +224,7 @@ export default function ProviderProfilePage() {
         photo5Url:        (profile as any).photo5Url ?? "",
         photo6Url:        (profile as any).photo6Url ?? "",
         webhookUrl:       (profile as any).webhookUrl ?? "",
+        adFormat:         (profile as any).adFormat ?? "",
       });
     }
   }, [profile]);
@@ -503,6 +506,103 @@ export default function ProviderProfilePage() {
                 <Input id="twitterUrl" type="url" placeholder="https://x.com/yourhandle" value={form.twitterUrl} onChange={(e) => set("twitterUrl", e.target.value)} className={inputCls} data-testid="input-twitter-url" />
               </div>
             </div>
+          </div>
+
+          {/* Ad Format */}
+          <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
+            <div>
+              <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest flex items-center gap-1.5">
+                <Bot className="h-3.5 w-3.5" /> Sponsor Ad Format
+              </h2>
+              <p className="text-xs text-[#444] mt-1">Tell us what type of sponsor ad you plan to run on Gigzito.</p>
+            </div>
+
+            {/* Format picker */}
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { value: "VIDEO", label: "Video Ad", icon: Film, desc: "Short-form video clip" },
+                { value: "TEXT",  label: "Text Ad",  icon: FileText, desc: "Image + headline copy" },
+              ] as const).map(({ value, label, icon: Icon, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  data-testid={`button-ad-format-${value.toLowerCase()}`}
+                  onClick={() => set("adFormat", value)}
+                  className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
+                    form.adFormat === value
+                      ? "border-[#ff2b2b] bg-[#ff2b2b]/10 text-white"
+                      : "border-[#1e1e1e] bg-[#080808] text-[#555] hover:border-[#333] hover:text-[#aaa]"
+                  }`}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-sm font-semibold">{label}</span>
+                  <span className="text-[10px] text-center leading-relaxed opacity-70">{desc}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Guidance panel — shown once a format is selected */}
+            {form.adFormat && (
+              <div className="rounded-xl border border-[#1e1e1e] bg-[#060606] p-4 space-y-3">
+                {/* GPT encouragement */}
+                <div className="flex items-start gap-2.5">
+                  <Bot className="h-4 w-4 text-[#ff2b2b] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-white mb-0.5">Build your ad with AI first</p>
+                    <p className="text-[11px] text-[#777] leading-relaxed">
+                      Before uploading, draft your ad using your favorite AI tool — ChatGPT, Claude, or Gemini work great.
+                      Describe your product, audience, and goal, then ask it to write your headline, body copy, and CTA.
+                      For video ads, have it script your 15–30 second clip and suggest visuals.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Video dimensions — shown for VIDEO format */}
+                {form.adFormat === "VIDEO" && (
+                  <div className="flex items-start gap-2.5">
+                    <Film className="h-4 w-4 text-[#888] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-white mb-1.5">Accepted video dimensions</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { ratio: "9:16", size: "1080 × 1920", label: "Vertical", note: "Recommended" },
+                          { ratio: "1:1",  size: "1080 × 1080", label: "Square",   note: "" },
+                          { ratio: "16:9", size: "1920 × 1080", label: "Landscape",note: "" },
+                        ].map(({ ratio, size, label, note }) => (
+                          <div key={ratio} className={`rounded-lg border p-2.5 text-center ${note ? "border-[#ff2b2b]/40 bg-[#ff2b2b]/5" : "border-[#1e1e1e] bg-[#0d0d0d]"}`}>
+                            <p className="text-xs font-bold text-white">{ratio}</p>
+                            <p className="text-[10px] text-[#666] mt-0.5">{size}</p>
+                            <p className="text-[10px] text-[#555]">{label}</p>
+                            {note && <p className="text-[9px] text-[#ff2b2b] font-semibold mt-0.5">{note}</p>}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-[#555] mt-2">Max duration: 30 seconds · MP4/MOV · max 500 MB</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* No server-side tools notice */}
+                <div className="flex items-start gap-2.5">
+                  <Info className="h-4 w-4 text-[#555] mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-[#555] leading-relaxed">
+                    <span className="text-[#777] font-semibold">No server-side media processing in this phase.</span>{" "}
+                    Please produce and export your final {form.adFormat === "VIDEO" ? "video" : "image"} before uploading.
+                    Full multimedia production tools are coming to the Gigzito ecosystem soon.
+                  </p>
+                </div>
+
+                {/* Scanning notice */}
+                <div className="flex items-start gap-2.5 rounded-lg border border-[#1e1e1e] bg-[#0a0a0a] p-3">
+                  <Bot className="h-4 w-4 text-[#ff2b2b] mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-[#888] leading-relaxed">
+                    <span className="text-white font-semibold">All ads are scanned before going live.</span>{" "}
+                    Our content intelligence bots automatically review every ad for policy compliance.
+                    Ads that pass scan are activated; flagged ads are held for manual review.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Integrations */}

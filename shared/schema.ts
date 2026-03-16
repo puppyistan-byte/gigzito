@@ -10,6 +10,7 @@ export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
   "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "ARTISTS", "BUSINESS",
+  "FOR_SALE",
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED", "TRIAGED"]);
 export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT", "DENIED"]);
@@ -59,6 +60,7 @@ export const providerProfiles = pgTable("provider_profiles", {
   photo5Url: text("photo5_url"),
   photo6Url: text("photo6_url"),
   webhookUrl: text("webhook_url"),
+  adFormat: text("ad_format"),
 });
 
 export const videoListings = pgTable("video_listings", {
@@ -595,6 +597,8 @@ export const sponsorAds = pgTable("sponsor_ads", {
   cta: text("cta").notNull().default("Learn More"),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  adFormat: text("ad_format").notNull().default("TEXT"),
+  videoUrl: text("video_url"),
   createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

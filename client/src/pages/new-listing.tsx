@@ -25,6 +25,7 @@ const VERTICALS = [
   { value: "EVENTS",          label: "Events",          icon: "🎪" },
   { value: "CRYPTO",          label: "Crypto",          icon: "₿" },
   { value: "CORPORATE_DEALS", label: "Corporate Deals", icon: "🏢" },
+  { value: "FOR_SALE",        label: "For Sale",        icon: "🏷️" },
 ];
 
 const CTA_TYPES: { value: CtaType; label: string; description: string }[] = [
