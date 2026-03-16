@@ -2059,7 +2059,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (err) return res.status(400).json({ message: err.message ?? "Upload failed" });
       if (!req.file) return res.status(400).json({ message: "No file received" });
       try {
-        const adsDir = path.join(process.cwd(), "client", "public", "ads");
+        const adsDir = path.join(process.cwd(), "ads");
         if (!fs.existsSync(adsDir)) fs.mkdirSync(adsDir, { recursive: true });
         const filename = `ad-${Date.now()}-${randomBytes(4).toString("hex")}.png`;
         const outPath = path.join(adsDir, filename);

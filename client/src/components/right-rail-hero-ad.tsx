@@ -4,7 +4,7 @@ import { X, User, Mail, MessageSquare, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import type { SponsorAd } from "@shared/schema";
-
+ 
 const ROTATION_MS = 5_000;
 
 const FALLBACK_GRADIENTS = [

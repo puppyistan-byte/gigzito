@@ -58,6 +58,10 @@ const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 app.use("/uploads", express.static(uploadsDir));
 
+const adsDir = path.join(process.cwd(), "ads");
+if (!fs.existsSync(adsDir)) fs.mkdirSync(adsDir, { recursive: true });
+app.use("/ads", express.static(adsDir));
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
