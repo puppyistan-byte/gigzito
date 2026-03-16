@@ -563,18 +563,16 @@ function ProviderDashboardInner() {
 
   const exportLeadsCSV = () => {
     if (!leads.length) return;
-    const headers = ["Name", "Username", "Email", "Text", "Location"];
+    const headers = ["Name", "Username", "Email", "Location"];
     const rows = leads.map((l) => {
       const isUS = (l as any).viewerCountry === "United States";
       const location = isUS
         ? [(l as any).viewerState, (l as any).viewerCity].filter(Boolean).join(", ")
         : [(l as any).viewerCountry, (l as any).viewerCity].filter(Boolean).join(", ");
-      const text = (l.message ?? "").slice(0, 120);
       return [
         `"${(l.firstName ?? "").replace(/"/g, '""')}"`,
         `"${((l as any).viewerUsername ?? "").replace(/"/g, '""')}"`,
         `"${(l.email ?? "").replace(/"/g, '""')}"`,
-        `"${text.replace(/"/g, '""')}"`,
         `"${location.replace(/"/g, '""')}"`,
       ];
     });
@@ -1516,7 +1514,7 @@ function ProviderDashboardInner() {
               <table className="w-full text-[11px] font-mono border-collapse">
                 <thead>
                   <tr className="bg-[#111] border-b border-[#1e1e1e]">
-                    {["Name", "Username", "Email", "Text", "Location"].map((h) => (
+                    {["Name", "Username", "Email", "Location"].map((h) => (
                       <th key={h} className="text-left px-3 py-2 text-[#555] font-semibold uppercase tracking-wider whitespace-nowrap border-r border-[#1a1a1a] last:border-r-0">{h}</th>
                     ))}
                   </tr>
@@ -1536,9 +1534,6 @@ function ProviderDashboardInner() {
                         <td className="px-3 py-1.5 text-white whitespace-nowrap border-r border-[#111]">{lead.firstName}</td>
                         <td className="px-3 py-1.5 text-[#888] whitespace-nowrap border-r border-[#111]">{(lead as any).viewerUsername ? `@${(lead as any).viewerUsername}` : "—"}</td>
                         <td className="px-3 py-1.5 text-[#aaa] whitespace-nowrap border-r border-[#111]">{lead.email || "—"}</td>
-                        <td className="px-3 py-1.5 text-[#777] max-w-[160px] border-r border-[#111]">
-                          <span className="block truncate" title={lead.message ?? ""}>{lead.message ? lead.message.slice(0, 120) : "—"}</span>
-                        </td>
                         <td className="px-3 py-1.5 text-[#666] whitespace-nowrap">{location || "—"}</td>
                       </tr>
                     );
