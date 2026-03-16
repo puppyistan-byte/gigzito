@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";

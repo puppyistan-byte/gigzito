@@ -318,6 +318,24 @@ export async function sendAudienceBroadcast(opts: {
   return { devMode: false };
 }
 
+export async function sendEmail(opts: { toEmail: string; subject: string; html: string; text?: string }): Promise<{ devMode: boolean }> {
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] sendEmail to:", opts.toEmail);
+    console.log("  Subject:", opts.subject);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: opts.toEmail,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text ?? opts.subject,
+  });
+  return { devMode: false };
+}
+
 export async function sendMfaCode(toEmail: string, code: string): Promise<SendMfaCodeResult> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
