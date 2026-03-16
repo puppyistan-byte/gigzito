@@ -10,10 +10,12 @@ const TIER_JOURNEY = [
     glow: "rgba(107,114,128,0.3)",
     label: "Viewer / Participant",
     icon: Users,
-    description: "Start watching. Start engaging. Create your digital identity — no credit card, no catch.",
+    description: "Start watching. Start engaging. Post videos and text ads — no credit card, no catch.",
     perks: [
       "Watch all Zito TV content",
       "Like, comment & engage",
+      "Post 1 video/day",
+      "Post text ads (unlimited)",
       "Create your GeeZee Card",
       "Join the Rolodex network",
     ],

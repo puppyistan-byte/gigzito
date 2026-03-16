@@ -77,9 +77,14 @@ const FEATURES: Feature[] = [
     values: [true, true, true, true],
   },
   {
-    label: "Upload Videos",
-    tooltip: "Upload promotional videos that appear in the Zito TV vertical feed for viewers to discover.",
-    values: [false, "Unlimited", "Unlimited", "Unlimited"],
+    label: "Post Videos",
+    tooltip: "Post promotional videos or text ads that appear in the Zito TV vertical feed for viewers to discover.",
+    values: ["1/day", "Unlimited", "Unlimited", "Unlimited"],
+  },
+  {
+    label: "Text Ad Posts",
+    tooltip: "Publish a text-based ad — headline, body, and CTA — without needing a video. Visible in the feed.",
+    values: [true, true, true, true],
   },
   {
     label: "GeeZee Cards",

@@ -68,8 +68,9 @@ export const videoListings = pgTable("video_listings", {
   providerId: integer("provider_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
   vertical: verticalEnum("vertical").notNull(),
   title: text("title").notNull(),
-  videoUrl: text("video_url").notNull(),
-  durationSeconds: integer("duration_seconds").notNull(),
+  videoUrl: text("video_url"),
+  durationSeconds: integer("duration_seconds"),
+  postType: text("post_type").notNull().default("VIDEO"),
   description: text("description"),
   tags: text("tags").array().notNull().default([]),
   ctaLabel: text("cta_label"),
@@ -245,7 +246,7 @@ export type ProfileCompletionStatus = {
 export type VerticalKey =
   | "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO"
   | "INFLUENCER" | "PRODUCTS" | "FLASH_SALE" | "FLASH_COUPON"
-  | "MUSIC_GIGS" | "EVENTS" | "CORPORATE_DEALS";
+  | "MUSIC_GIGS" | "EVENTS" | "CORPORATE_DEALS" | "FOR_SALE";
 
 export type CtaType = "Visit Offer" | "Shop Product" | "Join Event" | "Book Service" | "Join Guild";
 
@@ -253,12 +254,13 @@ export type CtaType = "Visit Offer" | "Shop Product" | "Join Event" | "Book Serv
 export type CreateListingRequest = {
   vertical: VerticalKey;
   title: string;
-  videoUrl: string;
-  durationSeconds: number;
+  postType?: "VIDEO" | "TEXT";
+  videoUrl?: string | null;
+  durationSeconds?: number | null;
   description?: string;
   tags?: string[];
-  ctaLabel?: string;
-  ctaUrl?: string;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
   ctaType?: CtaType | null;
   flashSaleEndsAt?: string | null;
   couponCode?: string | null;

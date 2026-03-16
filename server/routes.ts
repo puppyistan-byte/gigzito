@@ -644,11 +644,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       vertical: z.enum([
         "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
         "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
-        "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS",
+        "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "FOR_SALE",
       ]),
       title: z.string().min(1).max(200),
-      videoUrl: z.string().url(),
-      durationSeconds: z.coerce.number().int().min(1).max(60),
+      postType: z.enum(["VIDEO", "TEXT"]).optional().default("VIDEO"),
+      videoUrl: z.string().url().optional().or(z.literal("")),
+      durationSeconds: z.coerce.number().int().min(1).max(60).optional(),
       description: z.string().max(1000).optional(),
       tags: z.array(z.string()).max(10).optional(),
       ctaLabel: z.string().max(60).optional(),
@@ -663,9 +664,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
     try {
       const data = schema.parse(req.body);
-      const isUploadedVideo = data.videoUrl.startsWith("/uploads/videos/");
+      const postType = data.postType ?? "VIDEO";
+      if (postType === "VIDEO" && !data.videoUrl) {
+        return res.status(400).json({ message: "Video URL is required for video posts." });
+      }
+      const isUploadedVideo = postType === "VIDEO" && !!data.videoUrl && data.videoUrl.startsWith("/uploads/videos/");
       const listing = await storage.createListing({
         ...data,
+        videoUrl: data.videoUrl || null,
+        durationSeconds: data.durationSeconds ?? (postType === "VIDEO" ? 60 : null),
+        postType,
         ctaLabel: data.ctaLabel || null,
         ctaUrl: data.ctaUrl || null,
         ctaType: data.ctaType ?? null,
@@ -674,7 +682,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         pricePaidCents: 300,
       });
       // Set scan status + kick off Bif asynchronously for uploaded videos
-      if (isUploadedVideo) {
+      if (isUploadedVideo && data.videoUrl) {
         await storage.updateScanStatus(listing.id, "SCANNING", null);
         callBif(listing.id, data.videoUrl, userId).catch((err) => {
           console.error("[Bif] async call failed:", err);

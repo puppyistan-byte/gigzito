@@ -76,7 +76,7 @@ export default function ListingDetailPage() {
   const initials = provider.displayName
     ? provider.displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "P";
-  const embedUrl = getVideoEmbedUrl(listing.videoUrl);
+  const embedUrl = listing.videoUrl ? getVideoEmbedUrl(listing.videoUrl) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,16 +89,24 @@ export default function ListingDetailPage() {
           </a>
         </Link>
 
-        {/* Video */}
-        <div className="aspect-video w-full rounded-md overflow-hidden bg-black" data-testid="video-player">
-          <iframe
-            src={embedUrl}
-            title={listing.title}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
+        {/* Video or Text Ad */}
+        {embedUrl ? (
+          <div className="aspect-video w-full rounded-md overflow-hidden bg-black" data-testid="video-player">
+            <iframe
+              src={embedUrl}
+              title={listing.title}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <div className="w-full rounded-md overflow-hidden bg-[#0f0f0f] border border-[#1e1e1e] p-8 flex flex-col items-center justify-center gap-4 min-h-[160px]" data-testid="text-ad-display">
+            <div className="text-3xl">📢</div>
+            <p className="text-white font-bold text-lg text-center">{listing.title}</p>
+            {listing.description && <p className="text-[#888] text-sm text-center max-w-sm leading-relaxed">{listing.description}</p>}
+          </div>
+        )}
 
         {/* Title and tags */}
         <div className="space-y-2">

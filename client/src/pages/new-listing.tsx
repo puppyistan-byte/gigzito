@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, DollarSign, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X, Video, AlignLeft } from "lucide-react";
 import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
@@ -107,6 +107,7 @@ export default function NewListingPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [postType, setPostType] = useState<"VIDEO" | "TEXT">("VIDEO");
   const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -140,8 +141,7 @@ export default function NewListingPage() {
       const payload: Record<string, unknown> = {
         vertical: form.vertical,
         title: form.title,
-        videoUrl: form.videoUrl,
-        durationSeconds: 60,
+        postType,
         description: form.description || undefined,
         tags,
         ctaType: form.ctaType || undefined,
@@ -151,6 +151,10 @@ export default function NewListingPage() {
         revealName: form.revealName,
         collectEmail: form.collectEmail,
       };
+      if (postType === "VIDEO") {
+        payload.videoUrl = form.videoUrl;
+        payload.durationSeconds = 60;
+      }
       if (form.vertical === "FLASH_SALE" && form.flashSaleEndsAt) {
         payload.flashSaleEndsAt = new Date(form.flashSaleEndsAt).toISOString();
       }
@@ -177,10 +181,10 @@ export default function NewListingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
       const isScanning = data.scanStatus === "SCANNING";
       toast({
-        title: "Video listed!",
+        title: postType === "TEXT" ? "Text ad posted!" : "Video listed!",
         description: isScanning
           ? "Your video is live. Bif is scanning it for reputation — you'll be notified when it's done."
-          : "Your listing is now live in the feed.",
+          : "Your post is now live in the feed.",
       });
       navigate(`/listing/${data.listingId}`);
     },
@@ -244,17 +248,19 @@ export default function NewListingPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.videoUrl) {
-      if (videoMode === "upload") {
-        toast({ title: "No video uploaded", description: "Please upload your video before submitting.", variant: "destructive" });
-      } else {
-        toast({ title: "Video URL required", description: "Please enter a video URL.", variant: "destructive" });
+    if (postType === "VIDEO") {
+      if (!form.videoUrl) {
+        if (videoMode === "upload") {
+          toast({ title: "No video uploaded", description: "Please upload your video before submitting.", variant: "destructive" });
+        } else {
+          toast({ title: "Video URL required", description: "Please enter a video URL.", variant: "destructive" });
+        }
+        return;
       }
-      return;
-    }
-    if (videoMode === "upload" && uploadProgress !== null && uploadProgress < 100) {
-      toast({ title: "Upload in progress", description: "Please wait for your video to finish uploading.", variant: "destructive" });
-      return;
+      if (videoMode === "upload" && uploadProgress !== null && uploadProgress < 100) {
+        toast({ title: "Upload in progress", description: "Please wait for your video to finish uploading.", variant: "destructive" });
+        return;
+      }
     }
     if (form.ctaType && !form.ctaUrl) {
       toast({ title: "CTA URL required", description: "Please enter a URL for your CTA button.", variant: "destructive" });
@@ -281,7 +287,31 @@ export default function NewListingPage() {
               Return to Profile
             </button>
           </Link>
-          <h1 className="text-xl font-bold text-white" data-testid="text-page-title">Post a Video</h1>
+          <h1 className="text-xl font-bold text-white" data-testid="text-page-title">{postType === "TEXT" ? "Post a Text Ad" : "Post a Video"}</h1>
+        </div>
+
+        {/* Post type toggle */}
+        <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="post-type-toggle">
+          <button
+            type="button"
+            onClick={() => { setPostType("VIDEO"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+            className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors"
+            style={{ background: postType === "VIDEO" ? "rgba(255,43,43,0.15)" : "transparent", color: postType === "VIDEO" ? "#ff4444" : "#555", borderRight: "1px solid #2a2a2a" }}
+            data-testid="toggle-post-type-video"
+          >
+            <Video className="h-4 w-4" />
+            Post Video
+          </button>
+          <button
+            type="button"
+            onClick={() => { setPostType("TEXT"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+            className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors"
+            style={{ background: postType === "TEXT" ? "rgba(255,43,43,0.15)" : "transparent", color: postType === "TEXT" ? "#ff4444" : "#555" }}
+            data-testid="toggle-post-type-text"
+          >
+            <AlignLeft className="h-4 w-4" />
+            Text Ad
+          </button>
         </div>
 
         {profile && (
@@ -317,7 +347,7 @@ export default function NewListingPage() {
 
           {/* Required fields */}
           <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-4">
-            <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">Video Details</h2>
+            <h2 className="text-xs font-semibold text-[#555] uppercase tracking-widest">{postType === "TEXT" ? "Ad Details" : "Video Details"}</h2>
 
             <div className="space-y-1.5">
               <Label className="text-[#aaa] text-sm">Category *</Label>
@@ -347,7 +377,7 @@ export default function NewListingPage() {
               />
             </div>
 
-            <div className="space-y-3">
+            {postType === "VIDEO" && <div className="space-y-3">
               <Label className="text-[#aaa] text-sm">Video *</Label>
 
               {/* Mode toggle */}
@@ -472,7 +502,7 @@ export default function NewListingPage() {
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
 
           </div>
 

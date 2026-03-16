@@ -355,7 +355,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   useEffect(() => {
     isMutedRef.current = isMuted;
     // Sync muted state live to native video element
-    if (isNativeVideo(listing.videoUrl) && videoRef.current) {
+    if (isNativeVideo(listing.videoUrl ?? "") && videoRef.current) {
       videoRef.current.muted = isMuted;
       videoRef.current.volume = isMuted ? 0 : 1;
     }
@@ -363,7 +363,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
   const toggleMute = () => {
     const next = !isMuted;
-    if (isNativeVideo(listing.videoUrl)) {
+    if (isNativeVideo(listing.videoUrl ?? "")) {
       const v = videoRef.current;
       if (v) { v.muted = next; v.volume = next ? 0 : 1; }
     } else {
@@ -407,7 +407,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   }, []);
 
   useEffect(() => {
-    const native = isNativeVideo(listing.videoUrl);
+    const native = isNativeVideo(listing.videoUrl ?? "");
     if (!isActive) {
       if (native) {
         const v = videoRef.current;
@@ -434,7 +434,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
         v.play().catch(() => {});
       }
     } else {
-      setIframeSrc(getVideoEmbedUrl(listing.videoUrl, true, isMutedRef.current));
+      setIframeSrc(getVideoEmbedUrl(listing.videoUrl ?? "", true, isMutedRef.current));
     }
     const start = Date.now();
     timerRef.current = setInterval(() => {
@@ -507,12 +507,21 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </button>
           )}
 
+          {/* Text post overlay — shown when there is no video */}
+          {!listing.videoUrl && (
+            <div style={{ position: "absolute", inset: 0, zIndex: 1, background: "linear-gradient(160deg, #111 0%, #0a0a0a 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 24px", gap: 12 }}>
+              <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(255,43,43,0.12)", border: "1px solid rgba(255,43,43,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 4 }}>📢</div>
+              <p style={{ color: "#fff", fontSize: 17, fontWeight: 700, textAlign: "center", lineHeight: 1.3 }}>{listing.title}</p>
+              {listing.description && <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, textAlign: "center", lineHeight: 1.6, maxWidth: 280 }}>{listing.description}</p>}
+            </div>
+          )}
+
           {/* Native video element — used when listing.videoUrl is an uploaded file */}
-          {isNativeVideo(listing.videoUrl) && (
+          {isNativeVideo(listing.videoUrl ?? "") && (
             <video
               ref={videoRef}
               key={`native-${listing.id}`}
-              src={listing.videoUrl}
+              src={listing.videoUrl ?? undefined}
               playsInline
               loop={false}
               preload="metadata"
@@ -529,7 +538,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           )}
 
           {/* Iframe — only mounted when active; unmounting fully kills browser audio */}
-          {!isNativeVideo(listing.videoUrl) && iframeSrc !== "about:blank" && <iframe
+          {listing.videoUrl && !isNativeVideo(listing.videoUrl ?? "") && iframeSrc !== "about:blank" && <iframe
             ref={iframeRef}
             key={`video-${listing.id}`}
             src={iframeSrc}
@@ -556,7 +565,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
                 This video can't be embedded. Watch it directly on YouTube.
               </p>
               <a
-                href={getWatchableUrl(listing.videoUrl)}
+                href={getWatchableUrl(listing.videoUrl ?? "")}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -763,7 +772,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
                 </button>
 
                 {showShareMenu && (() => {
-                  const watchUrl = getWatchableUrl(listing.videoUrl);
+                  const watchUrl = getWatchableUrl(listing.videoUrl ?? "");
                   const handleCopyLink = () => {
                     navigator.clipboard.writeText(watchUrl).then(() => {
                       setLinkCopied(true);
