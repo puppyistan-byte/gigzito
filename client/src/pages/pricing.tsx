@@ -17,6 +17,7 @@ const TIERS = [
     id: "GZMarketer",
     name: "GZMarketer",
     price: "$12",
+
     priceNote: "/ month",
     type: "Creator",
     highlight: false,
@@ -507,7 +508,7 @@ export default function PricingPage() {
                 Leads are stored in your profile and can be:
               </p>
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-                {["Exported via CSV", "Tagged to campaigns"].map((item) => (
+                {["Exported to CSV", "Forwarded by email", "Viewed in your dashboard"].map((item) => (
                   <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Check style={{ width: 13, height: 13, color: "#ff4444", flexShrink: 0 }} />
                     <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{item}</span>
