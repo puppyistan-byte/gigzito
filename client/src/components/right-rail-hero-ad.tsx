@@ -5,7 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import type { SponsorAd } from "@shared/schema";
 
-const ROTATION_MS = 25_000;
+const ROTATION_MS = 5_000;
 
 const FALLBACK_GRADIENTS = [
   "linear-gradient(135deg, #1a0a0a 0%, #3d0000 50%, #1a0a0a 100%)",
