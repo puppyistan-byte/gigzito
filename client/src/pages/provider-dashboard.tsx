@@ -36,7 +36,7 @@ import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
-  Send, Radio, MapPin, Globe, X as XIcon,
+  Send, Radio, MapPin, Globe, X as XIcon, Megaphone,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
@@ -744,15 +744,26 @@ function ProviderDashboardInner() {
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-xl font-bold text-white" data-testid="text-dashboard-title">My Dashboard</h1>
-          <Button
-            size="sm"
-            onClick={() => navigate("/provider/profile")}
-            className="bg-[#111] hover:bg-[#1a1a1a] text-white font-semibold rounded-xl shrink-0 border border-[#2a2a2a]"
-            data-testid="button-my-profile"
-          >
-            <UserCircle className="h-4 w-4 mr-1.5 text-[#ff2b2b]" />
-            My Profile
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              onClick={() => navigate("/advertise")}
+              className="h-8 px-3 text-xs font-bold gap-1 bg-[#111] hover:bg-[#1a1a1a] text-white rounded-xl border border-[#2a2a2a]"
+              data-testid="button-dashboard-advertise"
+            >
+              <Megaphone className="h-3.5 w-3.5 text-[#ff2b2b]" />
+              Advertise
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate("/provider/profile")}
+              className="h-8 px-3 text-xs bg-[#111] hover:bg-[#1a1a1a] text-white font-semibold rounded-xl border border-[#2a2a2a]"
+              data-testid="button-my-profile"
+            >
+              <UserCircle className="h-3.5 w-3.5 mr-1 text-[#ff2b2b]" />
+              My Profile
+            </Button>
+          </div>
         </div>
 
         {/* Daily cap warning */}
@@ -814,7 +825,20 @@ function ProviderDashboardInner() {
 
         {/* My listings */}
         <div>
-          <h2 className="text-sm font-semibold text-white mb-3">My Videos</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white">My Videos</h2>
+            <Button
+              size="sm"
+              onClick={handlePostVideo}
+              disabled={dailyStats?.capReached}
+              className="h-7 px-3 text-xs font-bold gap-1"
+              style={{ background: "linear-gradient(135deg,#ff2b2b,#cc0000)", color: "#fff", border: "none" }}
+              data-testid="button-post-video"
+            >
+              <PlusCircle className="h-3 w-3" />
+              Post Video
+            </Button>
+          </div>
           {listingsLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => <Skeleton key={i} className="h-20 w-full bg-[#111] rounded-xl" />)}
