@@ -6,3 +6,9 @@ id = "UoUL3EFhcxcfR1lGEnGFx"
 uri = "file://gigzito-tech-spec-audit-hillsboro.md"
 type = "text"
 title = "Gigzito Tech Spec Audit — Hillsboro VPS (March 15, 2026)"
+
+[[outputs]]
+id = "ugU0MHWNjEoQsOLI4eb1o"
+uri = "file://GIGZITO_API.md"
+type = "text"
+title = "Gigzito Master API Reference"
