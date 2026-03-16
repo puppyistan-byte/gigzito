@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Megaphone, Sparkles, CreditCard, Layers, Flame, Zap, MapPin } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -50,15 +50,6 @@ export function Navbar() {
       }}
       data-testid="navbar-profile"
     >
-      <Link href="/advertise">
-        <div
-          style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: "11px", padding: "6px 12px", borderRadius: "999px", textDecoration: "none", letterSpacing: "0.03em", boxShadow: "0 2px 8px rgba(255,43,43,0.4)", cursor: "pointer" }}
-          data-testid="link-advertise-with-us"
-        >
-          <Megaphone style={{ width: "12px", height: "12px" }} />
-          Advertise
-        </div>
-      </Link>
       {/* Avatar dropdown for navigation */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
