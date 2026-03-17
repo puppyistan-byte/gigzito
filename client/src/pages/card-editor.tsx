@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  User, QrCode, Heart, Globe, Lock, Image, Trash2,
+  User, QrCode, Heart, Globe, Lock, Image, ImageIcon, Trash2,
   Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin, Upload, Loader2,
   Smile, Film, Sticker, Send, X as XIcon, Zap,
 } from "lucide-react";
@@ -68,6 +68,7 @@ function GalleryUploader({
   const { toast } = useToast();
   const [slots, setSlots] = useState<string[]>(Array(6).fill("").map((_, i) => gallery[i] ?? ""));
   const [uploading, setUploading] = useState<boolean[]>(Array(6).fill(false));
+  const [expanded, setExpanded] = useState(false);
 
   function setSlot(idx: number, val: string) {
     const next = [...slots];
@@ -100,74 +101,129 @@ function GalleryUploader({
     }
   }
 
+  const filled = slots.filter(Boolean);
+  const nextEmptyIdx = slots.findIndex((s) => !s);
+  const isUploadingAny = uploading.some(Boolean);
+
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {slots.map((url, i) => (
-        <div key={i} className="relative group">
-          {url ? (
-            <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-[#2a2a2a]">
-              <img
-                src={url}
-                alt={`Photo ${i + 1}`}
-                className="w-full h-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                <label
-                  className="flex flex-col items-center justify-center cursor-pointer bg-white/10 hover:bg-white/20 rounded-lg p-2 transition-colors"
-                  title="Replace photo"
-                  data-testid={`btn-replace-gallery-${i}`}
-                >
-                  <Upload className="h-4 w-4 text-white" />
-                  <span className="text-[9px] text-white mt-0.5">Replace</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }}
-                  />
-                </label>
-                <button
-                  onClick={() => setSlot(i, "")}
-                  className="flex flex-col items-center justify-center bg-red-500/20 hover:bg-red-500/40 rounded-lg p-2 transition-colors"
-                  title="Remove photo"
-                  data-testid={`btn-remove-gallery-${i}`}
-                >
-                  <Trash2 className="h-4 w-4 text-red-400" />
-                  <span className="text-[9px] text-red-400 mt-0.5">Delete</span>
-                </button>
+    <div className="space-y-3">
+      {/* ── Compact strip ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Peek thumbnails — first 3 slots */}
+        {slots.slice(0, 3).map((url, i) => (
+          <div
+            key={i}
+            className="w-11 h-11 rounded-lg overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d] shrink-0 relative"
+            data-testid={`thumb-gallery-${i}`}
+          >
+            {uploading[i] ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <Loader2 className="h-4 w-4 text-[#555] animate-spin" />
               </div>
-            </div>
-          ) : (
-            <label
-              className={`flex flex-col items-center justify-center w-full aspect-square rounded-xl border border-dashed bg-[#0d0d0d] transition-colors cursor-pointer ${
-                uploading[i] ? "border-[#444]" : "border-[#2a2a2a] hover:border-[#555] hover:bg-[#111]"
-              }`}
-              data-testid={`btn-upload-gallery-${i}`}
-            >
-              {uploading[i] ? (
-                <>
-                  <Loader2 className="h-5 w-5 text-[#555] animate-spin mb-1" />
-                  <span className="text-[10px] text-[#555]">Uploading…</span>
-                </>
+            ) : url ? (
+              <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-[9px] text-[#3a3a3a] font-bold">{i + 1}</span>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* +N more badge */}
+        {filled.length > 3 && (
+          <div className="w-11 h-11 rounded-lg bg-[#111] border border-[#2a2a2a] flex items-center justify-center shrink-0">
+            <span className="text-[10px] font-bold text-[#666]">+{filled.length - 3}</span>
+          </div>
+        )}
+
+        {/* Upload next empty slot */}
+        {nextEmptyIdx !== -1 && (
+          <label
+            className="flex items-center gap-1.5 h-11 px-3 rounded-lg border border-dashed border-[#2a2a2a] hover:border-purple-700/60 bg-[#0d0d0d] hover:bg-[#111] text-[#555] hover:text-purple-400 cursor-pointer transition-all shrink-0"
+            title="Upload a photo"
+            data-testid="btn-upload-gallery-next"
+          >
+            {isUploadingAny
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Upload className="h-3.5 w-3.5" />}
+            <span className="text-[11px] font-medium">Add photo</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={isUploadingAny}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(nextEmptyIdx, f); e.target.value = ""; }}
+            />
+          </label>
+        )}
+
+        {/* See Photos toggle */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className={`flex items-center gap-1.5 h-11 px-3 rounded-lg border text-[11px] font-semibold transition-all shrink-0 ${
+            expanded
+              ? "border-purple-700/60 text-purple-300 bg-purple-900/10"
+              : "border-[#2a2a2a] text-[#666] hover:border-[#444] hover:text-[#999] bg-[#0d0d0d]"
+          }`}
+          data-testid="btn-toggle-gallery"
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+          {expanded ? "Hide photos" : `See photos${filled.length > 0 ? ` (${filled.length})` : ""}`}
+        </button>
+      </div>
+
+      {/* ── Full manage grid (collapsible) ── */}
+      {expanded && (
+        <div className="grid grid-cols-3 gap-3 pt-1">
+          {slots.map((url, i) => (
+            <div key={i} className="relative group">
+              {url ? (
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-[#2a2a2a]">
+                  <img
+                    src={url}
+                    alt={`Photo ${i + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <label
+                      className="flex flex-col items-center justify-center cursor-pointer bg-white/10 hover:bg-white/20 rounded-lg p-2 transition-colors"
+                      data-testid={`btn-replace-gallery-${i}`}
+                    >
+                      <Upload className="h-4 w-4 text-white" />
+                      <span className="text-[9px] text-white mt-0.5">Replace</span>
+                      <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }} />
+                    </label>
+                    <button
+                      onClick={() => setSlot(i, "")}
+                      className="flex flex-col items-center justify-center bg-red-500/20 hover:bg-red-500/40 rounded-lg p-2 transition-colors"
+                      data-testid={`btn-remove-gallery-${i}`}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-400" />
+                      <span className="text-[9px] text-red-400 mt-0.5">Delete</span>
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <Upload className="h-5 w-5 text-[#444] mb-1" />
-                  <span className="text-[10px] text-[#555] font-medium">Photo {i + 1}</span>
-                  <span className="text-[9px] text-[#333] mt-0.5">Click to upload</span>
-                </>
+                <label
+                  className={`flex flex-col items-center justify-center w-full aspect-square rounded-xl border border-dashed bg-[#0d0d0d] transition-colors cursor-pointer ${
+                    uploading[i] ? "border-[#444]" : "border-[#2a2a2a] hover:border-[#555] hover:bg-[#111]"
+                  }`}
+                  data-testid={`btn-upload-gallery-${i}`}
+                >
+                  {uploading[i] ? (
+                    <><Loader2 className="h-5 w-5 text-[#555] animate-spin mb-1" /><span className="text-[10px] text-[#555]">Uploading…</span></>
+                  ) : (
+                    <><Upload className="h-5 w-5 text-[#444] mb-1" /><span className="text-[10px] text-[#555] font-medium">Photo {i + 1}</span><span className="text-[9px] text-[#333] mt-0.5">Click to upload</span></>
+                  )}
+                  <input type="file" accept="image/*" className="sr-only" disabled={uploading[i]} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }} />
+                </label>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                disabled={uploading[i]}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }}
-              />
-            </label>
-          )}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -711,7 +767,7 @@ export default function CardEditorPage() {
 
             {/* Gallery */}
             <div>
-              <Label className="text-xs text-[#888] mb-2 block">Photo Gallery <span className="text-[#555]">— up to 6 photos</span></Label>
+              <Label className="text-xs text-[#888] mb-2 block">Photo Gallery</Label>
               <GalleryUploader gallery={gallery} onChange={(g) => { setGallery(g); markDirty(); }} />
             </div>
 
