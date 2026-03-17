@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, Globe, Lock, Image, ImageIcon, Trash2, Camera, Plus, Pencil,
   Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin, Upload, Loader2,
-  Smile, Film, Sticker, Send, X as XIcon, Zap,
+  Smile, Film, Sticker, Send, X as XIcon, Zap, Share2,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { GignessCard, ZeeMotion } from "@shared/schema";
@@ -330,6 +330,7 @@ export default function CardEditorPage() {
   const [isPublic, setIsPublic]                           = useState(false);
   const [locationServicesEnabled, setLocationServices]    = useState(false);
   const [allowMessaging, setAllowMessaging]               = useState(true);
+  const [showSocialLinks, setShowSocialLinks]             = useState(false);
   const [ageBracket, setAgeBracket]                       = useState("");
   const [gender, setGender]                               = useState("");
   const [intent, setIntent]                               = useState("");
@@ -366,6 +367,7 @@ export default function CardEditorPage() {
       setIsPublic(existingCard.isPublic ?? false);
       setLocationServices(existingCard.locationServicesEnabled ?? false);
       setAllowMessaging(existingCard.allowMessaging ?? true);
+      setShowSocialLinks((existingCard as any).showSocialLinks ?? false);
       setAgeBracket(existingCard.ageBracket ?? "");
       setGender(existingCard.gender ?? "");
       setIntent(existingCard.intent ?? "");
@@ -381,6 +383,7 @@ export default function CardEditorPage() {
         isPublic,
         locationServicesEnabled,
         allowMessaging,
+        showSocialLinks,
         ageBracket: ageBracket || null,
         gender: gender || null,
         intent: intent || null,
@@ -777,6 +780,22 @@ export default function CardEditorPage() {
                 </div>
               </div>
               <Switch checked={allowMessaging} onCheckedChange={(v) => { setAllowMessaging(v); markDirty(); }} data-testid="switch-allow-messaging" />
+            </div>
+            <div className={`flex items-center justify-between rounded-xl border p-3 transition-all ${
+              showSocialLinks ? "bg-[#0d0a1a] border-purple-500/20" : "bg-[#0a0a0a] border-[#181818]"
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  showSocialLinks ? "bg-purple-500/15 border border-purple-500/25" : "bg-[#141414] border border-[#1e1e1e]"
+                }`}>
+                  <Share2 className={`h-3.5 w-3.5 ${showSocialLinks ? "text-purple-400" : "text-[#383838]"}`} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Import Social Media Links</p>
+                  <p className="text-[10px] text-[#3a3a3a] mt-0.5">Show your Gigzito profile social links on this card</p>
+                </div>
+              </div>
+              <Switch checked={showSocialLinks} onCheckedChange={(v) => { setShowSocialLinks(v); markDirty(); }} data-testid="switch-show-social-links" />
             </div>
           </div>
         </div>

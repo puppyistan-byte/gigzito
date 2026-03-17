@@ -710,6 +710,7 @@ export const gignessCards = pgTable("gigness_cards", {
   isPublic: boolean("is_public").notNull().default(true),
   locationServicesEnabled: boolean("location_services_enabled").notNull().default(false),
   allowMessaging: boolean("allow_messaging").notNull().default(true),
+  showSocialLinks: boolean("show_social_links").notNull().default(false),
   ageBracket: text("age_bracket"),
   gender: text("gender"),
   intent: text("intent"),

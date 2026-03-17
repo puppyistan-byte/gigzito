@@ -122,8 +122,8 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
         </div>
       </Link>
 
-      {/* Social icons strip */}
-      {(() => {
+      {/* Social icons strip — only when user opted in */}
+      {(card as any).showSocialLinks && (() => {
         const c = card as any;
         const links = [
           c.instagramUrl && { href: c.instagramUrl, Icon: SiInstagram, color: "hover:text-pink-400",   label: "Instagram" },
