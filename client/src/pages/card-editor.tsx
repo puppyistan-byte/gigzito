@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  User, QrCode, Heart, Globe, Lock, Image, ImageIcon, Trash2, Camera, Plus,
+  User, QrCode, Heart, Globe, Lock, Image, ImageIcon, Trash2, Camera, Plus, Pencil,
   Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin, Upload, Loader2,
   Smile, Film, Sticker, Send, X as XIcon, Zap,
 } from "lucide-react";
@@ -318,6 +318,7 @@ export default function CardEditorPage() {
 
   // Form state
   const [slogan, setSlogan]               = useState("");
+  const [sloganEditing, setSloganEditing] = useState(false);
   const [profilePic, setProfilePic]       = useState("");
   const [profilePicUploading, setProfilePicUploading] = useState(false);
   const [gallery, setGallery]             = useState<string[]>([]);
@@ -479,9 +480,11 @@ export default function CardEditorPage() {
           {/* ── Left: form ── */}
           <div className="space-y-7">
 
-            {/* ── Profile Photo — top of card ── */}
-            <div className="flex flex-col items-center gap-2">
-              <div className="relative group">
+            {/* ── Profile Photo + Slogan — side by side at top ── */}
+            <div className="flex items-start gap-4">
+
+              {/* Photo — snug top-left */}
+              <div className="relative group shrink-0">
                 <label className="cursor-pointer block" data-testid="btn-upload-profile-pic" title="Click to change photo">
                   {profilePic ? (
                     <img
@@ -495,10 +498,10 @@ export default function CardEditorPage() {
                       <User className="h-9 w-9 text-[#2a2a2a]" />
                     </div>
                   )}
-                  {/* Upload overlay — always visible at bottom of photo */}
-                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-2 pointer-events-none">
+                  {/* Upload badge inside photo — bottom center */}
+                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-1.5 pointer-events-none">
                     <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
-                      profilePicUploading ? "bg-black/70 text-[#aaa]" : "bg-black/60 group-hover:bg-black/80 text-[#999] group-hover:text-white"
+                      profilePicUploading ? "bg-black/80 text-[#bbb]" : "bg-black/60 group-hover:bg-black/85 text-[#888] group-hover:text-white"
                     }`}>
                       {profilePicUploading
                         ? <><Loader2 className="h-2.5 w-2.5 animate-spin" /> uploading</>
@@ -544,29 +547,47 @@ export default function CardEditorPage() {
                   </button>
                 )}
               </div>
-              {/* Optional URL paste — compact, below photo */}
-              <Input
-                value={profilePic}
-                onChange={(e) => { setProfilePic(e.target.value); markDirty(); }}
-                placeholder="…or paste image URL"
-                className="bg-[#0a0a0a] border-[#1a1a1a] text-white placeholder-[#2a2a2a] text-xs focus:border-purple-700/40 max-w-[220px] text-center h-7"
-                data-testid="input-profile-pic"
-              />
-            </div>
 
-            {/* Slogan */}
-            <div>
-              <Label className="text-xs text-[#888] mb-1.5 block">Slogan <span className="text-[#555]">— max 120 chars</span></Label>
-              <Textarea
-                value={slogan}
-                onChange={(e) => { setSlogan(e.target.value); markDirty(); }}
-                placeholder="Your one-line pitch to the Gigzito world…"
-                maxLength={120}
-                rows={2}
-                className="bg-[#0d0d0d] border-[#1e1e1e] text-white placeholder-[#333] text-sm focus:border-purple-700/60 resize-none"
-                data-testid="input-slogan"
-              />
-              <p className="text-[11px] text-[#444] mt-1 text-right">{slogan.length}/120</p>
+              {/* Slogan — right of photo, fills height */}
+              <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: "96px" }}>
+                {slogan && !sloganEditing ? (
+                  /* Display mode — big colorful text, click pencil to edit */
+                  <div className="relative group/slogan">
+                    <p
+                      className="text-2xl font-extrabold leading-tight cursor-pointer"
+                      style={{ background: "linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f59e0b 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+                      onClick={() => setSloganEditing(true)}
+                      data-testid="display-slogan"
+                    >
+                      {slogan}
+                    </p>
+                    <button
+                      onClick={() => setSloganEditing(true)}
+                      className="absolute -top-1 -right-1 opacity-0 group-hover/slogan:opacity-100 transition-opacity bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-[#333] rounded-md p-1"
+                      title="Edit slogan"
+                      data-testid="btn-edit-slogan"
+                    >
+                      <Pencil className="h-3 w-3 text-[#888]" />
+                    </button>
+                  </div>
+                ) : (
+                  /* Edit mode — textarea */
+                  <div>
+                    <Textarea
+                      value={slogan}
+                      onChange={(e) => { setSlogan(e.target.value); markDirty(); }}
+                      placeholder="Your one-line pitch to the Gigzito world…"
+                      maxLength={120}
+                      rows={3}
+                      autoFocus={sloganEditing}
+                      onBlur={() => { if (slogan.trim()) setSloganEditing(false); }}
+                      className="bg-[#0d0d0d] border-[#1e1e1e] text-white placeholder-[#333] text-sm focus:border-purple-700/60 resize-none"
+                      data-testid="input-slogan"
+                    />
+                    <p className="text-[11px] text-[#444] mt-1 text-right">{slogan.length}/120</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* ── ZeeMotion ── */}
