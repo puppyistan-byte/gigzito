@@ -192,41 +192,44 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
       <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
 
       <div className="p-5 flex flex-col gap-4 flex-1">
-        {/* Header */}
-        <div className="flex items-start gap-3">
-          {card.profilePic ? (
-            <img
-              src={card.profilePic}
-              alt="Profile"
-              className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#222]"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222]">
-              <User className="h-6 w-6 text-[#444]" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cardTier.color} ${cardTier.border} bg-transparent`}>
-                {cardTier.label}
-              </span>
-              {card.intent && (
-                <span className="text-[10px] text-[#555] bg-[#111] border border-[#222] rounded px-1.5 py-0.5 capitalize">
-                  {card.intent}
-                </span>
-              )}
-            </div>
-            {card.slogan && (
-              <p className="text-sm font-semibold text-white mt-1.5 leading-snug line-clamp-2">
-                {card.slogan}
-              </p>
+        {/* Header — click to view full profile */}
+        <Link href={`/geezee/${card.userId}`}>
+          <div className="flex items-start gap-3 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
+            {card.profilePic ? (
+              <img
+                src={card.profilePic}
+                alt="Profile"
+                className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
+                <User className="h-6 w-6 text-[#444]" />
+              </div>
             )}
-            <div className="flex items-center gap-3 mt-2 text-[11px] text-[#555]">
-              {card.ageBracket && <span>{card.ageBracket}</span>}
-              {card.gender && <span>{card.gender}</span>}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cardTier.color} ${cardTier.border} bg-transparent`}>
+                  {cardTier.label}
+                </span>
+                {card.intent && (
+                  <span className="text-[10px] text-[#555] bg-[#111] border border-[#222] rounded px-1.5 py-0.5 capitalize">
+                    {card.intent}
+                  </span>
+                )}
+              </div>
+              {card.slogan && (
+                <p className="text-sm font-semibold text-white mt-1.5 leading-snug line-clamp-2 group-hover:text-purple-200 transition-colors">
+                  {card.slogan}
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-2 text-[11px] text-[#555]">
+                {card.ageBracket && <span>{card.ageBracket}</span>}
+                {card.gender && <span>{card.gender}</span>}
+                <span className="text-purple-500/60 group-hover:text-purple-400 transition-colors">View profile →</span>
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Gallery strip */}
         {card.gallery && card.gallery.length > 0 && (

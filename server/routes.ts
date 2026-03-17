@@ -1090,6 +1090,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(card ?? null);
   });
 
+  // Public: look up a GeeZee card by the owner's userId, enriched with provider profile
+  app.get("/api/gigness-cards/user/:userId", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    if (isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
+    const card = await storage.getGignessCardByUserId(userId);
+    if (!card || !card.isPublic) return res.status(404).json({ message: "Card not found" });
+    const profile = await storage.getProfileByUserId(userId);
+    return res.json({ ...card, displayName: profile?.displayName ?? null, username: profile?.username ?? null, avatarUrl: profile?.avatarUrl ?? null });
+  });
+
   // QR Master Card lookup by UUID (public)
   app.get("/api/gigness-cards/qr/:uuid", async (req, res) => {
     const card = await storage.getGignessCardByQrUuid(req.params.uuid);
@@ -2378,6 +2388,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any).userId;
     const feed = await storage.getZeeMotionFeed(userId);
     return res.json(feed);
+  });
+
+  app.get("/api/zee-motions/user/:userId", async (req, res) => {
+    const targetUserId = parseInt(req.params.userId);
+    if (isNaN(targetUserId)) return res.status(400).json({ message: "Invalid userId" });
+    const motions = await storage.getUserZeeMotions(targetUserId);
+    return res.json(motions);
+  });
+
+  app.get("/api/zee-motions/:id/comments", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const comments = await storage.getZeeMotionComments(id);
+    return res.json(comments);
+  });
+
+  app.post("/api/zee-motions/:id/comments", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const schema = z.object({ commentText: z.string().min(1).max(500), authorName: z.string().min(1).max(80) });
+    try {
+      const data = schema.parse(req.body);
+      const authorUserId = (req.session as any)?.userId ?? null;
+      const comment = await storage.createZeeMotionComment({ motionId: id, authorUserId, authorName: data.authorName, commentText: data.commentText });
+      return res.json(comment);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Server error" });
+    }
   });
 
   app.delete("/api/zee-motions/:id", async (req, res) => {

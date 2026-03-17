@@ -784,6 +784,19 @@ export const zeeMotions = pgTable("zee_motions", {
 export type ZeeMotion = typeof zeeMotions.$inferSelect;
 export type InsertZeeMotion = typeof zeeMotions.$inferInsert;
 
+// ─── ZeeMotion Comments ───────────────────────────────────────────────────────
+export const zeeMotionComments = pgTable("zee_motion_comments", {
+  id: serial("id").primaryKey(),
+  motionId: integer("motion_id").notNull().references(() => zeeMotions.id, { onDelete: "cascade" }),
+  authorUserId: integer("author_user_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull(),
+  commentText: text("comment_text").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ZeeMotionComment = typeof zeeMotionComments.$inferSelect;
+export type InsertZeeMotionComment = typeof zeeMotionComments.$inferInsert;
+
 // ─── GeeZee Follows ───────────────────────────────────────────────────────────
 export const geezeeFollows = pgTable(
   "geezee_follows",

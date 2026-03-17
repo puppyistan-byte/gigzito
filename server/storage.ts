@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, geezeeFollows, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type GeezeeFollow } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -88,8 +88,11 @@ export interface IStorage {
   // ZeeMotion
   createZeeMotion(userId: number, data: { text?: string | null; mediaUrl?: string | null; mediaType?: string | null }): Promise<ZeeMotion>;
   getMyZeeMotions(userId: number): Promise<ZeeMotion[]>;
+  getUserZeeMotions(userId: number): Promise<ZeeMotion[]>;
   deleteZeeMotion(id: number, userId: number): Promise<void>;
   getZeeMotionFeed(userId: number): Promise<(ZeeMotion & { username: string | null; displayName: string | null; avatarUrl: string | null })[]>;
+  createZeeMotionComment(data: { motionId: number; authorUserId: number | null; authorName: string; commentText: string }): Promise<ZeeMotionComment>;
+  getZeeMotionComments(motionId: number): Promise<ZeeMotionComment[]>;
 
   // GeeZee Follows
   followUser(followerId: number, followingUserId: number): Promise<void>;
@@ -1717,6 +1720,19 @@ export class DatabaseStorage implements IStorage {
 
   async getMyZeeMotions(userId: number): Promise<ZeeMotion[]> {
     return db.select().from(zeeMotions).where(eq(zeeMotions.userId, userId)).orderBy(desc(zeeMotions.createdAt)).limit(20);
+  }
+
+  async getUserZeeMotions(userId: number): Promise<ZeeMotion[]> {
+    return db.select().from(zeeMotions).where(eq(zeeMotions.userId, userId)).orderBy(desc(zeeMotions.createdAt)).limit(50);
+  }
+
+  async createZeeMotionComment(data: { motionId: number; authorUserId: number | null; authorName: string; commentText: string }): Promise<ZeeMotionComment> {
+    const [row] = await db.insert(zeeMotionComments).values(data).returning();
+    return row;
+  }
+
+  async getZeeMotionComments(motionId: number): Promise<ZeeMotionComment[]> {
+    return db.select().from(zeeMotionComments).where(eq(zeeMotionComments.motionId, motionId)).orderBy(zeeMotionComments.createdAt);
   }
 
   async deleteZeeMotion(id: number, userId: number): Promise<void> {
