@@ -72,6 +72,11 @@ function GalleryUploader({
     Array(GALLERY_SLOTS).fill("").map((_, i) => gallery[i] ?? "")
   );
   const [uploading, setUploading] = useState<boolean[]>(Array(GALLERY_SLOTS).fill(false));
+
+  // Sync slots when gallery prop changes (async card load)
+  useEffect(() => {
+    setSlots(Array(GALLERY_SLOTS).fill("").map((_, i) => gallery[i] ?? ""));
+  }, [gallery.join(",")]);
   const [expanded, setExpanded] = useState(false);
 
   function setSlot(idx: number, val: string) {
@@ -458,532 +463,343 @@ export default function CardEditorPage() {
     <div style={{ minHeight: "100vh", background: "#080808", color: "#fff" }}>
       <Navbar />
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 60px" }}>
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 16px 80px" }}>
+
+        {/* Back + edit indicator */}
+        <div className="flex items-center justify-between mb-5">
           <Link href="/geezees">
-            <button className="text-[#555] hover:text-white transition-colors" data-testid="btn-back-geezees">
-              <ChevronLeft className="h-5 w-5" />
+            <button className="flex items-center gap-1.5 text-xs text-[#555] hover:text-white transition-colors" data-testid="btn-back-geezees">
+              <ChevronLeft className="h-3.5 w-3.5" />
+              GeeZee Rolodex
             </button>
           </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-400" />
-              <h1 className="text-xl font-bold text-white">My GeeZee Card</h1>
-              <span className={`text-xs font-bold ml-1 ${tierMeta.color}`}>{tierMeta.label}</span>
-            </div>
-            <p className="text-xs text-[#555] mt-0.5">{tierMeta.desc}</p>
-          </div>
+          <span className="flex items-center gap-1 text-[10px] text-[#383838]">
+            <Pencil className="h-2.5 w-2.5" /> editing your card
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
-          {/* ── Left: form ── */}
-          <div className="space-y-7">
+        {/* ── THE CARD — looks like the production profile ── */}
+        <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden mb-4">
+          <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+          <div className="p-6 space-y-5">
 
-            {/* ── Profile Photo + Slogan — side by side at top ── */}
+            {/* Identity row */}
             <div className="flex items-start gap-4">
 
-              {/* Photo — snug top-left */}
+              {/* Clickable profile photo */}
               <div className="relative group shrink-0">
                 <label className="cursor-pointer block" data-testid="btn-upload-profile-pic" title="Click to change photo">
                   {profilePic ? (
-                    <img
-                      src={profilePic}
-                      alt="Profile"
-                      className="w-24 h-24 rounded-2xl object-cover border border-[#2a2a2a] group-hover:border-purple-700/60 transition-all"
+                    <img src={profilePic} alt="Profile"
+                      className="w-20 h-20 rounded-2xl object-cover border border-[#222] group-hover:border-purple-700/50 transition-all"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-2xl bg-[#0d0d0d] border border-dashed border-[#2a2a2a] group-hover:border-purple-700/60 flex items-center justify-center transition-all">
-                      <User className="h-9 w-9 text-[#2a2a2a]" />
+                    <div className="w-20 h-20 rounded-2xl bg-[#1a1a1a] border border-dashed border-[#2a2a2a] group-hover:border-purple-700/50 flex flex-col items-center justify-center gap-1 transition-all">
+                      <Camera className="h-5 w-5 text-[#333]" />
+                      <span className="text-[9px] text-[#2a2a2a]">add photo</span>
                     </div>
                   )}
-                  {/* Upload badge inside photo — bottom center */}
-                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-1.5 pointer-events-none">
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
-                      profilePicUploading ? "bg-black/80 text-[#bbb]" : "bg-black/60 group-hover:bg-black/85 text-[#888] group-hover:text-white"
-                    }`}>
-                      {profilePicUploading
-                        ? <><Loader2 className="h-2.5 w-2.5 animate-spin" /> uploading</>
-                        : <><Camera className="h-2.5 w-2.5" /> {profilePic ? "change" : "add photo"}</>
-                      }
+                  {profilePic && (
+                    <div className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="h-5 w-5 text-white" />
                     </div>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    disabled={profilePicUploading}
+                  )}
+                  {profilePicUploading && (
+                    <div className="absolute inset-0 rounded-2xl bg-black/70 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" className="sr-only" disabled={profilePicUploading}
                     onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      e.target.value = "";
+                      const file = e.target.files?.[0]; if (!file) return; e.target.value = "";
                       setProfilePicUploading(true);
                       try {
-                        const fd = new FormData();
-                        fd.append("file", file);
+                        const fd = new FormData(); fd.append("file", file);
                         const res = await fetch("/api/upload/image", { method: "POST", credentials: "include", body: fd });
                         if (!res.ok) throw new Error();
-                        const { url } = await res.json();
-                        setProfilePic(url);
-                        markDirty();
-                      } catch {
-                        toast({ title: "Upload failed", description: "Could not upload photo.", variant: "destructive" });
-                      } finally {
-                        setProfilePicUploading(false);
-                      }
+                        const { url } = await res.json(); setProfilePic(url); markDirty();
+                      } catch { toast({ title: "Upload failed", description: "Could not upload photo.", variant: "destructive" }); }
+                      finally { setProfilePicUploading(false); }
                     }}
                   />
                 </label>
                 {profilePic && (
-                  <button
-                    type="button"
-                    onClick={() => { setProfilePic(""); markDirty(); }}
-                    className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 rounded-full p-0.5 shadow-md transition-colors z-10"
-                    title="Remove photo"
-                    data-testid="btn-remove-profile-pic"
-                  >
+                  <button type="button" onClick={() => { setProfilePic(""); markDirty(); }}
+                    className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 rounded-full p-0.5 shadow z-10 transition-colors opacity-0 group-hover:opacity-100"
+                    data-testid="btn-remove-profile-pic">
                     <Trash2 className="h-3 w-3 text-white" />
                   </button>
                 )}
               </div>
 
-              {/* Slogan — right of photo, fills height */}
-              <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: "96px" }}>
-                {slogan && !sloganEditing ? (
-                  /* Display mode — big colorful text, click pencil to edit */
-                  <div className="relative group/slogan">
-                    <p
-                      className="text-2xl font-extrabold leading-tight cursor-pointer"
-                      style={{ background: "linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f59e0b 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
-                      onClick={() => setSloganEditing(true)}
-                      data-testid="display-slogan"
-                    >
-                      {slogan}
-                    </p>
-                    <button
-                      onClick={() => setSloganEditing(true)}
-                      className="absolute -top-1 -right-1 opacity-0 group-hover/slogan:opacity-100 transition-opacity bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-[#333] rounded-md p-1"
-                      title="Edit slogan"
-                      data-testid="btn-edit-slogan"
-                    >
-                      <Pencil className="h-3 w-3 text-[#888]" />
-                    </button>
-                  </div>
-                ) : (
-                  /* Edit mode — textarea */
-                  <div>
-                    <Textarea
-                      value={slogan}
-                      onChange={(e) => { setSlogan(e.target.value); markDirty(); }}
-                      placeholder="Your one-line pitch to the Gigzito world…"
-                      maxLength={120}
-                      rows={3}
-                      autoFocus={sloganEditing}
-                      onBlur={() => { if (slogan.trim()) setSloganEditing(false); }}
-                      className="bg-[#0d0d0d] border-[#1e1e1e] text-white placeholder-[#333] text-sm focus:border-purple-700/60 resize-none"
-                      data-testid="input-slogan"
-                    />
-                    <p className="text-[11px] text-[#444] mt-1 text-right">{slogan.length}/120</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── ZeeMotion ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-3.5 w-3.5 text-purple-400" />
-                <Label className="text-xs text-[#888]">ZeeMotion <span className="text-[#555]">— post a status update to your followers</span></Label>
-              </div>
-
-              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
-                {/* Text area */}
-                <textarea
-                  ref={zmTextRef}
-                  value={zmText}
-                  onChange={(e) => setZmText(e.target.value)}
-                  placeholder="What's your ZeeMotion? Share a vibe, offer, or update…"
-                  maxLength={500}
-                  rows={3}
-                  className="w-full bg-transparent text-white text-sm px-3 pt-3 pb-1 placeholder-[#333] resize-none outline-none"
-                  data-testid="input-zeemotion-text"
-                />
-
-                {/* Media preview */}
-                {zmMedia && (
-                  <div className="px-3 pb-2 flex items-start gap-2">
-                    <img src={zmMedia.url} alt="media" className="rounded-lg max-h-28 border border-[#222] object-contain" />
-                    <button onClick={() => setZmMedia(null)} className="text-[#555] hover:text-red-400 mt-1"><XIcon className="h-3.5 w-3.5" /></button>
-                  </div>
-                )}
-
-                {/* Emoji panel */}
-                {zmPanel === "emoji" && (
-                  <div className="px-3 py-2 border-t border-[#1a1a1a] grid grid-cols-10 gap-1.5">
-                    {EMOJI_LIST.map((e) => (
-                      <button
-                        key={e}
-                        onClick={() => {
-                          setZmText((t) => t + e);
-                          zmTextRef.current?.focus();
-                        }}
-                        className="text-lg hover:scale-125 transition-transform"
-                        data-testid={`btn-emoji-${e}`}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* GIF panel */}
-                {zmPanel === "gif" && (
-                  <div className="px-3 py-2 border-t border-[#1a1a1a] space-y-2">
-                    <p className="text-[10px] text-[#555]">Paste a GIF URL from Giphy, Tenor, or anywhere:</p>
-                    <div className="flex gap-2">
-                      <input
-                        className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg text-xs text-white px-2.5 py-1.5 placeholder-[#444] outline-none focus:border-purple-700/60"
-                        placeholder="https://media.giphy.com/…"
-                        value={zmGifUrl}
-                        onChange={(e) => setZmGifUrl(e.target.value)}
-                        data-testid="input-gif-url"
-                      />
-                      <button
-                        onClick={() => { if (zmGifUrl.trim()) { setZmMedia({ url: zmGifUrl.trim(), type: "gif" }); setZmPanel(null); setZmGifUrl(""); } }}
-                        className="text-xs px-3 py-1.5 bg-purple-700 hover:bg-purple-600 rounded-lg text-white transition-colors"
-                        data-testid="btn-use-gif"
-                      >
-                        Use
-                      </button>
-                    </div>
-                    {zmGifUrl && <img src={zmGifUrl} alt="preview" className="rounded-lg max-h-24 border border-[#222]" />}
-                  </div>
-                )}
-
-                {/* Sticker panel */}
-                {zmPanel === "sticker" && (
-                  <div className="px-3 py-2 border-t border-[#1a1a1a]">
-                    <div className="grid grid-cols-4 gap-2">
-                      {PRESET_STICKERS.map((s) => (
-                        <button
-                          key={s.url}
-                          onClick={() => { setZmMedia({ url: s.url, type: "sticker" }); setZmPanel(null); }}
-                          className="rounded-lg overflow-hidden border border-[#222] hover:border-purple-500/50 transition-colors"
-                          data-testid={`btn-sticker-${s.label}`}
-                        >
-                          <img src={s.url} alt={s.label} className="w-full h-16 object-cover" />
-                          <p className="text-[9px] text-[#555] py-0.5">{s.label}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Toolbar */}
-                <div className="flex items-center justify-between px-3 py-2 border-t border-[#1a1a1a]">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setZmPanel(zmPanel === "emoji" ? null : "emoji")}
-                      className={`p-1.5 rounded-lg transition-colors ${zmPanel === "emoji" ? "bg-purple-700/30 text-purple-400" : "text-[#555] hover:text-[#888] hover:bg-[#1a1a1a]"}`}
-                      title="Emoji"
-                      data-testid="btn-zm-emoji"
-                    >
-                      <Smile className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setZmPanel(zmPanel === "gif" ? null : "gif")}
-                      className={`p-1.5 rounded-lg transition-colors ${zmPanel === "gif" ? "bg-purple-700/30 text-purple-400" : "text-[#555] hover:text-[#888] hover:bg-[#1a1a1a]"}`}
-                      title="GIF"
-                      data-testid="btn-zm-gif"
-                    >
-                      <Film className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setZmPanel(zmPanel === "sticker" ? null : "sticker")}
-                      className={`p-1.5 rounded-lg transition-colors ${zmPanel === "sticker" ? "bg-purple-700/30 text-purple-400" : "text-[#555] hover:text-[#888] hover:bg-[#1a1a1a]"}`}
-                      title="Stickers"
-                      data-testid="btn-zm-sticker"
-                    >
-                      <Sticker className="h-4 w-4" />
-                    </button>
-                    <label
-                      className="p-1.5 rounded-lg text-[#555] hover:text-[#888] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
-                      title="Upload photo"
-                      data-testid="btn-zm-upload"
-                    >
-                      {zmUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        disabled={zmUploading}
-                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleZmImageUpload(f); e.target.value = ""; }}
-                      />
-                    </label>
-                    <span className="text-[10px] text-[#444] ml-1">{zmText.length}/500</span>
-                  </div>
-                  <button
-                    onClick={() => postMotionMutation.mutate()}
-                    disabled={postMotionMutation.isPending || (!zmText.trim() && !zmMedia)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
-                    data-testid="btn-post-zeemotion"
-                  >
-                    {postMotionMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    Post
-                  </button>
-                </div>
-              </div>
-
-              {/* Recent ZeeMotions */}
-              {myMotions.length > 0 && (
-                <div className="mt-2 space-y-1.5">
-                  <p className="text-[10px] text-[#444] uppercase tracking-wider">Recent ZeeMotions</p>
-                  {myMotions.slice(0, 5).map((m) => (
-                    <ZeeMotionItem
-                      key={m.id}
-                      m={m}
-                      onDelete={(id) => deleteMotionMutation.mutate(id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Gallery */}
-            <div>
-              <Label className="text-xs text-[#888] mb-2 block">Photo Gallery</Label>
-              <GalleryUploader gallery={gallery} onChange={(g) => { setGallery(g); markDirty(); }} />
-            </div>
-
-            {/* Metadata row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Age bracket */}
-              <div>
-                <Label className="text-xs text-[#888] mb-1.5 block">Age Bracket</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {AGE_OPTIONS.map((age) => (
-                    <button
-                      key={age}
-                      onClick={() => { setAgeBracket(ageBracket === age ? "" : age); markDirty(); }}
-                      className={`text-xs px-3 py-1 rounded-full border transition-all ${
-                        ageBracket === age
-                          ? "bg-purple-600 border-purple-500 text-white"
-                          : "bg-transparent border-[#2a2a2a] text-[#666] hover:border-[#444]"
-                      }`}
-                      data-testid={`btn-age-${age}`}
-                    >
-                      {age}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gender */}
-              <div>
-                <Label className="text-xs text-[#888] mb-1.5 block">Gender</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {GENDER_OPTIONS.map((g) => (
-                    <button
-                      key={g}
-                      onClick={() => { setGender(gender === g ? "" : g); markDirty(); }}
-                      className={`text-xs px-3 py-1 rounded-full border transition-all ${
-                        gender === g
-                          ? "bg-blue-600 border-blue-500 text-white"
-                          : "bg-transparent border-[#2a2a2a] text-[#666] hover:border-[#444]"
-                      }`}
-                      data-testid={`btn-gender-${g}`}
-                    >
-                      {g}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Intent */}
-              <div>
-                <Label className="text-xs text-[#888] mb-1.5 block">Intent</Label>
-                <div className="flex gap-2 flex-wrap">
+              {/* Info column */}
+              <div className="flex-1 min-w-0">
+                {/* Tier badge + intent pills */}
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-transparent ${tierMeta.color}`}>
+                    {tierMeta.label}
+                  </span>
                   {INTENT_OPTIONS.map(({ value, label }) => (
-                    <button
-                      key={value}
+                    <button key={value}
                       onClick={() => { setIntent(intent === value ? "" : value); markDirty(); }}
-                      className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                      className={`text-[10px] px-2 py-0.5 rounded border transition-all ${
                         intent === value
-                          ? "bg-pink-600 border-pink-500 text-white"
-                          : "bg-transparent border-[#2a2a2a] text-[#666] hover:border-[#444]"
+                          ? "bg-pink-600/20 border-pink-600/50 text-pink-300"
+                          : "bg-transparent border-[#1e1e1e] text-[#383838] hover:border-[#2a2a2a] hover:text-[#666]"
                       }`}
-                      data-testid={`btn-intent-${value}`}
-                    >
+                      data-testid={`btn-intent-${value}`}>
                       {label}
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
 
-            {/* Public toggle */}
-            <div className="flex items-center justify-between rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] p-4">
-              <div>
-                <p className="text-sm font-semibold text-white">Show in Rolodex</p>
-                <p className="text-xs text-[#555] mt-0.5">
-                  {isPublic ? "Your card is visible to everyone in /geezees" : "Your card is private — only you can see it"}
-                </p>
-              </div>
-              <Switch
-                checked={isPublic}
-                onCheckedChange={(v) => { setIsPublic(v); markDirty(); }}
-                data-testid="switch-is-public"
-              />
-            </div>
-
-            {/* Location Services toggle */}
-            <div className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
-              locationServicesEnabled
-                ? "bg-[#100a00] border-yellow-500/30"
-                : "bg-[#0d0d0d] border-[#1e1e1e]"
-            }`}>
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  locationServicesEnabled ? "bg-yellow-500/15 border border-yellow-500/25" : "bg-[#1a1a1a] border border-[#2a2a2a]"
-                }`}>
-                  <MapPin className={`h-4 w-4 ${locationServicesEnabled ? "text-yellow-400" : "text-[#555]"}`} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">Preemptive Marketing</p>
-                  <p className="text-xs text-[#555] mt-0.5">
-                    {locationServicesEnabled
-                      ? "Location services on — you'll receive geo-targeted ads from Gigzito partner shops near you"
-                      : "Turn on to receive location-enabled offers when you're near a Gigzito partner shop"}
-                  </p>
-                  {locationServicesEnabled && (
-                    <p className="text-[10px] text-yellow-500/70 mt-1.5 font-medium">
-                      📍 Active — partner shops can reach you with proximity offers
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Switch
-                checked={locationServicesEnabled}
-                onCheckedChange={(v) => { setLocationServices(v); markDirty(); }}
-                data-testid="switch-location-services"
-              />
-            </div>
-
-            {/* Allow Incoming Messaging toggle */}
-            <div className={`flex items-center justify-between rounded-xl border p-4 transition-all ${
-              allowMessaging
-                ? "bg-[#060d0d] border-teal-500/30"
-                : "bg-[#0d0d0d] border-[#1e1e1e]"
-            }`}>
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  allowMessaging ? "bg-teal-500/15 border border-teal-500/25" : "bg-[#1a1a1a] border border-[#2a2a2a]"
-                }`}>
-                  <MessageSquare className={`h-4 w-4 ${allowMessaging ? "text-teal-400" : "text-[#555]"}`} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">Allow Incoming Messaging</p>
-                  <p className="text-xs text-[#555] mt-0.5">
-                    {allowMessaging
-                      ? "Others can send you messages and emoji reactions on your GeeZee Card"
-                      : "Messaging is off — no one can contact you via your card"}
-                  </p>
-                  {allowMessaging && (
-                    <p className="text-[10px] text-teal-500/70 mt-1.5 font-medium">
-                      💬 Open — GZ-Bot filters all incoming messages for safety
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Switch
-                checked={allowMessaging}
-                onCheckedChange={(v) => { setAllowMessaging(v); markDirty(); }}
-                data-testid="switch-allow-messaging"
-              />
-            </div>
-
-            {/* Save + Broadcast buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
-                className="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-semibold h-11"
-                data-testid="btn-save-card"
-              >
-                {saveMutation.isPending ? (
-                  <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</span>
-                ) : (
-                  <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save Card</span>
+                {/* Username */}
+                {authData?.profile?.username && (
+                  <p className="text-xs text-[#555] mb-1">@{authData.profile.username}</p>
                 )}
-              </Button>
 
-              {!isPublic && (
-                <Button
-                  onClick={() => broadcastMutation.mutate()}
-                  disabled={broadcastMutation.isPending}
-                  className="flex-1 bg-gradient-to-r from-pink-700 to-purple-700 hover:from-pink-600 hover:to-purple-600 text-white font-semibold h-11"
-                  data-testid="btn-broadcast-card"
-                >
-                  {broadcastMutation.isPending ? (
-                    <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Broadcasting…</span>
-                  ) : (
-                    <span className="flex items-center gap-2"><Radio className="h-4 w-4" /> Broadcast</span>
-                  )}
-                </Button>
+                {/* Slogan — gradient display or inline textarea */}
+                {slogan && !sloganEditing ? (
+                  <div className="relative group/slogan">
+                    <p className="text-lg font-extrabold leading-tight cursor-pointer pr-6"
+                      style={{ background: "linear-gradient(135deg,#a855f7 0%,#ec4899 50%,#f59e0b 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+                      onClick={() => setSloganEditing(true)}
+                      data-testid="display-slogan">
+                      {slogan}
+                    </p>
+                    <button onClick={() => setSloganEditing(true)}
+                      className="absolute top-0 right-0 opacity-0 group-hover/slogan:opacity-100 transition-opacity bg-[#181818] hover:bg-[#222] border border-[#2a2a2a] rounded p-1"
+                      data-testid="btn-edit-slogan">
+                      <Pencil className="h-2.5 w-2.5 text-[#666]" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <Textarea value={slogan} onChange={(e) => { setSlogan(e.target.value); markDirty(); }}
+                      placeholder="Your one-line pitch to the Gigzito world…"
+                      maxLength={120} rows={2} autoFocus={sloganEditing}
+                      onBlur={() => { if (slogan.trim()) setSloganEditing(false); }}
+                      className="bg-transparent border-[#252525] text-white placeholder-[#282828] text-sm focus:border-purple-700/50 resize-none shadow-none"
+                      data-testid="input-slogan" />
+                    <p className="text-[10px] text-[#333] mt-0.5 text-right">{slogan.length}/120</p>
+                  </div>
+                )}
+
+                {/* Age + gender tag pills */}
+                <div className="flex gap-1.5 flex-wrap mt-2">
+                  {AGE_OPTIONS.map((age) => (
+                    <button key={age}
+                      onClick={() => { setAgeBracket(ageBracket === age ? "" : age); markDirty(); }}
+                      className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+                        ageBracket === age
+                          ? "bg-purple-600/20 border-purple-600/50 text-purple-300"
+                          : "bg-transparent border-[#1a1a1a] text-[#2e2e2e] hover:border-[#282828] hover:text-[#555]"
+                      }`}
+                      data-testid={`btn-age-${age}`}>{age}</button>
+                  ))}
+                  {GENDER_OPTIONS.map((g) => (
+                    <button key={g}
+                      onClick={() => { setGender(gender === g ? "" : g); markDirty(); }}
+                      className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+                        gender === g
+                          ? "bg-blue-600/20 border-blue-600/50 text-blue-300"
+                          : "bg-transparent border-[#1a1a1a] text-[#2e2e2e] hover:border-[#282828] hover:text-[#555]"
+                      }`}
+                      data-testid={`btn-gender-${g}`}>{g}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery strip — same layout as production */}
+            <GalleryUploader gallery={gallery} onChange={(g) => { setGallery(g); markDirty(); }} />
+
+            {/* ZeeMotion composer — embedded in card like a feed input */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="h-3.5 w-3.5 text-purple-400" />
+                <p className="text-xs font-semibold text-[#777]">ZeeMotion</p>
+                <span className="text-[9px] text-[#333]">posts to your card feed</span>
+              </div>
+              <div className="rounded-xl bg-[#111] border border-[#1a1a1a] focus-within:border-purple-700/30 transition-all">
+                <Textarea ref={zmTextRef} value={zmText}
+                  onChange={(e) => setZmText(e.target.value.slice(0, 500))}
+                  placeholder="What's moving with you…"
+                  rows={2}
+                  className="bg-transparent border-none text-sm text-white placeholder-[#272727] resize-none focus:ring-0 shadow-none px-3 pt-3 pb-1"
+                  data-testid="input-zeemotion-text" />
+                {zmMedia && (
+                  <div className="px-3 pb-2 relative inline-block">
+                    <img src={zmMedia.url} alt="zm media" className="h-20 rounded-lg object-contain border border-[#222]" />
+                    <button onClick={() => setZmMedia(null)} className="absolute top-0 right-3 bg-black/70 rounded-full p-0.5"><XIcon className="h-3 w-3 text-white" /></button>
+                  </div>
+                )}
+                <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
+                  <div className="flex items-center gap-0.5">
+                    <div className="relative">
+                      <button onClick={() => setZmPanel(zmPanel === "emoji" ? null : "emoji")}
+                        className={`p-1.5 rounded-lg transition-colors ${zmPanel === "emoji" ? "bg-purple-900/30 text-purple-300" : "text-[#383838] hover:text-[#666]"}`}
+                        data-testid="btn-zeemotion-emoji"><Smile className="h-3.5 w-3.5" /></button>
+                      {zmPanel === "emoji" && (
+                        <div className="absolute bottom-9 left-0 z-50 bg-[#111] border border-[#2a2a2a] rounded-xl p-2 w-52 grid grid-cols-6 gap-1 shadow-2xl">
+                          {EMOJI_LIST.map((em) => (
+                            <button key={em} onClick={() => { setZmText((t) => (t + em).slice(0, 500)); zmTextRef.current?.focus(); }}
+                              className="text-lg hover:scale-125 transition-transform">{em}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <button onClick={() => setZmPanel(zmPanel === "gif" ? null : "gif")}
+                        className={`p-1.5 rounded-lg transition-colors text-[10px] font-bold tracking-widest ${zmPanel === "gif" ? "bg-pink-900/30 text-pink-300" : "text-[#383838] hover:text-[#666]"}`}
+                        data-testid="btn-zeemotion-gif">GIF</button>
+                      {zmPanel === "gif" && (
+                        <div className="absolute bottom-9 left-0 z-50 bg-[#111] border border-[#2a2a2a] rounded-xl p-3 w-64 shadow-2xl">
+                          <input value={zmGifUrl} onChange={(e) => setZmGifUrl(e.target.value)}
+                            placeholder="Paste GIF URL…"
+                            className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-white text-xs rounded-lg px-2 py-1.5 mb-2 outline-none focus:border-pink-700/60"
+                            data-testid="input-gif-url" />
+                          <button onClick={() => { if (zmGifUrl.trim()) { setZmMedia({ url: zmGifUrl.trim(), type: "gif" }); setZmGifUrl(""); setZmPanel(null); } }}
+                            className="text-xs bg-pink-700 hover:bg-pink-600 text-white px-3 py-1 rounded-lg w-full">Add GIF</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <button onClick={() => setZmPanel(zmPanel === "sticker" ? null : "sticker")}
+                        className={`p-1.5 rounded-lg transition-colors ${zmPanel === "sticker" ? "bg-yellow-900/30 text-yellow-300" : "text-[#383838] hover:text-[#666]"}`}
+                        data-testid="btn-zeemotion-sticker"><Sticker className="h-3.5 w-3.5" /></button>
+                      {zmPanel === "sticker" && (
+                        <div className="absolute bottom-9 left-0 z-50 bg-[#111] border border-[#2a2a2a] rounded-xl p-2 grid grid-cols-4 gap-1.5 shadow-2xl w-48">
+                          {PRESET_STICKERS.map((s) => (
+                            <button key={s.url} onClick={() => { setZmMedia({ url: s.url, type: "sticker" }); setZmPanel(null); }}
+                              className="rounded-lg overflow-hidden border border-[#2a2a2a] hover:border-yellow-500/60 transition-all">
+                              <img src={s.url} alt={s.label} className="w-full h-10 object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <label className={`p-1.5 rounded-lg transition-colors cursor-pointer ${zmUploading ? "text-[#444]" : "text-[#383838] hover:text-[#666]"}`}
+                      data-testid="btn-zeemotion-upload">
+                      {zmUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Film className="h-3.5 w-3.5" />}
+                      <input type="file" accept="image/*,video/*" className="sr-only" disabled={zmUploading} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleZmImageUpload(f); e.target.value = ""; }} />
+                    </label>
+                    <span className="text-[10px] text-[#2a2a2a] ml-1">{zmText.length}/500</span>
+                  </div>
+                  <button onClick={() => postMotionMutation.mutate()}
+                    disabled={postMotionMutation.isPending || (!zmText.trim() && !zmMedia)}
+                    className="flex items-center gap-1 text-xs font-bold bg-purple-700 hover:bg-purple-600 disabled:bg-[#151515] disabled:text-[#2a2a2a] text-white px-3 py-1 rounded-lg transition-all"
+                    data-testid="btn-post-zeemotion">
+                    {postMotionMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                    Post
+                  </button>
+                </div>
+              </div>
+              {myMotions.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {myMotions.slice(0, 5).map((m) => (
+                    <ZeeMotionItem key={m.id} m={m} onDelete={(id) => deleteMotionMutation.mutate(id)} />
+                  ))}
+                </div>
               )}
             </div>
 
-            {isPublic && (
-              <div className="flex items-center gap-2 rounded-lg bg-green-950/30 border border-green-800/30 px-3 py-2">
-                <Radio className="h-3.5 w-3.5 text-green-400 animate-pulse shrink-0" />
-                <p className="text-xs text-green-400 font-semibold">Live in the Rolodex</p>
-                <Link href="/geezees" className="ml-auto">
-                  <span className="text-[10px] text-[#555] hover:text-white underline transition-colors">View →</span>
-                </Link>
+            {/* Rolodex visibility row */}
+            <div className="flex items-center justify-between pt-3 border-t border-[#141414]">
+              <div className="flex items-center gap-2">
+                {isPublic
+                  ? <><Radio className="h-3 w-3 text-green-400 animate-pulse" /><span className="text-xs text-green-400 font-semibold">Live in the Rolodex</span><Link href="/geezees"><span className="text-[10px] text-[#444] hover:text-white ml-2 underline">View →</span></Link></>
+                  : <><Lock className="h-3 w-3 text-[#444]" /><span className="text-xs text-[#444]">Private — not in Rolodex</span></>
+                }
               </div>
-            )}
-          </div>
-
-          {/* ── Right: preview + QR ── */}
-          <div className="space-y-5 lg:sticky lg:top-24 h-fit">
-            <p className="text-xs text-[#555] font-semibold uppercase tracking-wider">Live Preview</p>
-            <CardPreview
-              slogan={slogan}
-              profilePic={profilePic}
-              gallery={gallery}
-              ageBracket={ageBracket}
-              gender={gender}
-              intent={intent}
-              isPublic={isPublic}
-              tier={tier}
-            />
-
-            {existingCard?.qrUuid && (
-              <div className="rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] p-4 flex flex-col items-center">
-                <p className="text-xs text-[#555] mb-3 font-semibold uppercase tracking-wider">Your QR Master Card</p>
-                <QRCodeBox uuid={existingCard.qrUuid} />
-                <p className="text-[10px] text-[#444] mt-3 text-center">
-                  Share this QR — anyone who scans it lands on your GeeZee Card.
-                </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#383838]">Show in Rolodex</span>
+                <Switch checked={isPublic} onCheckedChange={(v) => { setIsPublic(v); markDirty(); }} data-testid="switch-is-public" />
               </div>
-            )}
-
-            {/* GZ Inbox link */}
-            <Link href="/gz-inbox">
-              <button
-                className="w-full rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#333] transition-all p-3 flex items-center justify-between"
-                data-testid="btn-gz-inbox"
-              >
-                <div className="flex items-center gap-2 text-[#777]">
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="text-sm">GZ Inbox</span>
-                </div>
-                <span className="text-[#444] text-xs">→</span>
-              </button>
-            </Link>
+            </div>
           </div>
         </div>
+
+        {/* Save + Broadcast */}
+        <div className="flex gap-3 mb-5">
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
+            className="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-semibold h-11"
+            data-testid="btn-save-card">
+            {saveMutation.isPending
+              ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</span>
+              : <span className="flex items-center gap-2"><Save className="h-4 w-4" /> Save Card</span>}
+          </Button>
+          {!isPublic && (
+            <Button onClick={() => broadcastMutation.mutate()} disabled={broadcastMutation.isPending}
+              variant="outline"
+              className="border-[#2a2a2a] text-[#666] hover:text-white hover:border-[#444] bg-transparent h-11 px-4"
+              data-testid="btn-broadcast">
+              {broadcastMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Radio className="h-4 w-4 mr-1" /> Broadcast</>}
+            </Button>
+          )}
+        </div>
+
+        {/* Settings panel */}
+        <div className="rounded-2xl bg-[#0d0d0d] border border-[#1a1a1a] overflow-hidden mb-4">
+          <div className="px-4 py-3 border-b border-[#141414]">
+            <p className="text-[10px] font-semibold text-[#444] uppercase tracking-wider">Card Settings</p>
+          </div>
+          <div className="p-3 space-y-2">
+            <div className={`flex items-center justify-between rounded-xl border p-3 transition-all ${
+              locationServicesEnabled ? "bg-[#0e0900] border-yellow-500/20" : "bg-[#0a0a0a] border-[#181818]"
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  locationServicesEnabled ? "bg-yellow-500/15 border border-yellow-500/25" : "bg-[#141414] border border-[#1e1e1e]"
+                }`}>
+                  <MapPin className={`h-3.5 w-3.5 ${locationServicesEnabled ? "text-yellow-400" : "text-[#383838]"}`} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Preemptive Marketing</p>
+                  <p className="text-[10px] text-[#3a3a3a] mt-0.5">Geo-targeted offers from nearby Gigzito shops</p>
+                </div>
+              </div>
+              <Switch checked={locationServicesEnabled} onCheckedChange={(v) => { setLocationServices(v); markDirty(); }} data-testid="switch-location-services" />
+            </div>
+            <div className={`flex items-center justify-between rounded-xl border p-3 transition-all ${
+              allowMessaging ? "bg-[#040d0c] border-teal-500/20" : "bg-[#0a0a0a] border-[#181818]"
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                  allowMessaging ? "bg-teal-500/15 border border-teal-500/25" : "bg-[#141414] border border-[#1e1e1e]"
+                }`}>
+                  <MessageSquare className={`h-3.5 w-3.5 ${allowMessaging ? "text-teal-400" : "text-[#383838]"}`} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Allow Incoming Messaging</p>
+                  <p className="text-[10px] text-[#3a3a3a] mt-0.5">Let others message you via your GeeZee Card</p>
+                </div>
+              </div>
+              <Switch checked={allowMessaging} onCheckedChange={(v) => { setAllowMessaging(v); markDirty(); }} data-testid="switch-allow-messaging" />
+            </div>
+          </div>
+        </div>
+
+        {/* QR Card */}
+        {existingCard?.qrUuid && (
+          <div className="rounded-2xl bg-[#0d0d0d] border border-[#1a1a1a] p-4 flex flex-col items-center mb-4">
+            <p className="text-[10px] text-[#444] mb-3 font-semibold uppercase tracking-wider">Your QR Master Card</p>
+            <QRCodeBox uuid={existingCard.qrUuid} />
+            <p className="text-[10px] text-[#333] mt-3 text-center">Share this QR — anyone who scans it lands on your GeeZee Card.</p>
+          </div>
+        )}
+
+        {/* Inbox link */}
+        <Link href="/gz-inbox">
+          <button className="w-full rounded-2xl bg-[#0d0d0d] border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all p-3 flex items-center justify-between" data-testid="btn-gz-inbox">
+            <div className="flex items-center gap-2 text-[#666]">
+              <MessageSquare className="h-4 w-4" />
+              <span className="text-sm">GZ Inbox</span>
+            </div>
+            <span className="text-[#333] text-xs">→</span>
+          </button>
+        </Link>
       </div>
     </div>
   );
