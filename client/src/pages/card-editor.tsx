@@ -12,7 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  User, QrCode, Heart, Globe, Lock, Image, ImageIcon, Trash2,
+  User, QrCode, Heart, Globe, Lock, Image, ImageIcon, Trash2, Camera, Plus,
   Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin, Upload, Loader2,
   Smile, Film, Sticker, Send, X as XIcon, Zap,
 } from "lucide-react";
@@ -58,6 +58,8 @@ function QRCodeBox({ uuid }: { uuid: string }) {
   );
 }
 
+const GALLERY_SLOTS = 9;
+
 function GalleryUploader({
   gallery,
   onChange,
@@ -66,8 +68,10 @@ function GalleryUploader({
   onChange: (g: string[]) => void;
 }) {
   const { toast } = useToast();
-  const [slots, setSlots] = useState<string[]>(Array(6).fill("").map((_, i) => gallery[i] ?? ""));
-  const [uploading, setUploading] = useState<boolean[]>(Array(6).fill(false));
+  const [slots, setSlots] = useState<string[]>(
+    Array(GALLERY_SLOTS).fill("").map((_, i) => gallery[i] ?? "")
+  );
+  const [uploading, setUploading] = useState<boolean[]>(Array(GALLERY_SLOTS).fill(false));
   const [expanded, setExpanded] = useState(false);
 
   function setSlot(idx: number, val: string) {
@@ -84,11 +88,7 @@ function GalleryUploader({
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/upload/image", {
-        method: "POST",
-        credentials: "include",
-        body: fd,
-      });
+      const res = await fetch("/api/upload/image", { method: "POST", credentials: "include", body: fd });
       if (!res.ok) throw new Error("Upload failed");
       const { url } = await res.json();
       setSlot(idx, url);
@@ -102,124 +102,96 @@ function GalleryUploader({
   }
 
   const filled = slots.filter(Boolean);
-  const nextEmptyIdx = slots.findIndex((s) => !s);
-  const isUploadingAny = uploading.some(Boolean);
 
   return (
-    <div className="space-y-3">
-      {/* ── Compact strip ── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Peek thumbnails — first 3 slots */}
-        {slots.slice(0, 3).map((url, i) => (
-          <div
-            key={i}
-            className="w-11 h-11 rounded-lg overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d] shrink-0 relative"
-            data-testid={`thumb-gallery-${i}`}
-          >
-            {uploading[i] ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <Loader2 className="h-4 w-4 text-[#555] animate-spin" />
-              </div>
-            ) : url ? (
-              <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+    <div className="space-y-2">
+      {/* ── 9-slot thumbnail row — each slot is its own upload target ── */}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${GALLERY_SLOTS}, 1fr)`, gap: "5px" }}>
+        {slots.map((url, i) => (
+          <div key={i} className="relative group aspect-square" data-testid={`thumb-gallery-${i}`}>
+            {url ? (
+              <>
+                <img
+                  src={url}
+                  alt={`Photo ${i + 1}`}
+                  className="w-full h-full rounded-lg object-cover border border-[#1e1e1e]"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                {/* Hover overlay — replace or delete */}
+                <div className="absolute inset-0 rounded-lg bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                  <label className="cursor-pointer" title="Replace" data-testid={`btn-replace-gallery-${i}`}>
+                    <Camera className="h-3 w-3 text-white" />
+                    <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }} />
+                  </label>
+                  <button onClick={() => setSlot(i, "")} title="Remove" data-testid={`btn-remove-gallery-${i}`}>
+                    <Trash2 className="h-3 w-3 text-red-400" />
+                  </button>
+                </div>
+              </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-[9px] text-[#3a3a3a] font-bold">{i + 1}</span>
-              </div>
+              <label
+                className={`flex flex-col items-center justify-center w-full h-full rounded-lg border border-dashed bg-[#0d0d0d] cursor-pointer transition-all ${
+                  uploading[i]
+                    ? "border-[#444]"
+                    : "border-[#252525] hover:border-purple-800/60 hover:bg-[#0f0f18]"
+                }`}
+                data-testid={`btn-upload-gallery-${i}`}
+              >
+                {uploading[i]
+                  ? <Loader2 className="h-3 w-3 text-[#555] animate-spin" />
+                  : <Plus className="h-3 w-3 text-[#3a3a3a]" />
+                }
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploading[i]}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }}
+                />
+              </label>
             )}
           </div>
         ))}
-
-        {/* +N more badge */}
-        {filled.length > 3 && (
-          <div className="w-11 h-11 rounded-lg bg-[#111] border border-[#2a2a2a] flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold text-[#666]">+{filled.length - 3}</span>
-          </div>
-        )}
-
-        {/* Upload next empty slot */}
-        {nextEmptyIdx !== -1 && (
-          <label
-            className="flex items-center gap-1.5 h-11 px-3 rounded-lg border border-dashed border-[#2a2a2a] hover:border-purple-700/60 bg-[#0d0d0d] hover:bg-[#111] text-[#555] hover:text-purple-400 cursor-pointer transition-all shrink-0"
-            title="Upload a photo"
-            data-testid="btn-upload-gallery-next"
-          >
-            {isUploadingAny
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Upload className="h-3.5 w-3.5" />}
-            <span className="text-[11px] font-medium">Add photo</span>
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              disabled={isUploadingAny}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(nextEmptyIdx, f); e.target.value = ""; }}
-            />
-          </label>
-        )}
-
-        {/* See Photos toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className={`flex items-center gap-1.5 h-11 px-3 rounded-lg border text-[11px] font-semibold transition-all shrink-0 ${
-            expanded
-              ? "border-purple-700/60 text-purple-300 bg-purple-900/10"
-              : "border-[#2a2a2a] text-[#666] hover:border-[#444] hover:text-[#999] bg-[#0d0d0d]"
-          }`}
-          data-testid="btn-toggle-gallery"
-        >
-          <ImageIcon className="h-3.5 w-3.5" />
-          {expanded ? "Hide photos" : `See photos${filled.length > 0 ? ` (${filled.length})` : ""}`}
-        </button>
       </div>
 
-      {/* ── Full manage grid (collapsible) ── */}
+      {/* See Photos toggle */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border transition-all ${
+          expanded
+            ? "border-purple-700/60 text-purple-300 bg-purple-900/10"
+            : "border-[#222] text-[#555] hover:border-[#333] hover:text-[#888] bg-[#0a0a0a]"
+        }`}
+        data-testid="btn-toggle-gallery"
+      >
+        <ImageIcon className="h-3 w-3" />
+        {expanded ? "Hide photos" : `See all photos${filled.length > 0 ? ` (${filled.length})` : ""}`}
+      </button>
+
+      {/* ── Full grid view (expanded) ── */}
       {expanded && (
-        <div className="grid grid-cols-3 gap-3 pt-1">
-          {slots.map((url, i) => (
-            <div key={i} className="relative group">
-              {url ? (
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-[#2a2a2a]">
-                  <img
-                    src={url}
-                    alt={`Photo ${i + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                    <label
-                      className="flex flex-col items-center justify-center cursor-pointer bg-white/10 hover:bg-white/20 rounded-lg p-2 transition-colors"
-                      data-testid={`btn-replace-gallery-${i}`}
-                    >
-                      <Upload className="h-4 w-4 text-white" />
-                      <span className="text-[9px] text-white mt-0.5">Replace</span>
-                      <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }} />
-                    </label>
-                    <button
-                      onClick={() => setSlot(i, "")}
-                      className="flex flex-col items-center justify-center bg-red-500/20 hover:bg-red-500/40 rounded-lg p-2 transition-colors"
-                      data-testid={`btn-remove-gallery-${i}`}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-400" />
-                      <span className="text-[9px] text-red-400 mt-0.5">Delete</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <label
-                  className={`flex flex-col items-center justify-center w-full aspect-square rounded-xl border border-dashed bg-[#0d0d0d] transition-colors cursor-pointer ${
-                    uploading[i] ? "border-[#444]" : "border-[#2a2a2a] hover:border-[#555] hover:bg-[#111]"
-                  }`}
-                  data-testid={`btn-upload-gallery-${i}`}
-                >
-                  {uploading[i] ? (
-                    <><Loader2 className="h-5 w-5 text-[#555] animate-spin mb-1" /><span className="text-[10px] text-[#555]">Uploading…</span></>
-                  ) : (
-                    <><Upload className="h-5 w-5 text-[#444] mb-1" /><span className="text-[10px] text-[#555] font-medium">Photo {i + 1}</span><span className="text-[9px] text-[#333] mt-0.5">Click to upload</span></>
-                  )}
-                  <input type="file" accept="image/*" className="sr-only" disabled={uploading[i]} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }} />
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          {slots.filter(Boolean).map((url, i) => (
+            <div key={i} className="relative group aspect-square">
+              <img
+                src={url}
+                alt={`Photo ${i + 1}`}
+                className="w-full h-full rounded-xl object-cover border border-[#1e1e1e]"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <div className="absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <label className="cursor-pointer bg-white/10 hover:bg-white/20 rounded-lg p-1.5" data-testid={`btn-replace-gallery-full-${i}`}>
+                  <Upload className="h-3.5 w-3.5 text-white" />
+                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const realIdx = slots.indexOf(url); const f = e.target.files?.[0]; if (f && realIdx !== -1) handleFileSelect(realIdx, f); e.target.value = ""; }} />
                 </label>
-              )}
+                <button
+                  onClick={() => { const realIdx = slots.indexOf(url); if (realIdx !== -1) setSlot(realIdx, ""); }}
+                  className="bg-red-500/20 hover:bg-red-500/40 rounded-lg p-1.5"
+                  data-testid={`btn-remove-gallery-full-${i}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -507,6 +479,81 @@ export default function CardEditorPage() {
           {/* ── Left: form ── */}
           <div className="space-y-7">
 
+            {/* ── Profile Photo — top of card ── */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative group">
+                <label className="cursor-pointer block" data-testid="btn-upload-profile-pic" title="Click to change photo">
+                  {profilePic ? (
+                    <img
+                      src={profilePic}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-2xl object-cover border border-[#2a2a2a] group-hover:border-purple-700/60 transition-all"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl bg-[#0d0d0d] border border-dashed border-[#2a2a2a] group-hover:border-purple-700/60 flex items-center justify-center transition-all">
+                      <User className="h-9 w-9 text-[#2a2a2a]" />
+                    </div>
+                  )}
+                  {/* Upload overlay — always visible at bottom of photo */}
+                  <div className="absolute bottom-0 inset-x-0 flex items-center justify-center pb-2 pointer-events-none">
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                      profilePicUploading ? "bg-black/70 text-[#aaa]" : "bg-black/60 group-hover:bg-black/80 text-[#999] group-hover:text-white"
+                    }`}>
+                      {profilePicUploading
+                        ? <><Loader2 className="h-2.5 w-2.5 animate-spin" /> uploading</>
+                        : <><Camera className="h-2.5 w-2.5" /> {profilePic ? "change" : "add photo"}</>
+                      }
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={profilePicUploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      e.target.value = "";
+                      setProfilePicUploading(true);
+                      try {
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        const res = await fetch("/api/upload/image", { method: "POST", credentials: "include", body: fd });
+                        if (!res.ok) throw new Error();
+                        const { url } = await res.json();
+                        setProfilePic(url);
+                        markDirty();
+                      } catch {
+                        toast({ title: "Upload failed", description: "Could not upload photo.", variant: "destructive" });
+                      } finally {
+                        setProfilePicUploading(false);
+                      }
+                    }}
+                  />
+                </label>
+                {profilePic && (
+                  <button
+                    type="button"
+                    onClick={() => { setProfilePic(""); markDirty(); }}
+                    className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 rounded-full p-0.5 shadow-md transition-colors z-10"
+                    title="Remove photo"
+                    data-testid="btn-remove-profile-pic"
+                  >
+                    <Trash2 className="h-3 w-3 text-white" />
+                  </button>
+                )}
+              </div>
+              {/* Optional URL paste — compact, below photo */}
+              <Input
+                value={profilePic}
+                onChange={(e) => { setProfilePic(e.target.value); markDirty(); }}
+                placeholder="…or paste image URL"
+                className="bg-[#0a0a0a] border-[#1a1a1a] text-white placeholder-[#2a2a2a] text-xs focus:border-purple-700/40 max-w-[220px] text-center h-7"
+                data-testid="input-profile-pic"
+              />
+            </div>
+
             {/* Slogan */}
             <div>
               <Label className="text-xs text-[#888] mb-1.5 block">Slogan <span className="text-[#555]">— max 120 chars</span></Label>
@@ -680,89 +727,6 @@ export default function CardEditorPage() {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Profile pic */}
-            <div>
-              <Label className="text-xs text-[#888] mb-1.5 block">Profile Photo</Label>
-              <div className="flex gap-2 items-start">
-                {/* Preview / placeholder */}
-                <div className="relative shrink-0 group">
-                  {profilePic ? (
-                    <div className="relative w-20 h-20">
-                      <img
-                        src={profilePic}
-                        alt="Profile preview"
-                        className="w-20 h-20 rounded-xl object-cover border border-[#2a2a2a]"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => { setProfilePic(""); markDirty(); }}
-                        className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 rounded-full p-0.5 shadow-md transition-colors"
-                        title="Remove photo"
-                        data-testid="btn-remove-profile-pic"
-                      >
-                        <Trash2 className="h-3 w-3 text-white" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-xl border border-dashed border-[#2a2a2a] bg-[#0d0d0d] flex items-center justify-center">
-                      <User className="h-7 w-7 text-[#333]" />
-                    </div>
-                  )}
-                </div>
-
-                {/* URL + upload controls */}
-                <div className="flex-1 space-y-2">
-                  <Input
-                    value={profilePic}
-                    onChange={(e) => { setProfilePic(e.target.value); markDirty(); }}
-                    placeholder="Paste image URL…"
-                    className="bg-[#0d0d0d] border-[#1e1e1e] text-white placeholder-[#333] text-sm focus:border-purple-700/60"
-                    data-testid="input-profile-pic"
-                  />
-                  <label
-                    className={`flex items-center justify-center gap-2 w-full py-2 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
-                      profilePicUploading
-                        ? "border-[#333] text-[#555] cursor-not-allowed"
-                        : "border-[#2a2a2a] text-[#666] hover:border-[#555] hover:text-[#999] hover:bg-[#111]"
-                    }`}
-                    data-testid="btn-upload-profile-pic"
-                  >
-                    {profilePicUploading ? (
-                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
-                    ) : (
-                      <><Upload className="h-3.5 w-3.5" /> Upload from device</>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      disabled={profilePicUploading}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        e.target.value = "";
-                        setProfilePicUploading(true);
-                        try {
-                          const fd = new FormData();
-                          fd.append("file", file);
-                          const res = await fetch("/api/upload/image", { method: "POST", credentials: "include", body: fd });
-                          if (!res.ok) throw new Error();
-                          const { url } = await res.json();
-                          setProfilePic(url);
-                          markDirty();
-                        } catch {
-                          toast({ title: "Upload failed", description: "Could not upload photo.", variant: "destructive" });
-                        } finally {
-                          setProfilePicUploading(false);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
             </div>
 
             {/* Gallery */}
