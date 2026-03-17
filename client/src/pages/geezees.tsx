@@ -154,32 +154,40 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
         </div>
       </Link>
 
-      {/* Social icons strip — always same height for card symmetry */}
+      {/* Social icons strip — always all 5 platforms, dim placeholder if missing, for card symmetry */}
       {(() => {
         const c = card as any;
-        const links = c.showSocialLinks ? [
-          c.instagramUrl && { href: c.instagramUrl, Icon: SiInstagram, color: "hover:text-pink-400",   label: "Instagram" },
-          c.tiktokUrl    && { href: c.tiktokUrl,    Icon: SiTiktok,    color: "hover:text-white",       label: "TikTok"    },
-          c.youtubeUrl   && { href: c.youtubeUrl,   Icon: SiYoutube,   color: "hover:text-red-500",     label: "YouTube"   },
-          c.facebookUrl  && { href: c.facebookUrl,  Icon: SiFacebook,  color: "hover:text-blue-400",    label: "Facebook"  },
-          c.twitterUrl   && { href: c.twitterUrl,   Icon: SiX,         color: "hover:text-white",       label: "X"         },
-          c.discordUrl   && { href: c.discordUrl,   Icon: SiDiscord,   color: "hover:text-indigo-400",  label: "Discord"   },
-        ].filter(Boolean) as { href: string; Icon: any; color: string; label: string }[] : [];
+        const showLinks = !!c.showSocialLinks;
+        const PLATFORMS = [
+          { key: "facebook",  url: c.facebookUrl,  Icon: SiFacebook,  activeColor: "text-blue-400",  label: "Facebook"  },
+          { key: "instagram", url: c.instagramUrl, Icon: SiInstagram, activeColor: "text-pink-400",  label: "Instagram" },
+          { key: "tiktok",    url: c.tiktokUrl,    Icon: SiTiktok,    activeColor: "text-white",      label: "TikTok"    },
+          { key: "youtube",   url: c.youtubeUrl,   Icon: SiYoutube,   activeColor: "text-red-500",    label: "YouTube"   },
+          { key: "x",         url: c.twitterUrl,   Icon: SiX,         activeColor: "text-zinc-300",   label: "X"         },
+        ];
         return (
-          <div className="flex items-center gap-2.5 px-3 pb-2 h-6">
-            {links.map(({ href, Icon, color, label }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={label}
-                onClick={(e) => e.stopPropagation()}
-                className={`text-purple-500/50 transition-colors ${color}`}
-              >
-                <Icon size={12} />
-              </a>
-            ))}
+          <div className="flex items-center gap-3 px-3 pb-2 h-6">
+            {PLATFORMS.map(({ key, url, Icon, activeColor, label }) => {
+              const isActive = showLinks && !!url;
+              return isActive ? (
+                <a
+                  key={key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={label}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`${activeColor} transition-colors hover:opacity-80`}
+                  data-testid={`link-social-${key}-${card.id}`}
+                >
+                  <Icon size={11} />
+                </a>
+              ) : (
+                <span key={key} title={label} className="text-[#2a2a2a]">
+                  <Icon size={11} />
+                </span>
+              );
+            })}
           </div>
         );
       })()}
