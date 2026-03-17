@@ -161,8 +161,8 @@ function PrivateMessagePanel({ card, myTier, isAuthed, myUserId }: {
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
 
-  const canSend = myTier === "GZMarketer" || myTier === "GZMarketerPro" || myTier === "GZBusiness";
   const isOwnCard = myUserId === card.userId;
+  const canSend = !!myUserId && !isOwnCard;
 
   const sendMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/gigness-cards/${card.id}/message`, { messageText: text.trim() }),
@@ -204,25 +204,8 @@ function PrivateMessagePanel({ card, myTier, isAuthed, myUserId }: {
             <div className="flex items-center gap-2 py-3 text-xs text-[#555]">
               <Mail className="h-4 w-4 text-[#333]" />
               <span>
-                <a href="/auth" className="text-purple-400 hover:text-purple-300">Sign in</a> to send a private message.
+                <a href="/auth" className="text-purple-400 hover:text-purple-300">Sign in</a> to send a private message — available to all members.
               </span>
-            </div>
-          ) : !canSend ? (
-            <div className="rounded-xl bg-[#0a0a0a] border border-[#1e1e1e] p-4 mt-3">
-              <div className="flex items-start gap-2">
-                <Lock className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-white">GZMarketer required</p>
-                  <p className="text-xs text-[#555] mt-1 leading-relaxed">
-                    Private messaging is available to <span className="text-blue-400 font-semibold">GZMarketer</span>, <span className="text-purple-400 font-semibold">GZMarketerPro</span>, and <span className="text-amber-400 font-semibold">GZBusiness</span> members. Upgrade to connect privately.
-                  </p>
-                  <a href="/membership">
-                    <Button size="sm" className="mt-3 h-7 px-4 text-xs bg-purple-700 hover:bg-purple-600 text-white">
-                      Upgrade now
-                    </Button>
-                  </a>
-                </div>
-              </div>
             </div>
           ) : sent ? (
             <div className="flex items-center gap-2 py-4 text-sm text-teal-400">

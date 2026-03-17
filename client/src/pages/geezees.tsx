@@ -70,145 +70,114 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
 
   return (
     <div
-      className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#333] transition-all overflow-hidden flex flex-col"
+      className="rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#333] transition-all overflow-hidden flex flex-col"
+      style={{ width: 300, minWidth: 300 }}
       data-testid={`card-geezee-${card.id}`}
     >
+      {/* Thin gradient stripe */}
       <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
 
-      <div className="p-5 flex flex-col gap-4 flex-1">
-        {/* Header — click to view full profile */}
-        <Link href={`/geezee/${card.userId}`}>
-          <div className="flex items-start gap-3 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
-            {card.profilePic ? (
-              <img
-                src={card.profilePic}
-                alt="Profile"
-                className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
-                <User className="h-6 w-6 text-[#444]" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cardTier.color} ${cardTier.border} bg-transparent`}>
-                  {cardTier.label}
+      {/* Card body — click anywhere in header area to view profile */}
+      <Link href={`/geezee/${card.userId}`}>
+        <div className="flex items-center gap-3 px-3 pt-3 pb-2 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
+          {card.profilePic ? (
+            <img
+              src={card.profilePic}
+              alt="Profile"
+              className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
+              <User className="h-5 w-5 text-[#444]" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cardTier.color} ${cardTier.border} bg-transparent leading-none`}>
+                {cardTier.label}
+              </span>
+              {card.intent && (
+                <span className="text-[9px] text-[#555] bg-[#111] border border-[#222] rounded px-1.5 py-0.5 capitalize leading-none">
+                  {card.intent}
                 </span>
-                {card.intent && (
-                  <span className="text-[10px] text-[#555] bg-[#111] border border-[#222] rounded px-1.5 py-0.5 capitalize">
-                    {card.intent}
-                  </span>
-                )}
-              </div>
-              {card.slogan && (
-                <p className="text-sm font-semibold text-white mt-1.5 leading-snug line-clamp-2 group-hover:text-purple-200 transition-colors">
-                  {card.slogan}
-                </p>
               )}
-              <div className="flex items-center gap-3 mt-2 text-[11px] text-[#555]">
-                {card.ageBracket && <span>{card.ageBracket}</span>}
-                {card.gender && <span>{card.gender}</span>}
-                <span className="text-purple-500/60 group-hover:text-purple-400 transition-colors">View profile →</span>
-              </div>
             </div>
-          </div>
-        </Link>
-
-        {/* Gallery strip */}
-        {card.gallery && card.gallery.length > 0 && (
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-            {card.gallery.slice(0, 6).map((url, i) => (
-              <img
-                key={i}
-                src={url}
-                alt={`Gallery ${i + 1}`}
-                className="w-16 h-16 rounded-lg object-cover shrink-0 border border-[#222]"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Footer row 1 — stats + View Card */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-[#1a1a1a]">
-          <div className="flex items-center gap-3 text-[#555]">
-            <div className="flex items-center gap-1">
-              <Heart className="h-3.5 w-3.5" />
-              <span className="text-xs">{card.engagementCount ?? 0}</span>
+            {card.slogan && (
+              <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-purple-200 transition-colors">
+                {card.slogan}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[#555]">
+              {card.ageBracket && <span>{card.ageBracket}</span>}
+              {card.gender && <span>{card.gender}</span>}
+              <span className="text-purple-500/60 group-hover:text-purple-400 transition-colors ml-auto">View →</span>
             </div>
-            <button
-              onClick={() => navigate(`/geezee/${card.userId}`)}
-              className="flex items-center gap-1 text-[#555] hover:text-purple-400 transition-colors"
-              data-testid={`btn-comments-${card.id}`}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span className="text-xs">Comments</span>
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={`/qr/${card.qrUuid}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#383838] hover:text-[#666] transition-colors"
-              title="QR Master Card"
-              data-testid={`btn-qr-${card.id}`}
-            >
-              <QrCode className="h-4 w-4" />
-            </a>
-            <Link href={`/geezee/${card.userId}`}>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-3 text-xs border-purple-800/50 text-purple-300 hover:bg-purple-900/20 hover:border-purple-700 transition-all"
-                data-testid={`btn-view-card-${card.id}`}
-              >
-                View Card
-              </Button>
-            </Link>
           </div>
         </div>
+      </Link>
 
-        {/* Footer row 2 — Follow + Engage (full width so nothing clips) */}
-        {isAuthed && (
-          <div className="flex gap-2 mt-2">
+      {/* Action bar */}
+      <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-[#141414]">
+        {/* Stats */}
+        <div className="flex items-center gap-2 text-[#555] text-[10px] mr-auto">
+          <span className="flex items-center gap-0.5"><Heart className="h-3 w-3" />{card.engagementCount ?? 0}</span>
+          <button
+            onClick={() => navigate(`/geezee/${card.userId}`)}
+            className="flex items-center gap-0.5 hover:text-purple-400 transition-colors"
+            data-testid={`btn-comments-${card.id}`}
+          >
+            <MessageSquare className="h-3 w-3" />
+          </button>
+          <a
+            href={`/qr/${card.qrUuid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#888] transition-colors"
+            title="QR Card"
+            data-testid={`btn-qr-${card.id}`}
+          >
+            <QrCode className="h-3 w-3" />
+          </a>
+        </div>
+
+        {/* Action buttons */}
+        {isAuthed ? (
+          <>
             <Button
               size="sm"
               variant="outline"
-              className={`flex-1 h-8 text-xs transition-all ${
+              className={`h-6 px-2 text-[10px] transition-all ${
                 followStatus?.following
                   ? "border-purple-700/60 text-purple-300 hover:bg-purple-900/20"
-                  : "border-[#2a2a2a] text-[#888] hover:bg-[#1a1a1a] hover:text-white"
+                  : "border-[#2a2a2a] text-[#777] hover:bg-[#1a1a1a] hover:text-white"
               }`}
               onClick={() => followMutation.mutate()}
               disabled={followMutation.isPending}
               data-testid={`btn-follow-${card.id}`}
             >
-              {followMutation.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : followStatus?.following ? (
-                <><UserMinus className="h-3 w-3 mr-1" />Following</>
-              ) : (
-                <><UserPlus className="h-3 w-3 mr-1" />Follow</>
-              )}
+              {followMutation.isPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                : followStatus?.following ? <><UserMinus className="h-2.5 w-2.5 mr-0.5" />Following</>
+                : <><UserPlus className="h-2.5 w-2.5 mr-0.5" />Follow</>}
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 h-8 text-xs border-[#2a2a2a] text-[#888] hover:bg-[#1a1a1a] hover:text-white transition-all"
+              className="h-6 px-2 text-[10px] border-[#2a2a2a] text-[#777] hover:bg-[#1a1a1a] hover:text-white transition-all"
               onClick={() => engageMutation.mutate()}
               disabled={engageMutation.isPending}
               data-testid={`btn-engage-${card.id}`}
             >
-              {engageMutation.isPending
-                ? <Loader2 className="h-3 w-3 animate-spin" />
-                : <><Heart className="h-3 w-3 mr-1" />Engage</>
-              }
+              {engageMutation.isPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <><Heart className="h-2.5 w-2.5 mr-0.5" />Engage</>}
             </Button>
-          </div>
+          </>
+        ) : (
+          <Link href={`/geezee/${card.userId}`}>
+            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-purple-800/50 text-purple-300 hover:bg-purple-900/20 transition-all" data-testid={`btn-view-card-${card.id}`}>
+              View Card
+            </Button>
+          </Link>
         )}
       </div>
-
     </div>
   );
 }

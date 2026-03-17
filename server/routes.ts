@@ -1156,9 +1156,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ success: true });
   });
 
-  // Send message or emoji (requires paid tier) with GZ-Bot scrub
+  // Send message — available to all authenticated users (GZLurker+)
   app.post("/api/gigness-cards/:id/message", async (req, res) => {
-    if (!await requirePaidTier(req, res)) return;
+    if (!requireAuth(req, res)) return;
     const fromUserId = (req.session as any).userId;
     const cardId = parseInt(req.params.id);
     if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
