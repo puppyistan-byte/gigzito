@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
@@ -14,9 +14,10 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, Globe, Lock, Image, Trash2,
   Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin, Upload, Loader2,
+  Smile, Film, Sticker, Send, X as XIcon, Zap,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { GignessCard } from "@shared/schema";
+import type { GignessCard, ZeeMotion } from "@shared/schema";
 
 const TIER_META: Record<string, { label: string; color: string; desc: string }> = {
   GZLurker: { label: "GZ Lurker", color: "text-zinc-400",  desc: "Create a card — but can't engage others yet." },
@@ -229,6 +230,57 @@ function CardPreview({
   );
 }
 
+// ── Common emojis panel ──────────────────────────────────────────────────────
+const EMOJI_LIST = [
+  "😀","😂","🥰","😎","🤩","🔥","💯","✨","🎉","👏","💪","🙌","❤️","💜","⭐",
+  "🚀","🌟","💡","🎯","🏆","🎤","💰","🤝","👋","😤","🤔","😏","🥳","👀","💥",
+];
+
+const PRESET_STICKERS = [
+  { url: "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", label: "Fire" },
+  { url: "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif", label: "Party" },
+  { url: "https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif", label: "Vibes" },
+  { url: "https://media.giphy.com/media/3oz8xAFtqoOUUrsh7W/giphy.gif", label: "Money" },
+  { url: "https://media.giphy.com/media/13CoXDiaCcCoyk/giphy.gif", label: "Deal" },
+  { url: "https://media.giphy.com/media/XreQmk7ETCak0/giphy.gif", label: "Hype" },
+  { url: "https://media.giphy.com/media/5GoVLqeAOo6PK/giphy.gif", label: "Winner" },
+  { url: "https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif", label: "Boom" },
+];
+
+function ZeeMotionItem({ m, onDelete }: { m: ZeeMotion; onDelete: (id: number) => void }) {
+  const ago = (d: string | Date) => {
+    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
+  };
+  return (
+    <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#0d0d0d] border border-[#1a1a1a]">
+      <Zap className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        {m.text && <p className="text-xs text-[#ccc] leading-relaxed whitespace-pre-wrap">{m.text}</p>}
+        {m.mediaUrl && (
+          <img
+            src={m.mediaUrl}
+            alt="ZeeMotion media"
+            className="mt-1.5 rounded-lg max-h-32 object-contain border border-[#222]"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        )}
+        <p className="text-[10px] text-[#444] mt-1">{ago(m.createdAt)}</p>
+      </div>
+      <button
+        onClick={() => onDelete(m.id)}
+        className="text-[#444] hover:text-red-400 transition-colors shrink-0 mt-0.5"
+        data-testid={`btn-delete-zeemotion-${m.id}`}
+      >
+        <XIcon className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function CardEditorPage() {
   const { user: authData, isLoading: authLoading } = useAuth();
@@ -248,6 +300,14 @@ export default function CardEditorPage() {
   const [gender, setGender]                               = useState("");
   const [intent, setIntent]                               = useState("");
   const [dirty, setDirty]                                 = useState(false);
+
+  // ZeeMotion state
+  const [zmText, setZmText]           = useState("");
+  const [zmMedia, setZmMedia]         = useState<{ url: string; type: "image" | "gif" | "sticker" } | null>(null);
+  const [zmPanel, setZmPanel]         = useState<"emoji" | "gif" | "sticker" | null>(null);
+  const [zmGifUrl, setZmGifUrl]       = useState("");
+  const [zmUploading, setZmUploading] = useState(false);
+  const zmTextRef = useRef<HTMLTextAreaElement>(null);
 
   // Redirect unauthenticated
   useEffect(() => {
@@ -313,6 +373,45 @@ export default function CardEditorPage() {
     onError: () => toast({ title: "Error", description: "Could not broadcast.", variant: "destructive" }),
   });
 
+  // ZeeMotion queries + mutations
+  const { data: myMotions = [] } = useQuery<ZeeMotion[]>({
+    queryKey: ["/api/zee-motions/mine"],
+    enabled: !!authData,
+  });
+
+  const postMotionMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/zee-motions", {
+      text: zmText.trim() || null,
+      mediaUrl: zmMedia?.url ?? null,
+      mediaType: zmMedia?.type ?? null,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/zee-motions/mine"] });
+      setZmText(""); setZmMedia(null); setZmPanel(null); setZmGifUrl("");
+      toast({ title: "ZeeMotion posted!", description: "Your followers will see your update." });
+    },
+    onError: (err: any) => toast({ title: "Post failed", description: err?.message ?? "Something went wrong.", variant: "destructive" }),
+  });
+
+  const deleteMotionMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/zee-motions/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/zee-motions/mine"] }); },
+  });
+
+  async function handleZmImageUpload(file: File) {
+    setZmUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", credentials: "include", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      setZmMedia({ url, type: "image" });
+      setZmPanel(null);
+    } catch { toast({ title: "Upload failed", variant: "destructive" }); }
+    finally { setZmUploading(false); }
+  }
+
   function markDirty() { setDirty(true); }
 
   if (authLoading || cardLoading) {
@@ -365,6 +464,166 @@ export default function CardEditorPage() {
                 data-testid="input-slogan"
               />
               <p className="text-[11px] text-[#444] mt-1 text-right">{slogan.length}/120</p>
+            </div>
+
+            {/* ── ZeeMotion ── */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="h-3.5 w-3.5 text-purple-400" />
+                <Label className="text-xs text-[#888]">ZeeMotion <span className="text-[#555]">— post a status update to your followers</span></Label>
+              </div>
+
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
+                {/* Text area */}
+                <textarea
+                  ref={zmTextRef}
+                  value={zmText}
+                  onChange={(e) => setZmText(e.target.value)}
+                  placeholder="What's your ZeeMotion? Share a vibe, offer, or update…"
+                  maxLength={500}
+                  rows={3}
+                  className="w-full bg-transparent text-white text-sm px-3 pt-3 pb-1 placeholder-[#333] resize-none outline-none"
+                  data-testid="input-zeemotion-text"
+                />
+
+                {/* Media preview */}
+                {zmMedia && (
+                  <div className="px-3 pb-2 flex items-start gap-2">
+                    <img src={zmMedia.url} alt="media" className="rounded-lg max-h-28 border border-[#222] object-contain" />
+                    <button onClick={() => setZmMedia(null)} className="text-[#555] hover:text-red-400 mt-1"><XIcon className="h-3.5 w-3.5" /></button>
+                  </div>
+                )}
+
+                {/* Emoji panel */}
+                {zmPanel === "emoji" && (
+                  <div className="px-3 py-2 border-t border-[#1a1a1a] grid grid-cols-10 gap-1.5">
+                    {EMOJI_LIST.map((e) => (
+                      <button
+                        key={e}
+                        onClick={() => {
+                          setZmText((t) => t + e);
+                          zmTextRef.current?.focus();
+                        }}
+                        className="text-lg hover:scale-125 transition-transform"
+                        data-testid={`btn-emoji-${e}`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* GIF panel */}
+                {zmPanel === "gif" && (
+                  <div className="px-3 py-2 border-t border-[#1a1a1a] space-y-2">
+                    <p className="text-[10px] text-[#555]">Paste a GIF URL from Giphy, Tenor, or anywhere:</p>
+                    <div className="flex gap-2">
+                      <input
+                        className="flex-1 bg-[#111] border border-[#2a2a2a] rounded-lg text-xs text-white px-2.5 py-1.5 placeholder-[#444] outline-none focus:border-purple-700/60"
+                        placeholder="https://media.giphy.com/…"
+                        value={zmGifUrl}
+                        onChange={(e) => setZmGifUrl(e.target.value)}
+                        data-testid="input-gif-url"
+                      />
+                      <button
+                        onClick={() => { if (zmGifUrl.trim()) { setZmMedia({ url: zmGifUrl.trim(), type: "gif" }); setZmPanel(null); setZmGifUrl(""); } }}
+                        className="text-xs px-3 py-1.5 bg-purple-700 hover:bg-purple-600 rounded-lg text-white transition-colors"
+                        data-testid="btn-use-gif"
+                      >
+                        Use
+                      </button>
+                    </div>
+                    {zmGifUrl && <img src={zmGifUrl} alt="preview" className="rounded-lg max-h-24 border border-[#222]" />}
+                  </div>
+                )}
+
+                {/* Sticker panel */}
+                {zmPanel === "sticker" && (
+                  <div className="px-3 py-2 border-t border-[#1a1a1a]">
+                    <div className="grid grid-cols-4 gap-2">
+                      {PRESET_STICKERS.map((s) => (
+                        <button
+                          key={s.url}
+                          onClick={() => { setZmMedia({ url: s.url, type: "sticker" }); setZmPanel(null); }}
+                          className="rounded-lg overflow-hidden border border-[#222] hover:border-purple-500/50 transition-colors"
+                          data-testid={`btn-sticker-${s.label}`}
+                        >
+                          <img src={s.url} alt={s.label} className="w-full h-16 object-cover" />
+                          <p className="text-[9px] text-[#555] py-0.5">{s.label}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Toolbar */}
+                <div className="flex items-center justify-between px-3 py-2 border-t border-[#1a1a1a]">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setZmPanel(zmPanel === "emoji" ? null : "emoji")}
+                      className={`p-1.5 rounded-lg transition-colors ${zmPanel === "emoji" ? "bg-purple-700/30 text-purple-400" : "text-[#555] hover:text-[#888] hover:bg-[#1a1a1a]"}`}
+                      title="Emoji"
+                      data-testid="btn-zm-emoji"
+                    >
+                      <Smile className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setZmPanel(zmPanel === "gif" ? null : "gif")}
+                      className={`p-1.5 rounded-lg transition-colors ${zmPanel === "gif" ? "bg-purple-700/30 text-purple-400" : "text-[#555] hover:text-[#888] hover:bg-[#1a1a1a]"}`}
+                      title="GIF"
+                      data-testid="btn-zm-gif"
+                    >
+                      <Film className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setZmPanel(zmPanel === "sticker" ? null : "sticker")}
+                      className={`p-1.5 rounded-lg transition-colors ${zmPanel === "sticker" ? "bg-purple-700/30 text-purple-400" : "text-[#555] hover:text-[#888] hover:bg-[#1a1a1a]"}`}
+                      title="Stickers"
+                      data-testid="btn-zm-sticker"
+                    >
+                      <Sticker className="h-4 w-4" />
+                    </button>
+                    <label
+                      className="p-1.5 rounded-lg text-[#555] hover:text-[#888] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                      title="Upload photo"
+                      data-testid="btn-zm-upload"
+                    >
+                      {zmUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={zmUploading}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleZmImageUpload(f); e.target.value = ""; }}
+                      />
+                    </label>
+                    <span className="text-[10px] text-[#444] ml-1">{zmText.length}/500</span>
+                  </div>
+                  <button
+                    onClick={() => postMotionMutation.mutate()}
+                    disabled={postMotionMutation.isPending || (!zmText.trim() && !zmMedia)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                    data-testid="btn-post-zeemotion"
+                  >
+                    {postMotionMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Post
+                  </button>
+                </div>
+              </div>
+
+              {/* Recent ZeeMotions */}
+              {myMotions.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  <p className="text-[10px] text-[#444] uppercase tracking-wider">Recent ZeeMotions</p>
+                  {myMotions.slice(0, 5).map((m) => (
+                    <ZeeMotionItem
+                      key={m.id}
+                      m={m}
+                      onDelete={(id) => deleteMotionMutation.mutate(id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Profile pic */}

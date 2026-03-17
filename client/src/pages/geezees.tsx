@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
   Lock, ChevronRight, Sparkles, MessageSquare, Send, Radio,
-  ChevronDown, ChevronUp, AlertCircle, Info,
+  ChevronDown, ChevronUp, AlertCircle, Info, UserPlus, UserMinus, Loader2,
 } from "lucide-react";
 import type { GignessCard } from "@shared/schema";
 
@@ -146,6 +146,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
   const [showComments, setShowComments] = useState(false);
   const cardTier = TIER_META[(card as any).userTier ?? "GZLurker"] ?? TIER_META.GZLurker;
   const canEngage = myTier !== "GZLurker";
+  const cardUserId = card.userId;
 
   const engageMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/gigness-cards/${card.id}/engage`),
@@ -160,6 +161,27 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
         toast({ title: "Error", description: "Could not engage.", variant: "destructive" });
       }
     },
+  });
+
+  const { data: followStatus } = useQuery<{ following: boolean }>({
+    queryKey: ["/api/geezee-follows/status", cardUserId],
+    queryFn: () => fetch(`/api/geezee-follows/status/${cardUserId}`).then((r) => r.json()),
+    enabled: isAuthed && !!cardUserId,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () => followStatus?.following
+      ? apiRequest("DELETE", `/api/geezee-follows/${cardUserId}`, {})
+      : apiRequest("POST", `/api/geezee-follows/${cardUserId}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/geezee-follows/status", cardUserId] });
+      qc.invalidateQueries({ queryKey: ["/api/zee-motions/feed"] });
+      toast({
+        title: followStatus?.following ? "Unfollowed" : "✅ Following!",
+        description: followStatus?.following ? "You unfollowed this GeeZee card." : "Their ZeeMotions will appear in your feed.",
+      });
+    },
+    onError: () => toast({ title: "Error", description: "Could not update follow status.", variant: "destructive" }),
   });
 
   return (
@@ -252,6 +274,28 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             >
               <QrCode className="h-4 w-4" />
             </a>
+            {isAuthed && (
+              <Button
+                size="sm"
+                variant="outline"
+                className={`h-7 px-3 text-xs transition-all ${
+                  followStatus?.following
+                    ? "border-purple-700 text-purple-300 hover:bg-purple-900/20"
+                    : "border-[#333] text-[#aaa] hover:bg-[#1a1a1a]"
+                }`}
+                onClick={() => followMutation.mutate()}
+                disabled={followMutation.isPending}
+                data-testid={`btn-follow-${card.id}`}
+              >
+                {followMutation.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : followStatus?.following ? (
+                  <><UserMinus className="h-3 w-3 mr-1" />Following</>
+                ) : (
+                  <><UserPlus className="h-3 w-3 mr-1" />Follow</>
+                )}
+              </Button>
+            )}
             {canEngage ? (
               <Button
                 size="sm"

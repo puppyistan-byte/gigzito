@@ -41,7 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -463,6 +463,11 @@ function ProviderDashboardInner() {
 
   const { data: adInquiries = [], isLoading: inquiriesLoading } = useQuery<AdInquiry[]>({
     queryKey: ["/api/ad-inquiries"],
+    enabled: !!user,
+  });
+
+  const { data: zeeFeed = [] } = useQuery<(ZeeMotion & { username: string | null; displayName: string | null; avatarUrl: string | null })[]>({
+    queryKey: ["/api/zee-motions/feed"],
     enabled: !!user,
   });
 
@@ -945,6 +950,73 @@ function ProviderDashboardInner() {
 
         {/* ─── Gig Cards ─── */}
         {profile && <GigCardSection profile={profile} />}
+
+        {/* ─── ZeeMotion Feed ─── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-purple-400" />
+              <h2 className="text-sm font-semibold text-white">ZeeMotion Feed</h2>
+              {zeeFeed.length > 0 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#7c3aed22", color: "#a78bfa", border: "1px solid #7c3aed44" }}>
+                  {zeeFeed.length}
+                </span>
+              )}
+            </div>
+            <Link href="/card-editor">
+              <button className="text-xs text-purple-400 hover:text-purple-300 transition-colors" data-testid="btn-go-card-editor">
+                + Post ZeeMotion
+              </button>
+            </Link>
+          </div>
+
+          {zeeFeed.length === 0 ? (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-zeefeed">
+              <Zap className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-sm">No ZeeMotion updates yet.</p>
+              <p className="text-[#444] text-xs mt-1">Follow GeeZee cards to see their updates here.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {zeeFeed.map((m) => {
+                const ago = (d: string | Date) => {
+                  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+                  if (s < 60) return "just now";
+                  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+                  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+                  return `${Math.floor(s / 86400)}d ago`;
+                };
+                return (
+                  <div key={m.id} className="flex items-start gap-3 p-3 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e]" data-testid={`card-zeemotion-${m.id}`}>
+                    {m.avatarUrl ? (
+                      <img src={m.avatarUrl} alt={m.displayName ?? ""} className="w-8 h-8 rounded-full object-cover border border-[#2a2a2a] shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0">
+                        <Zap className="h-3.5 w-3.5 text-purple-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-xs font-semibold text-white">{m.displayName ?? m.username ?? "Unknown"}</span>
+                        <span className="text-[10px] text-[#444]">·</span>
+                        <span className="text-[10px] text-[#444]">{ago(m.createdAt)}</span>
+                      </div>
+                      {m.text && <p className="text-xs text-[#bbb] leading-relaxed whitespace-pre-wrap">{m.text}</p>}
+                      {m.mediaUrl && (
+                        <img
+                          src={m.mediaUrl}
+                          alt="ZeeMotion media"
+                          className="mt-2 rounded-lg max-h-40 border border-[#222] object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* ─── Your Audience ─── */}
         <div>

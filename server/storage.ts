@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, geezeeFollows, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type GeezeeFollow } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -84,6 +84,19 @@ export interface IStorage {
   // Card Comments
   createGignessComment(data: { cardId: number; authorUserId?: number | null; authorName: string; commentText: string; isClean: boolean }): Promise<GignessCardComment>;
   getGignessComments(cardId: number): Promise<GignessCardComment[]>;
+
+  // ZeeMotion
+  createZeeMotion(userId: number, data: { text?: string | null; mediaUrl?: string | null; mediaType?: string | null }): Promise<ZeeMotion>;
+  getMyZeeMotions(userId: number): Promise<ZeeMotion[]>;
+  deleteZeeMotion(id: number, userId: number): Promise<void>;
+  getZeeMotionFeed(userId: number): Promise<(ZeeMotion & { username: string | null; displayName: string | null; avatarUrl: string | null })[]>;
+
+  // GeeZee Follows
+  followUser(followerId: number, followingUserId: number): Promise<void>;
+  unfollowUser(followerId: number, followingUserId: number): Promise<void>;
+  isFollowing(followerId: number, followingUserId: number): Promise<boolean>;
+  getFollowingIds(followerId: number): Promise<number[]>;
+  getFollowerCount(userId: number): Promise<number>;
 
   // Listing Comments
   createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string; viewerUsername?: string | null; viewerEmail?: string | null; viewerCity?: string | null; viewerState?: string | null; viewerCountry?: string | null }): Promise<ListingComment>;
@@ -1695,6 +1708,65 @@ export class DatabaseStorage implements IStorage {
 
   async getAllGeoTargetCampaigns(): Promise<GeoTargetCampaign[]> {
     return db.select().from(geoTargetCampaigns).orderBy(desc(geoTargetCampaigns.createdAt));
+  }
+
+  async createZeeMotion(userId: number, data: { text?: string | null; mediaUrl?: string | null; mediaType?: string | null }): Promise<ZeeMotion> {
+    const [row] = await db.insert(zeeMotions).values({ userId, ...data }).returning();
+    return row;
+  }
+
+  async getMyZeeMotions(userId: number): Promise<ZeeMotion[]> {
+    return db.select().from(zeeMotions).where(eq(zeeMotions.userId, userId)).orderBy(desc(zeeMotions.createdAt)).limit(20);
+  }
+
+  async deleteZeeMotion(id: number, userId: number): Promise<void> {
+    await db.delete(zeeMotions).where(and(eq(zeeMotions.id, id), eq(zeeMotions.userId, userId)));
+  }
+
+  async getZeeMotionFeed(userId: number): Promise<(ZeeMotion & { username: string | null; displayName: string | null; avatarUrl: string | null })[]> {
+    const followingIds = await this.getFollowingIds(userId);
+    if (!followingIds.length) return [];
+    const rows = await db
+      .select({
+        id: zeeMotions.id,
+        userId: zeeMotions.userId,
+        text: zeeMotions.text,
+        mediaUrl: zeeMotions.mediaUrl,
+        mediaType: zeeMotions.mediaType,
+        createdAt: zeeMotions.createdAt,
+        username: providerProfiles.username,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+      })
+      .from(zeeMotions)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, zeeMotions.userId))
+      .where(inArray(zeeMotions.userId, followingIds))
+      .orderBy(desc(zeeMotions.createdAt))
+      .limit(50);
+    return rows;
+  }
+
+  async followUser(followerId: number, followingUserId: number): Promise<void> {
+    await db.insert(geezeeFollows).values({ followerId, followingUserId }).onConflictDoNothing();
+  }
+
+  async unfollowUser(followerId: number, followingUserId: number): Promise<void> {
+    await db.delete(geezeeFollows).where(and(eq(geezeeFollows.followerId, followerId), eq(geezeeFollows.followingUserId, followingUserId)));
+  }
+
+  async isFollowing(followerId: number, followingUserId: number): Promise<boolean> {
+    const [row] = await db.select().from(geezeeFollows).where(and(eq(geezeeFollows.followerId, followerId), eq(geezeeFollows.followingUserId, followingUserId)));
+    return !!row;
+  }
+
+  async getFollowingIds(followerId: number): Promise<number[]> {
+    const rows = await db.select({ followingUserId: geezeeFollows.followingUserId }).from(geezeeFollows).where(eq(geezeeFollows.followerId, followerId));
+    return rows.map((r) => r.followingUserId);
+  }
+
+  async getFollowerCount(userId: number): Promise<number> {
+    const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(geezeeFollows).where(eq(geezeeFollows.followingUserId, userId));
+    return row?.count ?? 0;
   }
 }
 

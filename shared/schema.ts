@@ -771,6 +771,36 @@ export const listingComments = pgTable("listing_comments", {
 export type ListingComment = typeof listingComments.$inferSelect;
 export type InsertListingComment = typeof listingComments.$inferInsert;
 
+// ─── ZeeMotion (GeeZee Status Updates) ───────────────────────────────────────
+export const zeeMotions = pgTable("zee_motions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  text: text("text"),
+  mediaUrl: text("media_url"),
+  mediaType: text("media_type"), // 'image' | 'gif' | 'sticker'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ZeeMotion = typeof zeeMotions.$inferSelect;
+export type InsertZeeMotion = typeof zeeMotions.$inferInsert;
+
+// ─── GeeZee Follows ───────────────────────────────────────────────────────────
+export const geezeeFollows = pgTable(
+  "geezee_follows",
+  {
+    id: serial("id").primaryKey(),
+    followerId: integer("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    followingUserId: integer("following_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    uniq: unique("geezee_follows_unique").on(t.followerId, t.followingUserId),
+  })
+);
+
+export type GeezeeFollow = typeof geezeeFollows.$inferSelect;
+export type InsertGeezeeFollow = typeof geezeeFollows.$inferInsert;
+
 // ─── Marketer Audiences ───────────────────────────────────────────────────────
 export const marketerAudiences = pgTable(
   "marketer_audiences",

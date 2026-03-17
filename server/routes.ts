@@ -2346,6 +2346,79 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) { return res.status(500).json({ message: "Failed to send reply" }); }
   });
 
+  // === ZEE MOTION ===
+  app.post("/api/zee-motions", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const schema = z.object({
+      text: z.string().max(500).nullable().optional(),
+      mediaUrl: z.string().nullable().optional(),
+      mediaType: z.enum(["image", "gif", "sticker"]).nullable().optional(),
+    });
+    try {
+      const data = schema.parse(req.body);
+      if (!data.text?.trim() && !data.mediaUrl) return res.status(400).json({ message: "Add some text or media" });
+      const motion = await storage.createZeeMotion(userId, data);
+      return res.json(motion);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/zee-motions/mine", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const motions = await storage.getMyZeeMotions(userId);
+    return res.json(motions);
+  });
+
+  app.get("/api/zee-motions/feed", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const feed = await storage.getZeeMotionFeed(userId);
+    return res.json(feed);
+  });
+
+  app.delete("/api/zee-motions/:id", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deleteZeeMotion(id, userId);
+    return res.json({ ok: true });
+  });
+
+  // === GEEZEE FOLLOWS ===
+  app.post("/api/geezee-follows/:userId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const followerId = (req.session as any).userId;
+    const followingUserId = parseInt(req.params.userId);
+    if (isNaN(followingUserId)) return res.status(400).json({ message: "Invalid userId" });
+    if (followerId === followingUserId) return res.status(400).json({ message: "Cannot follow yourself" });
+    await storage.followUser(followerId, followingUserId);
+    return res.json({ ok: true });
+  });
+
+  app.delete("/api/geezee-follows/:userId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const followerId = (req.session as any).userId;
+    const followingUserId = parseInt(req.params.userId);
+    if (isNaN(followingUserId)) return res.status(400).json({ message: "Invalid userId" });
+    await storage.unfollowUser(followerId, followingUserId);
+    return res.json({ ok: true });
+  });
+
+  app.get("/api/geezee-follows/status/:userId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const followerId = (req.session as any).userId;
+    const followingUserId = parseInt(req.params.userId);
+    if (isNaN(followingUserId)) return res.status(400).json({ message: "Invalid userId" });
+    const following = await storage.isFollowing(followerId, followingUserId);
+    const followerCount = await storage.getFollowerCount(followingUserId);
+    return res.json({ following, followerCount });
+  });
+
   // === SPONSOR ADS (ADMIN) ===
   app.get("/api/admin/sponsor-ads", async (req, res) => {
     if (!requireAdmin(req, res)) return;
