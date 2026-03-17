@@ -157,18 +157,24 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
       {/* Social icons strip — always all 5 platforms, dim placeholder if missing, for card symmetry */}
       {(() => {
         const c = card as any;
-        const showLinks = !!c.showSocialLinks;
+        const gender = (card.gender ?? "").toLowerCase();
+        const genderColor = gender === "female"
+          ? "#f472b6"   // pink-400
+          : gender === "male"
+          ? "#22d3ee"   // cyan-400 neon blue
+          : "#a78bfa";  // purple-400 default
+
         const PLATFORMS = [
-          { key: "facebook",  url: c.facebookUrl,  Icon: SiFacebook,  activeColor: "text-blue-400",  label: "Facebook"  },
-          { key: "instagram", url: c.instagramUrl, Icon: SiInstagram, activeColor: "text-pink-400",  label: "Instagram" },
-          { key: "tiktok",    url: c.tiktokUrl,    Icon: SiTiktok,    activeColor: "text-white",      label: "TikTok"    },
-          { key: "youtube",   url: c.youtubeUrl,   Icon: SiYoutube,   activeColor: "text-red-500",    label: "YouTube"   },
-          { key: "x",         url: c.twitterUrl,   Icon: SiX,         activeColor: "text-zinc-300",   label: "X"         },
+          { key: "facebook",  url: c.facebookUrl,  Icon: SiFacebook,  label: "Facebook"  },
+          { key: "instagram", url: c.instagramUrl, Icon: SiInstagram, label: "Instagram" },
+          { key: "tiktok",    url: c.tiktokUrl,    Icon: SiTiktok,    label: "TikTok"    },
+          { key: "youtube",   url: c.youtubeUrl,   Icon: SiYoutube,   label: "YouTube"   },
+          { key: "x",         url: c.twitterUrl,   Icon: SiX,         label: "X"         },
         ];
         return (
           <div className="flex items-center gap-3 px-3 pb-2 h-6">
-            {PLATFORMS.map(({ key, url, Icon, activeColor, label }) => {
-              const isActive = showLinks && !!url;
+            {PLATFORMS.map(({ key, url, Icon, label }) => {
+              const isActive = !!url;
               return isActive ? (
                 <a
                   key={key}
@@ -177,13 +183,14 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
                   rel="noopener noreferrer"
                   title={label}
                   onClick={(e) => e.stopPropagation()}
-                  className={`${activeColor} transition-colors hover:opacity-80`}
+                  style={{ color: genderColor }}
+                  className="transition-opacity hover:opacity-70"
                   data-testid={`link-social-${key}-${card.id}`}
                 >
                   <Icon size={11} />
                 </a>
               ) : (
-                <span key={key} title={label} className="text-[#2a2a2a]">
+                <span key={key} title={label} className="text-[#252525]">
                   <Icon size={11} />
                 </span>
               );
