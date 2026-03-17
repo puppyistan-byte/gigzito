@@ -1117,7 +1117,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const card = await storage.upsertGignessCard(userId, data);
       return res.json(card);
     } catch (err) {
-      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      if (err instanceof z.ZodError) {
+        console.error("[gigness-card save] Zod errors:", JSON.stringify(err.errors));
+        console.error("[gigness-card save] body:", JSON.stringify(req.body));
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("[gigness-card save] unexpected error:", err);
       return res.status(500).json({ message: "Server error" });
     }
   });
