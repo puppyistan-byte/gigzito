@@ -1097,7 +1097,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const card = await storage.getGignessCardByUserId(userId);
     if (!card || !card.isPublic) return res.status(404).json({ message: "Card not found" });
     const profile = await storage.getProfileByUserId(userId);
-    return res.json({ ...card, displayName: profile?.displayName ?? null, username: profile?.username ?? null, avatarUrl: profile?.avatarUrl ?? null });
+    return res.json({
+      ...card,
+      displayName: profile?.displayName ?? null,
+      username: profile?.username ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+      instagramUrl: profile?.instagramUrl ?? null,
+      tiktokUrl: profile?.tiktokUrl ?? null,
+      facebookUrl: profile?.facebookUrl ?? null,
+      twitterUrl: profile?.twitterUrl ?? null,
+      discordUrl: profile?.discordUrl ?? null,
+    });
   });
 
   // QR Master Card lookup by UUID (public)
@@ -1114,7 +1124,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const schema = z.object({
       slogan: z.string().max(120).optional(),
       profilePic: z.string().nullable().optional(),
-      gallery: z.array(z.string()).max(6).optional(),
+      gallery: z.array(z.string()).max(9).optional(),
       isPublic: z.boolean().optional(),
       locationServicesEnabled: z.boolean().optional(),
       allowMessaging: z.boolean().optional(),

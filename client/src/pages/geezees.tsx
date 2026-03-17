@@ -228,7 +228,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
           </div>
         )}
 
-        {/* Footer */}
+        {/* Footer row 1 — stats + View Card */}
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-[#1a1a1a]">
           <div className="flex items-center gap-3 text-[#555]">
             <div className="flex items-center gap-1">
@@ -242,19 +242,15 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             >
               <MessageSquare className="h-3.5 w-3.5" />
               <span className="text-xs">Comments</span>
-              {showComments
-                ? <ChevronUp className="h-3 w-3" />
-                : <ChevronDown className="h-3 w-3" />
-              }
+              {showComments ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
           </div>
-
           <div className="flex items-center gap-2">
             <a
               href={`/qr/${card.qrUuid}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#444] hover:text-[#777] transition-colors"
+              className="text-[#383838] hover:text-[#666] transition-colors"
               title="QR Master Card"
               data-testid={`btn-qr-${card.id}`}
             >
@@ -270,45 +266,47 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                 View Card
               </Button>
             </Link>
-            {isAuthed && (
-              <Button
-                size="sm"
-                variant="outline"
-                className={`h-7 px-3 text-xs transition-all ${
-                  followStatus?.following
-                    ? "border-purple-700 text-purple-300 hover:bg-purple-900/20"
-                    : "border-[#333] text-[#aaa] hover:bg-[#1a1a1a]"
-                }`}
-                onClick={() => followMutation.mutate()}
-                disabled={followMutation.isPending}
-                data-testid={`btn-follow-${card.id}`}
-              >
-                {followMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : followStatus?.following ? (
-                  <><UserMinus className="h-3 w-3 mr-1" />Following</>
-                ) : (
-                  <><UserPlus className="h-3 w-3 mr-1" />Follow</>
-                )}
-              </Button>
-            )}
-            {isAuthed && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-3 text-xs border-[#333] text-white hover:bg-[#1a1a1a]"
-                onClick={() => engageMutation.mutate()}
-                disabled={engageMutation.isPending}
-                data-testid={`btn-engage-${card.id}`}
-              >
-                {engageMutation.isPending
-                  ? <Loader2 className="h-3 w-3 animate-spin" />
-                  : <><Heart className="h-3 w-3 mr-1" />Engage</>
-                }
-              </Button>
-            )}
           </div>
         </div>
+
+        {/* Footer row 2 — Follow + Engage (full width so nothing clips) */}
+        {isAuthed && (
+          <div className="flex gap-2 mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className={`flex-1 h-8 text-xs transition-all ${
+                followStatus?.following
+                  ? "border-purple-700/60 text-purple-300 hover:bg-purple-900/20"
+                  : "border-[#2a2a2a] text-[#888] hover:bg-[#1a1a1a] hover:text-white"
+              }`}
+              onClick={() => followMutation.mutate()}
+              disabled={followMutation.isPending}
+              data-testid={`btn-follow-${card.id}`}
+            >
+              {followMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : followStatus?.following ? (
+                <><UserMinus className="h-3 w-3 mr-1" />Following</>
+              ) : (
+                <><UserPlus className="h-3 w-3 mr-1" />Follow</>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 h-8 text-xs border-[#2a2a2a] text-[#888] hover:bg-[#1a1a1a] hover:text-white transition-all"
+              onClick={() => engageMutation.mutate()}
+              disabled={engageMutation.isPending}
+              data-testid={`btn-engage-${card.id}`}
+            >
+              {engageMutation.isPending
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : <><Heart className="h-3 w-3 mr-1" />Engage</>
+              }
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Comments panel — slides open */}

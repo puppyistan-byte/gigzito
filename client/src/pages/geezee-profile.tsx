@@ -10,11 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   User, Heart, UserPlus, UserMinus, Loader2, QrCode,
-  MessageSquare, ChevronDown, ChevronUp, Send, ArrowLeft, ImageIcon,
+  MessageSquare, ChevronDown, ChevronUp, Send, ArrowLeft, ImageIcon, Zap,
 } from "lucide-react";
+import { SiFacebook, SiTiktok, SiInstagram, SiX, SiDiscord } from "react-icons/si";
 import type { GignessCard, ZeeMotion, ZeeMotionComment } from "@shared/schema";
 
-type EnrichedCard = GignessCard & { displayName: string | null; username: string | null; avatarUrl: string | null };
+type EnrichedCard = GignessCard & {
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  instagramUrl: string | null;
+  tiktokUrl: string | null;
+  facebookUrl: string | null;
+  twitterUrl: string | null;
+  discordUrl: string | null;
+};
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
   GZLurker: { label: "GZ Lurker",  color: "text-zinc-400",  border: "border-zinc-700" },
@@ -61,7 +71,7 @@ function GeemotionComments({ motionId, isAuthed, myDisplayName }: { motionId: nu
         data-testid={`btn-toggle-comments-${motionId}`}
       >
         <MessageSquare className="h-3.5 w-3.5" />
-        <span>{open ? "Hide" : "Comments"}</span>
+        <span>{open ? "Hide comments" : "Comments"}</span>
         {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       </button>
 
@@ -73,42 +83,42 @@ function GeemotionComments({ motionId, isAuthed, myDisplayName }: { motionId: nu
             <p className="text-xs text-[#444] italic">No comments yet. Be the first.</p>
           ) : (
             comments.map((c) => (
-              <div key={c.id} className="flex items-start gap-2" data-testid={`comment-${c.id}`}>
-                <div className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0">
+              <div key={c.id} className="flex items-start gap-2 pl-2 border-l-2 border-[#1e1e1e]" data-testid={`comment-${c.id}`}>
+                <div className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0 mt-0.5">
                   <User className="h-3 w-3 text-[#444]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[11px] font-semibold text-white">{c.authorName}</span>
-                    <span className="text-[10px] text-[#444]">{timeAgo(c.createdAt)}</span>
+                    <span className="text-[11px] font-semibold text-[#aaa]">{c.authorName}</span>
+                    <span className="text-[10px] text-[#3a3a3a]">{timeAgo(c.createdAt)}</span>
                   </div>
-                  <p className="text-xs text-[#bbb] leading-relaxed">{c.commentText}</p>
+                  <p className="text-xs text-[#ccc] leading-relaxed">{c.commentText}</p>
                 </div>
               </div>
             ))
           )}
 
-          <div className="flex gap-2 mt-2">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={isAuthed ? "Add a comment…" : "Sign in to comment"}
-              disabled={!isAuthed || postMutation.isPending}
-              rows={2}
-              maxLength={500}
-              className="flex-1 text-xs bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] resize-none rounded-xl"
-              data-testid={`input-comment-${motionId}`}
-            />
-            <Button
-              size="sm"
-              disabled={!isAuthed || !text.trim() || postMutation.isPending}
-              onClick={() => postMutation.mutate()}
-              className="self-end h-8 px-3 bg-purple-700 hover:bg-purple-600 text-white rounded-xl"
-              data-testid={`btn-post-comment-${motionId}`}
-            >
-              {postMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            </Button>
-          </div>
+          {isAuthed && (
+            <div className="flex gap-2 mt-2">
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value.slice(0, 500))}
+                placeholder="Add a comment…"
+                rows={2}
+                className="flex-1 bg-[#0d0d0d] border-[#222] text-white placeholder-[#333] text-xs resize-none focus:border-purple-700/40"
+                data-testid={`input-comment-${motionId}`}
+              />
+              <Button
+                size="sm"
+                disabled={!isAuthed || !text.trim() || postMutation.isPending}
+                onClick={() => postMutation.mutate()}
+                className="self-end h-8 px-3 bg-purple-700 hover:bg-purple-600 text-white rounded-xl"
+                data-testid={`btn-post-comment-${motionId}`}
+              >
+                {postMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -119,7 +129,10 @@ function GeemotionComments({ motionId, isAuthed, myDisplayName }: { motionId: nu
 function GeemotionCard({ motion, isAuthed, myDisplayName }: { motion: ZeeMotion; isAuthed: boolean; myDisplayName: string }) {
   return (
     <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4" data-testid={`card-geemotion-${motion.id}`}>
-      <p className="text-[10px] text-[#444] mb-2">{timeAgo(motion.createdAt)}</p>
+      <div className="flex items-center gap-2 mb-2">
+        <Zap className="h-3 w-3 text-purple-400" />
+        <span className="text-[10px] text-[#444]">{timeAgo(motion.createdAt)}</span>
+      </div>
       {motion.text && <p className="text-sm text-[#ddd] whitespace-pre-wrap leading-relaxed">{motion.text}</p>}
       {motion.mediaUrl && (
         <img
@@ -131,6 +144,23 @@ function GeemotionCard({ motion, isAuthed, myDisplayName }: { motion: ZeeMotion;
       )}
       <GeemotionComments motionId={motion.id} isAuthed={isAuthed} myDisplayName={myDisplayName} />
     </div>
+  );
+}
+
+// ── Social link icon button ─────────────────────────────────────────────────
+function SocialLink({ href, icon, label, color }: { href: string; icon: any; label: string; color: string }) {
+  const Icon = icon;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={label}
+      className={`flex items-center justify-center w-8 h-8 rounded-lg border border-[#222] bg-[#111] hover:border-[#444] transition-all ${color}`}
+      data-testid={`link-social-${label.toLowerCase()}`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </a>
   );
 }
 
@@ -183,6 +213,15 @@ export default function GeeZeeProfilePage() {
 
   const cardTier = TIER_META[(card as any)?.userTier ?? "GZLurker"] ?? TIER_META.GZLurker;
 
+  // Collect social links
+  const socialLinks = card ? [
+    card.instagramUrl && { href: card.instagramUrl, icon: SiInstagram, label: "Instagram", color: "hover:text-pink-400" },
+    card.tiktokUrl    && { href: card.tiktokUrl,    icon: SiTiktok,    label: "TikTok",    color: "hover:text-white" },
+    card.facebookUrl  && { href: card.facebookUrl,  icon: SiFacebook,  label: "Facebook",  color: "hover:text-blue-400" },
+    card.twitterUrl   && { href: card.twitterUrl,   icon: SiX,         label: "X",         color: "hover:text-white" },
+    card.discordUrl   && { href: card.discordUrl,   icon: SiDiscord,   label: "Discord",   color: "hover:text-indigo-400" },
+  ].filter(Boolean) as { href: string; icon: any; label: string; color: string }[] : [];
+
   if (isNaN(userId)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -192,9 +231,9 @@ export default function GeeZeeProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#080808] text-white">
       <Navbar />
-      <div className="max-w-xl mx-auto px-4 pb-16 pt-4 space-y-4">
+      <div className="max-w-xl mx-auto px-4 pb-20 pt-4 space-y-4">
 
         {/* Back */}
         <Link href="/geezees">
@@ -234,6 +273,7 @@ export default function GeeZeeProfilePage() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
+                  {/* Tier + intent */}
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-transparent ${cardTier.color} ${cardTier.border}`}>
                       {cardTier.label}
@@ -242,29 +282,62 @@ export default function GeeZeeProfilePage() {
                       <span className="text-[10px] text-[#555] bg-[#111] border border-[#222] rounded px-1.5 py-0.5 capitalize">{card.intent}</span>
                     )}
                   </div>
+
+                  {/* Display name + username */}
                   {card.displayName && <p className="text-base font-bold text-white">{card.displayName}</p>}
                   {card.username && <p className="text-xs text-[#555]">@{card.username}</p>}
-                  {card.slogan && <p className="text-sm text-[#ccc] mt-1.5 leading-snug">{card.slogan}</p>}
-                  <div className="flex items-center gap-3 mt-2 text-[11px] text-[#555]">
+
+                  {/* Slogan — gradient text */}
+                  {card.slogan && (
+                    <p
+                      className="text-lg font-extrabold leading-tight mt-1.5"
+                      style={{ background: "linear-gradient(135deg,#a855f7 0%,#ec4899 50%,#f59e0b 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
+                      data-testid="display-slogan"
+                    >
+                      {card.slogan}
+                    </p>
+                  )}
+
+                  {/* Age + gender + followers */}
+                  <div className="flex items-center gap-3 mt-2 text-[11px] text-[#555] flex-wrap">
                     {card.ageBracket && <span>{card.ageBracket}</span>}
                     {card.gender && <span>{card.gender}</span>}
                     {followStatus !== undefined && (
                       <span>{followStatus.followerCount} follower{followStatus.followerCount !== 1 ? "s" : ""}</span>
                     )}
                   </div>
+
+                  {/* Social links */}
+                  {socialLinks.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-3">
+                      {socialLinks.map((s) => (
+                        <SocialLink key={s.label} {...s} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Gallery strip */}
-              {card.gallery && card.gallery.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-0.5">
-                  {card.gallery.map((url, i) => (
-                    <img key={i} src={url} alt={`Gallery ${i + 1}`} className="w-20 h-20 rounded-xl object-cover shrink-0 border border-[#222]" />
-                  ))}
+              {/* Full gallery grid — all photos */}
+              {card.gallery && card.gallery.filter(Boolean).length > 0 && (
+                <div>
+                  <p className="text-[10px] text-[#444] uppercase tracking-wider mb-2 font-semibold">Photos</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {card.gallery.filter(Boolean).map((url, i) => (
+                      <div key={i} className="aspect-square rounded-xl overflow-hidden border border-[#1e1e1e]">
+                        <img
+                          src={url}
+                          alt={`Photo ${i + 1}`}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Actions */}
+              {/* Follow + QR actions */}
               <div className="flex items-center gap-3">
                 {isAuthed && user?.user?.id !== userId && (
                   <Button
@@ -301,11 +374,11 @@ export default function GeeZeeProfilePage() {
           </div>
         )}
 
-        {/* Geemotions feed */}
+        {/* Geemotions feed — hierarchical with comments */}
         {card && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Heart className="h-4 w-4 text-purple-400" />
+              <Zap className="h-4 w-4 text-purple-400" />
               <h2 className="text-sm font-semibold text-white">Geemotions</h2>
               {motions.length > 0 && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#7c3aed22", color: "#a78bfa", border: "1px solid #7c3aed44" }}>
