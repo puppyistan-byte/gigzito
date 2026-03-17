@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, Globe, Lock, Image, Trash2,
-  Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin,
+  Save, ChevronLeft, Sparkles, Mail, MessageSquare, Radio, MapPin, Upload, Loader2,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { GignessCard } from "@shared/schema";
@@ -64,60 +64,107 @@ function GalleryUploader({
   gallery: string[];
   onChange: (g: string[]) => void;
 }) {
-  const [drafts, setDrafts] = useState<string[]>(Array(6).fill("").map((_, i) => gallery[i] ?? ""));
+  const { toast } = useToast();
+  const [slots, setSlots] = useState<string[]>(Array(6).fill("").map((_, i) => gallery[i] ?? ""));
+  const [uploading, setUploading] = useState<boolean[]>(Array(6).fill(false));
 
-  function commit(idx: number, val: string) {
-    const next = [...drafts];
+  function setSlot(idx: number, val: string) {
+    const next = [...slots];
     next[idx] = val;
-    setDrafts(next);
+    setSlots(next);
     onChange(next.filter(Boolean));
   }
 
+  async function handleFileSelect(idx: number, file: File) {
+    const up = [...uploading];
+    up[idx] = true;
+    setUploading(up);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      setSlot(idx, url);
+    } catch {
+      toast({ title: "Upload failed", description: "Could not upload photo. Try again.", variant: "destructive" });
+    } finally {
+      const up2 = [...uploading];
+      up2[idx] = false;
+      setUploading(up2);
+    }
+  }
+
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {drafts.map((url, i) => (
+    <div className="grid grid-cols-3 gap-3">
+      {slots.map((url, i) => (
         <div key={i} className="relative group">
           {url ? (
-            <div className="relative">
+            <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-[#2a2a2a]">
               <img
                 src={url}
                 alt={`Photo ${i + 1}`}
-                className="w-full aspect-square object-cover rounded-xl border border-[#222]"
-                onError={(e) => { (e.target as HTMLImageElement).src = ""; }}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
-              <button
-                onClick={() => commit(i, "")}
-                className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                data-testid={`btn-remove-gallery-${i}`}
-              >
-                <Trash2 className="h-3 w-3 text-red-400" />
-              </button>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                <label
+                  className="flex flex-col items-center justify-center cursor-pointer bg-white/10 hover:bg-white/20 rounded-lg p-2 transition-colors"
+                  title="Replace photo"
+                  data-testid={`btn-replace-gallery-${i}`}
+                >
+                  <Upload className="h-4 w-4 text-white" />
+                  <span className="text-[9px] text-white mt-0.5">Replace</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }}
+                  />
+                </label>
+                <button
+                  onClick={() => setSlot(i, "")}
+                  className="flex flex-col items-center justify-center bg-red-500/20 hover:bg-red-500/40 rounded-lg p-2 transition-colors"
+                  title="Remove photo"
+                  data-testid={`btn-remove-gallery-${i}`}
+                >
+                  <Trash2 className="h-4 w-4 text-red-400" />
+                  <span className="text-[9px] text-red-400 mt-0.5">Delete</span>
+                </button>
+              </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl border border-dashed border-[#2a2a2a] bg-[#0d0d0d] cursor-pointer hover:border-[#444] transition-colors group">
-              <Image className="h-4 w-4 text-[#444] mb-1" />
-              <span className="text-[10px] text-[#444]">Photo {i + 1}</span>
+            <label
+              className={`flex flex-col items-center justify-center w-full aspect-square rounded-xl border border-dashed bg-[#0d0d0d] transition-colors cursor-pointer ${
+                uploading[i] ? "border-[#444]" : "border-[#2a2a2a] hover:border-[#555] hover:bg-[#111]"
+              }`}
+              data-testid={`btn-upload-gallery-${i}`}
+            >
+              {uploading[i] ? (
+                <>
+                  <Loader2 className="h-5 w-5 text-[#555] animate-spin mb-1" />
+                  <span className="text-[10px] text-[#555]">Uploading…</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-5 w-5 text-[#444] mb-1" />
+                  <span className="text-[10px] text-[#555] font-medium">Photo {i + 1}</span>
+                  <span className="text-[9px] text-[#333] mt-0.5">Click to upload</span>
+                </>
+              )}
               <input
-                type="url"
+                type="file"
+                accept="image/*"
                 className="sr-only"
-                placeholder="https://..."
-                onBlur={(e) => commit(i, e.target.value.trim())}
+                disabled={uploading[i]}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(i, f); e.target.value = ""; }}
               />
             </label>
           )}
-          <input
-            type="url"
-            placeholder="Paste image URL…"
-            value={url}
-            onChange={(e) => {
-              const next = [...drafts];
-              next[i] = e.target.value;
-              setDrafts(next);
-            }}
-            onBlur={(e) => commit(i, e.target.value.trim())}
-            className="mt-1 w-full rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] text-[10px] text-[#777] placeholder-[#333] px-2 py-1 focus:outline-none focus:border-[#444]"
-            data-testid={`input-gallery-${i}`}
-          />
         </div>
       ))}
     </div>
