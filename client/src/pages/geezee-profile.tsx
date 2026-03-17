@@ -8,10 +8,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   User, Heart, UserPlus, UserMinus, Loader2, QrCode,
   MessageSquare, ChevronDown, ChevronUp, Send, ArrowLeft, ImageIcon, Zap,
-  Lock, Mail, CheckCircle2,
+  Lock, Mail, CheckCircle2, Shield, Eye, EyeOff,
 } from "lucide-react";
 import { SiFacebook, SiTiktok, SiInstagram, SiX, SiDiscord } from "react-icons/si";
 import type { GignessCard, ZeeMotion, ZeeMotionComment } from "@shared/schema";
@@ -516,6 +517,122 @@ export default function GeeZeeProfilePage() {
             myUserId={myUserId}
           />
         )}
+
+        {/* Security — only visible on own profile */}
+        {isAuthed && myUserId === userId && (
+          <SecurityPanel />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Security / Change Password panel ─────────────────────────────────────────
+function SecurityPanel() {
+  const { toast } = useToast();
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const changePwMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/auth/change-password", { currentPassword: currentPw, newPassword: newPw }),
+    onSuccess: () => {
+      toast({ title: "✅ Password updated", description: "Your password has been changed successfully." });
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+    },
+    onError: async (err: any) => {
+      let msg = "Could not update password.";
+      try { msg = JSON.parse(err?.message?.replace(/^\d+: /, ""))?.message ?? msg; } catch {}
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw.length < 8) return toast({ title: "Too short", description: "New password must be at least 8 characters.", variant: "destructive" });
+    if (newPw !== confirmPw) return toast({ title: "Mismatch", description: "New passwords don't match.", variant: "destructive" });
+    changePwMutation.mutate();
+  };
+
+  return (
+    <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden">
+      <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+      <div className="p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-purple-400" />
+          <h2 className="text-sm font-semibold text-white">Security</h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-[11px] text-[#666] font-medium uppercase tracking-wider">Current Password</label>
+            <div className="relative">
+              <Input
+                type={showCurrent ? "text" : "password"}
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Enter current password"
+                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-purple-600"
+                data-testid="input-current-password"
+              />
+              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
+                {showCurrent ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] text-[#666] font-medium uppercase tracking-wider">New Password</label>
+            <div className="relative">
+              <Input
+                type={showNew ? "text" : "password"}
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="Min. 8 characters"
+                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-purple-600"
+                data-testid="input-new-password"
+              />
+              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
+                {showNew ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] text-[#666] font-medium uppercase tracking-wider">Confirm New Password</label>
+            <div className="relative">
+              <Input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="Repeat new password"
+                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-purple-600"
+                data-testid="input-confirm-password"
+              />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
+                {showConfirm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          {newPw.length > 0 && confirmPw.length > 0 && (
+            <p className={`text-[11px] ${newPw === confirmPw ? "text-green-400" : "text-red-400"}`}>
+              {newPw === confirmPw ? "✓ Passwords match" : "Passwords don't match yet"}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={changePwMutation.isPending || !currentPw || !newPw || !confirmPw}
+            className="w-full h-9 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl"
+            data-testid="btn-change-password"
+          >
+            {changePwMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Lock className="h-3.5 w-3.5 mr-1.5" />Update Password</>}
+          </Button>
+        </form>
       </div>
     </div>
   );

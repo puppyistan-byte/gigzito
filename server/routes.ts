@@ -523,6 +523,20 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     req.session.destroy(() => res.redirect("/?signedout=1"));
   });
 
+  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ message: "Both current and new password are required." });
+    if (newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters." });
+    const userId = (req.session as any).userId;
+    const user = await storage.getUserById(userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const valid = await verifyPassword(currentPassword, user.password);
+    if (!valid) return res.status(401).json({ message: "Current password is incorrect." });
+    const hashed = await hashPassword(newPassword);
+    await storage.updateUserPassword(userId, hashed);
+    return res.json({ message: "Password updated successfully." });
+  });
+
   app.get(api.auth.me.path, async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.json(null);
