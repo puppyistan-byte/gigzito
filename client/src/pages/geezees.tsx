@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
-  Sparkles, MessageSquare, UserPlus, UserMinus, Loader2,
+  Sparkles, MessageSquare, UserPlus, UserMinus, Loader2, ArrowLeft,
 } from "lucide-react";
 import type { GignessCard } from "@shared/schema";
 
@@ -210,6 +210,17 @@ export default function GeezeesPage() {
       <Navbar />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 0" }}>
+        {/* Back to main */}
+        <Link href="/">
+          <button
+            className="flex items-center gap-1.5 text-xs text-[#555] hover:text-purple-400 transition-colors mb-5"
+            data-testid="btn-back-main"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Main Page
+          </button>
+        </Link>
+
         {/* Hero header */}
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div>
