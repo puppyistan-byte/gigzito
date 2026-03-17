@@ -1924,6 +1924,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(entries ?? []);
   });
 
+  app.get("/api/geezee/engage-leaderboard", async (_req, res) => {
+    const entries = await storage.getGeeZeeEngageLeaderboard(20);
+    return res.json(entries);
+  });
+
   // ── All Eyes On Me ──────────────────────────────────────────────────────────
 
   app.get("/api/all-eyes/active", async (_req, res) => {

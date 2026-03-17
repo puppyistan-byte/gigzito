@@ -3,6 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { LoveLeaderboardEntry } from "@shared/schema";
 
+type EngageEntry = {
+  userId: number;
+  displayName: string | null;
+  avatarUrl: string | null;
+  username: string | null;
+  engagementCount: number;
+};
+
 function currentMonthLabel(): string {
   return new Date().toLocaleString("default", { month: "long", year: "numeric" });
 }
@@ -10,11 +18,19 @@ function currentMonthLabel(): string {
 export function LoveLeaderboardPanel() {
   const [open, setOpen] = useState(false);
 
-  const { data: entries = [], isLoading } = useQuery<LoveLeaderboardEntry[]>({
+  const { data: loveEntries = [], isLoading: loveLoading } = useQuery<LoveLeaderboardEntry[]>({
     queryKey: ["/api/love/leaderboard"],
     queryFn: () => fetch("/api/love/leaderboard").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
     refetchInterval: 30000,
   });
+
+  const { data: engageEntries = [], isLoading: engageLoading } = useQuery<EngageEntry[]>({
+    queryKey: ["/api/geezee/engage-leaderboard"],
+    queryFn: () => fetch("/api/geezee/engage-leaderboard").then(r => r.json()).then(d => Array.isArray(d) ? d : []),
+    refetchInterval: 30000,
+  });
+
+  const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
   return (
     <>
@@ -25,7 +41,7 @@ export function LoveLeaderboardPanel() {
         style={{
           position: "fixed",
           top: "50%",
-          right: open ? "214px" : "0px",
+          right: open ? "280px" : "0px",
           transform: "translateY(-50%)",
           zIndex: 50,
           display: "flex",
@@ -39,7 +55,7 @@ export function LoveLeaderboardPanel() {
           WebkitBackdropFilter: "blur(14px)",
           border: "1px solid rgba(255,43,43,0.40)",
           borderRight: open ? "1px solid rgba(255,43,43,0.40)" : "none",
-          borderRadius: open ? "10px 0 0 10px" : "10px 0 0 10px",
+          borderRadius: "10px 0 0 10px",
           boxShadow: "-2px 0 18px rgba(255,43,43,0.12)",
           cursor: "pointer",
           transition: "right 0.3s cubic-bezier(0.4,0,0.2,1)",
@@ -71,13 +87,13 @@ export function LoveLeaderboardPanel() {
         style={{
           position: "fixed",
           top: "0",
-          right: open ? "0" : "-214px",
-          width: "214px",
+          right: open ? "0" : "-280px",
+          width: "280px",
           height: "100vh",
           zIndex: 49,
           display: "flex",
           flexDirection: "column",
-          background: "rgba(8,0,0,0.88)",
+          background: "rgba(8,0,0,0.92)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderLeft: "1px solid rgba(255,43,43,0.30)",
@@ -86,134 +102,136 @@ export function LoveLeaderboardPanel() {
           overflow: "hidden",
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: "20px 16px 12px",
-            borderBottom: "1px solid rgba(255,43,43,0.18)",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
-            <span style={{ fontSize: "16px" }}>😍</span>
-            <p
-              style={{
-                fontSize: "12px",
-                fontWeight: 800,
-                color: "#ff2b2b",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
-            >
-              Most Loved
-            </p>
-          </div>
-          <p style={{ fontSize: "9px", color: "rgba(255,43,43,0.50)", fontWeight: 600 }}>
-            Top 20 · {currentMonthLabel()}
-          </p>
-        </div>
+        <div style={{ overflowY: "auto", flex: 1 }}>
 
-        {/* List */}
-        <div style={{ overflowY: "auto", flex: 1, padding: "6px 0" }}>
-          {isLoading ? (
-            <div style={{ padding: "16px" }}>
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: "32px",
-                    borderRadius: "8px",
-                    background: "rgba(255,255,255,0.04)",
-                    marginBottom: "6px",
-                  }}
-                />
-              ))}
-            </div>
-          ) : entries.length === 0 ? (
-            <div style={{ padding: "24px 16px", textAlign: "center" }}>
-              <p style={{ color: "rgba(255,255,255,0.22)", fontSize: "10px", lineHeight: "1.6" }}>
-                No votes yet this month.<br />Be the first to Show Love! 😍
+          {/* ── Most Loved (video likes) ── */}
+          <div style={{ padding: "20px 16px 10px", borderBottom: "1px solid rgba(255,43,43,0.18)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+              <span style={{ fontSize: "15px" }}>😍</span>
+              <p style={{ fontSize: "11px", fontWeight: 800, color: "#ff2b2b", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Most Loved
               </p>
             </div>
-          ) : (
-            entries.map((entry, idx) => {
-              const rank = idx + 1;
-              const isTop3 = rank <= 3;
-              const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
-              const rankColor = isTop3 ? rankColors[idx] : "rgba(255,255,255,0.22)";
-              const initials = entry.displayName?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
-              const profilePath = entry.username ? `/provider/${entry.username}` : `/provider/${entry.providerId}`;
+            <p style={{ fontSize: "9px", color: "rgba(255,43,43,0.50)", fontWeight: 600 }}>
+              Top 20 · {currentMonthLabel()}
+            </p>
+          </div>
 
-              return (
-                <Link key={entry.providerId} href={profilePath}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "5px 14px",
-                      cursor: "pointer",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,43,43,0.08)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                    data-testid={`leaderboard-row-${entry.providerId}`}
-                  >
-                    <span
-                      style={{
-                        width: "16px",
-                        flexShrink: 0,
-                        fontSize: "9px",
-                        fontWeight: 700,
-                        color: rankColor,
-                        textAlign: "center",
-                      }}
-                    >
-                      {rank === 1 ? "👑" : rank}
-                    </span>
-
+          <div style={{ padding: "4px 0 8px" }}>
+            {loveLoading ? (
+              <div style={{ padding: "12px 16px" }}>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} style={{ height: "30px", borderRadius: "8px", background: "rgba(255,255,255,0.04)", marginBottom: "6px" }} />
+                ))}
+              </div>
+            ) : loveEntries.length === 0 ? (
+              <div style={{ padding: "16px", textAlign: "center" }}>
+                <p style={{ color: "rgba(255,255,255,0.22)", fontSize: "10px", lineHeight: "1.6" }}>
+                  No votes yet this month.<br />Be the first to Show Love! 😍
+                </p>
+              </div>
+            ) : (
+              loveEntries.map((entry, idx) => {
+                const rank = idx + 1;
+                const isTop3 = rank <= 3;
+                const rankColor = isTop3 ? rankColors[idx] : "rgba(255,255,255,0.22)";
+                const initials = entry.displayName?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
+                const profilePath = entry.username ? `/provider/${entry.username}` : `/provider/${entry.providerId}`;
+                return (
+                  <Link key={entry.providerId} href={profilePath}>
                     <div
-                      style={{
-                        width: "26px",
-                        height: "26px",
-                        borderRadius: "50%",
-                        overflow: "hidden",
-                        flexShrink: 0,
-                        background: "#2a0000",
-                        border: isTop3 ? `1.5px solid ${rankColor}` : "1.5px solid rgba(255,43,43,0.20)",
-                      }}
+                      style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px", cursor: "pointer", transition: "background 0.15s" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,43,43,0.08)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      data-testid={`leaderboard-row-${entry.providerId}`}
                     >
-                      {entry.avatarUrl ? (
-                        <img src={entry.avatarUrl} alt={entry.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff2b2b", fontSize: "8px", fontWeight: 700 }}>
-                          {initials}
-                        </div>
-                      )}
+                      <span style={{ width: "16px", flexShrink: 0, fontSize: "9px", fontWeight: 700, color: rankColor, textAlign: "center" }}>
+                        {rank === 1 ? "👑" : rank}
+                      </span>
+                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#2a0000", border: isTop3 ? `1.5px solid ${rankColor}` : "1.5px solid rgba(255,43,43,0.20)" }}>
+                        {entry.avatarUrl ? (
+                          <img src={entry.avatarUrl} alt={entry.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff2b2b", fontSize: "7px", fontWeight: 700 }}>{initials}</div>
+                        )}
+                      </div>
+                      <span style={{ flex: 1, fontSize: "10px", fontWeight: 600, color: isTop3 ? "#fff" : "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {entry.displayName}
+                      </span>
+                      <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: "#ff2b2b" }}>😍{entry.voteCount.toLocaleString()}</span>
                     </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
 
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: "10px",
-                        fontWeight: 600,
-                        color: isTop3 ? "#fff" : "rgba(255,255,255,0.65)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+          {/* ── GeeZee Engage Leaderboard ── */}
+          <div style={{ padding: "14px 16px 10px", borderTop: "1px solid rgba(147,51,234,0.20)", borderBottom: "1px solid rgba(147,51,234,0.20)", background: "rgba(88,28,135,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+              <span style={{ fontSize: "15px" }}>💜</span>
+              <p style={{ fontSize: "11px", fontWeight: 800, color: "#a855f7", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                GeeZee Engage
+              </p>
+            </div>
+            <p style={{ fontSize: "9px", color: "rgba(168,85,247,0.50)", fontWeight: 600 }}>
+              Top GeeZee cards by Engage count
+            </p>
+          </div>
+
+          <div style={{ padding: "4px 0 8px" }}>
+            {engageLoading ? (
+              <div style={{ padding: "12px 16px" }}>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} style={{ height: "30px", borderRadius: "8px", background: "rgba(255,255,255,0.04)", marginBottom: "6px" }} />
+                ))}
+              </div>
+            ) : engageEntries.filter(e => e.engagementCount > 0).length === 0 ? (
+              <div style={{ padding: "16px", textAlign: "center" }}>
+                <p style={{ color: "rgba(255,255,255,0.22)", fontSize: "10px", lineHeight: "1.6" }}>
+                  No engagements yet.<br />Hit Engage on a GeeZee card! 💜
+                </p>
+              </div>
+            ) : (
+              engageEntries.filter(e => e.engagementCount > 0).map((entry, idx) => {
+                const rank = idx + 1;
+                const isTop3 = rank <= 3;
+                const rankColor = isTop3 ? rankColors[idx] : "rgba(255,255,255,0.22)";
+                const initials = entry.displayName?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
+                const profilePath = entry.username ? `/geezee/${entry.userId}` : `/geezee/${entry.userId}`;
+                return (
+                  <Link key={entry.userId} href={profilePath}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 14px", cursor: "pointer", transition: "background 0.15s" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(147,51,234,0.08)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                      data-testid={`geezee-engage-row-${entry.userId}`}
                     >
-                      {entry.displayName}
-                    </span>
-
-                    <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: "#ff2b2b" }}>
-                      😍{entry.voteCount.toLocaleString()}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })
-          )}
+                      <span style={{ width: "16px", flexShrink: 0, fontSize: "9px", fontWeight: 700, color: rankColor, textAlign: "center" }}>
+                        {rank === 1 ? "👑" : rank}
+                      </span>
+                      <div style={{ width: "24px", height: "24px", borderRadius: "6px", overflow: "hidden", flexShrink: 0, background: "#1a0a2e", border: isTop3 ? `1.5px solid ${rankColor}` : "1.5px solid rgba(147,51,234,0.25)" }}>
+                        {entry.avatarUrl ? (
+                          <img src={entry.avatarUrl} alt={entry.displayName ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#a855f7", fontSize: "7px", fontWeight: 700 }}>{initials}</div>
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: "10px", fontWeight: 600, color: isTop3 ? "#fff" : "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {entry.displayName ?? "Unknown"}
+                        </span>
+                        {entry.username && (
+                          <span style={{ fontSize: "8px", color: "rgba(168,85,247,0.60)", fontFamily: "monospace" }}>@{entry.username}</span>
+                        )}
+                      </div>
+                      <span style={{ flexShrink: 0, fontSize: "9px", fontWeight: 700, color: "#a855f7" }}>❤️{entry.engagementCount.toLocaleString()}</span>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Footer */}

@@ -1788,6 +1788,29 @@ export class DatabaseStorage implements IStorage {
     await db.insert(geezeeFollows).values({ followerId, followingUserId }).onConflictDoNothing();
   }
 
+  async getGeeZeeEngageLeaderboard(limit = 20): Promise<{ userId: number; displayName: string | null; avatarUrl: string | null; username: string | null; engagementCount: number }[]> {
+    const rows = await db
+      .select({
+        userId: gignessCards.userId,
+        engagementCount: gignessCards.engagementCount,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(gignessCards)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, gignessCards.userId))
+      .where(eq(gignessCards.isPublic, true))
+      .orderBy(sql`${gignessCards.engagementCount} DESC`)
+      .limit(limit);
+    return rows.map(r => ({
+      userId: r.userId,
+      engagementCount: r.engagementCount,
+      displayName: r.displayName ?? null,
+      avatarUrl: r.avatarUrl ?? null,
+      username: r.username ?? null,
+    }));
+  }
+
   async unfollowUser(followerId: number, followingUserId: number): Promise<void> {
     await db.delete(geezeeFollows).where(and(eq(geezeeFollows.followerId, followerId), eq(geezeeFollows.followingUserId, followingUserId)));
   }
