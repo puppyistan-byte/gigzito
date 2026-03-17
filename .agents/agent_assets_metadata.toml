@@ -12,3 +12,9 @@ id = "ugU0MHWNjEoQsOLI4eb1o"
 uri = "file://GIGZITO_API.md"
 type = "text"
 title = "Gigzito Master API Reference"
+
+[[outputs]]
+id = "7G4m9kKcEh-J7rMX_WJC8"
+uri = "file://docs/geemotion-technical-standard.md"
+type = "text"
+title = "Geemotions Technical Standard v1.0"
