@@ -615,12 +615,28 @@ export class DatabaseStorage implements IStorage {
         card: gignessCards,
         username: providerProfiles.username,
         displayName: providerProfiles.displayName,
+        instagramUrl: providerProfiles.instagramUrl,
+        tiktokUrl: providerProfiles.tiktokUrl,
+        facebookUrl: providerProfiles.facebookUrl,
+        twitterUrl: providerProfiles.twitterUrl,
+        discordUrl: providerProfiles.discordUrl,
+        youtubeUrl: providerProfiles.youtubeUrl,
       })
       .from(gignessCards)
       .leftJoin(providerProfiles, eq(providerProfiles.userId, gignessCards.userId))
       .where(and(...conditions))
       .orderBy(sql`${gignessCards.engagementCount} DESC, ${gignessCards.createdAt} DESC`);
-    return rows.map((r) => ({ ...r.card, username: r.username ?? null, displayName: r.displayName ?? null }));
+    return rows.map((r) => ({
+      ...r.card,
+      username:     r.username     ?? null,
+      displayName:  r.displayName  ?? null,
+      instagramUrl: r.instagramUrl ?? null,
+      tiktokUrl:    r.tiktokUrl    ?? null,
+      facebookUrl:  r.facebookUrl  ?? null,
+      twitterUrl:   r.twitterUrl   ?? null,
+      discordUrl:   r.discordUrl   ?? null,
+      youtubeUrl:   r.youtubeUrl   ?? null,
+    }));
   }
 
   async incrementGignessEngagement(cardId: number): Promise<void> {

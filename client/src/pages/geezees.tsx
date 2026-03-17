@@ -10,6 +10,7 @@ import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
   Sparkles, MessageSquare, UserPlus, UserMinus, Loader2, ArrowLeft,
 } from "lucide-react";
+import { SiInstagram, SiTiktok, SiFacebook, SiX, SiDiscord, SiYoutube } from "react-icons/si";
 import type { GignessCard } from "@shared/schema";
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
@@ -120,6 +121,37 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
           </div>
         </div>
       </Link>
+
+      {/* Social icons strip */}
+      {(() => {
+        const c = card as any;
+        const links = [
+          c.instagramUrl && { href: c.instagramUrl, Icon: SiInstagram, color: "hover:text-pink-400",   label: "Instagram" },
+          c.tiktokUrl    && { href: c.tiktokUrl,    Icon: SiTiktok,    color: "hover:text-white",       label: "TikTok"    },
+          c.youtubeUrl   && { href: c.youtubeUrl,   Icon: SiYoutube,   color: "hover:text-red-500",     label: "YouTube"   },
+          c.facebookUrl  && { href: c.facebookUrl,  Icon: SiFacebook,  color: "hover:text-blue-400",    label: "Facebook"  },
+          c.twitterUrl   && { href: c.twitterUrl,   Icon: SiX,         color: "hover:text-white",       label: "X"         },
+          c.discordUrl   && { href: c.discordUrl,   Icon: SiDiscord,   color: "hover:text-indigo-400",  label: "Discord"   },
+        ].filter(Boolean) as { href: string; Icon: any; color: string; label: string }[];
+        if (!links.length) return null;
+        return (
+          <div className="flex items-center gap-2.5 px-3 pb-2">
+            {links.map(({ href, Icon, color, label }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={label}
+                onClick={(e) => e.stopPropagation()}
+                className={`text-[#444] transition-colors ${color}`}
+              >
+                <Icon size={11} />
+              </a>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Action bar */}
       <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-[#141414]">
