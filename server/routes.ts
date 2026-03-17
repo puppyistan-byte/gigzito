@@ -1103,8 +1103,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any).userId;
     const schema = z.object({
       slogan: z.string().max(120).optional(),
-      profilePic: z.string().url().nullable().optional(),
-      gallery: z.array(z.string().url()).max(6).optional(),
+      profilePic: z.string().nullable().optional(),
+      gallery: z.array(z.string()).max(6).optional(),
       isPublic: z.boolean().optional(),
       locationServicesEnabled: z.boolean().optional(),
       allowMessaging: z.boolean().optional(),
