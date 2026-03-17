@@ -15,9 +15,10 @@ import {
 import type { GignessCard } from "@shared/schema";
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
-  GZLurker: { label: "GZ Lurker",  color: "text-zinc-400",  border: "border-zinc-700" },
-  GZ_PLUS:  { label: "GZ+",        color: "text-purple-400", border: "border-purple-700" },
-  GZ_PRO:   { label: "GZ PRO",     color: "text-amber-400", border: "border-amber-600" },
+  GZLurker:     { label: "GZ Lurker",      color: "text-zinc-400",   border: "border-zinc-700" },
+  GZMarketer:   { label: "GZMarketer",     color: "text-blue-400",   border: "border-blue-700" },
+  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-purple-400", border: "border-purple-700" },
+  GZBusiness:   { label: "GZBusiness",     color: "text-amber-400",  border: "border-amber-600" },
 };
 
 const AGE_OPTIONS  = ["18-25", "25-40", "40+"];

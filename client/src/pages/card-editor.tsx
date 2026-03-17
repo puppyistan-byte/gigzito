@@ -20,10 +20,10 @@ import { Link } from "wouter";
 import type { GignessCard, ZeeMotion } from "@shared/schema";
 
 const TIER_META: Record<string, { label: string; color: string; desc: string }> = {
-  GZLurker: { label: "GZ Lurker", color: "text-zinc-400",  desc: "Create a card — but can't engage others yet." },
-  GZ2:      { label: "GZ2",       color: "text-blue-400",  desc: "Engage cards and send messages." },
-  GZ_PLUS:  { label: "GZ+",       color: "text-purple-400", desc: "Priority placement in the Rolodex." },
-  GZ_PRO:   { label: "GZ PRO",    color: "text-amber-400", desc: "Featured VIP row + analytics." },
+  GZLurker:     { label: "GZ Lurker",     color: "text-zinc-400",   desc: "Create a card — browsing only, can't engage others yet." },
+  GZMarketer:   { label: "GZMarketer",    color: "text-blue-400",   desc: "Engage cards, send messages & publish unlimited content." },
+  GZMarketerPro:{ label: "GZMarketerPro", color: "text-purple-400", desc: "Priority Rolodex placement + advanced targeting." },
+  GZBusiness:   { label: "GZBusiness",    color: "text-amber-400",  desc: "Featured VIP row, geo-push, audience aggregator & analytics." },
 };
 
 const AGE_OPTIONS  = ["18-25", "25-40", "40+"];

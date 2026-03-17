@@ -544,12 +544,12 @@ export default function AdminPage() {
     onError: () => toast({ title: "Error updating tier", variant: "destructive" }),
   });
 
-  const GZ_TIERS = ["GZLurker", "GZ2", "GZ_PLUS", "GZ_PRO"] as const;
+  const GZ_TIERS = ["GZLurker", "GZMarketer", "GZMarketerPro", "GZBusiness"] as const;
   const GZ_TIER_COLORS: Record<string, string> = {
-    GZLurker: "bg-zinc-500/20 text-zinc-400",
-    GZ2: "bg-blue-500/20 text-blue-400",
-    GZ_PLUS: "bg-purple-500/20 text-purple-400",
-    GZ_PRO: "bg-amber-500/20 text-amber-400",
+    GZLurker:     "bg-zinc-500/20 text-zinc-400",
+    GZMarketer:   "bg-blue-500/20 text-blue-400",
+    GZMarketerPro:"bg-purple-500/20 text-purple-400",
+    GZBusiness:   "bg-amber-500/20 text-amber-400",
   };
 
   const deleteUserMutation = useMutation({

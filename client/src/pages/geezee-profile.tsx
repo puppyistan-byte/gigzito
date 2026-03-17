@@ -28,9 +28,10 @@ type EnrichedCard = GignessCard & {
 };
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
-  GZLurker: { label: "GZ Lurker",  color: "text-zinc-400",  border: "border-zinc-700" },
-  GZ_PLUS:  { label: "GZ+",        color: "text-purple-400", border: "border-purple-700" },
-  GZ_PRO:   { label: "GZ PRO",     color: "text-amber-400", border: "border-amber-600" },
+  GZLurker:     { label: "GZ Lurker",      color: "text-zinc-400",   border: "border-zinc-700" },
+  GZMarketer:   { label: "GZMarketer",     color: "text-blue-400",   border: "border-blue-700" },
+  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-purple-400", border: "border-purple-700" },
+  GZBusiness:   { label: "GZBusiness",     color: "text-amber-400",  border: "border-amber-600" },
 };
 
 function timeAgo(d: string | Date) {
@@ -160,7 +161,7 @@ function PrivateMessagePanel({ card, myTier, isAuthed, myUserId }: {
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
 
-  const canSend = myTier === "GZ_PLUS" || myTier === "GZ_PRO";
+  const canSend = myTier === "GZMarketer" || myTier === "GZMarketerPro" || myTier === "GZBusiness";
   const isOwnCard = myUserId === card.userId;
 
   const sendMutation = useMutation({
@@ -211,9 +212,9 @@ function PrivateMessagePanel({ card, myTier, isAuthed, myUserId }: {
               <div className="flex items-start gap-2">
                 <Lock className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold text-white">GZ+ required</p>
+                  <p className="text-sm font-semibold text-white">GZMarketer required</p>
                   <p className="text-xs text-[#555] mt-1 leading-relaxed">
-                    Private messaging is available to <span className="text-purple-400 font-semibold">GZ+</span> and <span className="text-amber-400 font-semibold">GZ PRO</span> members. Upgrade to connect privately with GeeZees.
+                    Private messaging is available to <span className="text-blue-400 font-semibold">GZMarketer</span>, <span className="text-purple-400 font-semibold">GZMarketerPro</span>, and <span className="text-amber-400 font-semibold">GZBusiness</span> members. Upgrade to connect privately.
                   </p>
                   <a href="/membership">
                     <Button size="sm" className="mt-3 h-7 px-4 text-xs bg-purple-700 hover:bg-purple-600 text-white">

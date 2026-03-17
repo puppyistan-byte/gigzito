@@ -186,7 +186,7 @@ function requireSuperAdmin(req: any, res: any): boolean {
   return true;
 }
 
-async function requireGZ2(req: any, res: any): Promise<boolean> {
+async function requirePaidTier(req: any, res: any): Promise<boolean> {
   if (!req.session?.userId) {
     res.status(401).json({ message: "Not authenticated" });
     return false;
@@ -194,7 +194,7 @@ async function requireGZ2(req: any, res: any): Promise<boolean> {
   const user = await storage.getUserById(req.session.userId);
   const tier = user?.subscriptionTier ?? "GZLurker";
   if (tier === "GZLurker") {
-    res.status(403).json({ message: "Upgrade to GZ2 to engage!", upgradeRequired: true });
+    res.status(403).json({ message: "Upgrade to GZMarketer to engage!", upgradeRequired: true });
     return false;
   }
   return true;
@@ -1147,18 +1147,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Engage (requires GZ2+) — increments engagement count
+  // Engage (requires paid tier) — increments engagement count
   app.post("/api/gigness-cards/:id/engage", async (req, res) => {
-    if (!await requireGZ2(req, res)) return;
+    if (!await requirePaidTier(req, res)) return;
     const cardId = parseInt(req.params.id);
     if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
     await storage.incrementGignessEngagement(cardId);
     return res.json({ success: true });
   });
 
-  // Send message or emoji (requires GZ2+) with GZ-Bot scrub
+  // Send message or emoji (requires paid tier) with GZ-Bot scrub
   app.post("/api/gigness-cards/:id/message", async (req, res) => {
-    if (!await requireGZ2(req, res)) return;
+    if (!await requirePaidTier(req, res)) return;
     const fromUserId = (req.session as any).userId;
     const cardId = parseInt(req.params.id);
     if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
@@ -1785,7 +1785,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const { tier } = req.body;
-    const VALID_TIERS = ["GZLurker", "GZ2", "GZ_PLUS", "GZ_PRO"];
+    const VALID_TIERS = ["GZLurker", "GZMarketer", "GZMarketerPro", "GZBusiness"];
     if (!VALID_TIERS.includes(tier)) return res.status(400).json({ message: "Invalid tier. Must be one of: " + VALID_TIERS.join(", ") });
     await storage.updateSubscriptionTier(id, tier);
     const actorUserId = (req.session as any).userId;

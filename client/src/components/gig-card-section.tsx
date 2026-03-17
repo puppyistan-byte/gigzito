@@ -12,21 +12,21 @@ interface GigCardSectionProps {
 }
 
 const TIER_COLORS: Record<string, string> = {
-  GZLurker: "#555",
-  GZ2: "#a78bfa",
-  GZ_PLUS: "#f59e0b",
-  GZ_PRO: "#10b981",
+  GZLurker:     "#6b7280",
+  GZMarketer:   "#3b82f6",
+  GZMarketerPro:"#7c3aed",
+  GZBusiness:   "#f59e0b",
 };
 
 const TIER_LABELS: Record<string, string> = {
-  GZLurker: "GZ Lurker",
-  GZ2: "GZ2",
-  GZ_PLUS: "GZ Plus",
-  GZ_PRO: "GZ Pro",
+  GZLurker:     "GZ Lurker",
+  GZMarketer:   "GZMarketer",
+  GZMarketerPro:"GZMarketerPro",
+  GZBusiness:   "GZBusiness",
 };
 
 function GeeZeeCardPreview({ card }: { card: any }) {
-  const tier = card?.userId ? "GZ2" : "GZLurker";
+  const tier = card?.userId ? "GZMarketer" : "GZLurker";
   const tierColor = TIER_COLORS[tier] ?? "#555";
   const qrUrl = card?.qrUuid
     ? `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/geezees?card=${card.qrUuid}`)}`
