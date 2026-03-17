@@ -286,7 +286,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
           </div>
 
           {!hasCard && (
-            <p style={{ fontSize: 10, color: "#444", textAlign: "center", margin: 0 }}>
+            <p style={{ fontSize: 10, color: "#444", textAlign: "center", margin: "4px 8px 8px" }}>
               Your GeeZee Card is your social identity on the platform — create it to appear in the Rolodex and connect with others.
             </p>
           )}
