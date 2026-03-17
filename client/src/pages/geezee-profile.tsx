@@ -474,16 +474,6 @@ export default function GeeZeeProfilePage() {
           </div>
         )}
 
-        {/* Private message panel */}
-        {card && (
-          <PrivateMessagePanel
-            card={card}
-            myTier={myTier}
-            isAuthed={isAuthed}
-            myUserId={myUserId}
-          />
-        )}
-
         {/* Geemotions feed — hierarchical with comments */}
         {card && (
           <div>
@@ -515,6 +505,16 @@ export default function GeeZeeProfilePage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Private message panel */}
+        {card && (
+          <PrivateMessagePanel
+            card={card}
+            myTier={myTier}
+            isAuthed={isAuthed}
+            myUserId={myUserId}
+          />
         )}
       </div>
     </div>
