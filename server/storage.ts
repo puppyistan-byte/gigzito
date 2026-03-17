@@ -605,16 +605,22 @@ export class DatabaseStorage implements IStorage {
     return card;
   }
 
-  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<GignessCard[]> {
+  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<(GignessCard & { username: string | null; displayName: string | null })[]> {
     const conditions = [eq(gignessCards.isPublic, true)];
     if (filters?.ageBracket) conditions.push(eq(gignessCards.ageBracket, filters.ageBracket));
     if (filters?.gender) conditions.push(eq(gignessCards.gender, filters.gender));
     if (filters?.intent) conditions.push(eq(gignessCards.intent, filters.intent));
-    return db
-      .select()
+    const rows = await db
+      .select({
+        card: gignessCards,
+        username: providerProfiles.username,
+        displayName: providerProfiles.displayName,
+      })
       .from(gignessCards)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, gignessCards.userId))
       .where(and(...conditions))
       .orderBy(sql`${gignessCards.engagementCount} DESC, ${gignessCards.createdAt} DESC`);
+    return rows.map((r) => ({ ...r.card, username: r.username ?? null, displayName: r.displayName ?? null }));
   }
 
   async incrementGignessEngagement(cardId: number): Promise<void> {

@@ -101,6 +101,11 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                   {card.intent}
                 </span>
               )}
+              {(card as any).username && (
+                <span className="ml-auto text-[9px] font-mono text-purple-400/70 truncate max-w-[80px]">
+                  @{(card as any).username}
+                </span>
+              )}
             </div>
             {card.slogan && (
               <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-purple-200 transition-colors">
