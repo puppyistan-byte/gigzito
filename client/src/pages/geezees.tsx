@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
-  Sparkles, MessageSquare, Send, Radio,
+  Sparkles, MessageSquare, Send,
   ChevronDown, ChevronUp, AlertCircle, Info, UserPlus, UserMinus, Loader2,
 } from "lucide-react";
 import type { GignessCard } from "@shared/schema";
@@ -317,48 +317,6 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
   );
 }
 
-// ── Broadcast My GeeZee button (for logged-in users without a public card) ──
-function BroadcastBanner({ myCard }: { myCard: GignessCard | null | undefined }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-
-  const broadcastMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/gigness-cards/broadcast"),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/gigness-cards/mine"] });
-      qc.invalidateQueries({ queryKey: ["/api/gigness-cards"] });
-      toast({ title: "🎙️ Broadcasted!", description: "Your GeeZee Card is now live in the Rolodex." });
-    },
-    onError: () => toast({ title: "Error", description: "Could not broadcast.", variant: "destructive" }),
-  });
-
-  if (!myCard || myCard.isPublic) return null;
-
-  return (
-    <div className="rounded-xl bg-gradient-to-r from-purple-900/20 to-pink-900/10 border border-purple-800/40 p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
-      <div className="flex items-center gap-3">
-        <Radio className="h-4 w-4 text-purple-400 shrink-0 animate-pulse" />
-        <div>
-          <p className="text-sm font-semibold text-white">Your GeeZee Card is private</p>
-          <p className="text-xs text-[#666] mt-0.5">
-            Broadcast it to appear in the Rolodex and be discoverable.
-          </p>
-        </div>
-      </div>
-      <Button
-        size="sm"
-        onClick={() => broadcastMutation.mutate()}
-        disabled={broadcastMutation.isPending}
-        className="bg-purple-700 hover:bg-purple-600 text-white text-xs h-8 px-4 shrink-0"
-        data-testid="btn-broadcast-geezee"
-      >
-        <Radio className="h-3.5 w-3.5 mr-1.5" />
-        {broadcastMutation.isPending ? "Broadcasting…" : "Broadcast My GeeZee"}
-      </Button>
-    </div>
-  );
-}
-
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function GeezeesPage() {
   const { user: authData } = useAuth();
@@ -378,11 +336,6 @@ export default function GeezeesPage() {
     queryKey: ["/api/gigness-cards", filterAge, filterGender, filterIntent],
     queryFn: () =>
       fetch(`/api/gigness-cards?${params.toString()}`).then((r) => r.json()),
-  });
-
-  const { data: myCard } = useQuery<GignessCard | null>({
-    queryKey: ["/api/gigness-cards/mine"],
-    enabled: isAuthed,
   });
 
   const hasFilters = filterAge || filterGender || filterIntent;
@@ -422,9 +375,6 @@ export default function GeezeesPage() {
             )}
           </div>
         </div>
-
-        {/* Broadcast banner — shows when logged in but card is private */}
-        {isAuthed && <BroadcastBanner myCard={myCard} />}
 
         {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
