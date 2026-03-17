@@ -101,7 +101,7 @@ export function Navbar() {
           {myUserId && (
             <DropdownMenuItem
               className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5 text-zinc-300"
-              onClick={() => navigate(`/geezee/profile/${myUserId}?section=security`)}
+              onClick={() => navigate(`/geezee/${myUserId}?section=security`)}
               data-testid="menu-item-security"
             >
               <Lock className="h-4 w-4" />
