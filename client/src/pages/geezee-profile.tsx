@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   User, Heart, UserPlus, UserMinus, Loader2, QrCode,
   MessageSquare, ChevronDown, ChevronUp, Send, ArrowLeft, ImageIcon, Zap,
+  Lock, Mail, CheckCircle2,
 } from "lucide-react";
 import { SiFacebook, SiTiktok, SiInstagram, SiX, SiDiscord } from "react-icons/si";
 import type { GignessCard, ZeeMotion, ZeeMotionComment } from "@shared/schema";
@@ -147,6 +148,119 @@ function GeemotionCard({ motion, isAuthed, myDisplayName }: { motion: ZeeMotion;
   );
 }
 
+// ── Private Message Panel ────────────────────────────────────────────────────
+function PrivateMessagePanel({ card, myTier, isAuthed, myUserId }: {
+  card: EnrichedCard;
+  myTier: string;
+  isAuthed: boolean;
+  myUserId: number | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [sent, setSent] = useState(false);
+  const { toast } = useToast();
+
+  const canSend = myTier === "GZ_PLUS" || myTier === "GZ_PRO";
+  const isOwnCard = myUserId === card.userId;
+
+  const sendMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/gigness-cards/${card.id}/message`, { messageText: text.trim() }),
+    onSuccess: () => {
+      setText("");
+      setSent(true);
+      toast({ title: "Message sent!", description: "Only they can read it — completely private." });
+      setTimeout(() => setSent(false), 4000);
+    },
+    onError: (err: any) => {
+      toast({ title: "Could not send", description: err?.message ?? "Please try again.", variant: "destructive" });
+    },
+  });
+
+  if (!card.allowMessaging || isOwnCard) return null;
+
+  return (
+    <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#111] transition-colors"
+        onClick={() => setOpen(!open)}
+        data-testid="btn-toggle-private-message"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-teal-900/30 border border-teal-700/30 flex items-center justify-center">
+            <Lock className="h-3.5 w-3.5 text-teal-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-white">Send Private Message</p>
+            <p className="text-[11px] text-[#555]">Only visible to them — never public</p>
+          </div>
+        </div>
+        {open ? <ChevronUp className="h-4 w-4 text-[#444]" /> : <ChevronDown className="h-4 w-4 text-[#444]" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-3 border-t border-[#181818]">
+          {!isAuthed ? (
+            <div className="flex items-center gap-2 py-3 text-xs text-[#555]">
+              <Mail className="h-4 w-4 text-[#333]" />
+              <span>
+                <a href="/auth" className="text-purple-400 hover:text-purple-300">Sign in</a> to send a private message.
+              </span>
+            </div>
+          ) : !canSend ? (
+            <div className="rounded-xl bg-[#0a0a0a] border border-[#1e1e1e] p-4 mt-3">
+              <div className="flex items-start gap-2">
+                <Lock className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-white">GZ+ required</p>
+                  <p className="text-xs text-[#555] mt-1 leading-relaxed">
+                    Private messaging is available to <span className="text-purple-400 font-semibold">GZ+</span> and <span className="text-amber-400 font-semibold">GZ PRO</span> members. Upgrade to connect privately with GeeZees.
+                  </p>
+                  <a href="/membership">
+                    <Button size="sm" className="mt-3 h-7 px-4 text-xs bg-purple-700 hover:bg-purple-600 text-white">
+                      Upgrade now
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : sent ? (
+            <div className="flex items-center gap-2 py-4 text-sm text-teal-400">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Delivered privately — only they can see it.</span>
+            </div>
+          ) : (
+            <div className="space-y-2 mt-3">
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value.slice(0, 500))}
+                placeholder="Write your private message… (500 char limit, moderated by GZ-Bot)"
+                rows={4}
+                className="bg-[#0a0a0a] border-[#222] text-white placeholder-[#333] text-sm resize-none focus:border-teal-700/40"
+                data-testid="input-private-message"
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-[#3a3a3a]">{text.length}/500</span>
+                <Button
+                  size="sm"
+                  onClick={() => sendMutation.mutate()}
+                  disabled={!text.trim() || sendMutation.isPending}
+                  className="h-8 px-4 text-xs bg-teal-700 hover:bg-teal-600 text-white"
+                  data-testid="btn-send-private-message"
+                >
+                  {sendMutation.isPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <><Send className="h-3.5 w-3.5 mr-1.5" />Send privately</>
+                  }
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Social link icon button ─────────────────────────────────────────────────
 function SocialLink({ href, icon, label, color }: { href: string; icon: any; label: string; color: string }) {
   const Icon = icon;
@@ -171,6 +285,8 @@ export default function GeeZeeProfilePage() {
   const { user } = useAuth();
   const isAuthed = !!user;
   const myDisplayName = user?.profile?.displayName ?? user?.profile?.username ?? user?.user?.email?.split("@")[0] ?? "Guest";
+  const myTier = user?.user?.subscriptionTier ?? "GZLurker";
+  const myUserId = user?.user?.id ?? null;
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -372,6 +488,16 @@ export default function GeeZeeProfilePage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Private message panel */}
+        {card && (
+          <PrivateMessagePanel
+            card={card}
+            myTier={myTier}
+            isAuthed={isAuthed}
+            myUserId={myUserId}
+          />
         )}
 
         {/* Geemotions feed — hierarchical with comments */}
