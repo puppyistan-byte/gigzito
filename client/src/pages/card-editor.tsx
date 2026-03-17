@@ -237,9 +237,10 @@ export default function CardEditorPage() {
   const qc = useQueryClient();
 
   // Form state
-  const [slogan, setSlogan]         = useState("");
-  const [profilePic, setProfilePic] = useState("");
-  const [gallery, setGallery]       = useState<string[]>([]);
+  const [slogan, setSlogan]               = useState("");
+  const [profilePic, setProfilePic]       = useState("");
+  const [profilePicUploading, setProfilePicUploading] = useState(false);
+  const [gallery, setGallery]             = useState<string[]>([]);
   const [isPublic, setIsPublic]                           = useState(false);
   const [locationServicesEnabled, setLocationServices]    = useState(false);
   const [allowMessaging, setAllowMessaging]               = useState(true);
@@ -368,22 +369,85 @@ export default function CardEditorPage() {
 
             {/* Profile pic */}
             <div>
-              <Label className="text-xs text-[#888] mb-1.5 block">Profile Photo URL</Label>
-              <Input
-                value={profilePic}
-                onChange={(e) => { setProfilePic(e.target.value); markDirty(); }}
-                placeholder="https://your-image-url.com/photo.jpg"
-                className="bg-[#0d0d0d] border-[#1e1e1e] text-white placeholder-[#333] text-sm focus:border-purple-700/60"
-                data-testid="input-profile-pic"
-              />
-              {profilePic && (
-                <img
-                  src={profilePic}
-                  alt="Profile preview"
-                  className="mt-2 w-20 h-20 rounded-xl object-cover border border-[#222]"
-                  onError={(e) => { (e.target as HTMLImageElement).src = ""; }}
-                />
-              )}
+              <Label className="text-xs text-[#888] mb-1.5 block">Profile Photo</Label>
+              <div className="flex gap-2 items-start">
+                {/* Preview / placeholder */}
+                <div className="relative shrink-0 group">
+                  {profilePic ? (
+                    <div className="relative w-20 h-20">
+                      <img
+                        src={profilePic}
+                        alt="Profile preview"
+                        className="w-20 h-20 rounded-xl object-cover border border-[#2a2a2a]"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setProfilePic(""); markDirty(); }}
+                        className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 rounded-full p-0.5 shadow-md transition-colors"
+                        title="Remove photo"
+                        data-testid="btn-remove-profile-pic"
+                      >
+                        <Trash2 className="h-3 w-3 text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 rounded-xl border border-dashed border-[#2a2a2a] bg-[#0d0d0d] flex items-center justify-center">
+                      <User className="h-7 w-7 text-[#333]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* URL + upload controls */}
+                <div className="flex-1 space-y-2">
+                  <Input
+                    value={profilePic}
+                    onChange={(e) => { setProfilePic(e.target.value); markDirty(); }}
+                    placeholder="Paste image URL…"
+                    className="bg-[#0d0d0d] border-[#1e1e1e] text-white placeholder-[#333] text-sm focus:border-purple-700/60"
+                    data-testid="input-profile-pic"
+                  />
+                  <label
+                    className={`flex items-center justify-center gap-2 w-full py-2 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                      profilePicUploading
+                        ? "border-[#333] text-[#555] cursor-not-allowed"
+                        : "border-[#2a2a2a] text-[#666] hover:border-[#555] hover:text-[#999] hover:bg-[#111]"
+                    }`}
+                    data-testid="btn-upload-profile-pic"
+                  >
+                    {profilePicUploading ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                    ) : (
+                      <><Upload className="h-3.5 w-3.5" /> Upload from device</>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      disabled={profilePicUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        e.target.value = "";
+                        setProfilePicUploading(true);
+                        try {
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          const res = await fetch("/api/upload/image", { method: "POST", credentials: "include", body: fd });
+                          if (!res.ok) throw new Error();
+                          const { url } = await res.json();
+                          setProfilePic(url);
+                          markDirty();
+                        } catch {
+                          toast({ title: "Upload failed", description: "Could not upload photo.", variant: "destructive" });
+                        } finally {
+                          setProfilePicUploading(false);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
             {/* Gallery */}
