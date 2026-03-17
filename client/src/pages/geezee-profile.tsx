@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import {
   User, Heart, UserPlus, UserMinus, Loader2, QrCode,
   MessageSquare, ChevronDown, ChevronUp, Send, ArrowLeft, ImageIcon, Zap,
-  Lock, Mail, CheckCircle2, Shield, Eye, EyeOff,
+  Lock, Mail, CheckCircle2, Shield, Eye, EyeOff, Bell,
 } from "lucide-react";
 import { SiFacebook, SiTiktok, SiInstagram, SiX, SiDiscord } from "react-icons/si";
 import type { GignessCard, ZeeMotion, ZeeMotionComment } from "@shared/schema";
@@ -518,10 +518,149 @@ export default function GeeZeeProfilePage() {
           />
         )}
 
+        {/* My Presenter Subscriptions — only visible on own profile */}
+        {isAuthed && myUserId === userId && (
+          <MyContactListsPanel />
+        )}
+
         {/* Security — only visible on own profile */}
         {isAuthed && myUserId === userId && (
           <SecurityPanel />
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── My Contact Lists (Presenter Opt-In Management) ───────────────────────────
+function MyContactListsPanel() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [lookupResult, setLookupResult] = useState<{ userId: number; displayName: string | null; username: string; avatarUrl: string | null } | null>(null);
+  const [lookupError, setLookupError] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+
+  const { data: optIns = [], isLoading } = useQuery<{ id: number; presenterUserId: number; displayName: string | null; username: string | null; avatarUrl: string | null; optedInAt: string }[]>({
+    queryKey: ["/api/presenter-contacts/mine"],
+  });
+
+  const optOutMutation = useMutation({
+    mutationFn: (presenterUserId: number) => apiRequest("DELETE", `/api/presenter-contacts/opt-out/${presenterUserId}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/presenter-contacts/mine"] });
+      toast({ title: "Removed", description: "You've been removed from that presenter's contact list." });
+    },
+    onError: () => toast({ title: "Error", description: "Could not remove. Try again.", variant: "destructive" }),
+  });
+
+  const handleLookup = async () => {
+    if (!search.trim()) return;
+    setLookupError(""); setLookupResult(null); setLookupLoading(true);
+    try {
+      const r = await fetch(`/api/presenter-contacts/lookup?username=${encodeURIComponent(search.trim())}`);
+      if (!r.ok) { setLookupError("No paid presenter found with that username."); return; }
+      const data = await r.json();
+      setLookupResult(data);
+    } catch { setLookupError("Search failed. Try again."); }
+    finally { setLookupLoading(false); }
+  };
+
+  return (
+    <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden">
+      <div className="h-0.5 w-full bg-gradient-to-r from-pink-500/60 to-purple-500/40" />
+      <div className="p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-pink-400" />
+          <h2 className="text-sm font-semibold text-white">My Presenter Subscriptions</h2>
+          {optIns.length > 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#ec489922", color: "#f472b6", border: "1px solid #ec489944" }}>{optIns.length}</span>
+          )}
+        </div>
+        <p className="text-[11px] text-[#555] leading-relaxed">These presenters can contact you via email and app notifications. Remove yourself anytime.</p>
+
+        {/* Active opt-ins */}
+        {isLoading ? (
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 bg-[#111] rounded-lg animate-pulse" />)}</div>
+        ) : optIns.length === 0 ? (
+          <div className="rounded-xl bg-[#0b0b0b] border border-[#1a1a1a] p-4 text-center">
+            <p className="text-[#555] text-xs">You haven't engaged with any paid presenters yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {optIns.map((o) => (
+              <div key={o.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0b0b0b] border border-[#1a1a1a]" data-testid={`row-optin-${o.presenterUserId}`}>
+                {o.avatarUrl ? (
+                  <img src={o.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0"><User className="h-4 w-4 text-[#444]" /></div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white font-medium truncate">{o.displayName ?? o.username ?? "Unknown"}</p>
+                  <p className="text-[10px] text-[#555]">@{o.username} · since {new Date(o.optedInAt).toLocaleDateString()}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => optOutMutation.mutate(o.presenterUserId)}
+                  disabled={optOutMutation.isPending}
+                  className="h-7 px-2.5 text-[10px] border-red-900/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 shrink-0"
+                  data-testid={`btn-optout-${o.presenterUserId}`}
+                >
+                  {optOutMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Username lookup */}
+        <div className="pt-1 border-t border-[#1a1a1a]">
+          <p className="text-[11px] text-[#555] mb-2 font-medium uppercase tracking-wider">Find Presenter by Username</p>
+          <div className="flex gap-2">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleLookup()}
+              placeholder="Enter username..."
+              className="bg-[#111] border-[#222] text-white placeholder:text-[#444] focus:border-purple-600 h-8 text-xs flex-1"
+              data-testid="input-lookup-presenter"
+            />
+            <Button
+              size="sm"
+              onClick={handleLookup}
+              disabled={lookupLoading || !search.trim()}
+              className="h-8 px-3 bg-purple-800 hover:bg-purple-700 text-white text-xs"
+              data-testid="btn-lookup-presenter"
+            >
+              {lookupLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
+            </Button>
+          </div>
+          {lookupError && <p className="text-red-400 text-[11px] mt-1">{lookupError}</p>}
+          {lookupResult && (
+            <div className="flex items-center gap-3 mt-2 p-2.5 rounded-xl bg-[#0b0b0b] border border-[#1a1a1a]">
+              {lookupResult.avatarUrl ? (
+                <img src={lookupResult.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0"><User className="h-4 w-4 text-[#444]" /></div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white font-medium truncate">{lookupResult.displayName ?? lookupResult.username}</p>
+                <p className="text-[10px] text-[#555]">@{lookupResult.username}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { optOutMutation.mutate(lookupResult.userId); setLookupResult(null); setSearch(""); }}
+                disabled={optOutMutation.isPending}
+                className="h-7 px-2.5 text-[10px] border-red-900/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 shrink-0"
+                data-testid="btn-optout-lookup"
+              >
+                Remove Me
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

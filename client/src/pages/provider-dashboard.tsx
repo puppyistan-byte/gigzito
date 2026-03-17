@@ -36,7 +36,7 @@ import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
-  Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard,
+  Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
@@ -388,6 +388,10 @@ function ProviderDashboardInner() {
   const { data: audienceBroadcasts = [] } = useQuery<AudienceBroadcast[]>({
     queryKey: ["/api/my-audience/broadcasts"],
     enabled: !!user,
+  });
+
+  const { data: presenterContacts = [] } = useQuery<{ id: number; memberUserId: number; displayName: string | null; username: string | null; email: string; optedInAt: string }[]>({
+    queryKey: ["/api/presenter-contacts/my-contacts"],
   });
 
   const { data: geoCampaigns = [] } = useQuery<GeoTargetCampaign[]>({
@@ -1112,6 +1116,61 @@ function ProviderDashboardInner() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Presenter Contacts ─── */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="h-4 w-4 text-pink-400" />
+            <h2 className="text-sm font-semibold text-white" data-testid="text-presenter-contacts-title">My Audience Contacts</h2>
+            {presenterContacts.length > 0 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#ec489922", color: "#f472b6", border: "1px solid #ec489944" }}>
+                {presenterContacts.length}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-[#555] mb-3">Users who opted in to receive your contact messages when they engaged with your card.</p>
+          {presenterContacts.length === 0 ? (
+            <div className="rounded-xl bg-[#070707] border border-[#181818] p-4 text-center" data-testid="card-no-presenter-contacts">
+              <Bell className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-xs">No subscribers yet. When users engage with your GeeZee card and opt in, they'll appear here.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-[#070707] border border-[#181818] p-3" data-testid="card-presenter-contacts">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-[#555] uppercase tracking-wider">{presenterContacts.length} Subscriber{presenterContacts.length !== 1 ? "s" : ""}</p>
+                <button
+                  onClick={() => {
+                    const rows = [["Name", "Username", "Email", "Opted In"]];
+                    presenterContacts.forEach(c => rows.push([c.displayName ?? "", c.username ?? "", c.email, new Date(c.optedInAt).toLocaleDateString()]));
+                    const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+                    const a = document.createElement("a"); a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv); a.download = "presenter_contacts.csv"; a.click();
+                  }}
+                  className="text-[10px] text-[#555] hover:text-white flex items-center gap-1 transition-colors"
+                  data-testid="btn-export-presenter-contacts"
+                >
+                  <Download className="h-3 w-3" /> Export CSV
+                </button>
+              </div>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#2a2a2a transparent" }}>
+                {presenterContacts.slice(0, 50).map((c) => (
+                  <div key={c.id} className="flex items-center gap-2.5 py-1.5 border-b border-[#111] last:border-0" data-testid={`row-presenter-contact-${c.id}`}>
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30 flex items-center justify-center shrink-0">
+                      <span className="text-[9px] font-bold text-pink-300">{(c.displayName ?? c.username ?? c.email)[0]?.toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] text-white font-medium truncate">{c.displayName ?? c.username ?? c.email}</p>
+                      <p className="text-[10px] text-[#555] truncate">{c.email}</p>
+                    </div>
+                    <span className="text-[9px] text-[#444] shrink-0">{new Date(c.optedInAt).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {presenterContacts.length > 50 && (
+                  <p className="text-center text-[10px] text-[#444] pt-1">+{presenterContacts.length - 50} more (export CSV for full list)</p>
+                )}
               </div>
             </div>
           )}

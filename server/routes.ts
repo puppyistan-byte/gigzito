@@ -2490,6 +2490,78 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ following, followerCount });
   });
 
+  // === PRESENTER CONTACTS (Engage Opt-In) ===
+  const PAID_TIERS = ["GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
+
+  app.post("/api/presenter-contacts/opt-in/:presenterUserId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const memberUserId = (req.session as any).userId;
+    const presenterUserId = parseInt(req.params.presenterUserId);
+    if (isNaN(presenterUserId)) return res.status(400).json({ message: "Invalid presenter ID" });
+    if (memberUserId === presenterUserId) return res.status(400).json({ message: "Cannot opt into yourself" });
+    const presenter = await storage.getUserById(presenterUserId);
+    if (!presenter || !PAID_TIERS.includes(presenter.subscriptionTier)) return res.status(403).json({ message: "Presenter is not a paid marketer" });
+    await storage.optInToPresenter(presenterUserId, memberUserId);
+    return res.json({ ok: true });
+  });
+
+  app.delete("/api/presenter-contacts/opt-out/:presenterUserId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const memberUserId = (req.session as any).userId;
+    const presenterUserId = parseInt(req.params.presenterUserId);
+    if (isNaN(presenterUserId)) return res.status(400).json({ message: "Invalid presenter ID" });
+    await storage.optOutFromPresenter(presenterUserId, memberUserId);
+    return res.json({ ok: true });
+  });
+
+  app.get("/api/presenter-contacts/status/:presenterUserId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const memberUserId = (req.session as any).userId;
+    const presenterUserId = parseInt(req.params.presenterUserId);
+    if (isNaN(presenterUserId)) return res.status(400).json({ message: "Invalid presenter ID" });
+    const optedIn = await storage.getOptInStatus(presenterUserId, memberUserId);
+    return res.json({ optedIn });
+  });
+
+  app.get("/api/presenter-contacts/mine", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const memberUserId = (req.session as any).userId;
+    const optIns = await storage.getMemberOptIns(memberUserId);
+    return res.json(optIns);
+  });
+
+  app.get("/api/presenter-contacts/my-list", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const presenterUserId = (req.session as any).userId;
+    const presenter = await storage.getUserById(presenterUserId);
+    if (!presenter || !PAID_TIERS.includes(presenter.subscriptionTier)) {
+      return res.status(403).json({ message: "Only paid presenters can view their contact list" });
+    }
+    const contacts = await storage.getPresenterContacts(presenterUserId);
+    return res.json(contacts);
+  });
+
+  app.get("/api/presenter-contacts/my-contacts", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const presenterUserId = (req.session as any).userId;
+    const presenter = await storage.getUserById(presenterUserId);
+    if (!presenter || !PAID_TIERS.includes(presenter.subscriptionTier)) {
+      return res.json([]);
+    }
+    const contacts = await storage.getPresenterContacts(presenterUserId);
+    return res.json(contacts);
+  });
+
+  app.get("/api/presenter-contacts/lookup", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const username = req.query.username as string;
+    if (!username) return res.status(400).json({ message: "username required" });
+    const presenter = await storage.getPresenterByUsername(username);
+    if (!presenter) return res.status(404).json({ message: "Presenter not found" });
+    if (!PAID_TIERS.includes(presenter.subscriptionTier)) return res.status(404).json({ message: "No paid presenter found with that username" });
+    return res.json(presenter);
+  });
+
   // === SPONSOR ADS (ADMIN) ===
   app.get("/api/admin/sponsor-ads", async (req, res) => {
     if (!requireAdmin(req, res)) return;

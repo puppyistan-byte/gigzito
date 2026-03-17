@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -74,6 +74,12 @@ export interface IStorage {
   getGignessCardByQrUuid(qrUuid: string): Promise<GignessCard | undefined>;
   getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<GignessCard[]>;
   incrementGignessEngagement(cardId: number): Promise<void>;
+  optInToPresenter(presenterUserId: number, memberUserId: number): Promise<void>;
+  optOutFromPresenter(presenterUserId: number, memberUserId: number): Promise<void>;
+  getPresenterContacts(presenterUserId: number): Promise<{ id: number; memberUserId: number; email: string; displayName: string | null; username: string | null; optedInAt: Date }[]>;
+  getMemberOptIns(memberUserId: number): Promise<{ id: number; presenterUserId: number; displayName: string | null; username: string | null; avatarUrl: string | null; optedInAt: Date }[]>;
+  getOptInStatus(presenterUserId: number, memberUserId: number): Promise<boolean>;
+  getPresenterByUsername(username: string): Promise<{ userId: number; displayName: string | null; username: string; avatarUrl: string | null; subscriptionTier: string } | null>;
   updateSubscriptionTier(userId: number, tier: string): Promise<void>;
 
   // Card Messages
@@ -610,7 +616,7 @@ export class DatabaseStorage implements IStorage {
     return card;
   }
 
-  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<(GignessCard & { username: string | null; displayName: string | null })[]> {
+  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<(GignessCard & { username: string | null; displayName: string | null; userTier: string | null })[]> {
     const conditions = [eq(gignessCards.isPublic, true)];
     if (filters?.ageBracket) conditions.push(eq(gignessCards.ageBracket, filters.ageBracket));
     if (filters?.gender) conditions.push(eq(gignessCards.gender, filters.gender));
@@ -626,9 +632,11 @@ export class DatabaseStorage implements IStorage {
         twitterUrl: providerProfiles.twitterUrl,
         discordUrl: providerProfiles.discordUrl,
         youtubeUrl: providerProfiles.youtubeUrl,
+        userTier: users.subscriptionTier,
       })
       .from(gignessCards)
       .leftJoin(providerProfiles, eq(providerProfiles.userId, gignessCards.userId))
+      .leftJoin(users, eq(users.id, gignessCards.userId))
       .where(and(...conditions))
       .orderBy(sql`${gignessCards.engagementCount} DESC, ${gignessCards.createdAt} DESC`);
     return rows.map((r) => ({
@@ -641,6 +649,7 @@ export class DatabaseStorage implements IStorage {
       twitterUrl:   r.twitterUrl   ?? null,
       discordUrl:   r.discordUrl   ?? null,
       youtubeUrl:   r.youtubeUrl   ?? null,
+      userTier:     r.userTier     ?? null,
     }));
   }
 
@@ -649,6 +658,82 @@ export class DatabaseStorage implements IStorage {
       .update(gignessCards)
       .set({ engagementCount: sql`${gignessCards.engagementCount} + 1` })
       .where(eq(gignessCards.id, cardId));
+  }
+
+  async optInToPresenter(presenterUserId: number, memberUserId: number): Promise<void> {
+    await db
+      .insert(presenterContacts)
+      .values({ presenterUserId, memberUserId, active: true, optedInAt: new Date(), optedOutAt: null })
+      .onConflictDoUpdate({
+        target: [presenterContacts.presenterUserId, presenterContacts.memberUserId],
+        set: { active: true, optedInAt: new Date(), optedOutAt: null },
+      });
+  }
+
+  async optOutFromPresenter(presenterUserId: number, memberUserId: number): Promise<void> {
+    await db
+      .update(presenterContacts)
+      .set({ active: false, optedOutAt: new Date() })
+      .where(and(eq(presenterContacts.presenterUserId, presenterUserId), eq(presenterContacts.memberUserId, memberUserId)));
+  }
+
+  async getPresenterContacts(presenterUserId: number): Promise<{ id: number; memberUserId: number; email: string; displayName: string | null; username: string | null; optedInAt: Date }[]> {
+    const rows = await db
+      .select({
+        id: presenterContacts.id,
+        memberUserId: presenterContacts.memberUserId,
+        email: users.email,
+        displayName: providerProfiles.displayName,
+        username: providerProfiles.username,
+        optedInAt: presenterContacts.optedInAt,
+      })
+      .from(presenterContacts)
+      .innerJoin(users, eq(users.id, presenterContacts.memberUserId))
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, presenterContacts.memberUserId))
+      .where(and(eq(presenterContacts.presenterUserId, presenterUserId), eq(presenterContacts.active, true)))
+      .orderBy(desc(presenterContacts.optedInAt));
+    return rows.map((r) => ({ ...r, email: r.email }));
+  }
+
+  async getMemberOptIns(memberUserId: number): Promise<{ id: number; presenterUserId: number; displayName: string | null; username: string | null; avatarUrl: string | null; optedInAt: Date }[]> {
+    const rows = await db
+      .select({
+        id: presenterContacts.id,
+        presenterUserId: presenterContacts.presenterUserId,
+        displayName: providerProfiles.displayName,
+        username: providerProfiles.username,
+        avatarUrl: providerProfiles.avatarUrl,
+        optedInAt: presenterContacts.optedInAt,
+      })
+      .from(presenterContacts)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, presenterContacts.presenterUserId))
+      .where(and(eq(presenterContacts.memberUserId, memberUserId), eq(presenterContacts.active, true)))
+      .orderBy(desc(presenterContacts.optedInAt));
+    return rows;
+  }
+
+  async getOptInStatus(presenterUserId: number, memberUserId: number): Promise<boolean> {
+    const [row] = await db
+      .select({ active: presenterContacts.active })
+      .from(presenterContacts)
+      .where(and(eq(presenterContacts.presenterUserId, presenterUserId), eq(presenterContacts.memberUserId, memberUserId)));
+    return row?.active === true;
+  }
+
+  async getPresenterByUsername(username: string): Promise<{ userId: number; displayName: string | null; username: string; avatarUrl: string | null; subscriptionTier: string } | null> {
+    const [row] = await db
+      .select({
+        userId: providerProfiles.userId,
+        displayName: providerProfiles.displayName,
+        username: providerProfiles.username,
+        avatarUrl: providerProfiles.avatarUrl,
+        subscriptionTier: users.subscriptionTier,
+      })
+      .from(providerProfiles)
+      .innerJoin(users, eq(users.id, providerProfiles.userId))
+      .where(eq(providerProfiles.username, username));
+    if (!row) return null;
+    return row;
   }
 
   async updateSubscriptionTier(userId: number, tier: string): Promise<void> {

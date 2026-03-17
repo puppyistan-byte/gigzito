@@ -870,3 +870,22 @@ export const geoTargetCampaigns = pgTable("geo_target_campaigns", {
 
 export type GeoTargetCampaign = typeof geoTargetCampaigns.$inferSelect;
 export type InsertGeoTargetCampaign = typeof geoTargetCampaigns.$inferInsert;
+
+// ─── Presenter Contacts (Engage Opt-In) ───────────────────────────────────────
+export const presenterContacts = pgTable(
+  "presenter_contacts",
+  {
+    id: serial("id").primaryKey(),
+    presenterUserId: integer("presenter_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    memberUserId: integer("member_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    active: boolean("active").notNull().default(true),
+    optedInAt: timestamp("opted_in_at").defaultNow().notNull(),
+    optedOutAt: timestamp("opted_out_at"),
+  },
+  (t) => ({
+    uniq: unique("presenter_contacts_unique").on(t.presenterUserId, t.memberUserId),
+  })
+);
+
+export type PresenterContact = typeof presenterContacts.$inferSelect;
+export type InsertPresenterContact = typeof presenterContacts.$inferInsert;

@@ -3,15 +3,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
-  Sparkles, MessageSquare, UserPlus, UserMinus, Loader2, ArrowLeft,
+  Sparkles, MessageSquare, UserPlus, UserMinus, Loader2, ArrowLeft, Bell,
 } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook, SiX, SiDiscord, SiYoutube } from "react-icons/si";
 import type { GignessCard } from "@shared/schema";
+
+const PAID_TIERS = ["GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
   GZLurker:     { label: "GZ Lurker",      color: "text-zinc-400",   border: "border-zinc-700" },
@@ -29,13 +32,20 @@ const INTENT_OPTIONS = [
 ];
 
 // ── GeeZee Card tile ───────────────────────────────────────────────────────
-function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: string; isAuthed: boolean }) {
+function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; myTier: string; isAuthed: boolean; myUserId: number | null }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [, navigate] = useLocation();
   const cardTier = TIER_META[(card as any).userTier ?? "GZLurker"] ?? TIER_META.GZLurker;
-  const canEngage = isAuthed;
   const cardUserId = card.userId;
+  const isPaidPresenter = PAID_TIERS.includes((card as any).userTier ?? "");
+  const isOwnCard = myUserId === cardUserId;
+  const [showConsent, setShowConsent] = useState(false);
+
+  const optInMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/presenter-contacts/opt-in/${cardUserId}`, {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/presenter-contacts/mine"] }); },
+  });
 
   const engageMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/gigness-cards/${card.id}/engage`),
@@ -47,6 +57,28 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
       toast({ title: "Error", description: "Could not engage. Try again.", variant: "destructive" });
     },
   });
+
+  const { data: optInStatus } = useQuery<{ optedIn: boolean }>({
+    queryKey: ["/api/presenter-contacts/status", cardUserId],
+    queryFn: () => fetch(`/api/presenter-contacts/status/${cardUserId}`).then((r) => r.json()),
+    enabled: isAuthed && isPaidPresenter && !isOwnCard,
+  });
+
+  const handleEngageClick = () => {
+    if (!isAuthed) return;
+    if (isPaidPresenter && !isOwnCard && !optInStatus?.optedIn) {
+      setShowConsent(true);
+    } else {
+      engageMutation.mutate();
+    }
+  };
+
+  const handleConsentAccept = () => {
+    setShowConsent(false);
+    optInMutation.mutate();
+    engageMutation.mutate();
+    toast({ title: "✅ You're on their list!", description: `${(card as any).displayName ?? "This presenter"} can now contact you.` });
+  };
 
   const { data: followStatus } = useQuery<{ following: boolean }>({
     queryKey: ["/api/geezee-follows/status", cardUserId],
@@ -200,12 +232,20 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             <Button
               size="sm"
               variant="outline"
-              className="h-6 px-2 text-[10px] font-semibold border-pink-700/40 text-pink-400 hover:bg-pink-900/20 hover:text-pink-300 hover:border-pink-600/60 transition-all"
-              onClick={() => engageMutation.mutate()}
-              disabled={engageMutation.isPending}
+              className={`h-6 px-2 text-[10px] font-semibold transition-all ${
+                isPaidPresenter && !isOwnCard && optInStatus?.optedIn
+                  ? "border-pink-600/70 text-pink-300 bg-pink-900/20 hover:bg-pink-900/40"
+                  : "border-pink-700/40 text-pink-400 hover:bg-pink-900/20 hover:text-pink-300 hover:border-pink-600/60"
+              }`}
+              onClick={handleEngageClick}
+              disabled={engageMutation.isPending || optInMutation.isPending}
               data-testid={`btn-engage-${card.id}`}
             >
-              {engageMutation.isPending ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <><Heart className="h-2.5 w-2.5 mr-0.5" />Engage</>}
+              {engageMutation.isPending || optInMutation.isPending
+                ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                : isPaidPresenter && !isOwnCard && optInStatus?.optedIn
+                  ? <><Bell className="h-2.5 w-2.5 mr-0.5" />Engaged</>
+                  : <><Heart className="h-2.5 w-2.5 mr-0.5" />Engage</>}
             </Button>
           </>
         ) : (
@@ -216,6 +256,43 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
           </Link>
         )}
       </div>
+
+      {/* Consent Dialog */}
+      <Dialog open={showConsent} onOpenChange={setShowConsent}>
+        <DialogContent className="bg-[#0d0d0d] border border-[#2a2a2a] text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Bell className="h-4 w-4 text-pink-400" />
+              Allow Contact from this Presenter?
+            </DialogTitle>
+            <DialogDescription className="text-[#888] text-sm leading-relaxed pt-1">
+              By engaging with <span className="text-purple-300 font-semibold">{(card as any).displayName ?? "this presenter"}</span>, you agree to allow them to contact you via email and app notifications.
+              <br /><br />
+              You can remove yourself from their contact list at any time from your profile settings.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConsent(false)}
+              className="flex-1 border-[#333] text-[#777] hover:text-white hover:border-[#555] bg-transparent"
+              data-testid="btn-consent-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConsentAccept}
+              className="flex-1 bg-pink-700 hover:bg-pink-600 text-white font-semibold"
+              data-testid="btn-consent-accept"
+            >
+              <Heart className="h-3.5 w-3.5 mr-1.5" />
+              Engage & Agree
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -225,6 +302,7 @@ export default function GeezeesPage() {
   const { user: authData } = useAuth();
   const myTier = authData?.user?.subscriptionTier ?? "GZLurker";
   const isAuthed = !!authData;
+  const myUserId = authData?.user?.id ?? null;
 
   const [filterAge, setFilterAge]     = useState("");
   const [filterGender, setFilterGender] = useState("");
@@ -386,7 +464,7 @@ export default function GeezeesPage() {
           >
             {cards.map((card) => (
               <div key={card.id} className="w-72 shrink-0">
-                <GeeZeeCard card={card} myTier={myTier} isAuthed={isAuthed} />
+                <GeeZeeCard card={card} myTier={myTier} isAuthed={isAuthed} myUserId={myUserId} />
               </div>
             ))}
           </div>
