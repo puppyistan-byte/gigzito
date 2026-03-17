@@ -773,47 +773,128 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
                 {showShareMenu && (() => {
                   const watchUrl = getWatchableUrl(listing.videoUrl ?? "");
+                  const shareTitle = `${listing.title} — ${listing.provider.displayName}`;
+                  const shareText = `Check this out on Gigzito: ${shareTitle}`;
+
                   const handleCopyLink = () => {
                     navigator.clipboard.writeText(watchUrl).then(() => {
                       setLinkCopied(true);
                       setTimeout(() => setLinkCopied(false), 2000);
                     });
                   };
+
+                  const handleNativeShare = () => {
+                    if (navigator.share) {
+                      navigator.share({ title: shareTitle, text: shareText, url: watchUrl }).catch(() => {});
+                    }
+                  };
+
+                  const enc = encodeURIComponent;
+                  const SHARE_PLATFORMS = [
+                    {
+                      label: "SMS",
+                      color: "#22c55e",
+                      href: `sms:?body=${enc(shareText + " " + watchUrl)}`,
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                      ),
+                    },
+                    {
+                      label: "WhatsApp",
+                      color: "#25d366",
+                      href: `https://wa.me/?text=${enc(shareText + " " + watchUrl)}`,
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      ),
+                    },
+                    {
+                      label: "Facebook",
+                      color: "#1877f2",
+                      href: `https://www.facebook.com/sharer/sharer.php?u=${enc(watchUrl)}`,
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                      ),
+                    },
+                    {
+                      label: "X / Twitter",
+                      color: "#e7e7e7",
+                      href: `https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(watchUrl)}`,
+                      icon: (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      ),
+                    },
+                    {
+                      label: "Telegram",
+                      color: "#2aabee",
+                      href: `https://t.me/share/url?url=${enc(watchUrl)}&text=${enc(shareText)}`,
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                      ),
+                    },
+                    {
+                      label: "Email",
+                      color: "#a78bfa",
+                      href: `mailto:?subject=${enc(shareTitle)}&body=${enc(shareText + "\n\n" + watchUrl)}`,
+                      icon: (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                      ),
+                    },
+                  ];
+
                   return (
                     <div
                       style={{
                         position: "absolute", bottom: "calc(100% + 8px)", right: 0,
-                        background: "rgba(15,15,15,0.96)", backdropFilter: "blur(12px)",
-                        border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
-                        padding: "10px 12px", minWidth: 220, zIndex: 50,
-                        boxShadow: "0 8px 32px rgba(0,0,0,0.7)",
+                        background: "rgba(12,12,12,0.97)", backdropFilter: "blur(16px)",
+                        border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
+                        padding: "12px", minWidth: 240, zIndex: 50,
+                        boxShadow: "0 12px 40px rgba(0,0,0,0.8)",
                       }}
                       data-testid={`share-menu-${listing.id}`}
                     >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Source Video</span>
-                        <button onClick={() => setShowShareMenu(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", padding: 0 }}>
+                      {/* Header */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Share</span>
+                        <button onClick={() => setShowShareMenu(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.35)", padding: 0 }}>
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.06)", borderRadius: 8, padding: "6px 10px", marginBottom: 8 }}>
-                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+
+                      {/* URL preview */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.05)", borderRadius: 8, padding: "6px 10px", marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {watchUrl}
                         </span>
                       </div>
-                      <div style={{ display: "flex", gap: 6 }}>
+
+                      {/* Native share (mobile) + Copy link row */}
+                      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                        {typeof navigator !== "undefined" && navigator.share && (
+                          <button
+                            onClick={handleNativeShare}
+                            style={{
+                              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                              background: "rgba(167,139,250,0.15)", border: "1px solid rgba(167,139,250,0.35)",
+                              borderRadius: 8, padding: "7px 0", cursor: "pointer",
+                            }}
+                            data-testid={`button-native-share-${listing.id}`}
+                          >
+                            <Share2 className="w-3.5 h-3.5" style={{ color: "#a78bfa" }} />
+                            <span style={{ fontSize: 11, color: "#a78bfa", fontWeight: 600 }}>Share…</span>
+                          </button>
+                        )}
                         <button
                           onClick={handleCopyLink}
                           style={{
                             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                            background: linkCopied ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.1)",
-                            border: linkCopied ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.15)",
-                            borderRadius: 8, padding: "6px 0", cursor: "pointer", transition: "all 0.2s",
+                            background: linkCopied ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.08)",
+                            border: linkCopied ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.12)",
+                            borderRadius: 8, padding: "7px 0", cursor: "pointer", transition: "all 0.2s",
                           }}
                           data-testid={`button-copy-link-${listing.id}`}
                         >
-                          {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-white/70" />}
-                          <span style={{ fontSize: 11, color: linkCopied ? "rgba(74,222,128,1)" : "rgba(255,255,255,0.7)", fontWeight: 600 }}>
+                          {linkCopied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.6)" }} />}
+                          <span style={{ fontSize: 11, color: linkCopied ? "#4ade80" : "rgba(255,255,255,0.65)", fontWeight: 600 }}>
                             {linkCopied ? "Copied!" : "Copy link"}
                           </span>
                         </button>
@@ -823,14 +904,37 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
                           rel="noopener noreferrer"
                           style={{
                             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                            background: "rgba(196,20,20,0.2)", border: "1px solid rgba(196,20,20,0.4)",
-                            borderRadius: 8, padding: "6px 0", textDecoration: "none",
+                            background: "rgba(196,20,20,0.18)", border: "1px solid rgba(196,20,20,0.38)",
+                            borderRadius: 8, padding: "7px 0", textDecoration: "none",
                           }}
                           data-testid={`link-open-video-${listing.id}`}
                         >
                           <ExternalLink className="w-3.5 h-3.5 text-red-400" />
-                          <span style={{ fontSize: 11, color: "rgba(252,100,100,1)", fontWeight: 600 }}>Watch</span>
+                          <span style={{ fontSize: 11, color: "#fc6464", fontWeight: 600 }}>Watch</span>
                         </a>
+                      </div>
+
+                      {/* Platform grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+                        {SHARE_PLATFORMS.map(({ label, color, href, icon }) => (
+                          <a
+                            key={label}
+                            href={href}
+                            target={label === "SMS" || label === "Email" ? "_self" : "_blank"}
+                            rel="noopener noreferrer"
+                            onClick={() => setShowShareMenu(false)}
+                            style={{
+                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                              gap: 5, padding: "8px 4px", borderRadius: 10, textDecoration: "none",
+                              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+                              transition: "background 0.15s",
+                            }}
+                            data-testid={`btn-share-${label.toLowerCase().replace(/\s/g, "-")}-${listing.id}`}
+                          >
+                            <span style={{ color }}>{icon}</span>
+                            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>{label}</span>
+                          </a>
+                        ))}
                       </div>
                     </div>
                   );
