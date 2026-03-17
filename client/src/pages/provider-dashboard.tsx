@@ -36,7 +36,7 @@ import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
-  Send, Radio, MapPin, Globe, X as XIcon, Megaphone,
+  Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
@@ -758,6 +758,15 @@ function ProviderDashboardInner() {
             >
               <Megaphone className="h-3.5 w-3.5 text-[#ff2b2b]" />
               Advertise
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate("/card-editor")}
+              className="h-8 px-3 text-xs font-bold gap-1 bg-[#111] hover:bg-[#1a1a1a] text-white rounded-xl border border-purple-700/60"
+              data-testid="button-my-geezee-card"
+            >
+              <CreditCard className="h-3.5 w-3.5 text-purple-400" />
+              My GeeZee Card
             </Button>
             <Button
               size="sm"
