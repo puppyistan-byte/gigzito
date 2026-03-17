@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
-  Sparkles, MessageSquare, Send,
-  ChevronDown, ChevronUp, AlertCircle, Info, UserPlus, UserMinus, Loader2,
+  Sparkles, MessageSquare, UserPlus, UserMinus, Loader2,
 } from "lucide-react";
 import type { GignessCard } from "@shared/schema";
 
@@ -29,109 +27,11 @@ const INTENT_OPTIONS = [
   { value: "activity",  label: "Activity" },
 ];
 
-// ── Comments panel ──────────────────────────────────────────────────────────
-function CommentsPanel({ card, isAuthed }: { card: GignessCard; isAuthed: boolean }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [text, setText] = useState("");
-
-  const { data: comments = [], isLoading } = useQuery<any[]>({
-    queryKey: [`/api/gigness-cards/${card.id}/comments`],
-    queryFn: () => fetch(`/api/gigness-cards/${card.id}/comments`).then((r) => r.json()),
-  });
-
-  const postMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/gigness-cards/${card.id}/comments`, { commentText: text }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [`/api/gigness-cards/${card.id}/comments`] });
-      setText("");
-      toast({ title: "Comment posted!" });
-    },
-    onError: (err: any) => {
-      toast({ title: "Could not post", description: err?.message ?? "Try again.", variant: "destructive" });
-    },
-  });
-
-  return (
-    <div className="border-t border-[#1a1a1a] px-5 pb-5 pt-4 space-y-3">
-
-      {/* Advisory banner */}
-      <div className="flex items-start gap-2 rounded-lg bg-[#0f0f18] border border-purple-900/30 px-3 py-2">
-        <Info className="h-3.5 w-3.5 text-purple-400 mt-0.5 shrink-0" />
-        <p className="text-[10px] text-[#666] leading-relaxed">
-          Contacting this user and accessing their CTAs requires{" "}
-          <span className="text-purple-400 font-semibold">registration</span> on Gigzito and joining their{" "}
-          <span className="text-purple-400 font-semibold">mailing list</span>. Comments are moderated by GZ-Bot.
-        </p>
-      </div>
-
-      {/* Comments list */}
-      {isLoading ? (
-        <div className="text-xs text-[#444] animate-pulse">Loading comments…</div>
-      ) : comments.length === 0 ? (
-        <p className="text-xs text-[#444] italic">No comments yet — be the first.</p>
-      ) : (
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-          {comments.map((c: any) => (
-            <div key={c.id} className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
-                <User className="h-3 w-3 text-[#555]" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-semibold text-[#888]">{c.authorName}</span>
-                  <span className="text-[9px] text-[#444]">
-                    {new Date(c.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
-                </div>
-                <p className="text-xs text-[#ccc] leading-snug mt-0.5">{c.commentText}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Post comment */}
-      {isAuthed ? (
-        <div className="flex gap-2 items-end">
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Leave a comment… (GZ-Bot monitored)"
-            maxLength={300}
-            rows={2}
-            className="flex-1 bg-[#0d0d0d] border-[#2a2a2a] text-white placeholder-[#333] text-xs resize-none focus:border-purple-700/60"
-            data-testid={`input-comment-${card.id}`}
-          />
-          <Button
-            size="sm"
-            onClick={() => text.trim() && postMutation.mutate()}
-            disabled={!text.trim() || postMutation.isPending}
-            className="h-9 px-3 bg-purple-700 hover:bg-purple-600 text-white shrink-0"
-            data-testid={`btn-post-comment-${card.id}`}
-          >
-            <Send className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      ) : (
-        <Link href="/auth">
-          <div className="flex items-center gap-2 rounded-lg bg-[#111] border border-[#1e1e1e] px-3 py-2 cursor-pointer hover:border-[#333] transition-colors">
-            <AlertCircle className="h-3.5 w-3.5 text-[#444] shrink-0" />
-            <p className="text-xs text-[#555]">
-              <span className="text-purple-400 font-semibold underline">Sign in</span> to comment — registration required.
-            </p>
-          </div>
-        </Link>
-      )}
-    </div>
-  );
-}
-
 // ── GeeZee Card tile ───────────────────────────────────────────────────────
 function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: string; isAuthed: boolean }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [showComments, setShowComments] = useState(false);
+  const [, navigate] = useLocation();
   const cardTier = TIER_META[(card as any).userTier ?? "GZLurker"] ?? TIER_META.GZLurker;
   const canEngage = isAuthed;
   const cardUserId = card.userId;
@@ -237,13 +137,12 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
               <span className="text-xs">{card.engagementCount ?? 0}</span>
             </div>
             <button
-              onClick={() => setShowComments(!showComments)}
+              onClick={() => navigate(`/geezee/${card.userId}`)}
               className="flex items-center gap-1 text-[#555] hover:text-purple-400 transition-colors"
               data-testid={`btn-comments-${card.id}`}
             >
               <MessageSquare className="h-3.5 w-3.5" />
               <span className="text-xs">Comments</span>
-              {showComments ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -310,10 +209,6 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
         )}
       </div>
 
-      {/* Comments panel — slides open */}
-      {showComments && (
-        <CommentsPanel card={card} isAuthed={isAuthed} />
-      )}
     </div>
   );
 }
@@ -444,11 +339,11 @@ export default function GeezeesPage() {
           )}
         </div>
 
-        {/* Card grid */}
+        {/* Card row — horizontal scroll, business-card sized */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-52 rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] animate-pulse" />
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="w-72 shrink-0 h-64 rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] animate-pulse" />
             ))}
           </div>
         ) : cards.length === 0 ? (
@@ -467,9 +362,14 @@ export default function GeezeesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-16">
+          <div
+            className="flex gap-4 overflow-x-auto pb-6"
+            style={{ scrollbarWidth: "thin", scrollbarColor: "#2a2a2a transparent" }}
+          >
             {cards.map((card) => (
-              <GeeZeeCard key={card.id} card={card} myTier={myTier} isAuthed={isAuthed} />
+              <div key={card.id} className="w-72 shrink-0">
+                <GeeZeeCard card={card} myTier={myTier} isAuthed={isAuthed} />
+              </div>
             ))}
           </div>
         )}

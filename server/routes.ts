@@ -1251,7 +1251,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       authorName: z.string().max(60).optional(),
     });
     try {
-      const { commentText, authorName } = schema.parse(req.body);
+      const { commentText } = schema.parse(req.body);
       const card = await storage.getGignessCardById(cardId);
       if (!card) return res.status(404).json({ message: "Card not found" });
 
@@ -1260,10 +1260,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ message: "GZ-Bot flagged your comment. Keep it respectful and on-topic." });
       }
 
+      const authorProfile = await storage.getProfileByUserId(authorUserId);
+      const resolvedName = authorProfile?.username ?? authorProfile?.displayName ?? "Anonymous";
+
       const comment = await storage.createGignessComment({
         cardId,
         authorUserId,
-        authorName: authorName?.trim() || "Anonymous",
+        authorName: resolvedName,
         commentText,
         isClean: true,
       });

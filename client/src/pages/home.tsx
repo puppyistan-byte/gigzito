@@ -11,7 +11,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, Megaphone } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, Megaphone, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
 
 const CATEGORIES = [
@@ -318,6 +318,28 @@ export default function HomePage() {
           >
             <Flame style={{ width: 12, height: 12, color: "#fff" }} />
             Keeping it Geezee
+          </button>
+
+          <button
+            onClick={() => navigate("/geezees")}
+            data-testid="button-topbar-geezee-cards"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              background: "linear-gradient(135deg, #7c3aed, #4f1eb8)",
+              border: "none",
+              borderRadius: "999px",
+              padding: "7px 13px",
+              cursor: "pointer",
+              color: "#fff",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.03em",
+              whiteSpace: "nowrap",
+              boxShadow: "0 2px 10px rgba(124,58,237,0.45)",
+            }}
+          >
+            <CreditCard style={{ width: 12, height: 12, color: "#fff" }} />
+            GeeZee Cards
           </button>
 
           <button
