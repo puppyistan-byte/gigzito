@@ -9,14 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   User, QrCode, Heart, SlidersHorizontal, X, CreditCard,
-  Lock, ChevronRight, Sparkles, MessageSquare, Send, Radio,
+  Sparkles, MessageSquare, Send, Radio,
   ChevronDown, ChevronUp, AlertCircle, Info, UserPlus, UserMinus, Loader2,
 } from "lucide-react";
 import type { GignessCard } from "@shared/schema";
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
   GZLurker: { label: "GZ Lurker",  color: "text-zinc-400",  border: "border-zinc-700" },
-  GZ2:      { label: "GZ2",        color: "text-blue-400",  border: "border-blue-700" },
   GZ_PLUS:  { label: "GZ+",        color: "text-purple-400", border: "border-purple-700" },
   GZ_PRO:   { label: "GZ PRO",     color: "text-amber-400", border: "border-amber-600" },
 };
@@ -30,7 +29,7 @@ const INTENT_OPTIONS = [
 ];
 
 // ── Comments panel ──────────────────────────────────────────────────────────
-function CommentsPanel({ card, isAuthed, canEngage }: { card: GignessCard; isAuthed: boolean; canEngage: boolean }) {
+function CommentsPanel({ card, isAuthed }: { card: GignessCard; isAuthed: boolean }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -93,38 +92,26 @@ function CommentsPanel({ card, isAuthed, canEngage }: { card: GignessCard; isAut
 
       {/* Post comment */}
       {isAuthed ? (
-        canEngage ? (
-          <div className="flex gap-2 items-end">
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Leave a comment… (GZ-Bot monitored)"
-              maxLength={300}
-              rows={2}
-              className="flex-1 bg-[#0d0d0d] border-[#2a2a2a] text-white placeholder-[#333] text-xs resize-none focus:border-purple-700/60"
-              data-testid={`input-comment-${card.id}`}
-            />
-            <Button
-              size="sm"
-              onClick={() => text.trim() && postMutation.mutate()}
-              disabled={!text.trim() || postMutation.isPending}
-              className="h-9 px-3 bg-purple-700 hover:bg-purple-600 text-white shrink-0"
-              data-testid={`btn-post-comment-${card.id}`}
-            >
-              <Send className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-lg bg-[#111] border border-[#1e1e1e] px-3 py-2">
-            <Lock className="h-3.5 w-3.5 text-[#444] shrink-0" />
-            <p className="text-xs text-[#555]">
-              Upgrade to <span className="text-blue-400 font-semibold">GZ2</span> to leave comments.
-            </p>
-            <Link href="/advertise" className="ml-auto">
-              <span className="text-xs text-purple-400 underline hover:text-purple-300">Upgrade</span>
-            </Link>
-          </div>
-        )
+        <div className="flex gap-2 items-end">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Leave a comment… (GZ-Bot monitored)"
+            maxLength={300}
+            rows={2}
+            className="flex-1 bg-[#0d0d0d] border-[#2a2a2a] text-white placeholder-[#333] text-xs resize-none focus:border-purple-700/60"
+            data-testid={`input-comment-${card.id}`}
+          />
+          <Button
+            size="sm"
+            onClick={() => text.trim() && postMutation.mutate()}
+            disabled={!text.trim() || postMutation.isPending}
+            className="h-9 px-3 bg-purple-700 hover:bg-purple-600 text-white shrink-0"
+            data-testid={`btn-post-comment-${card.id}`}
+          >
+            <Send className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       ) : (
         <Link href="/auth">
           <div className="flex items-center gap-2 rounded-lg bg-[#111] border border-[#1e1e1e] px-3 py-2 cursor-pointer hover:border-[#333] transition-colors">
@@ -145,7 +132,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
   const qc = useQueryClient();
   const [showComments, setShowComments] = useState(false);
   const cardTier = TIER_META[(card as any).userTier ?? "GZLurker"] ?? TIER_META.GZLurker;
-  const canEngage = myTier !== "GZLurker";
+  const canEngage = isAuthed;
   const cardUserId = card.userId;
 
   const engageMutation = useMutation({
@@ -154,12 +141,8 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards"] });
       toast({ title: "❤️ Engaged!", description: "Your vibe landed." });
     },
-    onError: (err: any) => {
-      if (err?.upgradeRequired) {
-        toast({ title: "Upgrade Required", description: "Reach GZ2 to engage with cards.", variant: "destructive" });
-      } else {
-        toast({ title: "Error", description: "Could not engage.", variant: "destructive" });
-      }
+    onError: () => {
+      toast({ title: "Error", description: "Could not engage. Try again.", variant: "destructive" });
     },
   });
 
@@ -277,6 +260,16 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             >
               <QrCode className="h-4 w-4" />
             </a>
+            <Link href={`/geezee/${card.userId}`}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-3 text-xs border-purple-800/50 text-purple-300 hover:bg-purple-900/20 hover:border-purple-700 transition-all"
+                data-testid={`btn-view-card-${card.id}`}
+              >
+                View Card
+              </Button>
+            </Link>
             {isAuthed && (
               <Button
                 size="sm"
@@ -299,7 +292,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                 )}
               </Button>
             )}
-            {canEngage ? (
+            {isAuthed && (
               <Button
                 size="sm"
                 variant="outline"
@@ -308,20 +301,10 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                 disabled={engageMutation.isPending}
                 data-testid={`btn-engage-${card.id}`}
               >
-                <Heart className="h-3 w-3 mr-1" />
-                Engage
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 px-3 text-xs border-[#2a2a2a] text-[#555] cursor-not-allowed"
-                disabled
-                title="Upgrade to GZ2 to engage"
-                data-testid={`btn-engage-locked-${card.id}`}
-              >
-                <Lock className="h-3 w-3 mr-1" />
-                GZ2
+                {engageMutation.isPending
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <><Heart className="h-3 w-3 mr-1" />Engage</>
+                }
               </Button>
             )}
           </div>
@@ -330,7 +313,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
 
       {/* Comments panel — slides open */}
       {showComments && (
-        <CommentsPanel card={card} isAuthed={isAuthed} canEngage={canEngage} />
+        <CommentsPanel card={card} isAuthed={isAuthed} />
       )}
     </div>
   );
@@ -444,24 +427,6 @@ export default function GeezeesPage() {
 
         {/* Broadcast banner — shows when logged in but card is private */}
         {isAuthed && <BroadcastBanner myCard={myCard} />}
-
-        {/* GZ2 Upgrade Banner for lurkers */}
-        {isAuthed && myTier === "GZLurker" && (
-          <div className="rounded-xl bg-[#0f0a1a] border border-purple-900/40 p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Lock className="h-4 w-4 text-purple-400 shrink-0" />
-              <p className="text-sm text-[#aaa]">
-                You&apos;re a <span className="text-zinc-300 font-semibold">GZ Lurker</span> — upgrade to{" "}
-                <span className="text-blue-400 font-semibold">GZ2</span> to engage, comment, and send messages.
-              </p>
-            </div>
-            <Link href="/advertise">
-              <Button size="sm" className="bg-purple-700 hover:bg-purple-600 text-white text-xs h-7 px-3 shrink-0">
-                Upgrade <ChevronRight className="h-3 w-3 ml-1" />
-              </Button>
-            </Link>
-          </div>
-        )}
 
         {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-2 mb-6">

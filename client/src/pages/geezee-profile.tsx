@@ -18,7 +18,6 @@ type EnrichedCard = GignessCard & { displayName: string | null; username: string
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
   GZLurker: { label: "GZ Lurker",  color: "text-zinc-400",  border: "border-zinc-700" },
-  GZ2:      { label: "GZ2",        color: "text-blue-400",  border: "border-blue-700" },
   GZ_PLUS:  { label: "GZ+",        color: "text-purple-400", border: "border-purple-700" },
   GZ_PRO:   { label: "GZ PRO",     color: "text-amber-400", border: "border-amber-600" },
 };
