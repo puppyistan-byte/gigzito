@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useState, useEffect, useRef } from "react";
+import { useParams, Link, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
 import { useAuth } from "@/lib/auth";
@@ -267,6 +267,8 @@ function SocialLink({ href, icon, label, color }: { href: string; icon: any; lab
 export default function GeeZeeProfilePage() {
   const { userId: userIdParam } = useParams<{ userId: string }>();
   const userId = parseInt(userIdParam ?? "");
+  const search = useSearch();
+  const section = new URLSearchParams(search).get("section");
   const { user } = useAuth();
   const isAuthed = !!user;
   const myDisplayName = user?.profile?.displayName ?? user?.profile?.username ?? user?.user?.email?.split("@")[0] ?? "Guest";
@@ -274,6 +276,13 @@ export default function GeeZeeProfilePage() {
   const myUserId = user?.user?.id ?? null;
   const { toast } = useToast();
   const qc = useQueryClient();
+  const securityRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (section === "security" && securityRef.current) {
+      setTimeout(() => securityRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 500);
+    }
+  }, [section]);
 
   const { data: card, isLoading: cardLoading } = useQuery<EnrichedCard>({
     queryKey: ["/api/gigness-cards/user", userId],
@@ -525,7 +534,9 @@ export default function GeeZeeProfilePage() {
 
         {/* Security — only visible on own profile */}
         {isAuthed && myUserId === userId && (
-          <SecurityPanel />
+          <div ref={securityRef}>
+            <SecurityPanel />
+          </div>
         )}
       </div>
     </div>

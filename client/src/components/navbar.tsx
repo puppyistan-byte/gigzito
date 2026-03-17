@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -21,6 +21,7 @@ export function Navbar() {
   const isAdmin = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role);
   const isProvider = ["PROVIDER", "MARKETER", "INFLUENCER", "CORPORATE", "COORDINATOR", "ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role);
 
+  const myUserId = user?.user?.id ?? null;
   const displayName = user?.profile?.displayName || user?.profile?.username || user?.user?.email?.split("@")[0] || "Account";
   const email = user?.user?.email ?? "";
   const avatarUrl = user?.profile?.avatarUrl ?? "";
@@ -96,6 +97,17 @@ export function Navbar() {
             <Settings className="h-4 w-4" />
             Profile Settings
           </DropdownMenuItem>
+
+          {myUserId && (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5 text-zinc-300"
+              onClick={() => navigate(`/geezee/profile/${myUserId}?section=security`)}
+              data-testid="menu-item-security"
+            >
+              <Lock className="h-4 w-4" />
+              Security Settings
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
             className="gap-2 cursor-pointer hover:bg-purple-500/10 focus:bg-purple-500/10 text-purple-300"
