@@ -1147,9 +1147,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Engage (requires paid tier) — increments engagement count
+  // Engage — available to all authenticated users
   app.post("/api/gigness-cards/:id/engage", async (req, res) => {
-    if (!await requirePaidTier(req, res)) return;
+    if (!requireAuth(req, res)) return;
     const cardId = parseInt(req.params.id);
     if (isNaN(cardId)) return res.status(400).json({ message: "Invalid card id" });
     await storage.incrementGignessEngagement(cardId);

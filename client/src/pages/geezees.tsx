@@ -98,12 +98,12 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                 {cardTier.label}
               </span>
               {card.intent && (
-                <span className="text-[9px] text-[#555] bg-[#111] border border-[#222] rounded px-1.5 py-0.5 capitalize leading-none">
+                <span className="text-[9px] text-purple-300/80 bg-purple-900/20 border border-purple-700/30 rounded px-1.5 py-0.5 capitalize leading-none">
                   {card.intent}
                 </span>
               )}
               {(card as any).username && (
-                <span className="ml-auto text-[9px] font-mono text-purple-400/70 truncate max-w-[80px]">
+                <span className="ml-auto text-[9px] font-mono text-purple-400 truncate max-w-[80px]">
                   @{(card as any).username}
                 </span>
               )}
@@ -113,29 +113,28 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                 {card.slogan}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[#555]">
-              {card.ageBracket && <span>{card.ageBracket}</span>}
-              {card.gender && <span>{card.gender}</span>}
-              <span className="text-purple-500/60 group-hover:text-purple-400 transition-colors ml-auto">View →</span>
+            <div className="flex items-center gap-2 mt-0.5 text-[10px]">
+              {card.ageBracket && <span className="text-purple-400/80">{card.ageBracket}</span>}
+              {card.gender && <span className="text-purple-400/80">{card.gender}</span>}
+              <span className="text-purple-400 group-hover:text-purple-300 transition-colors ml-auto font-medium">View →</span>
             </div>
           </div>
         </div>
       </Link>
 
-      {/* Social icons strip — only when user opted in */}
-      {(card as any).showSocialLinks && (() => {
+      {/* Social icons strip — always same height for card symmetry */}
+      {(() => {
         const c = card as any;
-        const links = [
+        const links = c.showSocialLinks ? [
           c.instagramUrl && { href: c.instagramUrl, Icon: SiInstagram, color: "hover:text-pink-400",   label: "Instagram" },
           c.tiktokUrl    && { href: c.tiktokUrl,    Icon: SiTiktok,    color: "hover:text-white",       label: "TikTok"    },
           c.youtubeUrl   && { href: c.youtubeUrl,   Icon: SiYoutube,   color: "hover:text-red-500",     label: "YouTube"   },
           c.facebookUrl  && { href: c.facebookUrl,  Icon: SiFacebook,  color: "hover:text-blue-400",    label: "Facebook"  },
           c.twitterUrl   && { href: c.twitterUrl,   Icon: SiX,         color: "hover:text-white",       label: "X"         },
           c.discordUrl   && { href: c.discordUrl,   Icon: SiDiscord,   color: "hover:text-indigo-400",  label: "Discord"   },
-        ].filter(Boolean) as { href: string; Icon: any; color: string; label: string }[];
-        if (!links.length) return null;
+        ].filter(Boolean) as { href: string; Icon: any; color: string; label: string }[] : [];
         return (
-          <div className="flex items-center gap-2.5 px-3 pb-2">
+          <div className="flex items-center gap-2.5 px-3 pb-2 h-6">
             {links.map(({ href, Icon, color, label }) => (
               <a
                 key={label}
@@ -144,9 +143,9 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
                 rel="noopener noreferrer"
                 title={label}
                 onClick={(e) => e.stopPropagation()}
-                className={`text-[#444] transition-colors ${color}`}
+                className={`text-purple-500/50 transition-colors ${color}`}
               >
-                <Icon size={11} />
+                <Icon size={12} />
               </a>
             ))}
           </div>
@@ -154,10 +153,12 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
       })()}
 
       {/* Action bar */}
-      <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-[#141414]">
+      <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-[#1e1e1e]">
         {/* Stats */}
-        <div className="flex items-center gap-2 text-[#555] text-[10px] mr-auto">
-          <span className="flex items-center gap-0.5"><Heart className="h-3 w-3" />{card.engagementCount ?? 0}</span>
+        <div className="flex items-center gap-2 text-purple-400/60 text-[10px] mr-auto">
+          <span className="flex items-center gap-0.5 text-purple-400/80">
+            <Heart className="h-3 w-3" />{card.engagementCount ?? 0}
+          </span>
           <button
             onClick={() => navigate(`/geezee/${card.userId}`)}
             className="flex items-center gap-0.5 hover:text-purple-400 transition-colors"
@@ -169,7 +170,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             href={`/qr/${card.qrUuid}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-[#888] transition-colors"
+            className="hover:text-purple-400 transition-colors"
             title="QR Card"
             data-testid={`btn-qr-${card.id}`}
           >
@@ -183,10 +184,10 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             <Button
               size="sm"
               variant="outline"
-              className={`h-6 px-2 text-[10px] transition-all ${
+              className={`h-6 px-2 text-[10px] font-semibold transition-all ${
                 followStatus?.following
-                  ? "border-purple-700/60 text-purple-300 hover:bg-purple-900/20"
-                  : "border-[#2a2a2a] text-[#777] hover:bg-[#1a1a1a] hover:text-white"
+                  ? "border-purple-600/70 text-purple-300 bg-purple-900/20 hover:bg-purple-900/40"
+                  : "border-purple-700/40 text-purple-400 hover:bg-purple-900/20 hover:text-purple-300 hover:border-purple-600/60"
               }`}
               onClick={() => followMutation.mutate()}
               disabled={followMutation.isPending}
@@ -199,7 +200,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
             <Button
               size="sm"
               variant="outline"
-              className="h-6 px-2 text-[10px] border-[#2a2a2a] text-[#777] hover:bg-[#1a1a1a] hover:text-white transition-all"
+              className="h-6 px-2 text-[10px] font-semibold border-pink-700/40 text-pink-400 hover:bg-pink-900/20 hover:text-pink-300 hover:border-pink-600/60 transition-all"
               onClick={() => engageMutation.mutate()}
               disabled={engageMutation.isPending}
               data-testid={`btn-engage-${card.id}`}
@@ -209,7 +210,7 @@ function GeeZeeCard({ card, myTier, isAuthed }: { card: GignessCard; myTier: str
           </>
         ) : (
           <Link href={`/geezee/${card.userId}`}>
-            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] border-purple-800/50 text-purple-300 hover:bg-purple-900/20 transition-all" data-testid={`btn-view-card-${card.id}`}>
+            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] font-semibold border-purple-700/50 text-purple-300 hover:bg-purple-900/25 transition-all" data-testid={`btn-view-card-${card.id}`}>
               View Card
             </Button>
           </Link>
