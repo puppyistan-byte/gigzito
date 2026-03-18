@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, serial, date, unique, json } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, pgEnum, boolean, serial, date, unique, json, real } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -891,3 +891,33 @@ export const presenterContacts = pgTable(
 
 export type PresenterContact = typeof presenterContacts.$inferSelect;
 export type InsertPresenterContact = typeof presenterContacts.$inferInsert;
+
+// === GZ FLASH ADS TABLE ===
+export const GZ_FLASH_STATUSES = ["active", "paused", "expired"] as const;
+export type GzFlashStatus = typeof GZ_FLASH_STATUSES[number];
+
+export const gzFlashAds = pgTable("gz_flash_ads", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  artworkUrl: text("artwork_url"),
+  retailPriceCents: integer("retail_price_cents").notNull(),
+  discountPercent: integer("discount_percent").notNull(),
+  quantity: integer("quantity").notNull().default(10),
+  claimedCount: integer("claimed_count").notNull().default(0),
+  durationMinutes: integer("duration_minutes").notNull(),
+  potencyScore: real("potency_score").notNull().default(0),
+  status: text("status").notNull().default("active"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type GzFlashAd = typeof gzFlashAds.$inferSelect;
+export const insertGzFlashAdSchema = createInsertSchema(gzFlashAds).omit({ id: true, claimedCount: true, potencyScore: true, status: true, expiresAt: true, createdAt: true });
+export type InsertGzFlashAd = z.infer<typeof insertGzFlashAdSchema>;
+
+export type GzFlashAdWithOwner = GzFlashAd & {
+  displayName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+};

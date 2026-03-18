@@ -2891,5 +2891,101 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // === GZ FLASH ADS ===
+  const gzFlashSchema = z.object({
+    title: z.string().min(1).max(120),
+    artworkUrl: z.string().url().nullable().optional(),
+    retailPriceCents: z.coerce.number().int().min(1),
+    discountPercent: z.coerce.number().int().min(1).max(99),
+    quantity: z.coerce.number().int().min(1).max(999),
+    durationMinutes: z.coerce.number().int().min(5).max(1440),
+  });
+
+  app.get("/api/gz-flash", async (req, res) => {
+    try {
+      const ads = await storage.getActiveGzFlashAds();
+      return res.json(ads);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch GZFlash ads" });
+    }
+  });
+
+  app.get("/api/gz-flash/mine", async (req, res) => {
+    const session = (req as any).session;
+    if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUserById(session.userId);
+    if (user?.subscriptionTier !== "GZBusiness" && user?.role !== "ADMIN") {
+      return res.status(403).json({ message: "GZBusiness tier required" });
+    }
+    try {
+      const ads = await storage.getMyGzFlashAds(session.userId);
+      return res.json(ads);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch your GZFlash ads" });
+    }
+  });
+
+  app.post("/api/gz-flash", async (req, res) => {
+    const session = (req as any).session;
+    if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUserById(session.userId);
+    if (user?.subscriptionTier !== "GZBusiness" && user?.role !== "ADMIN") {
+      return res.status(403).json({ message: "GZBusiness tier required" });
+    }
+    try {
+      const data = gzFlashSchema.parse(req.body);
+      const ad = await storage.createGzFlashAd(session.userId, data);
+      return res.status(201).json(ad);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Failed to create GZFlash ad" });
+    }
+  });
+
+  app.put("/api/gz-flash/:id", async (req, res) => {
+    const session = (req as any).session;
+    if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await storage.getUserById(session.userId);
+    if (user?.subscriptionTier !== "GZBusiness" && user?.role !== "ADMIN") {
+      return res.status(403).json({ message: "GZBusiness tier required" });
+    }
+    try {
+      const id = parseInt(req.params.id);
+      const data = gzFlashSchema.parse(req.body);
+      const ad = await storage.updateGzFlashAd(id, session.userId, data);
+      return res.json(ad);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Failed to update GZFlash ad" });
+    }
+  });
+
+  app.delete("/api/gz-flash/:id", async (req, res) => {
+    const session = (req as any).session;
+    if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteGzFlashAd(id, session.userId);
+      return res.json({ ok: true });
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to delete GZFlash ad" });
+    }
+  });
+
+  app.post("/api/gz-flash/:id/claim", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const ad = await storage.claimGzFlashAd(id);
+      return res.json(ad);
+    } catch (e: any) {
+      return res.status(400).json({ message: e.message ?? "Failed to claim" });
+    }
+  });
+
+  // Recalculate all GZFlash potency scores every 60 seconds
+  setInterval(() => {
+    storage.recalculateGzFlashScores().catch((e) => console.warn("GZFlash score recalculation failed:", e.message));
+  }, 60_000);
+
   return httpServer;
 }
