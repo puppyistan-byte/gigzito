@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   logo: {
-    width: 280,
-    height: 120,
+    width: 350,
+    height: 150,
   },
   form: {
     gap: 20,
