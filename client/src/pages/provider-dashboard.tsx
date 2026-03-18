@@ -797,17 +797,6 @@ function ProviderDashboardInner() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-[#555] uppercase tracking-widest font-semibold">Your Creator Profile</p>
-              {completion?.isComplete ? (
-                <span className="flex items-center gap-1 text-xs text-green-400" data-testid="text-profile-complete">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Profile complete
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-xs text-amber-400" data-testid="text-profile-incomplete">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  Incomplete
-                </span>
-              )}
             </div>
             <ProfileCard profile={profile} showEditLink data-testid="card-profile-status" />
             {completion && !completion.isComplete && (
