@@ -21,6 +21,13 @@ import { NavigationMenu, HamburgerButton } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
 const { width: SW, height: SH } = Dimensions.get("window");
+const API_BASE = "https://www.gigzito.com";
+
+function resolveUrl(uri?: string | null): string | null {
+  if (!uri) return null;
+  if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
+  return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
+}
 
 function formatTime(secs: number) {
   if (secs <= 0) return "0s";
@@ -127,7 +134,7 @@ export function FeedCard({ item, isActive }: Props) {
     }
   };
 
-  const poster = item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null;
+  const poster = resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null);
   const tags: string[] = item.tags ?? [];
   const vertical = item.vertical || item.category || "";
 
@@ -224,8 +231,11 @@ export function FeedCard({ item, isActive }: Props) {
         style={styles.avatarWrap}
         testID={`avatar-creator-${item.id}`}
       >
-        {item.provider?.avatarUrl ? (
-          <Image source={{ uri: item.provider.avatarUrl }} style={styles.avatar} />
+        {resolveUrl(item.provider?.profilePic ?? item.provider?.avatarUrl ?? item.avatarUrl) ? (
+          <Image
+            source={{ uri: resolveUrl(item.provider?.profilePic ?? item.provider?.avatarUrl ?? item.avatarUrl)! }}
+            style={styles.avatar}
+          />
         ) : (
           <View style={[styles.avatar, styles.avatarFallback]}>
             <Feather name="user" size={18} color={Colors.textSecondary} />
