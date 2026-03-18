@@ -72,7 +72,7 @@ export interface IStorage {
   getGignessCardByUserId(userId: number): Promise<GignessCard | undefined>;
   getGignessCardById(cardId: number): Promise<GignessCard | undefined>;
   getGignessCardByQrUuid(qrUuid: string): Promise<GignessCard | undefined>;
-  getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<GignessCard[]>;
+  getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string; tier?: string }): Promise<GignessCard[]>;
   incrementGignessEngagement(cardId: number): Promise<void>;
   optInToPresenter(presenterUserId: number, memberUserId: number): Promise<void>;
   optOutFromPresenter(presenterUserId: number, memberUserId: number): Promise<void>;
@@ -625,11 +625,12 @@ export class DatabaseStorage implements IStorage {
     return card;
   }
 
-  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string }): Promise<(GignessCard & { username: string | null; displayName: string | null; userTier: string | null })[]> {
+  async getPublicGignessCards(filters?: { ageBracket?: string; gender?: string; intent?: string; tier?: string }): Promise<(GignessCard & { username: string | null; displayName: string | null; userTier: string | null })[]> {
     const conditions = [eq(gignessCards.isPublic, true)];
     if (filters?.ageBracket) conditions.push(eq(gignessCards.ageBracket, filters.ageBracket));
     if (filters?.gender) conditions.push(eq(gignessCards.gender, filters.gender));
     if (filters?.intent) conditions.push(eq(gignessCards.intent, filters.intent));
+    if (filters?.tier) conditions.push(eq(users.subscriptionTier, filters.tier));
     const rows = await db
       .select({
         card: gignessCards,

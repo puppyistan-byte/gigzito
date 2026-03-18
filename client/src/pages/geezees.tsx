@@ -30,6 +30,12 @@ const INTENT_OPTIONS = [
   { value: "social",    label: "Social" },
   { value: "activity",  label: "Activity" },
 ];
+const TIER_OPTIONS = [
+  { value: "GZLurker",      label: "GZ Lurker",     color: "border-zinc-600 text-zinc-300",   active: "bg-zinc-700 border-zinc-500 text-white" },
+  { value: "GZMarketer",    label: "GZMarketer",    color: "border-blue-800 text-blue-400",   active: "bg-blue-700 border-blue-500 text-white" },
+  { value: "GZMarketerPro", label: "GZMarketerPro", color: "border-purple-800 text-purple-400", active: "bg-purple-700 border-purple-500 text-white" },
+  { value: "GZBusiness",    label: "GZBusiness",    color: "border-amber-800 text-amber-400", active: "bg-amber-700 border-amber-500 text-white" },
+];
 
 // ── GeeZee Card tile ───────────────────────────────────────────────────────
 function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; myTier: string; isAuthed: boolean; myUserId: number | null }) {
@@ -322,19 +328,21 @@ export default function GeezeesPage() {
   const [filterAge, setFilterAge]     = useState("");
   const [filterGender, setFilterGender] = useState("");
   const [filterIntent, setFilterIntent] = useState("");
+  const [filterTier, setFilterTier]   = useState("");
 
   const params = new URLSearchParams();
   if (filterAge)    params.set("ageBracket", filterAge);
   if (filterGender) params.set("gender", filterGender);
   if (filterIntent) params.set("intent", filterIntent);
+  if (filterTier)   params.set("tier", filterTier);
 
   const { data: cards = [], isLoading } = useQuery<GignessCard[]>({
-    queryKey: ["/api/gigness-cards", filterAge, filterGender, filterIntent],
+    queryKey: ["/api/gigness-cards", filterAge, filterGender, filterIntent, filterTier],
     queryFn: () =>
       fetch(`/api/gigness-cards?${params.toString()}`).then((r) => r.json()),
   });
 
-  const hasFilters = filterAge || filterGender || filterIntent;
+  const hasFilters = filterAge || filterGender || filterIntent || filterTier;
 
   return (
     <div style={{ minHeight: "100vh", background: "#080808", color: "#fff" }}>
@@ -439,9 +447,24 @@ export default function GeezeesPage() {
             </button>
           ))}
 
+          <div className="w-px h-4 bg-[#222] mx-1" />
+
+          {TIER_OPTIONS.map(({ value, label, color, active }) => (
+            <button
+              key={value}
+              onClick={() => setFilterTier(filterTier === value ? "" : value)}
+              className={`text-xs px-3 py-1 rounded-full border transition-all ${
+                filterTier === value ? active : `bg-transparent ${color} hover:opacity-80`
+              }`}
+              data-testid={`filter-tier-${value}`}
+            >
+              {label}
+            </button>
+          ))}
+
           {hasFilters && (
             <button
-              onClick={() => { setFilterAge(""); setFilterGender(""); setFilterIntent(""); }}
+              onClick={() => { setFilterAge(""); setFilterGender(""); setFilterIntent(""); setFilterTier(""); }}
               className="text-xs px-2 py-1 text-[#666] hover:text-white transition-colors flex items-center gap-1"
               data-testid="btn-clear-filters"
             >

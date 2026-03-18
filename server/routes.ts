@@ -1243,13 +1243,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // === GIGNESS CARDS ===
 
-  // Public Rolodex feed — filtered by ageBracket, gender, intent
+  // Public Rolodex feed — filtered by ageBracket, gender, intent, tier
   app.get("/api/gigness-cards", async (req, res) => {
-    const { ageBracket, gender, intent } = req.query as Record<string, string>;
+    const { ageBracket, gender, intent, tier } = req.query as Record<string, string>;
     const cards = await storage.getPublicGignessCards({
       ageBracket: ageBracket || undefined,
       gender: gender || undefined,
       intent: intent || undefined,
+      tier: tier || undefined,
     });
     return res.json(cards);
   });
