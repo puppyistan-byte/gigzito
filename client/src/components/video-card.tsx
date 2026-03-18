@@ -66,6 +66,20 @@ function isNativeVideo(url: string): boolean {
   return /\.(mp4|webm|mov|ogg|ogv|avi|m4v|3gp|mkv)(\?|$)/i.test(url);
 }
 
+/** URLs that can never be embedded — detected upfront so we skip the broken iframe entirely */
+function getUnsupportedPlatform(url: string): string | null {
+  if (!url) return null;
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (hostname.includes("tiktok.com")) return "TikTok";
+    if (hostname.includes("instagram.com")) return "Instagram";
+    if (hostname.includes("facebook.com") && pathname.includes("/videos/")) return "Facebook";
+    if (hostname.includes("snapchat.com")) return "Snapchat";
+    if (hostname.includes("twitter.com") || hostname.includes("x.com")) return "X / Twitter";
+  } catch { /* ignore bad URLs */ }
+  return null;
+}
+
 function isYouTubeShorts(url: string): boolean {
   try { return new URL(url).pathname.includes("/shorts/"); } catch { return false; }
 }
@@ -264,6 +278,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [commentEmail, setCommentEmail] = useState("");
+  const [nativeVideoFailed, setNativeVideoFailed] = useState(false);
+
+  const unsupportedPlatform = getUnsupportedPlatform(listing.videoUrl ?? "");
 
   const { data: commentsData = [], refetch: refetchComments } = useQuery<{ id: number; authorName: string; commentText: string; createdAt: string }[]>({
     queryKey: [`/api/listings/${listing.id}/comments`],
@@ -382,9 +399,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
 
-  // Reset blocked state when switching videos
+  // Reset error states when switching videos
   useEffect(() => {
     setVideoBlocked(false);
+    setNativeVideoFailed(false);
   }, [listing.id]);
 
   // Listen for YouTube iframe API error events
@@ -517,7 +535,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           )}
 
           {/* Native video element — used when listing.videoUrl is an uploaded file */}
-          {isNativeVideo(listing.videoUrl ?? "") && (
+          {isNativeVideo(listing.videoUrl ?? "") && !nativeVideoFailed && (
             <video
               ref={videoRef}
               key={`native-${listing.id}`}
@@ -532,6 +550,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
                   onEnd?.();
                 }
               }}
+              onError={() => setNativeVideoFailed(true)}
               style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
               data-testid={`native-video-${listing.id}`}
             />
@@ -548,6 +567,80 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             allowFullScreen
             loading="lazy"
           />}
+
+          {/* Unsupported platform (TikTok, Instagram, etc.) — detected upfront */}
+          {unsupportedPlatform && (
+            <div
+              style={{
+                position: "absolute", inset: 0, zIndex: 6,
+                background: "rgba(0,0,0,0.92)",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 12,
+              }}
+              data-testid={`overlay-unsupported-${listing.id}`}
+            >
+              <div style={{ fontSize: 36 }}>🔒</div>
+              <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 700, textAlign: "center" }}>
+                {unsupportedPlatform} videos can't be embedded
+              </p>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>
+                Open the link directly to watch this video
+              </p>
+              {listing.videoUrl && (
+                <a
+                  href={listing.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: "#c41414", color: "white",
+                    borderRadius: 20, padding: "9px 22px",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  <ExternalLink style={{ width: 14, height: 14 }} />
+                  Open on {unsupportedPlatform}
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Native video failed to load */}
+          {nativeVideoFailed && (
+            <div
+              style={{
+                position: "absolute", inset: 0, zIndex: 6,
+                background: "rgba(0,0,0,0.92)",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 12,
+              }}
+              data-testid={`overlay-video-error-${listing.id}`}
+            >
+              <div style={{ fontSize: 36 }}>⚠️</div>
+              <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: 700, textAlign: "center" }}>
+                Video couldn't be played
+              </p>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, textAlign: "center", maxWidth: 220, lineHeight: 1.5 }}>
+                The file format may not be supported, or the video is still processing. Try again shortly.
+              </p>
+              {listing.videoUrl && (
+                <a
+                  href={listing.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: "#c41414", color: "white",
+                    borderRadius: 20, padding: "9px 22px",
+                    fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}
+                >
+                  <ExternalLink style={{ width: 14, height: 14 }} />
+                  Open video directly
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Video blocked / embedding disabled fallback */}
           {videoBlocked && isActive && (
