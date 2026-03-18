@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
+import { GzFlashForm, PotencyTooltip } from "@/components/gz-flash-form";
 import type { GigJackWithProvider, UserWithProfile, InjectedFeed, SponsorAd, GeoTargetCampaign, GzFlashAdAdmin } from "@shared/schema";
 
 interface AdminStats {
@@ -225,6 +226,8 @@ export default function AdminPage() {
   const [editOfferDurationMinutes, setEditOfferDurationMinutes] = useState<number>(60);
   const [editFlashDurationSeconds, setEditFlashDurationSeconds] = useState<number>(7);
   const [overrideMode, setOverrideMode] = useState(false);
+  const [showAdminGzForm, setShowAdminGzForm] = useState(false);
+  const [showAdminGzTooltip, setShowAdminGzTooltip] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
@@ -2283,14 +2286,44 @@ export default function AdminPage() {
         {/* ── Geo Campaigns Tab ── */}
         {activeTab === "gzbusiness" && (
           <div className="space-y-4" data-testid="section-admin-gzbusiness">
+            <PotencyTooltip open={showAdminGzTooltip} onClose={() => setShowAdminGzTooltip(false)} />
+
             <div className="flex items-center gap-2 flex-wrap">
               <Flame className="h-4 w-4 text-blue-400" />
               <h2 className="text-sm font-semibold text-white">GZFlash Ad Center — All Ads</h2>
-              <span className="ml-auto text-xs text-[#444]">{adminGzFlashAds.length} total</span>
-              <button onClick={() => refetchGzFlash()} className="text-[#555] hover:text-blue-400 transition-colors" data-testid="btn-refresh-gzflash">
-                <RefreshCw className="h-3.5 w-3.5" />
+              <span className="ml-2 text-xs text-[#444]">{adminGzFlashAds.length} total</span>
+              <button
+                onClick={() => setShowAdminGzTooltip(true)}
+                className="text-[10px] text-blue-400 border border-blue-700/40 bg-blue-900/20 hover:bg-blue-900/40 rounded-lg px-2 py-0.5 flex items-center gap-1"
+                data-testid="btn-admin-gz-tooltip"
+              >
+                <Info className="h-3 w-3" /> Ranking formula
               </button>
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setShowAdminGzForm((v) => !v)}
+                  className="h-7 px-3 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                  data-testid="btn-admin-new-gz-ad"
+                >
+                  <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                  {showAdminGzForm ? "Cancel" : "New GZFlash Ad"}
+                </Button>
+                <button onClick={() => refetchGzFlash()} className="text-[#555] hover:text-blue-400 transition-colors" data-testid="btn-refresh-gzflash">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
+
+            {showAdminGzForm && (
+              <GzFlashForm
+                onClose={() => setShowAdminGzForm(false)}
+                onSaved={() => {
+                  setShowAdminGzForm(false);
+                  refetchGzFlash();
+                }}
+              />
+            )}
 
             {/* Filter summary pills */}
             <div className="flex gap-2 flex-wrap text-[10px]">
