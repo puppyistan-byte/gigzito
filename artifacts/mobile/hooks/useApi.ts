@@ -30,7 +30,7 @@ export function useMyListings() {
   });
 }
 
-export function useListingComments(id: number) {
+export function useListingComments(id: number | string) {
   const { apiRequest } = useAuth();
   return useQuery({
     queryKey: ["listing-comments", id],
@@ -48,7 +48,7 @@ export function useVideoLikes(id: number) {
   });
 }
 
-export function useToggleLike(id: number) {
+export function useToggleLike(id: number | string) {
   const { apiRequest } = useAuth();
   const qc = useQueryClient();
   return useMutation({

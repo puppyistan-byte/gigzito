@@ -49,11 +49,16 @@ export function InquireModal({ item, open, onClose }: Props) {
     setError("");
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const rawId = item.listingId ?? item.listing_id ?? item.id;
+    const numericId = Number(rawId);
+
     try {
       await apiRequest("/api/leads", {
         method: "POST",
         body: JSON.stringify({
-          listingId: item.id,
+          ...(Number.isFinite(numericId) ? { listingId: numericId } : {}),
+          listingTitle: item.title ?? "",
           name: name.trim(),
           email: email.trim(),
           message: message.trim(),

@@ -22,7 +22,7 @@ const { height: SH } = Dimensions.get("window");
 const DRAWER_H = SH * 0.65;
 
 type Props = {
-  listingId: number;
+  listingId: number | string;
   open: boolean;
   onClose: () => void;
 };
