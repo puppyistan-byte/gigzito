@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -110,10 +112,12 @@ export default function LoginScreen() {
               style={styles.loginBtn}
             />
 
-            <Text style={styles.hint}>
-              Need an account?{" "}
-              <Text style={styles.hintAccent}>Register on gigzito.com</Text>
-            </Text>
+            <Pressable onPress={() => Linking.openURL("https://gigzito.com/register")}>
+              <Text style={styles.hint}>
+                Need an account?{" "}
+                <Text style={styles.hintAccent}>Register on gigzito.com</Text>
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
