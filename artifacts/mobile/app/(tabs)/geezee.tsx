@@ -19,6 +19,34 @@ import Colors from "@/constants/colors";
 
 const TABS = ["Cards", "Top Loved", "Most Engaged"];
 
+function normalizeCard(item: any) {
+  if (!item) return item;
+  const card = item.card ?? item.gigness_card ?? item;
+  const user = item.user ?? item.provider ?? {};
+  return {
+    ...user,
+    ...card,
+    id:              card.id        ?? item.id        ?? item.cardId,
+    userTier:        card.userTier  ?? card.subscriptionTier ?? item.userTier ?? item.subscriptionTier,
+    profilePic:      card.profilePic ?? card.avatarUrl ?? item.profilePic ?? item.avatarUrl ?? user.avatarUrl,
+    displayName:     card.displayName ?? item.displayName ?? user.displayName,
+    username:        card.username  ?? item.username  ?? user.username,
+    slogan:          card.slogan    ?? card.tagline   ?? item.slogan ?? item.tagline ?? item.bio,
+    ageBracket:      card.ageBracket ?? item.ageBracket ?? item.ageRange,
+    gender:          card.gender    ?? item.gender,
+    intent:          card.intent    ?? item.intent    ?? (item.category ? item.category.toLowerCase() : null),
+    qrUuid:          card.qrUuid   ?? item.qrUuid,
+    engagementCount: card.engagementCount ?? item.engagementCount ?? item.engageCount ?? item.loveCount ?? 0,
+    showSocialLinks: card.showSocialLinks ?? item.showSocialLinks ?? true,
+    instagramUrl:    card.instagramUrl ?? item.instagramUrl,
+    tiktokUrl:       card.tiktokUrl    ?? item.tiktokUrl,
+    facebookUrl:     card.facebookUrl  ?? item.facebookUrl,
+    twitterUrl:      card.twitterUrl   ?? item.twitterUrl,
+    discordUrl:      card.discordUrl   ?? item.discordUrl,
+    youtubeUrl:      card.youtubeUrl   ?? item.youtubeUrl,
+  };
+}
+
 export default function GeeZeeScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState(0);
@@ -30,7 +58,8 @@ export default function GeeZeeScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
-  const activeData = activeTab === 0 ? cards : activeTab === 1 ? loveBoard : engageBoard;
+  const rawData = activeTab === 0 ? cards : activeTab === 1 ? loveBoard : engageBoard;
+  const activeData = (rawData ?? []).map(normalizeCard);
   const activeLoading = activeTab === 0 ? cardsLoading : activeTab === 1 ? loveLoading : engageLoading;
   const onRefresh = activeTab === 0 ? refetchCards : activeTab === 1 ? refetchLove : refetchEngage;
 
@@ -62,8 +91,8 @@ export default function GeeZeeScreen() {
         <LoadingSpinner />
       ) : (
         <FlatList
-          data={activeData ?? []}
-          keyExtractor={(item, idx) => String(item.id ?? idx)}
+          data={activeData}
+          keyExtractor={(item, idx) => String(item?.id ?? idx)}
           renderItem={({ item }) => <GeeZeeCardItem item={item} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
