@@ -1,5 +1,5 @@
 import React from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -8,19 +8,22 @@ import { Avatar } from "@/components/ui/Avatar";
 import Colors from "@/constants/colors";
 
 const { width: SW } = Dimensions.get("window");
-const GAP = 12;
-const H_PAD = 16;
-const CARD_W = (SW - H_PAD * 2 - GAP) / 2;
-const CARD_H = CARD_W * 1.55;
-
-type Props = {
-  item: any;
-};
 
 const TIER_COLORS: Record<string, string> = {
   GZMarketerPro: Colors.accent,
   GZBusiness: Colors.success ?? "#00C27C",
   GZLurker: Colors.textMuted,
+};
+
+const SOCIAL_ICONS: { key: string; icon: string }[] = [
+  { key: "facebook", icon: "facebook" },
+  { key: "instagram", icon: "instagram" },
+  { key: "twitter", icon: "twitter" },
+  { key: "youtube", icon: "youtube" },
+];
+
+type Props = {
+  item: any;
 };
 
 export function GeeZeeCardItem({ item }: Props) {
@@ -33,6 +36,9 @@ export function GeeZeeCardItem({ item }: Props) {
   const tierColor = TIER_COLORS[tier] ?? Colors.teal;
   const name = item.displayName || item.username || "Unknown";
   const handle = item.username ? `@${item.username}` : null;
+  const category = item.category || "Social";
+  const bio = item.bio || item.tagline || "Here for the experience";
+  const demographics = [item.ageRange, item.gender].filter(Boolean).join("  ");
 
   return (
     <Pressable
@@ -40,50 +46,75 @@ export function GeeZeeCardItem({ item }: Props) {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <LinearGradient
-        colors={["#1A1A1A", "#0D0D0D"]}
+        colors={["#1C1C1E", "#111113"]}
         style={styles.gradient}
       >
-        <View style={[styles.tierBar, { backgroundColor: tierColor }]} />
+        <View style={[styles.tierStripe, { backgroundColor: tierColor }]} />
 
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarRing}>
-            <Avatar uri={item.avatarUrl} name={name} size={60} />
+        <View style={styles.topRow}>
+          <View style={styles.avatarWrap}>
+            <Avatar uri={item.avatarUrl} name={name} size={56} />
+          </View>
+
+          <View style={styles.centerContent}>
+            <View style={styles.pillRow}>
+              <View style={[styles.pill, { borderColor: `${tierColor}66`, backgroundColor: `${tierColor}18` }]}>
+                <Text style={[styles.pillText, { color: tierColor }]}>{tier}</Text>
+              </View>
+              <View style={styles.pill}>
+                <Text style={styles.pillText}>{category}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+
+            {bio ? (
+              <Text style={styles.bio} numberOfLines={2}>{bio}</Text>
+            ) : null}
+
+            {demographics ? (
+              <Text style={styles.demo}>{demographics}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.rightCol}>
+            {handle ? (
+              <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
+            ) : null}
+            <Image
+              source={require("@/assets/images/gz-logo.png")}
+              style={styles.gzLogo}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
-        <View style={styles.body}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          {handle ? (
-            <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
-          ) : null}
+        <View style={styles.divider} />
 
-          <View style={[styles.tierPill, { borderColor: `${tierColor}55`, backgroundColor: `${tierColor}15` }]}>
-            <Text style={[styles.tierText, { color: tierColor }]} numberOfLines={1}>
-              {tier}
-            </Text>
+        <View style={styles.bottomRow}>
+          <View style={styles.socialIcons}>
+            {SOCIAL_ICONS.map(({ key, icon }) => (
+              <Feather key={key} name={icon as any} size={15} color={Colors.textMuted} style={styles.socialIcon} />
+            ))}
           </View>
 
-          {item.bio ? (
-            <Text style={styles.bio} numberOfLines={3}>{item.bio}</Text>
-          ) : (
-            <Text style={styles.bioEmpty}>No bio yet</Text>
-          )}
-        </View>
+          <View style={styles.statsRow}>
+            {item.engageCount !== undefined ? (
+              <View style={styles.stat}>
+                <Feather name="heart" size={13} color={Colors.accent} />
+                <Text style={styles.statText}>{item.engageCount ?? 0}</Text>
+              </View>
+            ) : null}
+            <Feather name="grid" size={13} color={Colors.textMuted} />
+          </View>
 
-        <View style={styles.footer}>
-          {item.engageCount !== undefined ? (
-            <View style={styles.stat}>
-              <Feather name="zap" size={11} color={Colors.accent} />
-              <Text style={styles.statText}>{item.engageCount}</Text>
-            </View>
-          ) : null}
-          {item.followerCount !== undefined ? (
-            <View style={styles.stat}>
-              <Feather name="users" size={11} color={Colors.textMuted} />
-              <Text style={styles.statText}>{item.followerCount}</Text>
-            </View>
-          ) : null}
-          <Feather name="chevron-right" size={13} color={Colors.textMuted} style={{ marginLeft: "auto" }} />
+          <Pressable
+            onPress={handlePress}
+            style={styles.viewBtn}
+            hitSlop={8}
+          >
+            <Text style={styles.viewBtnText}>View Card</Text>
+          </Pressable>
         </View>
       </LinearGradient>
     </Pressable>
@@ -92,90 +123,115 @@ export function GeeZeeCardItem({ item }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_W,
-    height: CARD_H,
-    borderRadius: 18,
+    width: SW - 24,
+    borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
+    marginHorizontal: 12,
   },
   pressed: {
     opacity: 0.88,
-    transform: [{ scale: 0.97 }],
+    transform: [{ scale: 0.98 }],
   },
   gradient: {
-    flex: 1,
-    borderRadius: 18,
+    borderRadius: 16,
   },
-  tierBar: {
-    height: 4,
+  tierStripe: {
+    height: 3,
     width: "100%",
     opacity: 0.9,
   },
-  avatarSection: {
-    alignItems: "center",
-    paddingTop: 20,
-    paddingBottom: 8,
+  topRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 12,
+    gap: 10,
   },
-  avatarRing: {
-    borderRadius: 40,
-    borderWidth: 2,
+  avatarWrap: {
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1.5,
     borderColor: Colors.surfaceBorder,
-    padding: 2,
   },
-  body: {
+  centerContent: {
     flex: 1,
-    paddingHorizontal: 10,
-    alignItems: "center",
+    gap: 4,
+  },
+  pillRow: {
+    flexDirection: "row",
     gap: 6,
+    flexWrap: "wrap",
+  },
+  pill: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: `${Colors.surfaceBorder}30`,
+  },
+  pillText: {
+    color: Colors.textMuted,
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
   },
   name: {
     color: Colors.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Inter_700Bold",
-    textAlign: "center",
-  },
-  handle: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-  },
-  tierPill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    maxWidth: "100%",
-  },
-  tierText: {
-    fontSize: 10,
-    fontFamily: "Inter_600SemiBold",
-    textAlign: "center",
+    marginTop: 2,
   },
   bio: {
     color: Colors.textSecondary,
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 17,
   },
-  bioEmpty: {
+  demo: {
     color: Colors.textMuted,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    fontStyle: "italic",
   },
-  footer: {
+  rightCol: {
+    alignItems: "flex-end",
+    gap: 6,
+    paddingTop: 2,
+  },
+  handle: {
+    color: Colors.accent,
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+  },
+  gzLogo: {
+    width: 36,
+    height: 22,
+    opacity: 0.85,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.surfaceBorder,
+    marginHorizontal: 12,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  socialIcons: {
+    flexDirection: "row",
+    gap: 10,
+    flex: 1,
+  },
+  socialIcon: {
+    opacity: 0.7,
+  },
+  statsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: Colors.surfaceBorder,
   },
   stat: {
     flexDirection: "row",
@@ -184,7 +240,18 @@ const styles = StyleSheet.create({
   },
   statText: {
     color: Colors.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
+  },
+  viewBtn: {
+    backgroundColor: Colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  viewBtnText: {
+    color: Colors.darker || "#0A0A0B",
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
   },
 });

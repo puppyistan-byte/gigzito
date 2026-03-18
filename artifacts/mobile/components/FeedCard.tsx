@@ -173,7 +173,7 @@ export function FeedCard({ item, isActive }: Props) {
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzIcon}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </Pressable>
 
