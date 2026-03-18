@@ -7,6 +7,13 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 
 const { width: SW } = Dimensions.get("window");
+const API_BASE = "https://www.gigzito.com";
+
+function resolveImageUrl(uri?: string | null): string | null {
+  if (!uri) return null;
+  if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
+  return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
+}
 
 const TIER_COLORS: Record<string, string> = {
   GZMarketerPro: Colors.accent,
@@ -26,6 +33,7 @@ type Props = {
 };
 
 function ProfileThumb({ uri, name, size }: { uri?: string | null; name: string; size: number }) {
+  const resolvedUri = resolveImageUrl(uri);
   const initials = name
     .split(" ")
     .map((w) => w[0])
@@ -35,8 +43,8 @@ function ProfileThumb({ uri, name, size }: { uri?: string | null; name: string; 
 
   return (
     <View style={[styles.thumb, { width: size, height: size }]}>
-      {uri ? (
-        <Image source={{ uri }} style={{ width: size, height: size }} resizeMode="cover" />
+      {resolvedUri ? (
+        <Image source={{ uri: resolvedUri }} style={{ width: size, height: size }} resizeMode="cover" />
       ) : (
         <Text style={[styles.thumbInitials, { fontSize: size * 0.34 }]}>{initials}</Text>
       )}
@@ -70,6 +78,8 @@ export function GeeZeeCardItem({ item }: Props) {
         <View style={[styles.tierStripe, { backgroundColor: tierColor }]} />
 
         <View style={styles.topRow}>
+          <ProfileThumb uri={item.avatarUrl} name={name} size={62} />
+
           <View style={styles.centerContent}>
             <View style={styles.pillRow}>
               <View style={[styles.pill, { borderColor: `${tierColor}66`, backgroundColor: `${tierColor}18` }]}>
@@ -92,7 +102,6 @@ export function GeeZeeCardItem({ item }: Props) {
           </View>
 
           <View style={styles.rightCol}>
-            <ProfileThumb uri={item.avatarUrl} name={name} size={62} />
             {handle ? (
               <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
             ) : null}
