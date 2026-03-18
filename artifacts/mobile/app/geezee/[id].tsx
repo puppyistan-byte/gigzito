@@ -108,10 +108,10 @@ export default function GeeZeeDetailScreen() {
           <Avatar uri={card.profilePic ?? card.avatarUrl} name={card.displayName || card.username} size={80} />
           <Text style={styles.name}>{card.displayName || card.username || "User"}</Text>
           {card.username ? <Text style={styles.handle}>@{card.username}</Text> : null}
-          {card.subscriptionTier ? (
-            <Badge label={card.subscriptionTier} color={Colors.teal} bgColor={`${Colors.teal}22`} />
+          {card.userTier ? (
+            <Badge label={card.userTier} color={Colors.purple} bgColor={`${Colors.purple}22`} />
           ) : null}
-          {card.bio ? <Text style={styles.bio}>{card.bio}</Text> : null}
+          {card.slogan ? <Text style={styles.bio}>{card.slogan}</Text> : null}
         </View>
 
         {token ? (

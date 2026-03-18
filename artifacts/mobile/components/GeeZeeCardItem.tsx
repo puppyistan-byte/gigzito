@@ -15,32 +15,50 @@ function resolveImageUrl(uri?: string | null): string | null {
   return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
 }
 
+function buildQrUrl(qrUuid: string): string {
+  const data = encodeURIComponent(`https://gigzito.com/qr/${qrUuid}`);
+  return `https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=a855f7&bgcolor=0d0d0d&data=${data}`;
+}
+
 const TIER_COLORS: Record<string, string> = {
-  GZMarketerPro: Colors.accent,
-  GZBusiness: Colors.success ?? "#00C27C",
-  GZLurker: Colors.purple,
+  GZLurker:      "#71717a",
+  GZMarketer:    "#60a5fa",
+  GZMarketerPro: "#c084fc",
+  GZBusiness:    "#fbbf24",
+  GZEnterprise:  "#FFD700",
 };
 
-const SOCIAL_ICONS: { key: string; icon: string }[] = [
-  { key: "facebook", icon: "facebook" },
-  { key: "instagram", icon: "instagram" },
-  { key: "twitter", icon: "twitter" },
-  { key: "youtube", icon: "youtube" },
-];
-
-type Props = {
-  item: any;
+const GENDER_ICON_COLOR: Record<string, string> = {
+  Female: "#f472b6",
+  Male:   "#22d3ee",
+  Other:  "#a78bfa",
 };
+
+const INTENT_LABEL: Record<string, string> = {
+  marketing: "Marketing",
+  social:    "Social",
+  activity:  "Activity",
+};
+
+type SocialEntry = { key: string; icon: string; url: string };
+
+function buildSocialLinks(item: any): SocialEntry[] {
+  const map: { key: string; icon: string; field: string }[] = [
+    { key: "facebook",  icon: "facebook",      field: "facebookUrl"  },
+    { key: "instagram", icon: "instagram",     field: "instagramUrl" },
+    { key: "tiktok",    icon: "music",         field: "tiktokUrl"    },
+    { key: "youtube",   icon: "youtube",       field: "youtubeUrl"   },
+    { key: "twitter",   icon: "twitter",       field: "twitterUrl"   },
+    { key: "discord",   icon: "message-circle",field: "discordUrl"   },
+  ];
+  return map
+    .filter(({ field }) => !!item[field])
+    .map(({ key, icon, field }) => ({ key, icon, url: item[field] }));
+}
 
 function ProfileThumb({ uri, name, size }: { uri?: string | null; name: string; size: number }) {
   const resolvedUri = resolveImageUrl(uri);
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
+  const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   return (
     <View style={[styles.thumb, { width: size, height: size }]}>
       {resolvedUri ? (
@@ -52,52 +70,54 @@ function ProfileThumb({ uri, name, size }: { uri?: string | null; name: string; 
   );
 }
 
+type Props = { item: any };
+
 export function GeeZeeCardItem({ item }: Props) {
   const handlePress = () => {
     Haptics.selectionAsync();
     router.push({ pathname: "/geezee/[id]", params: { id: item.id } });
   };
 
-  const tier = item.subscriptionTier || "GZLurker";
-  const tierColor = TIER_COLORS[tier] ?? Colors.purple;
-  const name = item.displayName || item.username || "Unknown";
-  const handle = item.username ? `@${item.username}` : null;
-  const category = item.category || "Social";
-  const bio = item.bio || item.tagline || "Here for the experience";
-  const demographics = [item.ageRange, item.gender].filter(Boolean).join("  ");
+  const tier      = item.userTier || "GZLurker";
+  const tierColor = TIER_COLORS[tier] ?? "#71717a";
+  const name      = item.displayName || item.username || "Unknown";
+  const handle    = item.username ? `@${item.username}` : null;
+  const slogan    = item.slogan || null;
+  const intent    = INTENT_LABEL[item.intent] ?? null;
+  const demo      = [item.ageBracket, item.gender].filter(Boolean).join("  ");
+  const iconColor = GENDER_ICON_COLOR[item.gender] ?? "#3f3f3f";
+  const socialLinks = item.showSocialLinks ? buildSocialLinks(item) : [];
+  const qrUrl     = item.qrUuid ? buildQrUrl(item.qrUuid) : null;
 
   return (
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <LinearGradient
-        colors={["#1C1C1E", "#111113"]}
-        style={styles.gradient}
-      >
+      <LinearGradient colors={["#1C1C1E", "#111113"]} style={styles.gradient}>
         <View style={[styles.tierStripe, { backgroundColor: tierColor }]} />
 
         <View style={styles.topRow}>
-          <ProfileThumb uri={item.profilePic ?? item.avatarUrl} name={name} size={62} />
+          <ProfileThumb uri={item.profilePic} name={name} size={62} />
 
           <View style={styles.centerContent}>
             <View style={styles.pillRow}>
               <View style={[styles.pill, { borderColor: `${tierColor}66`, backgroundColor: `${tierColor}18` }]}>
                 <Text style={[styles.pillText, { color: tierColor }]}>{tier}</Text>
               </View>
-              <View style={styles.pill}>
-                <Text style={styles.pillText}>{category}</Text>
-              </View>
+              {intent ? (
+                <View style={styles.pill}>
+                  <Text style={styles.pillText}>{intent}</Text>
+                </View>
+              ) : null}
             </View>
 
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
-
-            {bio ? (
-              <Text style={styles.bio} numberOfLines={2}>{bio}</Text>
+            {slogan ? (
+              <Text style={styles.slogan} numberOfLines={2}>{slogan}</Text>
             ) : null}
 
-            {demographics ? (
-              <Text style={styles.demo}>{demographics}</Text>
+            {demo ? (
+              <Text style={styles.demo}>{demo}</Text>
             ) : null}
           </View>
 
@@ -105,38 +125,41 @@ export function GeeZeeCardItem({ item }: Props) {
             {handle ? (
               <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
             ) : null}
-            <Image
-              source={require("@/assets/images/gz-logo.png")}
-              style={styles.gzLogo}
-              resizeMode="contain"
-            />
+            {qrUrl ? (
+              <Image source={{ uri: qrUrl }} style={styles.qr} resizeMode="contain" />
+            ) : (
+              <Image
+                source={require("@/assets/images/gz-logo.png")}
+                style={styles.gzLogo}
+                resizeMode="contain"
+              />
+            )}
           </View>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.bottomRow}>
-          <View style={styles.socialIcons}>
-            {SOCIAL_ICONS.map(({ key, icon }) => (
-              <Feather key={key} name={icon as any} size={15} color={Colors.textMuted} style={styles.socialIcon} />
-            ))}
-          </View>
+          {socialLinks.length > 0 ? (
+            <View style={styles.socialIcons}>
+              {socialLinks.map(({ key, icon }) => (
+                <Feather key={key} name={icon as any} size={14} color={iconColor} />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.socialIcons} />
+          )}
 
           <View style={styles.statsRow}>
-            {item.engageCount !== undefined ? (
-              <View style={styles.stat}>
-                <Feather name="heart" size={13} color={Colors.purple} />
-                <Text style={styles.statText}>{item.engageCount ?? 0}</Text>
-              </View>
-            ) : null}
+            <View style={styles.stat}>
+              <Feather name="heart" size={13} color={Colors.purple} />
+              <Text style={styles.statText}>{item.engagementCount ?? 0}</Text>
+            </View>
+            <Feather name="message-circle" size={13} color={Colors.textMuted} />
             <Feather name="grid" size={13} color={Colors.textMuted} />
           </View>
 
-          <Pressable
-            onPress={handlePress}
-            style={styles.viewBtn}
-            hitSlop={8}
-          >
+          <Pressable onPress={handlePress} style={styles.viewBtn} hitSlop={8}>
             <Text style={styles.viewBtnText}>View Card</Text>
           </Pressable>
         </View>
@@ -187,7 +210,8 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     flex: 1,
-    gap: 4,
+    gap: 5,
+    paddingTop: 2,
   },
   pillRow: {
     flexDirection: "row",
@@ -207,17 +231,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Inter_600SemiBold",
   },
-  name: {
+  slogan: {
     color: Colors.textPrimary,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_700Bold",
-    marginTop: 2,
-  },
-  bio: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 17,
+    lineHeight: 19,
   },
   demo: {
     color: Colors.textMuted,
@@ -234,6 +252,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
   },
+  qr: {
+    width: 56,
+    height: 56,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+  },
   gzLogo: {
     width: 36,
     height: 22,
@@ -249,15 +274,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 10,
+    gap: 8,
   },
   socialIcons: {
     flexDirection: "row",
     gap: 10,
     flex: 1,
-  },
-  socialIcon: {
-    opacity: 0.7,
+    alignItems: "center",
   },
   statsRow: {
     flexDirection: "row",

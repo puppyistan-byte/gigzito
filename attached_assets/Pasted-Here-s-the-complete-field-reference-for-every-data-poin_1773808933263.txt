@@ -1,0 +1,60 @@
+Here's the complete field reference for every data point returned by GET /api/gigness-cards (and the single-card variant GET /api/gigness-cards/user/:userId):
+
+GeeZee Card — Full API Field Reference
+Endpoint: GET /api/gigness-cards (list) · GET /api/gigness-cards/user/:userId (single)
+
+🪪 Identity
+Field	Type	Notes
+id	number	Card database ID
+userId	number	Linked user account ID
+qrUuid	string	UUID used to build the QR code
+🖼️ Display Content
+Field	Type	Notes
+profilePic	string | null	Primary photo to display. Already falls back to avatarUrl server-side — just use this field
+avatarUrl	string | null	Provider profile avatar (raw fallback, already baked into profilePic)
+slogan	string | null	Card headline / tagline
+gallery	string[]	Up to 6 additional photo URLs (relative /uploads/... paths — prefix with your API base URL)
+👤 Profile Identity (joined from provider profile & user)
+Field	Type	Notes
+displayName	string | null	Full display name
+username	string | null	@handle (no @ prefix in value)
+userTier	string | null	"GZLurker" · "GZMarketer" · "GZMarketerPro" · "GZBusiness" · "GZEnterprise"
+🎯 Demographics / Card Settings
+Field	Type	Values
+ageBracket	string | null	"18-25" · "25-40" · "40+"
+gender	string | null	"Male" · "Female" · "Other"
+intent	string | null	"marketing" · "social" · "activity"
+🔗 Social Links (all string | null)
+instagramUrl · tiktokUrl · facebookUrl · twitterUrl · discordUrl · youtubeUrl
+
+📊 Stats & Flags
+Field	Type	Notes
+engagementCount	number	Total Engage button taps (all-time)
+isPublic	boolean	Whether card appears in the Rolodex
+allowMessaging	boolean	Whether direct messages are enabled
+showSocialLinks	boolean	Whether to show the social icon strip
+locationServicesEnabled	boolean	Location opt-in
+🕐 Timestamps
+createdAt · updatedAt — ISO 8601 strings
+
+🔧 Derived Values (construct client-side)
+QR code image URL:
+
+https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=a855f7&bgcolor=0d0d0d
+  &data=https://gigzito.com/qr/{qrUuid}
+Gallery image full URL (if relative path):
+
+https://gigzito.com{gallery[i]}
+Gender → social icon color:
+
+Female  → #f472b6  (pink)
+Male    → #22d3ee  (neon blue)
+Other   → #a78bfa  (purple)
+null    → #3f3f3f  (dim gray)
+Tier → badge color:
+
+GZLurker       → zinc   (#71717a)
+GZMarketer     → blue   (#60a5fa)
+GZMarketerPro  → purple (#c084fc)
+GZBusiness     → amber  (#fbbf24)
+GZEnterprise   → gold   (#FFD700)
