@@ -208,25 +208,37 @@ export default function ProviderPublicPage() {
                     )}
                   </div>
 
-                  {/* GeeZee Card + Rolodex panel */}
-                  <div className="flex flex-col gap-2 shrink-0 min-w-[140px]">
-                    {geezeeCard?.isPublic && profileUserId && (
+                  {/* GeeZee panel */}
+                  <div className="flex flex-col gap-2 shrink-0 w-[148px]">
+                    {/* GeeZee Card — always shown */}
+                    {geezeeCard?.isPublic && profileUserId ? (
                       <Link href={`/geezee/${profileUserId}`}>
                         <a
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-300 text-xs font-semibold hover:bg-violet-500/20 hover:border-violet-500/70 transition-all active:scale-95"
+                          className="flex flex-col items-center justify-center gap-1 w-full h-[72px] rounded-xl border border-violet-500/50 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/80 transition-all active:scale-95 cursor-pointer"
                           data-testid="link-geezee-card"
                         >
-                          <CreditCard className="h-3.5 w-3.5 shrink-0" />
-                          GeeZee Card
+                          <CreditCard className="h-5 w-5 shrink-0" />
+                          <span className="text-[11px] font-bold tracking-wide">GeeZee Card</span>
+                          <span className="text-[10px] text-violet-400/70">Tap to view</span>
                         </a>
                       </Link>
+                    ) : (
+                      <div
+                        className="flex flex-col items-center justify-center gap-1 w-full h-[72px] rounded-xl border border-[#2a2a2a] bg-[#0d0d0d] text-[#444]"
+                        data-testid="geezee-card-placeholder"
+                      >
+                        <CreditCard className="h-5 w-5 shrink-0" />
+                        <span className="text-[11px] font-semibold">GeeZee Card</span>
+                        <span className="text-[10px] text-[#333]">Not published</span>
+                      </div>
                     )}
+                    {/* GeeZee Rolodex */}
                     <Link href="/geezees">
                       <a
-                        className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg border border-[#2a2a2a] bg-[#111] text-[#888] text-xs font-semibold hover:bg-[#1a1a1a] hover:text-white hover:border-[#444] transition-all active:scale-95"
+                        className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg border border-violet-500/30 bg-violet-500/8 text-violet-400 text-xs font-semibold hover:bg-violet-500/20 hover:border-violet-500/60 hover:text-violet-300 transition-all active:scale-95"
                         data-testid="link-geezee-rolodex"
                       >
-                        <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                        <LayoutGrid className="h-3.5 w-3.5 shrink-0 text-violet-400" />
                         GeeZee Rolodex
                       </a>
                     </Link>
