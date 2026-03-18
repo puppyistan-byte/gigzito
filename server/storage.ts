@@ -636,6 +636,7 @@ export class DatabaseStorage implements IStorage {
         card: gignessCards,
         username: providerProfiles.username,
         displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
         instagramUrl: providerProfiles.instagramUrl,
         tiktokUrl: providerProfiles.tiktokUrl,
         facebookUrl: providerProfiles.facebookUrl,
@@ -651,6 +652,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`${gignessCards.engagementCount} DESC, ${gignessCards.createdAt} DESC`);
     return rows.map((r) => ({
       ...r.card,
+      // profilePic is the card-specific pic; avatarUrl is the provider profile fallback
+      profilePic:   r.card.profilePic ?? r.avatarUrl ?? null,
+      avatarUrl:    r.avatarUrl    ?? null,
       username:     r.username     ?? null,
       displayName:  r.displayName  ?? null,
       instagramUrl: r.instagramUrl ?? null,
