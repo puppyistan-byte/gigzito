@@ -168,7 +168,9 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
           ? "#f472b6"   // pink-400
           : gender === "male"
           ? "#22d3ee"   // cyan-400 neon blue
-          : "#a78bfa";  // purple-400 default
+          : gender === "other"
+          ? "#a78bfa"   // purple-400 for Other
+          : "#3f3f3f";  // dim gray for not-set / unknown
 
         const PLATFORMS = [
           { key: "facebook",  url: c.facebookUrl,  Icon: SiFacebook,  label: "Facebook"  },
