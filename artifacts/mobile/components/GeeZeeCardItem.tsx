@@ -86,7 +86,7 @@ export function GeeZeeCardItem({ item }: Props) {
   const intent    = INTENT_LABEL[item.intent] ?? null;
   const demo      = [item.ageBracket, item.gender].filter(Boolean).join("  ");
   const iconColor = GENDER_ICON_COLOR[item.gender] ?? "#3f3f3f";
-  const socialLinks = item.showSocialLinks ? buildSocialLinks(item) : [];
+  const socialLinks = buildSocialLinks(item);
   const qrUrl     = item.qrUuid ? buildQrUrl(item.qrUuid) : null;
 
   return (

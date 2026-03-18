@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   FlatList,
   Platform,
@@ -19,32 +19,9 @@ import Colors from "@/constants/colors";
 
 const TABS = ["Cards", "Top Loved", "Most Engaged"];
 
-function normalizeCard(item: any) {
-  if (!item) return item;
-  const card = item.card ?? item.gigness_card ?? item;
-  const user = item.user ?? item.provider ?? {};
-  return {
-    ...user,
-    ...card,
-    id:              card.id        ?? item.id        ?? item.cardId,
-    userTier:        card.userTier  ?? card.subscriptionTier ?? item.userTier ?? item.subscriptionTier,
-    profilePic:      card.profilePic ?? card.avatarUrl ?? item.profilePic ?? item.avatarUrl ?? user.avatarUrl,
-    displayName:     card.displayName ?? item.displayName ?? user.displayName,
-    username:        card.username  ?? item.username  ?? user.username,
-    slogan:          card.slogan    ?? card.tagline   ?? item.slogan ?? item.tagline ?? item.bio,
-    ageBracket:      card.ageBracket ?? item.ageBracket ?? item.ageRange,
-    gender:          card.gender    ?? item.gender,
-    intent:          card.intent    ?? item.intent    ?? (item.category ? item.category.toLowerCase() : null),
-    qrUuid:          card.qrUuid   ?? item.qrUuid,
-    engagementCount: card.engagementCount ?? item.engagementCount ?? item.engageCount ?? item.loveCount ?? 0,
-    showSocialLinks: card.showSocialLinks ?? item.showSocialLinks ?? true,
-    instagramUrl:    card.instagramUrl ?? item.instagramUrl,
-    tiktokUrl:       card.tiktokUrl    ?? item.tiktokUrl,
-    facebookUrl:     card.facebookUrl  ?? item.facebookUrl,
-    twitterUrl:      card.twitterUrl   ?? item.twitterUrl,
-    discordUrl:      card.discordUrl   ?? item.discordUrl,
-    youtubeUrl:      card.youtubeUrl   ?? item.youtubeUrl,
-  };
+function extractId(item: any): number | null {
+  if (!item) return null;
+  return item.id ?? item.cardId ?? item.card?.id ?? item.gigness_card?.id ?? null;
 }
 
 export default function GeeZeeScreen() {
@@ -58,8 +35,50 @@ export default function GeeZeeScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
-  const rawData = activeTab === 0 ? cards : activeTab === 1 ? loveBoard : engageBoard;
-  const activeData = (rawData ?? []).map(normalizeCard);
+  const cardMap = useMemo(() => {
+    const map = new Map<number, any>();
+    (cards ?? []).forEach((c: any) => {
+      if (c?.id != null) map.set(c.id, c);
+    });
+    return map;
+  }, [cards]);
+
+  const resolveLeaderboard = useCallback((board: any[] | undefined) => {
+    if (!board) return [];
+    return board.map((item: any) => {
+      const id = extractId(item);
+      if (id != null && cardMap.has(id)) return cardMap.get(id);
+      const card = item.card ?? item.gigness_card ?? item;
+      const user = item.user ?? item.provider ?? {};
+      return {
+        ...user,
+        ...card,
+        id:              card.id ?? item.id ?? item.cardId,
+        userTier:        card.userTier ?? card.subscriptionTier ?? item.userTier ?? item.subscriptionTier,
+        profilePic:      card.profilePic ?? card.avatarUrl ?? item.profilePic ?? item.avatarUrl ?? user.avatarUrl,
+        displayName:     card.displayName ?? item.displayName ?? user.displayName,
+        username:        card.username ?? item.username ?? user.username,
+        slogan:          card.slogan ?? card.tagline ?? item.slogan ?? item.tagline ?? item.bio,
+        ageBracket:      card.ageBracket ?? item.ageBracket ?? item.ageRange,
+        gender:          card.gender ?? item.gender,
+        intent:          card.intent ?? item.intent ?? (item.category ? item.category.toLowerCase() : null),
+        qrUuid:          card.qrUuid ?? item.qrUuid,
+        engagementCount: card.engagementCount ?? item.engagementCount ?? item.engageCount ?? item.loveCount ?? 0,
+        instagramUrl:    card.instagramUrl ?? item.instagramUrl,
+        tiktokUrl:       card.tiktokUrl    ?? item.tiktokUrl,
+        facebookUrl:     card.facebookUrl  ?? item.facebookUrl,
+        twitterUrl:      card.twitterUrl   ?? item.twitterUrl,
+        discordUrl:      card.discordUrl   ?? item.discordUrl,
+        youtubeUrl:      card.youtubeUrl   ?? item.youtubeUrl,
+      };
+    });
+  }, [cardMap]);
+
+  const activeData = activeTab === 0
+    ? (cards ?? [])
+    : activeTab === 1
+    ? resolveLeaderboard(loveBoard)
+    : resolveLeaderboard(engageBoard);
   const activeLoading = activeTab === 0 ? cardsLoading : activeTab === 1 ? loveLoading : engageLoading;
   const onRefresh = activeTab === 0 ? refetchCards : activeTab === 1 ? refetchLove : refetchEngage;
 
