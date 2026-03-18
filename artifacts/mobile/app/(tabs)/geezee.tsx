@@ -65,6 +65,8 @@ export default function GeeZeeScreen() {
           data={activeData ?? []}
           keyExtractor={(item, idx) => String(item.id ?? idx)}
           renderItem={({ item }) => <GeeZeeCardItem item={item} />}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -143,8 +145,12 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: Colors.darker,
   },
+  columnWrapper: {
+    gap: 12,
+  },
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 100,
+    gap: 12,
   },
 });

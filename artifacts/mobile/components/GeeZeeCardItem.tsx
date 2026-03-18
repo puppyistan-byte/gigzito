@@ -1,14 +1,26 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
 import Colors from "@/constants/colors";
+
+const { width: SW } = Dimensions.get("window");
+const GAP = 12;
+const H_PAD = 16;
+const CARD_W = (SW - H_PAD * 2 - GAP) / 2;
+const CARD_H = CARD_W * 1.55;
 
 type Props = {
   item: any;
+};
+
+const TIER_COLORS: Record<string, string> = {
+  GZMarketerPro: Colors.accent,
+  GZBusiness: Colors.success ?? "#00C27C",
+  GZLurker: Colors.textMuted,
 };
 
 export function GeeZeeCardItem({ item }: Props) {
@@ -17,95 +29,162 @@ export function GeeZeeCardItem({ item }: Props) {
     router.push({ pathname: "/geezee/[id]", params: { id: item.id } });
   };
 
+  const tier = item.subscriptionTier || "GZLurker";
+  const tierColor = TIER_COLORS[tier] ?? Colors.teal;
+  const name = item.displayName || item.username || "Unknown";
+  const handle = item.username ? `@${item.username}` : null;
+
   return (
-    <Pressable onPress={handlePress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <View style={styles.header}>
-        <Avatar uri={item.avatarUrl} name={item.displayName || item.username} size={48} />
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {item.displayName || item.username || "Unknown"}
-          </Text>
-          {item.username ? <Text style={styles.handle}>@{item.username}</Text> : null}
-          {item.subscriptionTier ? (
-            <Badge label={item.subscriptionTier} color={Colors.teal} bgColor={`${Colors.teal}22`} small />
-          ) : null}
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <LinearGradient
+        colors={["#1A1A1A", "#0D0D0D"]}
+        style={styles.gradient}
+      >
+        <View style={[styles.tierBar, { backgroundColor: tierColor }]} />
+
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarRing}>
+            <Avatar uri={item.avatarUrl} name={name} size={60} />
+          </View>
         </View>
-        <Feather name="chevron-right" size={18} color={Colors.textMuted} />
-      </View>
-      {item.bio ? (
-        <Text style={styles.bio} numberOfLines={2}>{item.bio}</Text>
-      ) : null}
-      {item.engageCount !== undefined || item.followerCount !== undefined ? (
-        <View style={styles.stats}>
+
+        <View style={styles.body}>
+          <Text style={styles.name} numberOfLines={1}>{name}</Text>
+          {handle ? (
+            <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
+          ) : null}
+
+          <View style={[styles.tierPill, { borderColor: `${tierColor}55`, backgroundColor: `${tierColor}15` }]}>
+            <Text style={[styles.tierText, { color: tierColor }]} numberOfLines={1}>
+              {tier}
+            </Text>
+          </View>
+
+          {item.bio ? (
+            <Text style={styles.bio} numberOfLines={3}>{item.bio}</Text>
+          ) : (
+            <Text style={styles.bioEmpty}>No bio yet</Text>
+          )}
+        </View>
+
+        <View style={styles.footer}>
           {item.engageCount !== undefined ? (
             <View style={styles.stat}>
-              <Feather name="zap" size={12} color={Colors.accent} />
-              <Text style={styles.statText}>{item.engageCount} engages</Text>
+              <Feather name="zap" size={11} color={Colors.accent} />
+              <Text style={styles.statText}>{item.engageCount}</Text>
             </View>
           ) : null}
           {item.followerCount !== undefined ? (
             <View style={styles.stat}>
-              <Feather name="users" size={12} color={Colors.textMuted} />
-              <Text style={styles.statText}>{item.followerCount} followers</Text>
+              <Feather name="users" size={11} color={Colors.textMuted} />
+              <Text style={styles.statText}>{item.followerCount}</Text>
             </View>
           ) : null}
+          <Feather name="chevron-right" size={13} color={Colors.textMuted} style={{ marginLeft: "auto" }} />
         </View>
-      ) : null}
+      </LinearGradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
+    width: CARD_W,
+    height: CARD_H,
+    borderRadius: 18,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
-    padding: 14,
-    gap: 10,
-    marginBottom: 10,
   },
   pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.97 }],
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  info: {
+  gradient: {
     flex: 1,
-    gap: 2,
+    borderRadius: 18,
+  },
+  tierBar: {
+    height: 4,
+    width: "100%",
+    opacity: 0.9,
+  },
+  avatarSection: {
+    alignItems: "center",
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+  avatarRing: {
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: Colors.surfaceBorder,
+    padding: 2,
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    gap: 6,
   },
   name: {
     color: Colors.textPrimary,
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
   },
   handle: {
     color: Colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
+    textAlign: "center",
+  },
+  tierPill: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: "100%",
+  },
+  tierText: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
   },
   bio: {
     color: Colors.textSecondary,
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
-    lineHeight: 19,
+    textAlign: "center",
+    lineHeight: 16,
   },
-  stats: {
+  bioEmpty: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  footer: {
     flexDirection: "row",
-    gap: 16,
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceBorder,
   },
   stat: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
   },
   statText: {
     color: Colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_500Medium",
   },
 });

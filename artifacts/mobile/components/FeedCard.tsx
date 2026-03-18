@@ -165,6 +165,18 @@ export function FeedCard({ item, isActive }: Props) {
 
       {/* Right rail buttons */}
       <View style={styles.rightRail}>
+        {/* GeeZee Rolodex */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/geezee" as any); }}
+          style={styles.railBtn}
+        >
+          <Image
+            source={require("@/assets/images/icon.png")}
+            style={styles.gzIcon}
+            resizeMode="cover"
+          />
+        </Pressable>
+
         {/* Mute */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); setMuted((m) => !m); }}
@@ -344,6 +356,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  gzIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
   },
   railCount: {
     color: "#fff",
