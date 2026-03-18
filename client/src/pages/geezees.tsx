@@ -109,15 +109,14 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
 
   return (
     <div
-      className="rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#333] transition-all overflow-hidden flex flex-col"
-      style={{ width: 300, minWidth: 300 }}
+      className="rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#333] transition-all overflow-hidden flex flex-col h-full w-full"
       data-testid={`card-geezee-${card.id}`}
     >
       {/* Thin gradient stripe */}
       <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
 
       {/* Card body — profile link + QR thumb side by side */}
-      <div className="flex items-start gap-2 px-3 pt-3 pb-2">
+      <div className="flex items-start gap-2 px-3 pt-3 pb-2 flex-1">
         <div className="flex-1 min-w-0">
           <Link href={`/geezee/${card.userId}`}>
             <div className="flex items-center gap-3 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
@@ -502,7 +501,7 @@ export default function GeezeesPage() {
         {isLoading ? (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="w-72 shrink-0 h-64 rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] animate-pulse" />
+              <div key={i} className="w-[300px] shrink-0 h-[168px] rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] animate-pulse" />
             ))}
           </div>
         ) : cards.length === 0 ? (
@@ -526,7 +525,7 @@ export default function GeezeesPage() {
             style={{ scrollbarWidth: "thin", scrollbarColor: "#2a2a2a transparent" }}
           >
             {cards.map((card) => (
-              <div key={card.id} className="w-72 shrink-0">
+              <div key={card.id} className="w-[300px] shrink-0 h-[168px]">
                 <GeeZeeCard card={card} myTier={myTier} isAuthed={isAuthed} myUserId={myUserId} />
               </div>
             ))}
