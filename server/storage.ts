@@ -1887,6 +1887,55 @@ export class DatabaseStorage implements IStorage {
     await db.insert(geezeeFollows).values({ followerId, followingUserId }).onConflictDoNothing();
   }
 
+  async getTotalEngagementLeaderboard(limit = 20): Promise<{
+    providerId: number; displayName: string | null; avatarUrl: string | null;
+    username: string | null; loveCount: number; geezeeCount: number; totalEngagement: number;
+  }[]> {
+    // All-time love votes per provider
+    const loveRows = await db
+      .select({ providerId: loveVotes.providerId, cnt: sql<number>`count(*)::int` })
+      .from(loveVotes)
+      .groupBy(loveVotes.providerId);
+    const loveMap = new Map(loveRows.map(r => [r.providerId, Number(r.cnt)]));
+
+    // GeeZee engagement per userId → provider profile
+    const geezeeRows = await db
+      .select({
+        profileId: providerProfiles.id,
+        engagementCount: gignessCards.engagementCount,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(gignessCards)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, gignessCards.userId))
+      .where(eq(gignessCards.isPublic, true));
+    const geezeeMap = new Map<number, number>();
+    const profileInfoMap = new Map<number, { displayName: string | null; avatarUrl: string | null; username: string | null }>();
+    for (const r of geezeeRows) {
+      if (r.profileId) {
+        geezeeMap.set(r.profileId, r.engagementCount);
+        profileInfoMap.set(r.profileId, { displayName: r.displayName ?? null, avatarUrl: r.avatarUrl ?? null, username: r.username ?? null });
+      }
+    }
+
+    // Fill profile info for providers with love votes but no GeeZee card
+    const missingIds = [...loveMap.keys()].filter(id => !profileInfoMap.has(id));
+    if (missingIds.length > 0) {
+      const profiles = await db.select({ id: providerProfiles.id, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl, username: providerProfiles.username })
+        .from(providerProfiles).where(inArray(providerProfiles.id, missingIds));
+      for (const p of profiles) profileInfoMap.set(p.id, { displayName: p.displayName ?? null, avatarUrl: p.avatarUrl ?? null, username: p.username ?? null });
+    }
+
+    const allIds = new Set([...loveMap.keys(), ...geezeeMap.keys()]);
+    return [...allIds].map(providerId => {
+      const loveCount = loveMap.get(providerId) ?? 0;
+      const geezeeCount = geezeeMap.get(providerId) ?? 0;
+      const info = profileInfoMap.get(providerId) ?? { displayName: null, avatarUrl: null, username: null };
+      return { providerId, ...info, loveCount, geezeeCount, totalEngagement: loveCount + geezeeCount };
+    }).sort((a, b) => b.totalEngagement - a.totalEngagement).slice(0, limit);
+  }
+
   async getGeeZeeEngageLeaderboard(limit = 20): Promise<{ userId: number; displayName: string | null; avatarUrl: string | null; username: string | null; engagementCount: number }[]> {
     const rows = await db
       .select({

@@ -2094,6 +2094,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(entries ?? []);
   });
 
+  app.get("/api/engagement/leaderboard", async (_req, res) => {
+    try {
+      const entries = await storage.getTotalEngagementLeaderboard(20);
+      return res.json(entries);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.get("/api/geezee/engage-leaderboard", async (_req, res) => {
     const entries = await storage.getGeeZeeEngageLeaderboard(20);
     return res.json(entries);
