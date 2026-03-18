@@ -1,0 +1,157 @@
+Here's the complete button-by-button breakdown mapped to the screenshot:
+
+Gigzito Main Feed — Every Button, API & Destination
+┌─────────────────────────────────────────┐
+│                              [ 0s ] ← 1 │
+│                                         │
+│         VIDEO / POSTER AREA             │
+│                               [ 🔇 ] ← 2│
+│                               [ ♥ ] ← 3 │
+│                               [ 💬 ] ← 4│
+│                                         │
+│ [ MARKETING ]                           │
+│ How to Manifest...                      │
+│ Neville Goddard is an inspirational...  │
+│ ┌─────────────────────┐ [⇧] ← 6  [👤]← 7│
+│ │  ↗  Inquire         │ ← 5             │
+│ └─────────────────────┘                 │
+│ #marketing  #LOA  #Abundance       ← 8 │
+└─────────────────────────────────────────┘
+1 — Duration Timer (top-right)
+Type: Display only — not tappable
+Shows: Countdown in seconds while video plays (60s → 0s). Turns amber at 15s, red at 5s.
+No API call
+
+2 — Mute / Unmute (right rail, top)
+Type: Button — only visible while video is active
+Action: Toggles audio on/off locally. No server call.
+No API call
+test-id: button-mute-{listingId}
+
+3 — Heart / Like (right rail, middle)
+Type: Toggle button
+Logged out: Opens Guest CTA modal (prompts sign-up)
+Logged in:
+
+POST /api/videos/{listingId}/like
+Authorization: Bearer <token>
+Response: { liked: boolean, likeCount: number }
+Optimistic UI — increments/decrements instantly, corrects on response.
+test-id: button-like-{listingId} / count: text-like-count-{listingId}
+
+4 — Comment Bubble (right rail, bottom)
+Type: Button — opens comments drawer from bottom
+On open, fetches:
+
+GET /api/listings/{listingId}/comments
+Response: [{ id, authorName, commentText, createdAt }]
+Post a comment (logged in):
+
+POST /api/listings/{listingId}/comments
+Authorization: Bearer <token>
+Body: {
+  "commentText": "Great video!",
+  "viewerEmail": "optional@email.com"
+}
+Guest (not logged in): Can post comment — viewerEmail is requested as optional field
+test-id: button-comments-{listingId} / drawer: comments-drawer-{listingId}
+
+5 — CTA Button (bottom bar, full-width red)
+Label changes by listing type:
+
+ctaType	Button label	Action
+"Visit Offer"	Visit Offer	Opens Inquire modal
+"Shop Product"	Shop Now	Opens ctaUrl in browser (external link)
+"Join Event"	Join Event	Opens Inquire modal
+"Book Service"	Book Now	Opens Inquire modal
+"Join Guild"	Join Guild	Opens Inquire modal
+(none set)	Inquire	Opens Inquire modal
+For Shop Product only: window.open(listing.ctaUrl) → external URL, no API call
+All others → Inquire modal which calls:
+
+POST /api/leads
+Body: {
+  "listingId": 42,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "message": "I'm interested"
+}
+Logged out: Opens Guest CTA modal instead of Inquire
+test-id: button-inquire-{listingId}
+
+6 — Share Button (bottom bar, right of CTA)
+Type: Button — opens share sheet overlay
+No API call — pure client-side sharing
+
+Sub-actions inside the share sheet:
+
+Button	Action	Destination
+Share…	Native OS share sheet	navigator.share({ title, text, url })
+Copy link	Copies URL to clipboard	navigator.clipboard.writeText(videoUrl)
+Watch	Opens video in browser tab	listing.videoUrl → YouTube / Vimeo / direct
+SMS	Opens SMS app	sms:?body=Check this out: <url>
+WhatsApp	Opens WhatsApp	https://wa.me/?text=<encoded>
+Facebook	Opens FB sharer	https://www.facebook.com/sharer/sharer.php?u=<url>
+X / Twitter	Opens X tweet	https://twitter.com/intent/tweet?text=<encoded>
+Telegram	Opens Telegram	https://t.me/share/url?url=<url>&text=<text>
+Email	Opens email client	mailto:?subject=<title>&body=<text+url>
+test-id: button-share-{listingId} / sheet: share-menu-{listingId}
+
+7 — Creator Avatar (bottom-right floating circle)
+Type: Link
+Destination: /provider/{listing.provider.id}
+→ Navigates to the provider's public profile page
+No API call on tap — profile page fetches separately:
+
+GET /api/profile/{providerId}
+test-id: avatar-creator-{listingId}
+
+8 — Hashtags (bottom strip)
+Type: Display only — not tappable currently
+No API call
+
+SPECIAL OVERLAY TYPES
+Flash Sale card
+Extra element between category badge and title:
+
+CountdownTimer — live countdown to listing.flashSaleEndsAt
+Card has a red glow ring around it
+No extra API call
+Flash Coupon card
+Extra element — Coupon Code block with copy button:
+
+Shows listing.couponCode in monospace
+Copy button → navigator.clipboard.writeText(couponCode)
+test-id: button-copy-coupon
+Products card
+Extra elements — price badge + stock badge + Buy Now button:
+
+Buy Now → opens listing.productPurchaseUrl in browser
+Logged out: opens Guest CTA modal instead
+test-id: button-buy-product
+FULL LISTING DATA SHAPE (from GET /api/listings)
+Key fields the mobile card needs:
+
+{
+  "id": 42,
+  "title": "How to Manifest...",
+  "description": "Neville Goddard is...",
+  "videoUrl": "https://youtube.com/embed/...",
+  "vertical": "MARKETING",
+  "tags": ["marketing", "LOA", "Abundance"],
+  "ctaType": "Visit Offer",
+  "ctaUrl": "https://...",
+  "likeCount": 12,
+  "durationSeconds": 60,
+  "flashSaleEndsAt": null,
+  "couponCode": null,
+  "productPrice": null,
+  "productPurchaseUrl": null,
+  "productStock": null,
+  "provider": {
+    "id": 5,
+    "displayName": "Neville Goddard",
+    "avatarUrl": "https://...",
+    "thumbUrl": "https://..."
+  }
+}

@@ -1,119 +1,86 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
+  ActivityIndicator,
+  Dimensions,
   FlatList,
-  Image,
-  Platform,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
+  ViewToken,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-import { useListings, useToggleLike, useVideoLikes } from "@/hooks/useApi";
-import { VideoCard } from "@/components/VideoCard";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { LoadingSpinner } from "@/components/ui/LoadingScreen";
+import { useListings } from "@/hooks/useApi";
+import { FeedCard } from "@/components/FeedCard";
 import Colors from "@/constants/colors";
 
-const CATEGORIES = ["All", "Music", "Comedy", "Business", "Art", "Sports", "Tech", "Lifestyle"];
+const { height: SH } = Dimensions.get("window");
 
-function VideoCardWithLikes({ item }: { item: any }) {
-  const { data: likesData } = useVideoLikes(item.id);
-  const { mutate: toggleLike } = useToggleLike(item.id);
+function EmptyFeed() {
   return (
-    <VideoCard
-      item={item}
-      onLike={() => toggleLike()}
-      likeCount={likesData?.count ?? likesData?.likes ?? 0}
-    />
+    <View style={styles.empty}>
+      <Text style={styles.emptyIcon}>🎬</Text>
+      <Text style={styles.emptyTitle}>No listings yet</Text>
+      <Text style={styles.emptySubtitle}>Check back soon for new content</Text>
+    </View>
+  );
+}
+
+function LoadingFeed() {
+  return (
+    <View style={styles.loading}>
+      <ActivityIndicator size="large" color={Colors.accent} />
+    </View>
   );
 }
 
 export default function FeedScreen() {
-  const insets = useSafeAreaInsets();
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
+  const { data: listings, isLoading, refetch, isRefetching } = useListings();
 
-  const { data: listings, isLoading, refetch, isRefetching } = useListings(
-    category || undefined,
-    searchQuery || undefined
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setActiveIndex(viewableItems[0].index);
+      }
+    },
+    []
   );
 
-  const handleSearch = () => setSearchQuery(search);
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 34 : 0;
+  if (isLoading) return <LoadingFeed />;
+
+  const items = listings ?? [];
 
   return (
-    <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
-      <View style={styles.header}>
-        <Image source={require("@/assets/images/gigzito-logo.png")} style={styles.logoImage} resizeMode="contain" />
-        <Feather name="bell" size={22} color={Colors.textSecondary} />
-      </View>
-
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Feather name="search" size={16} color={Colors.textMuted} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            onSubmitEditing={handleSearch}
-            placeholder="Search listings..."
-            placeholderTextColor={Colors.textMuted}
-            style={styles.searchInput}
-            returnKeyType="search"
-          />
-          {search ? (
-            <Pressable onPress={() => { setSearch(""); setSearchQuery(""); }}>
-              <Feather name="x" size={16} color={Colors.textMuted} />
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-
+    <View style={styles.container}>
       <FlatList
-        horizontal
-        data={CATEGORIES}
-        keyExtractor={(c) => c}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.catList}
-        renderItem={({ item: cat }) => (
-          <Pressable
-            onPress={() => setCategory(cat === "All" ? "" : cat)}
-            style={[styles.catChip, (cat === "All" ? !category : category === cat) && styles.catChipActive]}
-          >
-            <Text style={[(cat === "All" ? !category : category === cat) ? styles.catTextActive : styles.catText]}>
-              {cat}
-            </Text>
-          </Pressable>
+        data={items}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item, index }) => (
+          <FeedCard item={item} isActive={index === activeIndex} />
         )}
+        pagingEnabled
+        snapToInterval={SH}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        showsVerticalScrollIndicator={false}
+        getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        refreshControl={
+          <RefreshControl
+            refreshing={!!isRefetching}
+            onRefresh={refetch}
+            tintColor={Colors.accent}
+            colors={[Colors.accent]}
+          />
+        }
+        ListEmptyComponent={<EmptyFeed />}
+        windowSize={3}
+        maxToRenderPerBatch={2}
+        initialNumToRender={1}
       />
-
-      {isLoading ? (
-        <LoadingSpinner />
-      ) : (
-        <FlatList
-          data={listings ?? []}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => <VideoCardWithLikes item={item} />}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={!!isRefetching} onRefresh={refetch} tintColor={Colors.accent} />
-          }
-          ListEmptyComponent={
-            <EmptyState
-              icon="video"
-              title="No listings found"
-              subtitle="Try adjusting your search or category filter"
-            />
-          }
-        />
-      )}
     </View>
   );
 }
@@ -121,69 +88,30 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.dark,
+    backgroundColor: "#000",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  logoImage: {
-    width: 140,
-    height: 48,
-  },
-  searchRow: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: {
+  loading: {
     flex: 1,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  empty: {
+    height: SH,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    backgroundColor: "#000",
+  },
+  emptyIcon: { fontSize: 48 },
+  emptyTitle: {
     color: Colors.textPrimary,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  catList: {
-    paddingHorizontal: 16,
-    gap: 8,
-    paddingBottom: 12,
-  },
-  catChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    backgroundColor: Colors.surface,
-  },
-  catChipActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
-  catText: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
-  },
-  catTextActive: {
-    color: Colors.darker,
-    fontSize: 13,
+    fontSize: 20,
     fontFamily: "Inter_700Bold",
   },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
+  emptySubtitle: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
   },
 });
