@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Pressable,
   StyleSheet,
@@ -14,14 +14,39 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import Colors from "@/constants/colors";
 
+const RESEND_COOLDOWN = 30;
+
 export default function MfaScreen() {
-  const { verifyMfa } = useAuth();
+  const { verifyMfa, resendMfaCode } = useAuth();
   const { email } = useLocalSearchParams<{ email: string }>();
   const insets = useSafeAreaInsets();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendStatus, setResendStatus] = useState("");
   const inputRefs = useRef<TextInput[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const startCooldown = (seconds: number) => {
+    setResendCooldown(seconds);
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const handleChange = (val: string, idx: number) => {
     const digit = val.replace(/\D/, "").slice(-1);
@@ -61,6 +86,25 @@ export default function MfaScreen() {
     }
   };
 
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    setResendStatus("");
+    setError("");
+    try {
+      await resendMfaCode(email);
+      setResendStatus("Code resent! Check your email.");
+      startCooldown(RESEND_COOLDOWN);
+    } catch (e: any) {
+      const wait = e.waitSeconds;
+      if (wait) {
+        startCooldown(wait);
+        setError(`Please wait ${wait}s before resending.`);
+      } else {
+        setError(e.message || "Failed to resend code.");
+      }
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16, paddingBottom: insets.bottom }]}>
       <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -71,8 +115,11 @@ export default function MfaScreen() {
         <View style={styles.iconWrapper}>
           <Feather name="shield" size={32} color={Colors.teal} />
         </View>
-        <Text style={styles.title}>Two-Factor Auth</Text>
-        <Text style={styles.subtitle}>Enter the 6-digit code sent to{"\n"}{email}</Text>
+        <Text style={styles.title}>Check Your Email</Text>
+        <Text style={styles.subtitle}>
+          We sent a 6-digit code to{"\n"}
+          <Text style={styles.emailHighlight}>{email}</Text>
+        </Text>
 
         <View style={styles.codeRow}>
           {code.map((digit, idx) => (
@@ -97,12 +144,29 @@ export default function MfaScreen() {
           </View>
         ) : null}
 
+        {resendStatus && !error ? (
+          <View style={styles.successBox}>
+            <Feather name="check-circle" size={14} color={Colors.success} />
+            <Text style={styles.successText}>{resendStatus}</Text>
+          </View>
+        ) : null}
+
         <PrimaryButton
           label="Verify"
           onPress={handleVerify}
           loading={loading}
           disabled={loading || code.join("").length < 6}
         />
+
+        <Pressable onPress={handleResend} disabled={resendCooldown > 0} style={styles.resendBtn}>
+          <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
+            {resendCooldown > 0
+              ? `Resend code in ${resendCooldown}s`
+              : "Didn't get a code? Resend"}
+          </Text>
+        </Pressable>
+
+        <Text style={styles.expiry}>Code expires in 10 minutes</Text>
       </View>
     </View>
   );
@@ -124,7 +188,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: "center",
-    gap: 24,
+    gap: 20,
     paddingBottom: 60,
   },
   iconWrapper: {
@@ -147,7 +211,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_400Regular",
     lineHeight: 22,
-    marginTop: -12,
+    marginTop: -8,
+  },
+  emailHighlight: {
+    color: Colors.textPrimary,
+    fontFamily: "Inter_500Medium",
   },
   codeRow: {
     flexDirection: "row",
@@ -185,5 +253,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     flex: 1,
+  },
+  successBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: `${Colors.success}15`,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${Colors.success}44`,
+    padding: 12,
+  },
+  successText: {
+    color: Colors.success,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
+  resendBtn: {
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  resendText: {
+    color: Colors.accent,
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+  },
+  resendTextDisabled: {
+    color: Colors.textMuted,
+  },
+  expiry: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginTop: -8,
   },
 });

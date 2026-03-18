@@ -21,12 +21,15 @@ import Colors from "@/constants/colors";
 const logo = require("@/assets/images/gigzito-logo.png");
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, resendVerification } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -34,6 +37,8 @@ export default function LoginScreen() {
       return;
     }
     setError("");
+    setEmailNotVerified(false);
+    setVerificationSent(false);
     setLoading(true);
     try {
       const result = await login(email.trim().toLowerCase(), password);
@@ -43,9 +48,31 @@ export default function LoginScreen() {
         router.replace("/(tabs)");
       }
     } catch (e: any) {
-      setError(e.message || "Login failed. Check your credentials.");
+      if (e.emailNotVerified) {
+        setEmailNotVerified(true);
+        setError("Your email isn't verified yet. Check your inbox or resend the link below.");
+      } else {
+        setError(e.message || "Login failed. Check your credentials.");
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setError("Enter your email address first.");
+      return;
+    }
+    setResendingVerification(true);
+    try {
+      await resendVerification(email.trim().toLowerCase());
+      setVerificationSent(true);
+      setError("");
+    } catch (e: any) {
+      setError(e.message || "Failed to resend verification email.");
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -78,7 +105,7 @@ export default function LoginScreen() {
                 label="Email"
                 icon="mail"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(t) => { setEmail(t); setEmailNotVerified(false); setVerificationSent(false); setError(""); }}
                 placeholder="you@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -102,6 +129,28 @@ export default function LoginScreen() {
                 <Feather name="alert-circle" size={14} color={Colors.danger} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
+            ) : null}
+
+            {verificationSent ? (
+              <View style={styles.successBox}>
+                <Feather name="check-circle" size={14} color={Colors.success} />
+                <Text style={styles.successText}>
+                  Verification email sent! Check your inbox and click the link, then sign in.
+                </Text>
+              </View>
+            ) : null}
+
+            {emailNotVerified && !verificationSent ? (
+              <Pressable
+                onPress={handleResendVerification}
+                disabled={resendingVerification}
+                style={styles.resendVerifyBtn}
+              >
+                <Feather name="send" size={14} color={Colors.accent} />
+                <Text style={styles.resendVerifyText}>
+                  {resendingVerification ? "Sending…" : "Resend verification email"}
+                </Text>
+              </Pressable>
             ) : null}
 
             <PrimaryButton
@@ -181,6 +230,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     flex: 1,
+  },
+  successBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: `${Colors.success}15`,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${Colors.success}44`,
+    padding: 12,
+  },
+  successText: {
+    color: Colors.success,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
+  resendVerifyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: `${Colors.accent}15`,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${Colors.accent}44`,
+  },
+  resendVerifyText: {
+    color: Colors.accent,
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
   },
   loginBtn: {
     marginTop: 4,

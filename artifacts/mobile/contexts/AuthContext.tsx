@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import React, {
   createContext,
   useCallback,
@@ -7,13 +7,17 @@ import React, {
   useState,
 } from "react";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://5.78.128.185";
+const BASE_URL = "https://www.gigzito.com";
+const TOKEN_KEY = "gigzito_token";
 
 export type User = {
   id: number;
   email: string;
   role: string;
   subscriptionTier: string;
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string | null;
 };
 
 export type Profile = {
@@ -30,15 +34,48 @@ type AuthState = {
   isLoading: boolean;
 };
 
+type LoginResult = {
+  mfaRequired: boolean;
+  email?: string;
+  emailNotVerified?: boolean;
+  devCode?: string;
+};
+
 type AuthContextValue = AuthState & {
-  login: (email: string, password: string) => Promise<{ mfaRequired: boolean; email?: string }>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   verifyMfa: (email: string, code: string) => Promise<void>;
+  resendMfaCode: (email: string) => Promise<{ message: string; waitSeconds?: number }>;
+  resendVerification: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
   apiRequest: <T>(path: string, options?: RequestInit) => Promise<T>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+async function saveToken(token: string) {
+  try {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+  } catch {
+    /* SecureStore not available on web */
+  }
+}
+
+async function getToken(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+async function deleteToken() {
+  try {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -50,19 +87,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const token = await AsyncStorage.getItem("gigzito_token");
+      const token = await getToken();
       if (token) {
         try {
-          const res = await fetch(`${BASE_URL}/api/mobile/me`, {
+          const res = await fetch(`${BASE_URL}/api/mobile/refresh`, {
+            method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
             const data = await res.json();
-            setState({ token, user: data.user, profile: data.profile, isLoading: false });
+            await saveToken(data.token);
+            setState({
+              token: data.token,
+              user: data.user,
+              profile: data.profile ?? null,
+              isLoading: false,
+            });
             return;
           }
         } catch {}
-        await AsyncStorage.removeItem("gigzito_token");
+        await deleteToken();
       }
       setState((s) => ({ ...s, isLoading: false }));
     })();
@@ -87,18 +131,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [state.token]
   );
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     const res = await fetch(`${BASE_URL}/api/mobile/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+    const data = await res.json().catch(() => ({ message: "Login failed" }));
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "Login failed" }));
-      throw new Error(err.message || "Login failed");
+      const err: any = new Error(data.message || "Login failed");
+      if (data.emailNotVerified) err.emailNotVerified = true;
+      throw err;
     }
-    const data = await res.json();
-    return data as { mfaRequired: boolean; email?: string };
+    return data as LoginResult;
   }, []);
 
   const verifyMfa = useCallback(async (email: string, code: string) => {
@@ -107,19 +152,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, code }),
     });
+    const data = await res.json().catch(() => ({ message: "MFA failed" }));
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: "MFA failed" }));
-      throw new Error(err.message || "MFA verification failed");
+      throw new Error(data.message || "MFA verification failed");
     }
-    const data = await res.json();
-    await AsyncStorage.setItem("gigzito_token", data.token);
-    setState({ token: data.token, user: data.user, profile: data.profile ?? null, isLoading: false });
+    await saveToken(data.token);
+    const user: User = data.user;
+    const profile: Profile | null = data.profile ?? {
+      username: user.username ?? "",
+      displayName: user.displayName ?? user.email,
+      avatarUrl: user.avatarUrl ?? null,
+      bio: null,
+    };
+    setState({ token: data.token, user, profile, isLoading: false });
+  }, []);
+
+  const resendMfaCode = useCallback(async (email: string) => {
+    const res = await fetch(`${BASE_URL}/api/mobile/mfa/resend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({ message: "Failed to resend" }));
+    if (!res.ok) {
+      const err: any = new Error(data.message || "Failed to resend code");
+      const match = data.message?.match(/(\d+)\s+second/);
+      if (match) err.waitSeconds = parseInt(match[1], 10);
+      throw err;
+    }
+    return data as { message: string };
+  }, []);
+
+  const resendVerification = useCallback(async (email: string) => {
+    const res = await fetch(`${BASE_URL}/api/auth/resend-verification`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({ message: "Failed" }));
+    if (!res.ok) throw new Error(data.message || "Failed to resend verification");
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.removeItem("gigzito_token");
+    if (state.token) {
+      try {
+        await fetch(`${BASE_URL}/api/auth/logout`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${state.token}` },
+        });
+      } catch {}
+    }
+    await deleteToken();
     setState({ token: null, user: null, profile: null, isLoading: false });
-  }, []);
+  }, [state.token]);
 
   const refreshMe = useCallback(async () => {
     if (!state.token) return;
@@ -135,7 +220,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.token]);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, verifyMfa, logout, refreshMe, apiRequest }}>
+    <AuthContext.Provider
+      value={{ ...state, login, verifyMfa, resendMfaCode, resendVerification, logout, refreshMe, apiRequest }}
+    >
       {children}
     </AuthContext.Provider>
   );
