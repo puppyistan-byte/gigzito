@@ -116,49 +116,72 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
       {/* Thin gradient stripe */}
       <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
 
-      {/* Card body — click anywhere in header area to view profile */}
-      <Link href={`/geezee/${card.userId}`}>
-        <div className="flex items-center gap-3 px-3 pt-3 pb-2 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
-          {card.profilePic ? (
-            <img
-              src={card.profilePic}
-              alt="Profile"
-              className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
-              <User className="h-5 w-5 text-[#444]" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cardTier.color} ${cardTier.border} bg-transparent leading-none`}>
-                {cardTier.label}
-              </span>
-              {card.intent && (
-                <span className="text-[9px] text-purple-300/80 bg-purple-900/20 border border-purple-700/30 rounded px-1.5 py-0.5 capitalize leading-none">
-                  {card.intent}
-                </span>
+      {/* Card body — profile link + QR thumb side by side */}
+      <div className="flex items-start gap-2 px-3 pt-3 pb-2">
+        <div className="flex-1 min-w-0">
+          <Link href={`/geezee/${card.userId}`}>
+            <div className="flex items-center gap-3 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
+              {card.profilePic ? (
+                <img
+                  src={card.profilePic}
+                  alt="Profile"
+                  className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
+                  <User className="h-5 w-5 text-[#444]" />
+                </div>
               )}
-              {(card as any).username && (
-                <span className="ml-auto text-[9px] font-mono text-purple-400 truncate max-w-[80px]">
-                  @{(card as any).username}
-                </span>
-              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cardTier.color} ${cardTier.border} bg-transparent leading-none`}>
+                    {cardTier.label}
+                  </span>
+                  {card.intent && (
+                    <span className="text-[9px] text-purple-300/80 bg-purple-900/20 border border-purple-700/30 rounded px-1.5 py-0.5 capitalize leading-none">
+                      {card.intent}
+                    </span>
+                  )}
+                  {(card as any).username && (
+                    <span className="ml-auto text-[9px] font-mono text-purple-400 truncate max-w-[80px]">
+                      @{(card as any).username}
+                    </span>
+                  )}
+                </div>
+                {card.slogan && (
+                  <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-purple-200 transition-colors">
+                    {card.slogan}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-0.5 text-[10px]">
+                  {card.ageBracket && <span className="text-purple-400/80">{card.ageBracket}</span>}
+                  {card.gender && <span className="text-purple-400/80">{card.gender}</span>}
+                  <span className="text-purple-400 group-hover:text-purple-300 transition-colors ml-auto font-medium">View →</span>
+                </div>
+              </div>
             </div>
-            {card.slogan && (
-              <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-purple-200 transition-colors">
-                {card.slogan}
-              </p>
-            )}
-            <div className="flex items-center gap-2 mt-0.5 text-[10px]">
-              {card.ageBracket && <span className="text-purple-400/80">{card.ageBracket}</span>}
-              {card.gender && <span className="text-purple-400/80">{card.gender}</span>}
-              <span className="text-purple-400 group-hover:text-purple-300 transition-colors ml-auto font-medium">View →</span>
-            </div>
-          </div>
+          </Link>
         </div>
-      </Link>
+
+        {/* QR thumb — flush with top, links to full QR card page */}
+        {card.qrUuid && (
+          <a
+            href={`/qr/${card.qrUuid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View QR Card"
+            data-testid={`btn-qr-thumb-${card.id}`}
+            className="shrink-0 mt-0.5 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=a855f7&bgcolor=0d0d0d&data=${encodeURIComponent(window.location.origin + '/qr/' + card.qrUuid)}`}
+              alt="QR"
+              className="w-10 h-10 rounded border border-purple-900/40"
+              style={{ imageRendering: "pixelated" }}
+            />
+          </a>
+        )}
+      </div>
 
       {/* Social icons strip — always all 5 platforms, dim placeholder if missing, for card symmetry */}
       {(() => {
