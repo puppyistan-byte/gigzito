@@ -112,7 +112,7 @@ export default function LoginScreen() {
               style={styles.loginBtn}
             />
 
-            <Pressable onPress={() => Linking.openURL("https://gigzito.com/register")}>
+            <Pressable onPress={() => Linking.openURL("https://gigzito.com/auth")}>
               <Text style={styles.hint}>
                 Need an account?{" "}
                 <Text style={styles.hintAccent}>Register on gigzito.com</Text>
