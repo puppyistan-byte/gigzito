@@ -70,8 +70,6 @@ export function GeeZeeCardItem({ item }: Props) {
         <View style={[styles.tierStripe, { backgroundColor: tierColor }]} />
 
         <View style={styles.topRow}>
-          <ProfileThumb uri={item.avatarUrl} name={name} size={58} />
-
           <View style={styles.centerContent}>
             <View style={styles.pillRow}>
               <View style={[styles.pill, { borderColor: `${tierColor}66`, backgroundColor: `${tierColor}18` }]}>
@@ -94,6 +92,7 @@ export function GeeZeeCardItem({ item }: Props) {
           </View>
 
           <View style={styles.rightCol}>
+            <ProfileThumb uri={item.avatarUrl} name={name} size={62} />
             {handle ? (
               <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
             ) : null}
@@ -161,8 +160,8 @@ const styles = StyleSheet.create({
   thumb: {
     borderRadius: 10,
     overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: Colors.surfaceBorder,
+    borderWidth: 2,
+    borderColor: Colors.purple,
     backgroundColor: Colors.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
