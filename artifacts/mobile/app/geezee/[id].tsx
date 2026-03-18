@@ -105,7 +105,7 @@ export default function GeeZeeDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad + 100 }}>
         <View style={styles.cardHero}>
           <View style={styles.cardAccent} />
-          <Avatar uri={card.avatarUrl} name={card.displayName || card.username} size={80} />
+          <Avatar uri={card.profilePic ?? card.avatarUrl} name={card.displayName || card.username} size={80} />
           <Text style={styles.name}>{card.displayName || card.username || "User"}</Text>
           {card.username ? <Text style={styles.handle}>@{card.username}</Text> : null}
           {card.subscriptionTier ? (

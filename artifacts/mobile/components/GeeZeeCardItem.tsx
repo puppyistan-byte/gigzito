@@ -78,7 +78,7 @@ export function GeeZeeCardItem({ item }: Props) {
         <View style={[styles.tierStripe, { backgroundColor: tierColor }]} />
 
         <View style={styles.topRow}>
-          <ProfileThumb uri={item.avatarUrl} name={name} size={62} />
+          <ProfileThumb uri={item.profilePic ?? item.avatarUrl} name={name} size={62} />
 
           <View style={styles.centerContent}>
             <View style={styles.pillRow}>
