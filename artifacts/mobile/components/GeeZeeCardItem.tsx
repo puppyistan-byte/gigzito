@@ -40,21 +40,16 @@ const INTENT_LABEL: Record<string, string> = {
   activity:  "Activity",
 };
 
-type SocialEntry = { key: string; icon: string; url: string };
+const DIM = "#3f3f3f";
 
-function buildSocialLinks(item: any): SocialEntry[] {
-  const map: { key: string; icon: string; field: string }[] = [
-    { key: "facebook",  icon: "facebook",      field: "facebookUrl"  },
-    { key: "instagram", icon: "instagram",     field: "instagramUrl" },
-    { key: "tiktok",    icon: "music",         field: "tiktokUrl"    },
-    { key: "youtube",   icon: "youtube",       field: "youtubeUrl"   },
-    { key: "twitter",   icon: "twitter",       field: "twitterUrl"   },
-    { key: "discord",   icon: "message-circle",field: "discordUrl"   },
-  ];
-  return map
-    .filter(({ field }) => !!item[field])
-    .map(({ key, icon, field }) => ({ key, icon, url: item[field] }));
-}
+const ALL_SOCIAL: { key: string; icon: string; field: string }[] = [
+  { key: "facebook",  icon: "facebook",       field: "facebookUrl"  },
+  { key: "instagram", icon: "instagram",      field: "instagramUrl" },
+  { key: "tiktok",    icon: "music",          field: "tiktokUrl"    },
+  { key: "youtube",   icon: "youtube",        field: "youtubeUrl"   },
+  { key: "twitter",   icon: "twitter",        field: "twitterUrl"   },
+  { key: "discord",   icon: "message-circle", field: "discordUrl"   },
+];
 
 function ProfileThumb({ uri, name, size }: { uri?: string | null; name: string; size: number }) {
   const resolvedUri = resolveImageUrl(uri);
@@ -85,9 +80,8 @@ export function GeeZeeCardItem({ item }: Props) {
   const slogan    = item.slogan || null;
   const intent    = INTENT_LABEL[item.intent] ?? null;
   const demo      = [item.ageBracket, item.gender].filter(Boolean).join("  ");
-  const iconColor = GENDER_ICON_COLOR[item.gender] ?? "#3f3f3f";
-  const socialLinks = buildSocialLinks(item);
-  const qrUrl     = item.qrUuid ? buildQrUrl(item.qrUuid) : null;
+  const linkedColor = GENDER_ICON_COLOR[item.gender] ?? Colors.purple;
+  const qrUrl       = item.qrUuid ? buildQrUrl(item.qrUuid) : null;
 
   return (
     <Pressable
@@ -140,15 +134,19 @@ export function GeeZeeCardItem({ item }: Props) {
         <View style={styles.divider} />
 
         <View style={styles.bottomRow}>
-          {socialLinks.length > 0 ? (
-            <View style={styles.socialIcons}>
-              {socialLinks.map(({ key, icon }) => (
-                <Feather key={key} name={icon as any} size={14} color={iconColor} />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.socialIcons} />
-          )}
+          <View style={styles.socialIcons}>
+            {ALL_SOCIAL.map(({ key, icon, field }) => {
+              const isLinked = !!item[field];
+              return (
+                <Feather
+                  key={key}
+                  name={icon as any}
+                  size={14}
+                  color={isLinked ? linkedColor : DIM}
+                />
+              );
+            })}
+          </View>
 
           <View style={styles.statsRow}>
             <View style={styles.stat}>
