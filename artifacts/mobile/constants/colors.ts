@@ -1,6 +1,8 @@
 const accent = "#E8151B";
 const accentLight = "#FF2D33";
 const accentDark = "#B01015";
+const purple = "#9933FF";
+const purpleLight = "#BB55FF";
 const dark = "#0A0A0A";
 const darker = "#050505";
 const surface = "#111111";
@@ -18,6 +20,8 @@ const Colors = {
   accent,
   accentLight,
   accentDark,
+  purple,
+  purpleLight,
   teal,
   dark,
   darker,

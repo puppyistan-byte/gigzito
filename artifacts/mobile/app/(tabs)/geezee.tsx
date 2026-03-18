@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceBorder,
   },
   tabActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
+    backgroundColor: Colors.purple,
+    borderColor: Colors.purple,
   },
   tabText: {
     color: Colors.textMuted,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
   tabTextActive: {
-    color: Colors.darker,
+    color: Colors.textPrimary,
   },
   listContent: {
     paddingTop: 8,

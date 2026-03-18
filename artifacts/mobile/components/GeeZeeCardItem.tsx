@@ -4,7 +4,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Avatar } from "@/components/ui/Avatar";
 import Colors from "@/constants/colors";
 
 const { width: SW } = Dimensions.get("window");
@@ -12,7 +11,7 @@ const { width: SW } = Dimensions.get("window");
 const TIER_COLORS: Record<string, string> = {
   GZMarketerPro: Colors.accent,
   GZBusiness: Colors.success ?? "#00C27C",
-  GZLurker: Colors.textMuted,
+  GZLurker: Colors.purple,
 };
 
 const SOCIAL_ICONS: { key: string; icon: string }[] = [
@@ -26,6 +25,25 @@ type Props = {
   item: any;
 };
 
+function ProfileThumb({ uri, name, size }: { uri?: string | null; name: string; size: number }) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <View style={[styles.thumb, { width: size, height: size }]}>
+      {uri ? (
+        <Image source={{ uri }} style={{ width: size, height: size }} resizeMode="cover" />
+      ) : (
+        <Text style={[styles.thumbInitials, { fontSize: size * 0.34 }]}>{initials}</Text>
+      )}
+    </View>
+  );
+}
+
 export function GeeZeeCardItem({ item }: Props) {
   const handlePress = () => {
     Haptics.selectionAsync();
@@ -33,7 +51,7 @@ export function GeeZeeCardItem({ item }: Props) {
   };
 
   const tier = item.subscriptionTier || "GZLurker";
-  const tierColor = TIER_COLORS[tier] ?? Colors.teal;
+  const tierColor = TIER_COLORS[tier] ?? Colors.purple;
   const name = item.displayName || item.username || "Unknown";
   const handle = item.username ? `@${item.username}` : null;
   const category = item.category || "Social";
@@ -52,9 +70,7 @@ export function GeeZeeCardItem({ item }: Props) {
         <View style={[styles.tierStripe, { backgroundColor: tierColor }]} />
 
         <View style={styles.topRow}>
-          <View style={styles.avatarWrap}>
-            <Avatar uri={item.avatarUrl} name={name} size={56} />
-          </View>
+          <ProfileThumb uri={item.avatarUrl} name={name} size={58} />
 
           <View style={styles.centerContent}>
             <View style={styles.pillRow}>
@@ -101,7 +117,7 @@ export function GeeZeeCardItem({ item }: Props) {
           <View style={styles.statsRow}>
             {item.engageCount !== undefined ? (
               <View style={styles.stat}>
-                <Feather name="heart" size={13} color={Colors.accent} />
+                <Feather name="heart" size={13} color={Colors.purple} />
                 <Text style={styles.statText}>{item.engageCount ?? 0}</Text>
               </View>
             ) : null}
@@ -142,17 +158,24 @@ const styles = StyleSheet.create({
     width: "100%",
     opacity: 0.9,
   },
+  thumb: {
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbInitials: {
+    color: Colors.purple,
+    fontFamily: "Inter_700Bold",
+  },
   topRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     padding: 12,
     gap: 10,
-  },
-  avatarWrap: {
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: Colors.surfaceBorder,
   },
   centerContent: {
     flex: 1,
@@ -199,9 +222,9 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
   handle: {
-    color: Colors.accent,
+    color: Colors.purple,
     fontSize: 11,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
   },
   gzLogo: {
     width: 36,
@@ -244,13 +267,15 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
   },
   viewBtn: {
-    backgroundColor: Colors.accent,
     borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: Colors.purple,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    backgroundColor: `${Colors.purple}15`,
   },
   viewBtnText: {
-    color: Colors.darker || "#0A0A0B",
+    color: Colors.purple,
     fontSize: 12,
     fontFamily: "Inter_700Bold",
   },
