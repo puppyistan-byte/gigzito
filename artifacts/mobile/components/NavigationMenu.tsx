@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -27,6 +28,21 @@ const NAV_ITEMS = [
   { label: "Profile", icon: "user",         route: "/(tabs)/profile" },
 ];
 
+const CATEGORIES = [
+  "All Videos",
+  "Music Gigs",
+  "Events",
+  "Influencers",
+  "Marketing",
+  "Courses",
+  "Products",
+  "Crypto",
+  "Artists/Arts",
+  "Business",
+  "Flash Sale",
+  "Flash Coupons",
+];
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -36,6 +52,12 @@ export function NavigationMenu({ open, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const translateX = useRef(new Animated.Value(-DRAWER_W)).current;
+  const [catsOpen, setCatsOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("All Videos");
+  const catsHeight = useRef(new Animated.Value(0)).current;
+
+  const CAT_ITEM_H = 42;
+  const CAT_MAX_H = CATEGORIES.length * CAT_ITEM_H;
 
   useEffect(() => {
     Animated.spring(translateX, {
@@ -44,12 +66,28 @@ export function NavigationMenu({ open, onClose }: Props) {
       tension: 65,
       friction: 13,
     }).start();
+    if (!open) setCatsOpen(false);
   }, [open]);
+
+  useEffect(() => {
+    Animated.timing(catsHeight, {
+      toValue: catsOpen ? CAT_MAX_H : 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  }, [catsOpen]);
 
   const handleNav = (route: string) => {
     Haptics.selectionAsync();
     onClose();
     setTimeout(() => router.push(route as any), 50);
+  };
+
+  const handleCategory = (cat: string) => {
+    Haptics.selectionAsync();
+    setActiveCategory(cat);
+    onClose();
+    setTimeout(() => router.push("/(tabs)" as any), 50);
   };
 
   if (!open) return null;
@@ -78,30 +116,76 @@ export function NavigationMenu({ open, onClose }: Props) {
 
         <View style={styles.divider} />
 
-        <View style={styles.navList}>
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.route);
-            return (
-              <Pressable
-                key={item.label}
-                onPress={() => handleNav(item.route)}
-                style={[styles.navItem, active && styles.navItemActive]}
-              >
-                <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
-                  <Feather
-                    name={item.icon as any}
-                    size={20}
-                    color={active ? Colors.accent : Colors.textSecondary}
-                  />
-                </View>
-                <Text style={[styles.navLabel, active && styles.navLabelActive]}>
-                  {item.label}
-                </Text>
-                {active && <View style={styles.activeDot} />}
-              </Pressable>
-            );
-          })}
-        </View>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+          <View style={styles.navList}>
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.route);
+              return (
+                <Pressable
+                  key={item.label}
+                  onPress={() => handleNav(item.route)}
+                  style={[styles.navItem, active && styles.navItemActive]}
+                >
+                  <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
+                    <Feather
+                      name={item.icon as any}
+                      size={20}
+                      color={active ? Colors.accent : Colors.textSecondary}
+                    />
+                  </View>
+                  <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                    {item.label}
+                  </Text>
+                  {active && <View style={styles.activeDot} />}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.divider} />
+
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setCatsOpen((v) => !v);
+            }}
+            style={styles.catHeader}
+          >
+            <View style={styles.catHeaderLeft}>
+              <View style={styles.navIconWrap}>
+                <Feather name="grid" size={20} color={Colors.textSecondary} />
+              </View>
+              <Text style={styles.catHeaderLabel}>Categories</Text>
+            </View>
+            <Feather
+              name={catsOpen ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={Colors.textMuted}
+            />
+          </Pressable>
+
+          <Animated.View style={{ height: catsHeight, overflow: "hidden" }}>
+            <View style={styles.catList}>
+              {CATEGORIES.map((cat) => {
+                const isActiveCat = activeCategory === cat;
+                return (
+                  <Pressable
+                    key={cat}
+                    onPress={() => handleCategory(cat)}
+                    style={[styles.catItem, isActiveCat && styles.catItemActive]}
+                  >
+                    {isActiveCat && (
+                      <View style={styles.catBullet} />
+                    )}
+                    <Text style={[styles.catLabel, isActiveCat && styles.catLabelActive]}>
+                      {cat}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Animated.View>
+        </ScrollView>
 
         <View style={styles.drawerFooter}>
           <View style={styles.divider} />
@@ -163,6 +247,7 @@ const styles = StyleSheet.create({
   navList: {
     gap: 4,
     marginTop: 8,
+    marginBottom: 4,
   },
   navItem: {
     flexDirection: "row",
@@ -202,8 +287,56 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: Colors.accent,
   },
+  catHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+  catHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  catHeaderLabel: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
+  },
+  catList: {
+    paddingLeft: 16,
+    paddingBottom: 8,
+  },
+  catItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 10,
+  },
+  catItemActive: {
+    backgroundColor: `${Colors.accent}10`,
+  },
+  catBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+  },
+  catLabel: {
+    color: Colors.textMuted,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+  },
+  catLabelActive: {
+    color: Colors.accent,
+    fontFamily: "Inter_600SemiBold",
+  },
   drawerFooter: {
-    marginTop: "auto",
+    paddingTop: 8,
   },
   footerText: {
     color: Colors.textMuted,
