@@ -884,7 +884,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // === BIF SCAN ROUTES ===
-  // Bif webhook callback — called by the Ashburn VPS bot after scanning
+  // Bif webhook callback — called by the VPS bot after scanning
   app.post("/api/scan/callback", async (req, res) => {
     const secret = req.headers["bif-webhook-secret"] || req.headers["x-bif-secret"];
     const expected = process.env.BIF_WEBHOOK_SECRET || "";
