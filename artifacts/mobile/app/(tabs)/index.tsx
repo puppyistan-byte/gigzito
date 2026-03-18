@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   FlatList,
+  Image,
   Platform,
   Pressable,
   RefreshControl,
@@ -50,7 +51,7 @@ export default function FeedScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
       <View style={styles.header}>
-        <Text style={styles.logo}>gigzito</Text>
+        <Image source={require("@/assets/images/gigzito-logo.png")} style={styles.logoImage} resizeMode="contain" />
         <Feather name="bell" size={22} color={Colors.textSecondary} />
       </View>
 
@@ -127,13 +128,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
-  logo: {
-    color: Colors.accent,
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -0.5,
+  logoImage: {
+    width: 140,
+    height: 48,
   },
   searchRow: {
     paddingHorizontal: 16,

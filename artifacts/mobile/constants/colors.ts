@@ -1,21 +1,23 @@
-const accent = "#F5C842";
-const accentGlow = "#FFD700";
-const teal = "#00E5C9";
-const dark = "#0A0A0F";
-const darker = "#060608";
-const surface = "#111118";
-const surfaceElevated = "#1A1A24";
-const surfaceBorder = "#252535";
+const accent = "#E8151B";
+const accentLight = "#FF2D33";
+const accentDark = "#B01015";
+const dark = "#0A0A0A";
+const darker = "#050505";
+const surface = "#111111";
+const surfaceElevated = "#1A1A1A";
+const surfaceBorder = "#242424";
 const textPrimary = "#FFFFFF";
-const textSecondary = "#9999BB";
-const textMuted = "#555570";
+const textSecondary = "#AAAAAA";
+const textMuted = "#555555";
 const danger = "#FF4B4B";
 const success = "#00D9A5";
-const live = "#FF3B30";
+const teal = "#00E5C9";
+const live = "#E8151B";
 
 const Colors = {
   accent,
-  accentGlow,
+  accentLight,
+  accentDark,
   teal,
   dark,
   darker,

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TextInput } from "@/components/ui/TextInput";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import Colors from "@/constants/colors";
+
+const logo = require("@/assets/images/gigzito-logo.png");
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -45,8 +47,11 @@ export default function LoginScreen() {
     }
   };
 
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}
@@ -56,17 +61,15 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Feather name="zap" size={36} color={Colors.accent} />
-            </View>
-            <Text style={styles.brand}>Gigzito</Text>
-            <Text style={styles.tagline}>Your Gig Universe</Text>
+          <View style={styles.logoSection}>
+            <Image source={logo} style={styles.logo} resizeMode="contain" />
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.title}>Sign In</Text>
-            <Text style={styles.subtitle}>Access your gig network</Text>
+            <View style={styles.formHeader}>
+              <Text style={styles.title}>Sign In</Text>
+              <View style={styles.titleUnderline} />
+            </View>
 
             <View style={styles.fields}>
               <TextInput
@@ -108,8 +111,8 @@ export default function LoginScreen() {
             />
 
             <Text style={styles.hint}>
-              Need an account? Register on{" "}
-              <Text style={styles.hintAccent}>gigzito.com</Text>
+              Need an account?{" "}
+              <Text style={styles.hintAccent}>Register on gigzito.com</Text>
             </Text>
           </View>
         </ScrollView>
@@ -127,48 +130,34 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingVertical: 32,
     justifyContent: "center",
-    gap: 40,
+    gap: 32,
   },
-  header: {
-    alignItems: "center",
-    gap: 8,
-  },
-  logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: `${Colors.accent}22`,
-    borderWidth: 1,
-    borderColor: `${Colors.accent}44`,
+  logoSection: {
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 16,
   },
-  brand: {
-    color: Colors.textPrimary,
-    fontSize: 32,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -1,
-  },
-  tagline: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
+  logo: {
+    width: 280,
+    height: 120,
   },
   form: {
     gap: 20,
+  },
+  formHeader: {
+    gap: 6,
   },
   title: {
     color: Colors.textPrimary,
     fontSize: 26,
     fontFamily: "Inter_700Bold",
   },
-  subtitle: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    marginTop: -12,
+  titleUnderline: {
+    width: 40,
+    height: 3,
+    backgroundColor: Colors.accent,
+    borderRadius: 2,
   },
   fields: {
     gap: 14,

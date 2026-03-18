@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -150,6 +151,9 @@ export default function ProfileScreen() {
       contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
       showsVerticalScrollIndicator={false}
     >
+      <View style={styles.screenHeader}>
+        <Image source={require("@/assets/images/gigzito-logo.png")} style={styles.logoImage} resizeMode="contain" />
+      </View>
       <View style={styles.profileCard}>
         <View style={styles.avatarRow}>
           <Avatar uri={displayProfile?.avatarUrl} name={displayName} size={72} />
@@ -214,6 +218,15 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark },
   content: { gap: 0 },
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    alignItems: "flex-start",
+  },
+  logoImage: {
+    width: 120,
+    height: 40,
+  },
   profileCard: {
     margin: 16,
     backgroundColor: Colors.surface,
