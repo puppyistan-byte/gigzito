@@ -109,10 +109,10 @@ export interface IStorage {
   getFollowerCount(userId: number): Promise<number>;
 
   // GZFlash Ads
-  createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number }): Promise<GzFlashAd>;
+  createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd>;
   getActiveGzFlashAds(): Promise<GzFlashAdWithOwner[]>;
   getMyGzFlashAds(userId: number): Promise<GzFlashAd[]>;
-  updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number }): Promise<GzFlashAd>;
+  updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd>;
   deleteGzFlashAd(id: number, userId: number): Promise<void>;
   claimGzFlashAd(id: number): Promise<GzFlashAd>;
   recalculateGzFlashScores(): Promise<void>;
@@ -1999,21 +1999,24 @@ export class DatabaseStorage implements IStorage {
 
   // === GZ FLASH ADS ===
   private computePotency(retailPriceCents: number, discountPercent: number, quantity: number, claimedCount: number, durationMinutes: number, expiresAt: Date): number {
-    const savings = discountPercent / 100;
-    const remaining = Math.max(quantity - claimedCount, 1);
-    const scarcityScore = quantity / remaining;
-    const totalMs = durationMinutes * 60 * 1000;
+    const V = retailPriceCents;
+    const P = V * (1 - discountPercent / 100);
+    const savingsIndex = V > 0 ? (V - P) / V : 0;
+    const totalMs = Math.max(durationMinutes * 60 * 1000, 1);
     const remainingMs = Math.max(expiresAt.getTime() - Date.now(), 0);
-    const elapsedRatio = Math.min((totalMs - remainingMs) / totalMs, 1);
-    const timeScore = 1 + elapsedRatio * 2;
-    const priceFriction = Math.max(retailPriceCents / 2000, 0.1);
-    return (savings * timeScore * scarcityScore) / priceFriction;
+    const timeFactor = 1 + (1 - Math.min(remainingMs / totalMs, 1));
+    const sRemaining = Math.max(quantity - claimedCount, 0);
+    const scarcityFactor = 1 + (1 - (quantity > 0 ? sRemaining / quantity : 0));
+    const COMFORT_CENTS = 10000;
+    const priceFriction = 1 / (1 + P / COMFORT_CENTS);
+    const rawScore = savingsIndex * timeFactor * scarcityFactor * priceFriction;
+    return Math.min(100, rawScore * 100);
   }
 
-  async createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number }): Promise<GzFlashAd> {
+  async createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd> {
     const expiresAt = new Date(Date.now() + data.durationMinutes * 60 * 1000);
     const potencyScore = this.computePotency(data.retailPriceCents, data.discountPercent, data.quantity, 0, data.durationMinutes, expiresAt);
-    const [ad] = await db.insert(gzFlashAds).values({ userId, ...data, artworkUrl: data.artworkUrl ?? null, claimedCount: 0, potencyScore, status: "active", expiresAt }).returning();
+    const [ad] = await db.insert(gzFlashAds).values({ userId, ...data, artworkUrl: data.artworkUrl ?? null, displayMode: data.displayMode ?? "countdown", claimedCount: 0, potencyScore, status: "active", expiresAt }).returning();
     return ad;
   }
 
@@ -2037,12 +2040,12 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(gzFlashAds).where(eq(gzFlashAds.userId, userId)).orderBy(desc(gzFlashAds.createdAt));
   }
 
-  async updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number }): Promise<GzFlashAd> {
+  async updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd> {
     const [existing] = await db.select().from(gzFlashAds).where(and(eq(gzFlashAds.id, id), eq(gzFlashAds.userId, userId)));
     if (!existing) throw new Error("Ad not found");
     const expiresAt = new Date(Date.now() + data.durationMinutes * 60 * 1000);
     const potencyScore = this.computePotency(data.retailPriceCents, data.discountPercent, data.quantity, 0, data.durationMinutes, expiresAt);
-    const [updated] = await db.update(gzFlashAds).set({ ...data, artworkUrl: data.artworkUrl ?? null, claimedCount: 0, potencyScore, status: "active", expiresAt }).where(eq(gzFlashAds.id, id)).returning();
+    const [updated] = await db.update(gzFlashAds).set({ ...data, artworkUrl: data.artworkUrl ?? null, displayMode: data.displayMode ?? "countdown", claimedCount: 0, potencyScore, status: "active", expiresAt }).where(eq(gzFlashAds.id, id)).returning();
     return updated;
   }
 

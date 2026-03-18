@@ -1,0 +1,186 @@
+GZFlash Ads — Technical Specification
+1️⃣ Objective
+
+GZFlash is not a coupon system—it is a real-time, dynamic offer ranking engine. The goal is to:
+
+Present the most actionable deals to users
+
+Create scarcity-driven urgency
+
+Maximize merchant conversions
+
+Maintain a dynamic, shifting Matrix of deals
+
+The system ranks all active GZFlash ads based on four core factors:
+
+Savings (discount %)
+
+Time Pressure (how soon the offer expires)
+
+Scarcity (remaining slots)
+
+Price Friction (likelihood the user will act on the offer)
+
+2️⃣ Core Inputs
+
+Each GZFlash ad requires the following inputs:
+
+Parameter	Description
+V	Value (original price of the item/service)
+P	New Price (discounted or offer price)
+T_total	Total duration of the offer (time from launch to expiration)
+T_remaining	Time left until expiration
+S_total	Total number of available slots
+S_remaining	Remaining number of slots
+ComfortLevel	Baseline “easy purchase” threshold for Price Friction (normalized 1–100)
+3️⃣ Formula Components
+1. Savings Index
+
+Represents the percentage discount:
+
+SavingsIndex = (V - P) / V
+
+Range: 0 → 1
+
+Captures pure economic advantage
+
+2. Time Pressure Factor
+
+Represents urgency based on how close the deal is to expiring:
+
+TimeFactor = 1 + (1 - (T_remaining / T_total))
+
+Range: 1 → 2
+
+Just launched → 1.0
+
+Near expiration → approaches 2.0
+
+3. Scarcity Factor
+
+Represents limited quantity influence:
+
+ScarcityFactor = 1 + (1 - (S_remaining / S_total))
+
+Range: 1 → 2
+
+Almost sold out → approaches 2.0
+
+Plenty of slots → 1.0
+
+4. Price Friction Factor
+
+Represents relative difficulty to purchase:
+
+PriceFriction = 1 / (1 + (P / ComfortLevel))
+
+Range: 0 → 1
+
+Low price → close to 1 (easy impulse buy)
+
+High price → closer to 0 (harder to act)
+
+ComfortLevel can be defaulted to 100 or adjusted per category
+
+5. Final GZFlash Score
+
+Combine all factors:
+
+RawScore = SavingsIndex × TimeFactor × ScarcityFactor × PriceFriction
+GZFlashScore = min(100, RawScore × 100)
+
+Final output: 0 → 100
+
+Used for Matrix placement and user-facing prioritization
+
+4️⃣ Placement / Matrix Logic
+
+The GZFlash Matrix is a 2D grid used to display offers to users:
+
+Top-left → hottest deals (highest GZFlash Score)
+
+Bottom-right → least active / expired deals
+
+Ranking Dynamics
+
+Initial placement
+
+Deals appear mid-grid at launch (moderate score)
+
+Time & scarcity climb
+
+As expiration nears or slots fill, the deal climbs toward top-left
+
+Expiration
+
+Once T_remaining = 0 or slots = 0 → score = 0 → drops out
+
+Price Friction
+
+Expensive items don’t climb as fast unless discount or scarcity compensates
+
+Visual Zones (example)
+Score	Zone	Color
+90–100	HOT	🔴
+70–89	TRENDING	🟠
+40–69	ACTIVE	🟡
+0–39	COOL	⚪
+
+Top-left quadrant always shows HOT deals, bottom-right the low-priority / expired deals
+
+5️⃣ Merchant Integration
+AdBuilder Features
+
+Input: V, P, T_total, S_total
+
+Live Output:
+
+Savings %
+
+Predicted GZFlash Score (current & peak)
+
+Grid position (Top-left potential)
+
+Sliders for real-time optimization:
+
+Price → affects SavingsIndex + PriceFriction
+
+Duration → affects TimeFactor
+
+Slots → affects ScarcityFactor
+
+Optional AI suggestions:
+
+“Reduce duration → +X score”
+
+“Limit slots → +Y score”
+
+“Drop price → +Z score”
+
+Behavioral Outcome
+
+Merchants strategically optimize their GZFlash to maximize top-left visibility
+
+Users see a dynamic, live ranking of actionable offers
+
+6️⃣ UX / Notification Logic
+
+Top-ranked GZFlash → push notifications to users
+
+Score updates live:
+
+New deals → appear mid-grid
+
+As urgency/slots change → climb
+
+Expired deals → automatically removed
+
+Visual indicators (HOT/TRENDING/ACTIVE) → encourage interaction
+
+7️⃣ Optional Advanced Features
+
+Per-user PriceFriction → adapt score to individual purchase history
+
+Time spikes → apply extra multiplier for last 10% of duration
+
+Gamified UX: users compete to redeem top-left deals

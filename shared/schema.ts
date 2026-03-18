@@ -908,6 +908,7 @@ export const gzFlashAds = pgTable("gz_flash_ads", {
   durationMinutes: integer("duration_minutes").notNull(),
   potencyScore: real("potency_score").notNull().default(0),
   status: text("status").notNull().default("active"),
+  displayMode: text("display_mode").notNull().default("countdown"),
   adminNote: text("admin_note"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

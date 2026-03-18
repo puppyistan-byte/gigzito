@@ -24,12 +24,12 @@ function useCountdown(expiresAt: string) {
   return `${s}s`;
 }
 
-type HeatZone = "pole" | "hot" | "warm" | "cool";
+type HeatZone = "hot" | "trending" | "active" | "cool";
 
 function heatZone(score: number): HeatZone {
-  if (score >= 2.5) return "pole";
-  if (score >= 1.0) return "hot";
-  if (score >= 0.3) return "warm";
+  if (score >= 90) return "hot";
+  if (score >= 70) return "trending";
+  if (score >= 40) return "active";
   return "cool";
 }
 
@@ -42,30 +42,30 @@ const ZONE_CONFIG: Record<HeatZone, {
   label: string;
   dot: string;
 }> = {
-  pole: {
-    border: "border-blue-500/80",
-    bg: "bg-gradient-to-br from-blue-950/70 to-[#060d1a]",
-    glow: "shadow-[0_0_24px_rgba(59,130,246,0.35)]",
-    badge: "bg-blue-600 text-white",
-    badgeText: "🔥 POLE",
-    label: "POLE POSITION",
-    dot: "bg-blue-400",
-  },
   hot: {
+    border: "border-red-500/80",
+    bg: "bg-gradient-to-br from-red-950/60 to-[#0d0608]",
+    glow: "shadow-[0_0_28px_rgba(239,68,68,0.30)]",
+    badge: "bg-red-600 text-white",
+    badgeText: "🔴 HOT",
+    label: "HOT",
+    dot: "bg-red-400",
+  },
+  trending: {
     border: "border-orange-500/60",
     bg: "bg-gradient-to-br from-orange-950/40 to-[#0a0806]",
-    glow: "shadow-[0_0_14px_rgba(249,115,22,0.2)]",
+    glow: "shadow-[0_0_16px_rgba(249,115,22,0.20)]",
     badge: "bg-orange-600 text-white",
-    badgeText: "⚡ HOT",
-    label: "HOT",
+    badgeText: "🟠 TRENDING",
+    label: "TRENDING",
     dot: "bg-orange-400",
   },
-  warm: {
+  active: {
     border: "border-yellow-700/40",
     bg: "bg-[#090a05]",
     glow: "",
     badge: "bg-yellow-800/60 text-yellow-300 border border-yellow-700/40",
-    badgeText: "● ACTIVE",
+    badgeText: "🟡 ACTIVE",
     label: "ACTIVE",
     dot: "bg-yellow-400",
   },
@@ -95,6 +95,8 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
   const soldOut = remaining <= 0;
   const isUrgent = remaining <= 3;
   const isLowTime = Math.max(0, Math.floor((new Date(ad.expiresAt).getTime() - Date.now()) / 1000)) < 600;
+  const mode = (ad as any).displayMode ?? "countdown";
+  const score = Math.round(ad.potencyScore);
 
   return (
     <div
@@ -102,7 +104,7 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
       data-testid={`card-ad-${ad.id}`}
     >
       {rank === 1 && (
-        <div className="absolute -top-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+        <div className="absolute -top-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500 to-transparent" />
       )}
 
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -140,18 +142,42 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-4 text-[10px]">
-        <div className={`flex flex-col items-center bg-black/30 rounded-lg py-1.5 ${isLowTime ? "border border-orange-800/40" : "border border-[#111]"}`}>
-          <Clock className={`h-3 w-3 mb-0.5 ${isLowTime ? "text-orange-400" : "text-[#555]"}`} />
-          <span className={isLowTime ? "text-orange-300 font-semibold" : "text-[#666]"}>{countdown}</span>
+      {/* Primary display — large hero widget based on displayMode */}
+      {mode === "countdown" ? (
+        <div className={`mb-3 rounded-xl border py-2.5 px-3 flex items-center gap-2 ${isLowTime ? "border-orange-800/50 bg-orange-950/20" : "border-[#181818] bg-black/20"}`}>
+          <Clock className={`h-4 w-4 shrink-0 ${isLowTime ? "text-orange-400" : "text-[#555]"}`} />
+          <div>
+            <p className="text-[9px] text-[#444] uppercase tracking-wider mb-0.5">Time Remaining</p>
+            <p className={`font-mono font-bold text-base leading-none ${isLowTime ? "text-orange-300" : "text-white"}`}>{countdown}</p>
+          </div>
         </div>
-        <div className={`flex flex-col items-center bg-black/30 rounded-lg py-1.5 ${isUrgent ? "border border-red-800/40" : "border border-[#111]"}`}>
-          <Users className={`h-3 w-3 mb-0.5 ${isUrgent ? "text-red-400" : "text-[#555]"}`} />
-          <span className={isUrgent ? "text-red-300 font-semibold" : "text-[#666]"}>{remaining} left</span>
+      ) : (
+        <div className={`mb-3 rounded-xl border py-2.5 px-3 flex items-center gap-2 ${isUrgent ? "border-red-800/50 bg-red-950/20" : "border-[#181818] bg-black/20"}`}>
+          <Users className={`h-4 w-4 shrink-0 ${isUrgent ? "text-red-400" : "text-[#555]"}`} />
+          <div>
+            <p className="text-[9px] text-[#444] uppercase tracking-wider mb-0.5">Offers Remaining</p>
+            <p className={`font-mono font-bold text-base leading-none ${isUrgent ? "text-red-300" : "text-white"}`}>
+              {remaining} / {ad.quantity}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col items-center bg-black/30 rounded-lg py-1.5 border border-[#111]">
-          <Flame className="h-3 w-3 mb-0.5 text-blue-500/70" />
-          <span className="text-blue-400 font-mono">{ad.potencyScore.toFixed(2)}</span>
+      )}
+
+      {/* Score bar */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-1 text-[9px]">
+          <span className="text-[#444] uppercase tracking-wider flex items-center gap-1">
+            <Flame className="h-2.5 w-2.5 text-blue-500/60" /> GZFlash Score
+          </span>
+          <span className="text-blue-400 font-mono font-bold">{score}</span>
+        </div>
+        <div className="h-1 rounded-full bg-[#111] overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              score >= 90 ? "bg-red-500" : score >= 70 ? "bg-orange-500" : score >= 40 ? "bg-yellow-500" : "bg-[#333]"
+            }`}
+            style={{ width: `${score}%` }}
+          />
         </div>
       </div>
 
@@ -163,8 +189,8 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
           className={`w-full h-9 text-xs font-bold rounded-xl ${
             soldOut
               ? "bg-[#111] text-[#444] border border-[#222] cursor-not-allowed"
-              : zone === "pole"
-              ? "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_12px_rgba(59,130,246,0.3)]"
+              : zone === "hot"
+              ? "bg-red-600 hover:bg-red-500 text-white shadow-[0_0_12px_rgba(239,68,68,0.3)]"
               : "bg-blue-700 hover:bg-blue-600 text-white"
           }`}
           data-testid={`btn-claim-${ad.id}`}
@@ -224,7 +250,7 @@ export default function OfferCenterPage() {
   const zoneCounts = sortedAds.reduce<Record<HeatZone, number>>((acc, ad) => {
     acc[heatZone(ad.potencyScore)]++;
     return acc;
-  }, { pole: 0, hot: 0, warm: 0, cool: 0 });
+  }, { hot: 0, trending: 0, active: 0, cool: 0 });
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -271,7 +297,7 @@ export default function OfferCenterPage() {
 
         {ads.length > 0 && (
           <div className="flex items-center gap-4 mb-6 flex-wrap">
-            {(["pole", "hot", "warm", "cool"] as HeatZone[]).map((zone) => (
+            {(["hot", "trending", "active", "cool"] as HeatZone[]).map((zone) => (
               <div key={zone} className="flex items-center gap-1.5 text-[10px] text-[#555]">
                 <div className={`w-2 h-2 rounded-full ${ZONE_CONFIG[zone].dot}`} />
                 <span className="uppercase tracking-wider font-semibold">{ZONE_CONFIG[zone].label}</span>

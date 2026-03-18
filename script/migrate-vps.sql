@@ -27,3 +27,4 @@ CREATE TABLE IF NOT EXISTS gz_flash_ads (
 );
 
 ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS admin_note text;
+ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS display_mode text NOT NULL DEFAULT 'countdown';

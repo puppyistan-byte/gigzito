@@ -2894,11 +2894,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // === GZ FLASH ADS ===
   const gzFlashSchema = z.object({
     title: z.string().min(1).max(120),
-    artworkUrl: z.string().url().nullable().optional(),
+    artworkUrl: z.string().nullable().optional(),
     retailPriceCents: z.coerce.number().int().min(1),
     discountPercent: z.coerce.number().int().min(1).max(99),
-    quantity: z.coerce.number().int().min(1).max(999),
-    durationMinutes: z.coerce.number().int().min(5).max(1440),
+    quantity: z.coerce.number().int().min(1).max(9999),
+    durationMinutes: z.coerce.number().int().min(5).max(43200),
+    displayMode: z.enum(["countdown", "slots"]).default("countdown"),
   });
 
   app.get("/api/gz-flash", async (req, res) => {
