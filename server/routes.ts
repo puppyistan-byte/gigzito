@@ -1014,9 +1014,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // === LEADS ===
   app.post("/api/leads", async (req, res) => {
+    // safeInt: coerces strings/numbers to int, returns undefined on NaN/null/missing
+    const safeInt = z.preprocess(
+      (v) => { const n = Number(v); return isNaN(n) || n <= 0 ? undefined : Math.floor(n); },
+      z.number().int().positive().optional()
+    );
     const schema = z.object({
-      videoId: z.coerce.number().int().positive(),
-      creatorUserId: z.coerce.number().int().positive(),
+      videoId: safeInt,
+      creatorUserId: safeInt,
       firstName: z.string().min(1).max(60),
       email: z.string().email().optional().nullable(),
       phone: z.string().max(30).optional().nullable(),
@@ -1068,37 +1073,43 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         viewerCountry,
       });
       // Auto-aggregate into marketer's audience if an email was provided
-      if (data.email) {
+      if (data.email && data.creatorUserId) {
         storage.upsertMarketerAudience({
           providerUserId: data.creatorUserId,
           leadName: data.firstName,
           leadEmail: data.email,
           leadPhone: data.phone ?? null,
-          sourceListingId: data.videoId,
+          sourceListingId: data.videoId ?? undefined,
         }).catch((err) => console.warn("Audience upsert failed:", err.message));
       }
       // Fire webhook if the creator has one configured
-      const creatorProfile = await storage.getProfileById(data.creatorUserId);
-      if (creatorProfile?.webhookUrl) {
-        fetch(creatorProfile.webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event: "new_lead",
-            leadId: lead.id,
-            videoId: lead.videoId,
-            videoTitle: lead.videoTitle,
-            category: lead.category,
-            name: lead.firstName,
-            email: lead.email,
-            phone: lead.phone,
-            message: lead.message,
-            createdAt: lead.createdAt,
-          }),
-          signal: AbortSignal.timeout(5000),
-        }).catch((err) => console.warn("Webhook delivery failed:", err.message));
+      if (data.creatorUserId) {
+        const creatorProfile = await storage.getProfileById(data.creatorUserId);
+        if (creatorProfile?.webhookUrl) {
+          fetch(creatorProfile.webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event: "new_lead",
+              leadId: lead.id,
+              videoId: lead.videoId,
+              videoTitle: lead.videoTitle,
+              category: lead.category,
+              name: lead.firstName,
+              email: lead.email,
+              phone: lead.phone,
+              message: lead.message,
+              createdAt: lead.createdAt,
+            }),
+            signal: AbortSignal.timeout(5000),
+          }).catch((err) => console.warn("Webhook delivery failed:", err.message));
+        }
       }
-      return res.status(201).json({ success: true, leadId: lead.id });
+      return res.status(201).json({
+        success: true,
+        leadId: lead.id,
+        consent: `Your name${data.email ? " and email" : ""} have been shared with this presenter. They may contact you regarding your inquiry.`,
+      });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });

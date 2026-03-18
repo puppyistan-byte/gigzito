@@ -274,8 +274,8 @@ export type CreateListingRequest = {
 // === LEADS TABLE ===
 export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
-  videoId: integer("video_id").notNull().references(() => videoListings.id, { onDelete: "cascade" }),
-  creatorUserId: integer("creator_user_id").notNull(),
+  videoId: integer("video_id").references(() => videoListings.id, { onDelete: "set null" }),
+  creatorUserId: integer("creator_user_id"),
   firstName: text("first_name").notNull(),
   email: text("email"),
   phone: text("phone"),
@@ -298,8 +298,8 @@ export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 
 export type CreateLeadRequest = {
-  videoId: number;
-  creatorUserId: number;
+  videoId?: number | null;
+  creatorUserId?: number | null;
   firstName: string;
   email?: string | null;
   phone?: string | null;
