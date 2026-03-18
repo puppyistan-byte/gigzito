@@ -5,7 +5,7 @@ import { Navbar } from "@/components/navbar";
 import MoreBelow from "@/components/more-below";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle, Megaphone } from "lucide-react";
+import { ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle, Megaphone, CreditCard, LayoutGrid } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,18 @@ export default function ProviderPublicPage() {
     queryKey: ["/api/love/status", id],
     queryFn: () => fetch(`/api/love/${id}/status`).then((r) => r.json()),
     enabled: !!id,
+  });
+
+  // GeeZee card — fetch once we have the profile's userId
+  const profileUserId = (profile as any)?.userId as number | undefined;
+  const { data: geezeeCard } = useQuery<{ id: number; isPublic: boolean } | null>({
+    queryKey: ["/api/gigness-cards/user", profileUserId],
+    queryFn: () =>
+      fetch(`/api/gigness-cards/user/${profileUserId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    enabled: !!profileUserId,
+    staleTime: 60_000,
   });
 
   const loveMutation = useMutation({
@@ -165,34 +177,60 @@ export default function ProviderPublicPage() {
                 )}
 
                 {/* Show Love + Promote action bar */}
-                <div className="mt-4 flex items-center flex-wrap gap-3">
-                  <button
-                    onClick={() => loveMutation.mutate()}
-                    disabled={loveMutation.isPending || hasVoted}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
-                      hasVoted
-                        ? "bg-pink-500/10 border-pink-500/30 text-pink-400 cursor-default"
-                        : "bg-[#1a1a1a] border-[#333] text-white hover:border-pink-500/50 hover:bg-pink-500/10 hover:text-pink-300 active:scale-95"
-                    }`}
-                    data-testid="button-show-love"
-                  >
-                    <span className="text-base">{hasVoted ? "😍" : "🤍"}</span>
-                    {hasVoted ? "Love shown!" : "Show Love"}
-                  </button>
-                  <Link href={`/advertise?ref=${profile?.username ?? id}`}>
-                    <a
-                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-[#ff2b2b]/40 bg-[#ff2b2b]/10 text-[#ff2b2b] hover:bg-[#ff2b2b]/20 hover:border-[#ff2b2b]/70 transition-all active:scale-95"
-                      data-testid="link-promote-business"
+                <div className="mt-4 flex items-start flex-wrap gap-3">
+                  <div className="flex items-center flex-wrap gap-3 flex-1">
+                    <button
+                      onClick={() => loveMutation.mutate()}
+                      disabled={loveMutation.isPending || hasVoted}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
+                        hasVoted
+                          ? "bg-pink-500/10 border-pink-500/30 text-pink-400 cursor-default"
+                          : "bg-[#1a1a1a] border-[#333] text-white hover:border-pink-500/50 hover:bg-pink-500/10 hover:text-pink-300 active:scale-95"
+                      }`}
+                      data-testid="button-show-love"
                     >
-                      <Megaphone className="h-3.5 w-3.5" />
-                      Promote My Business
-                    </a>
-                  </Link>
-                  {voteCount > 0 && (
-                    <span className="text-xs text-[#555] w-full" data-testid="text-vote-count">
-                      {voteCount} {voteCount === 1 ? "person" : "people"} showed love this month
-                    </span>
-                  )}
+                      <span className="text-base">{hasVoted ? "😍" : "🤍"}</span>
+                      {hasVoted ? "Love shown!" : "Show Love"}
+                    </button>
+                    <Link href={`/advertise?ref=${profile?.username ?? id}`}>
+                      <a
+                        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-[#ff2b2b]/40 bg-[#ff2b2b]/10 text-[#ff2b2b] hover:bg-[#ff2b2b]/20 hover:border-[#ff2b2b]/70 transition-all active:scale-95"
+                        data-testid="link-promote-business"
+                      >
+                        <Megaphone className="h-3.5 w-3.5" />
+                        Promote My Business
+                      </a>
+                    </Link>
+                    {voteCount > 0 && (
+                      <span className="text-xs text-[#555] w-full" data-testid="text-vote-count">
+                        {voteCount} {voteCount === 1 ? "person" : "people"} showed love this month
+                      </span>
+                    )}
+                  </div>
+
+                  {/* GeeZee Card + Rolodex panel */}
+                  <div className="flex flex-col gap-2 shrink-0 min-w-[140px]">
+                    {geezeeCard?.isPublic && profileUserId && (
+                      <Link href={`/geezee/${profileUserId}`}>
+                        <a
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg border border-violet-500/40 bg-violet-500/10 text-violet-300 text-xs font-semibold hover:bg-violet-500/20 hover:border-violet-500/70 transition-all active:scale-95"
+                          data-testid="link-geezee-card"
+                        >
+                          <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                          GeeZee Card
+                        </a>
+                      </Link>
+                    )}
+                    <Link href="/geezees">
+                      <a
+                        className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg border border-[#2a2a2a] bg-[#111] text-[#888] text-xs font-semibold hover:bg-[#1a1a1a] hover:text-white hover:border-[#444] transition-all active:scale-95"
+                        data-testid="link-geezee-rolodex"
+                      >
+                        <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                        GeeZee Rolodex
+                      </a>
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Contact links */}
