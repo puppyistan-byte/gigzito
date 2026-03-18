@@ -12,6 +12,7 @@ import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContent
 import fs from "fs";
 import path from "path";
 import multer from "multer";
+import jwt from "jsonwebtoken";
 
 const uploadStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
@@ -154,7 +155,26 @@ async function verifyPassword(supplied: string, stored: string): Promise<boolean
   return timingSafeEqual(hashBuf, suppliedBuf);
 }
 
+const JWT_SECRET = process.env.SESSION_SECRET ?? "gigzito-dev-secret";
+
+/** Populate req.session from a JWT Bearer token when no cookie session exists */
+function injectJwtSession(req: any): void {
+  if (req.session?.userId) return; // already authenticated via cookie
+  const auth = req.headers["authorization"] ?? "";
+  if (!auth.startsWith("Bearer ")) return;
+  try {
+    const payload = jwt.verify(auth.slice(7), JWT_SECRET) as any;
+    req.session = req.session ?? {};
+    req.session.userId = payload.userId;
+    req.session.role = payload.role;
+    req.session.subscriptionTier = payload.subscriptionTier;
+  } catch {
+    // invalid / expired token — leave session empty, requireAuth will reject
+  }
+}
+
 function requireAuth(req: any, res: any): boolean {
+  injectJwtSession(req);
   if (!req.session?.userId) {
     res.status(401).json({ message: "Not authenticated" });
     return false;
@@ -163,6 +183,7 @@ function requireAuth(req: any, res: any): boolean {
 }
 
 function requireAdmin(req: any, res: any): boolean {
+  injectJwtSession(req);
   if (!req.session?.userId || !["ADMIN", "SUPER_ADMIN"].includes(req.session?.role)) {
     res.status(401).json({ message: "Admin only" });
     return false;
@@ -171,6 +192,7 @@ function requireAdmin(req: any, res: any): boolean {
 }
 
 function requireContentAdmin(req: any, res: any): boolean {
+  injectJwtSession(req);
   if (!req.session?.userId || !["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(req.session?.role)) {
     res.status(403).json({ message: "Insufficient permissions" });
     return false;
@@ -179,6 +201,7 @@ function requireContentAdmin(req: any, res: any): boolean {
 }
 
 function requireSuperAdmin(req: any, res: any): boolean {
+  injectJwtSession(req);
   if (!req.session?.userId || req.session?.role !== "SUPER_ADMIN") {
     res.status(403).json({ message: "Super Admin only" });
     return false;
@@ -522,6 +545,141 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/logout", (req, res) => {
     req.session.destroy(() => res.redirect("/?signedout=1"));
   });
+
+  // =====================================================================
+  // MOBILE API — JWT-based auth (same credentials, returns Bearer token)
+  // =====================================================================
+
+  // Step 1: email + password → sends MFA code, returns { mfaRequired: true }
+  app.post("/api/mobile/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(401).json({ message: "Invalid credentials" });
+      const valid = await verifyPassword(password, user.password);
+      if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+      if (user.status === "disabled") return res.status(403).json({ message: "Account disabled." });
+      if (!user.emailVerified) return res.status(403).json({ message: "Please verify your email first.", emailNotVerified: true });
+      // Send MFA code
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await storage.deleteOldMfaCodes(user.id);
+      await storage.createMfaCode(user.id, code, expiresAt);
+      const emailResult = await sendMfaCode(user.email, code);
+      const resp: any = { mfaRequired: true, email: user.email };
+      if (emailResult.devMode) resp.devCode = emailResult.previewCode;
+      return res.json(resp);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Step 2: email + MFA code → returns JWT access token
+  app.post("/api/mobile/mfa/verify", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) return res.status(400).json({ message: "Email and code required" });
+      const user = await storage.getUserByEmail(email);
+      if (!user) return res.status(401).json({ message: "Invalid verification code." });
+      const mfa = await storage.getLatestMfaCode(user.id);
+      if (!mfa) return res.status(401).json({ message: "Invalid verification code." });
+      if (mfa.usedAt) return res.status(401).json({ message: "Code already used." });
+      if (new Date() > new Date(mfa.expiresAt)) return res.status(401).json({ message: "Code expired." });
+      const clean = code.replace(/\s/g, "");
+      if (mfa.code !== clean) return res.status(401).json({ message: "Invalid verification code." });
+      await storage.markMfaCodeUsed(mfa.id);
+      const profile = await storage.getProfileByUserId(user.id);
+      const token = jwt.sign(
+        { userId: user.id, role: user.role, subscriptionTier: user.subscriptionTier ?? "GZLurker" },
+        JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+      return res.json({
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          subscriptionTier: user.subscriptionTier ?? "GZLurker",
+          username: profile?.username ?? null,
+          displayName: profile?.displayName ?? null,
+          avatarUrl: profile?.avatarUrl ?? null,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Refresh / validate token → returns new token + current user
+  app.post("/api/mobile/refresh", async (req, res) => {
+    try {
+      const auth = req.headers["authorization"] ?? "";
+      if (!auth.startsWith("Bearer ")) return res.status(401).json({ message: "Bearer token required" });
+      let payload: any;
+      try { payload = jwt.verify(auth.slice(7), JWT_SECRET); }
+      catch { return res.status(401).json({ message: "Invalid or expired token" }); }
+      const user = await storage.getUserById(payload.userId);
+      if (!user || user.status === "disabled") return res.status(401).json({ message: "Account unavailable" });
+      const profile = await storage.getProfileByUserId(user.id);
+      const token = jwt.sign(
+        { userId: user.id, role: user.role, subscriptionTier: user.subscriptionTier ?? "GZLurker" },
+        JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+      return res.json({
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          subscriptionTier: user.subscriptionTier ?? "GZLurker",
+          username: profile?.username ?? null,
+          displayName: profile?.displayName ?? null,
+          avatarUrl: profile?.avatarUrl ?? null,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Get current user info using Bearer token
+  app.get("/api/mobile/me", async (req, res) => {
+    try {
+      const auth = req.headers["authorization"] ?? "";
+      if (!auth.startsWith("Bearer ")) return res.status(401).json({ message: "Bearer token required" });
+      let payload: any;
+      try { payload = jwt.verify(auth.slice(7), JWT_SECRET); }
+      catch { return res.status(401).json({ message: "Invalid or expired token" }); }
+      const user = await storage.getUserById(payload.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const profile = await storage.getProfileByUserId(user.id);
+      return res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          subscriptionTier: user.subscriptionTier ?? "GZLurker",
+        },
+        profile: {
+          username: profile?.username ?? null,
+          displayName: profile?.displayName ?? null,
+          avatarUrl: profile?.avatarUrl ?? null,
+          bio: profile?.bio ?? null,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // =====================================================================
 
   app.post("/api/auth/change-password", requireAuth, async (req, res) => {
     const { currentPassword, newPassword } = req.body;

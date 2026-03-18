@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -21,6 +22,17 @@ declare module "http" {
 const PgStore = connectPgSimple(session);
 
 app.set("trust proxy", 1);
+
+// CORS — allow any origin so the mobile app (Expo) can call this API
+app.use(
+  cors({
+    origin: true,           // reflect request origin (works for all apps including Expo)
+    credentials: true,      // allow cookies/session headers for web
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options(/.*/, cors());   // pre-flight for all routes
 
 app.use(
   session({
