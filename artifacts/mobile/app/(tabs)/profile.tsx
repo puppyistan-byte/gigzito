@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Image,
@@ -19,6 +19,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { NavigationMenu } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
 function StatBox({ label, value }: { label: string; value: number | string }) {
@@ -124,6 +125,8 @@ export default function ProfileScreen() {
   const { data: myGeemotions } = useMyGeemotions();
   const { data: inbox } = useGeeZeeInbox();
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
@@ -146,12 +149,16 @@ export default function ProfileScreen() {
     : Colors.live;
 
   return (
+    <View style={{ flex: 1, backgroundColor: Colors.dark }}>
     <ScrollView
       style={[styles.container, { paddingTop: topPad }]}
       contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.screenHeader}>
+        <Pressable onPress={() => setMenuOpen(true)} style={styles.hamburger}>
+          <Feather name="menu" size={22} color={Colors.textPrimary} />
+        </Pressable>
         <Image source={require("@/assets/images/gigzito-logo.png")} style={styles.logoImage} resizeMode="contain" />
       </View>
       <View style={styles.profileCard}>
@@ -212,16 +219,28 @@ export default function ProfileScreen() {
         </View>
       </View>
     </ScrollView>
+    <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark },
   content: { gap: 0 },
+  hamburger: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
   screenHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 8,
-    alignItems: "flex-start",
   },
   logoImage: {
     width: 120,

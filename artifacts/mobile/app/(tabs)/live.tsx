@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { NavigationMenu } from "@/components/NavigationMenu";
+import { Feather } from "@expo/vector-icons";
 import { useActiveStreams, useAllEyesUpcoming, useZitoTvEvents } from "@/hooks/useApi";
 import { StreamCard } from "@/components/StreamCard";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -17,6 +20,7 @@ import Colors from "@/constants/colors";
 
 export default function LiveScreen() {
   const insets = useSafeAreaInsets();
+  const [menuOpen, setMenuOpen] = useState(false);
   const {
     data: streams,
     isLoading: streamsLoading,
@@ -30,6 +34,7 @@ export default function LiveScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : 0;
 
   return (
+    <View style={{ flex: 1, backgroundColor: Colors.dark }}>
     <ScrollView
       style={[styles.container, { paddingTop: topPad }]}
       contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
@@ -39,11 +44,16 @@ export default function LiveScreen() {
       }
     >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Live</Text>
-          {streams?.length ? <LiveBadge label={`${streams.length} LIVE`} /> : null}
+        <Pressable onPress={() => setMenuOpen(true)} style={styles.hamburger}>
+          <Feather name="menu" size={22} color={Colors.textPrimary} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>Live</Text>
+            {streams?.length ? <LiveBadge label={`${streams.length} LIVE`} /> : null}
+          </View>
+          <Text style={styles.subtitle}>Streams, Bookings & Zito TV</Text>
         </View>
-        <Text style={styles.subtitle}>Streams, Bookings & Zito TV</Text>
       </View>
 
       <View style={styles.section}>
@@ -110,6 +120,8 @@ export default function LiveScreen() {
         )}
       </View>
     </ScrollView>
+    <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </View>
   );
 }
 
@@ -119,11 +131,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark,
   },
   content: {},
+  hamburger: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
-    gap: 2,
   },
   titleRow: {
     flexDirection: "row",

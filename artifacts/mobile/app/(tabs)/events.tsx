@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,10 +15,13 @@ import { GigJackCard } from "@/components/GigJackCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingScreen";
 import { LiveBadge } from "@/components/ui/LiveBadge";
+import { NavigationMenu } from "@/components/NavigationMenu";
+import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 
 export default function EventsScreen() {
   const insets = useSafeAreaInsets();
+  const [menuOpen, setMenuOpen] = useState(false);
   const { data: activeEvents, isLoading: activeLoading, refetch: refetchActive, isRefetching } = useGigJacksActive();
   const { data: todayEvents, isLoading: todayLoading, refetch: refetchToday } = useGigJacksToday();
   const { data: liveState } = useLiveState();
@@ -28,6 +32,7 @@ export default function EventsScreen() {
   const isFlashLive = liveState?.live || liveState?.flash;
 
   return (
+    <View style={{ flex: 1, backgroundColor: Colors.dark }}>
     <ScrollView
       style={[styles.container, { paddingTop: topPad }]}
       contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 100 }]}
@@ -41,11 +46,16 @@ export default function EventsScreen() {
       }
     >
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>GigJack Events</Text>
-          {isFlashLive ? <LiveBadge label="FLASH" /> : null}
+        <Pressable onPress={() => setMenuOpen(true)} style={styles.hamburger}>
+          <Feather name="menu" size={22} color={Colors.textPrimary} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>GigJack Events</Text>
+            {isFlashLive ? <LiveBadge label="FLASH" /> : null}
+          </View>
+          <Text style={styles.subtitle}>Flash events & live siren alerts</Text>
         </View>
-        <Text style={styles.subtitle}>Flash events & live siren alerts</Text>
       </View>
 
       {isFlashLive ? (
@@ -81,6 +91,8 @@ export default function EventsScreen() {
         )}
       </View>
     </ScrollView>
+    <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </View>
   );
 }
 
@@ -92,11 +104,21 @@ const styles = StyleSheet.create({
   content: {
     gap: 0,
   },
+  hamburger: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
-    gap: 2,
   },
   titleRow: {
     flexDirection: "row",

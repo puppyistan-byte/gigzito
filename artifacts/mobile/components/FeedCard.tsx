@@ -3,7 +3,6 @@ import {
   Dimensions,
   Image,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -12,11 +11,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useToggleLike } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommentsDrawer } from "@/components/CommentsDrawer";
 import { InquireModal } from "@/components/InquireModal";
 import { ShareSheet } from "@/components/ShareSheet";
+import { NavigationMenu, HamburgerButton } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
 const { width: SW, height: SH } = Dimensions.get("window");
@@ -58,6 +59,8 @@ export function FeedCard({ item, isActive }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -149,6 +152,9 @@ export function FeedCard({ item, isActive }: Props) {
         style={styles.gradient}
       />
 
+      {/* Hamburger — top left */}
+      <HamburgerButton onPress={() => setMenuOpen(true)} />
+
       {/* Duration timer — top right */}
       <View style={styles.timerWrap}>
         <Feather name="clock" size={11} color={timerColor} />
@@ -217,7 +223,7 @@ export function FeedCard({ item, isActive }: Props) {
       </Pressable>
 
       {/* Bottom content overlay */}
-      <View style={styles.bottomContent}>
+      <View style={[styles.bottomContent, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {/* Category badge */}
         {vertical ? (
           <View style={styles.catBadge}>
@@ -281,6 +287,7 @@ export function FeedCard({ item, isActive }: Props) {
         url={shareUrl}
         videoUrl={videoUrl}
       />
+      <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
   );
 }

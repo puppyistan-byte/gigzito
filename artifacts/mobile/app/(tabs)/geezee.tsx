@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   FlatList,
   Platform,
+  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -12,14 +13,16 @@ import { useGeeZeeCards, useEngageLeaderboard, useLoveLeaderboard } from "@/hook
 import { GeeZeeCardItem } from "@/components/GeeZeeCardItem";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingScreen";
+import { NavigationMenu } from "@/components/NavigationMenu";
+import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
-import { Pressable } from "react-native";
 
 const TABS = ["Cards", "Top Loved", "Most Engaged"];
 
 export default function GeeZeeScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { data: cards, isLoading: cardsLoading, refetch: refetchCards, isRefetching: refetchingCards } = useGeeZeeCards();
   const { data: loveBoard, isLoading: loveLoading, refetch: refetchLove } = useLoveLeaderboard();
   const { data: engageBoard, isLoading: engageLoading, refetch: refetchEngage } = useEngageLeaderboard();
@@ -34,8 +37,13 @@ export default function GeeZeeScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>GeeZee Cards</Text>
-        <Text style={styles.subtitle}>Social Identity Cards</Text>
+        <Pressable onPress={() => setMenuOpen(true)} style={styles.hamburger}>
+          <Feather name="menu" size={22} color={Colors.textPrimary} />
+        </Pressable>
+        <View>
+          <Text style={styles.title}>GeeZee Cards</Text>
+          <Text style={styles.subtitle}>Social Identity Cards</Text>
+        </View>
       </View>
 
       <View style={styles.tabRow}>
@@ -71,6 +79,7 @@ export default function GeeZeeScreen() {
           }
         />
       )}
+      <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
   );
 }
@@ -80,7 +89,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.dark,
   },
+  hamburger: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 4,
