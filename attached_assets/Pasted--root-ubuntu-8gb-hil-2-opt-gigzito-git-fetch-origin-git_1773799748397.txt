@@ -1,0 +1,91 @@
+
+root@ubuntu-8gb-hil-2:/opt/gigzito# git fetch origin
+git merge origin/main
+npm run build
+pm2 restart all
+Updating 6cc0eed..a1a4bf2
+Fast-forward
+ attached_assets/image_1773798169717.png    | Bin 0 -> 36997 bytes
+ client/src/components/video-card.tsx       |  10 +++++++++-
+ client/src/components/video-info-modal.tsx |   2 +-
+ client/src/pages/gigcard-directory.tsx     |   2 +-
+ client/src/pages/listing-detail.tsx        |   2 +-
+ client/src/pages/provider-profile.tsx      |  26 +++++++++++++++++++++++---
+ client/src/pages/provider-public.tsx       |   2 +-
+ replit.md                                  |   2 ++
+ server/storage.ts                          |   9 +++++++++
+ shared/schema.ts                           |   2 ++
+ 10 files changed, 49 insertions(+), 8 deletions(-)
+ create mode 100644 attached_assets/image_1773798169717.png
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.0 building client environment for production...
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 1909 modules transformed.
+[esbuild css minify]
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5894:5:
+      5894 │      {
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:5905:5:
+      5905 │      { min-width: 300px !important; }
+           ╵      ^
+
+
+▲ [WARNING] Unexpected "{" [css-syntax-error]
+
+    <stdin>:6485:5:
+      6485 │      {
+           ╵      ^
+
+
+../dist/public/index.html                                                2.13 kB │ gzip:   0.80 kB
+../dist/public/assets/gigzito-logo-tight_1772926617316-cM3caTgX.png    252.93 kB
+../dist/public/assets/index-CZB_LW6c.css                               155.35 kB │ gzip:  26.78 kB
+../dist/public/assets/index-CIZuTPJ3.js                              1,148.14 kB │ gzip: 304.70 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.25s
+building server...
+
+  dist/index.cjs  1.7mb ⚠️
+
+⚡ Done in 127ms
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 5, 7 ])
+[PM2] [gigzito-bot](5) ✓
+[PM2] [gigzito-sandbox](7) ✓
+[PM2] [gigzito](0) ✓
+┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name               │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ gigzito            │ default     │ 1.0.0   │ fork    │ 2178962  │ 0s     │ 322  │ online    │ 0%       │ 18.7mb   │ root     │ disabled │
+│ 5  │ gigzito-bot        │ default     │ N/A     │ fork    │ 2178960  │ 0      │ 465  │ stopped   │ 0%       │ 0b       │ root     │ disabled │
+│ 7  │ gigzito-sandbox    │ default     │ 1.0.0   │ fork    │ 2178959  │ 0s     │ 469  │ online    │ 0%       │ 18.7mb   │ root     │ disabled │
+└────┴────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-8gb-hil-2:/opt/gigzito# pm2 restart all
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [all](ids: [ 0, 5, 7 ])
+[PM2] [gigzito-bot](5) ✓
+[PM2] [gigzito-sandbox](7) ✓
+[PM2] [gigzito](0) ✓
+┌────┬────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name               │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ gigzito            │ default     │ 1.0.0   │ fork    │ 2180221  │ 0s     │ 323  │ online    │ 0%       │ 18.7mb   │ root     │ disabled │
+│ 5  │ gigzito-bot        │ default     │ N/A     │ fork    │ 2180218  │ 0      │ 481  │ stopped   │ 0%       │ 0b       │ root     │ disabled │
+│ 7  │ gigzito-sandbox    │ default     │ 1.0.0   │ fork    │ 2180202  │ 0s     │ 483  │ online    │ 0%       │ 38.7mb   │ root     │ disabled │
+└────┴────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-8gb-hil-2:/opt/gigzito#
