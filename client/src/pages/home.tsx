@@ -347,7 +347,7 @@ export default function HomePage() {
             data-testid="button-topbar-advertise"
             style={{
               display: "flex", alignItems: "center", gap: 5,
-              background: "linear-gradient(135deg, #ff2b2b, #cc0000)",
+              background: "linear-gradient(135deg, #1d4ed8, #1e40af)",
               border: "none",
               borderRadius: "999px",
               padding: "7px 13px",
@@ -357,7 +357,7 @@ export default function HomePage() {
               fontWeight: 700,
               letterSpacing: "0.03em",
               whiteSpace: "nowrap",
-              boxShadow: "0 2px 10px rgba(255,43,43,0.45)",
+              boxShadow: "0 2px 10px rgba(29,78,216,0.5)",
             }}
           >
             <Megaphone style={{ width: 12, height: 12, color: "#fff" }} />
@@ -578,11 +578,11 @@ export default function HomePage() {
         style={{
           bottom: "84px",
           right: "12px",
-          background: "rgba(255,43,43,0.15)",
-          border: "1px solid rgba(255,43,43,0.35)",
-          color: "#ff2b2b",
+          background: "rgba(29,78,216,0.2)",
+          border: "1px solid rgba(59,130,246,0.45)",
+          color: "#60a5fa",
           backdropFilter: "blur(8px)",
-          boxShadow: "0 2px 12px rgba(255,43,43,0.15)",
+          boxShadow: "0 2px 12px rgba(29,78,216,0.25)",
         }}
         onClick={() => setShowOffers(true)}
         data-testid="btn-todays-offers"
