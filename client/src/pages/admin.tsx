@@ -17,11 +17,11 @@ import {
   ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
   ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power, MapPin,
-  FileText, Bot, Info,
+  FileText, Bot, Info, Flame, Pause, Play, MessageSquare, Tag,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
-import type { GigJackWithProvider, UserWithProfile, InjectedFeed, SponsorAd, GeoTargetCampaign } from "@shared/schema";
+import type { GigJackWithProvider, UserWithProfile, InjectedFeed, SponsorAd, GeoTargetCampaign, GzFlashAdAdmin } from "@shared/schema";
 
 interface AdminStats {
   todayCount: number;
@@ -76,7 +76,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo" | "gzbusiness";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -260,6 +260,10 @@ export default function AdminPage() {
   const [confirmTriage, setConfirmTriage] = useState<{ id: number; title: string } | null>(null);
   const [triagedReason, setTriagedReason] = useState("Non-video format — static image detected");
 
+  // GZFlash admin state
+  const [gzMessageAd, setGzMessageAd] = useState<GzFlashAdAdmin | null>(null);
+  const [gzMessageText, setGzMessageText] = useState("");
+
   const userRole = user?.user?.role ?? "";
   const isAdmin = !authLoading && !!user && (userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "SUPERUSER");
   const isSuperAdmin = userRole === "SUPER_ADMIN";
@@ -302,6 +306,12 @@ export default function AdminPage() {
   const { data: adminGeoCampaigns = [], isLoading: geoLoading } = useQuery<GeoTargetCampaign[]>({
     queryKey: ["/api/admin/geo-campaigns"],
     enabled: enabled && activeTab === "geo",
+  });
+
+  const { data: adminGzFlashAds = [], isLoading: gzFlashLoading, refetch: refetchGzFlash } = useQuery<GzFlashAdAdmin[]>({
+    queryKey: ["/api/admin/gz-flash"],
+    enabled: enabled && activeTab === "gzbusiness",
+    refetchInterval: activeTab === "gzbusiness" ? 30_000 : false,
   });
 
   const createInjMutation = useMutation({
@@ -611,6 +621,31 @@ export default function AdminPage() {
     setEditLocation(u.profile?.location ?? "");
   };
 
+  const gzStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiRequest("PATCH", `/api/admin/gz-flash/${id}/status`, { status }).then((r) => r.json()),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gz-flash"] }); toast({ title: "Ad status updated" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const gzDeleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/gz-flash/${id}`, {}).then((r) => r.json()),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/gz-flash"] }); toast({ title: "Ad deleted" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const gzMessageMutation = useMutation({
+    mutationFn: ({ id, note }: { id: number; note: string }) =>
+      apiRequest("POST", `/api/admin/gz-flash/${id}/message`, { note }).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/gz-flash"] });
+      setGzMessageAd(null);
+      setGzMessageText("");
+      toast({ title: "Note saved to ad record" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -745,6 +780,7 @@ export default function AdminPage() {
           <TabBtn label="Live Injection" icon={Radio} active={activeTab === "injection"} onClick={() => setActiveTab("injection")} />
           <TabBtn label="Ads" icon={Megaphone} active={activeTab === "ads"} onClick={() => setActiveTab("ads")} />
           <TabBtn label="Geo Campaigns" icon={MapPin} active={activeTab === "geo"} onClick={() => setActiveTab("geo")} />
+          <TabBtn label="GZBusiness" icon={Flame} active={activeTab === "gzbusiness"} onClick={() => setActiveTab("gzbusiness")} badge={adminGzFlashAds.filter(a => a.status === "active").length || undefined} />
           {/* Always-visible Sign Out — right edge of tab bar */}
           <button
             onClick={async () => { await logout(); navigate("/"); }}
@@ -2245,6 +2281,172 @@ export default function AdminPage() {
         )}
 
         {/* ── Geo Campaigns Tab ── */}
+        {activeTab === "gzbusiness" && (
+          <div className="space-y-4" data-testid="section-admin-gzbusiness">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Flame className="h-4 w-4 text-blue-400" />
+              <h2 className="text-sm font-semibold text-white">GZFlash Ad Center — All Ads</h2>
+              <span className="ml-auto text-xs text-[#444]">{adminGzFlashAds.length} total</span>
+              <button onClick={() => refetchGzFlash()} className="text-[#555] hover:text-blue-400 transition-colors" data-testid="btn-refresh-gzflash">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Filter summary pills */}
+            <div className="flex gap-2 flex-wrap text-[10px]">
+              {["active", "paused", "expired"].map((s) => {
+                const count = adminGzFlashAds.filter((a) => a.status === s).length;
+                return (
+                  <span key={s} className={`px-2 py-0.5 rounded-full font-semibold border ${
+                    s === "active" ? "bg-blue-900/30 text-blue-300 border-blue-700/50" :
+                    s === "paused" ? "bg-amber-900/30 text-amber-300 border-amber-700/50" :
+                    "bg-[#111] text-[#555] border-[#222]"
+                  }`}>{s} ({count})</span>
+                );
+              })}
+            </div>
+
+            {gzFlashLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => <div key={i} className="h-24 rounded-xl bg-[#0d0d0d] border border-[#1a1a1a] animate-pulse" />)}
+              </div>
+            ) : adminGzFlashAds.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-[#1e1e1e] rounded-xl">
+                <Flame className="h-8 w-8 text-blue-900 mx-auto mb-3" />
+                <p className="text-[#555] text-sm">No GZFlash ads have been created yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {adminGzFlashAds.map((ad) => {
+                  const isActive = ad.status === "active";
+                  const isPaused = ad.status === "paused";
+                  const isExpired = ad.status === "expired";
+                  const remaining = ad.quantity - ad.claimedCount;
+                  const salePrice = (ad.retailPriceCents * (1 - ad.discountPercent / 100) / 100).toFixed(2);
+                  const expiresAt = new Date(ad.expiresAt);
+                  const minsLeft = Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / 60000));
+                  return (
+                    <div
+                      key={ad.id}
+                      className={`rounded-xl border p-4 ${
+                        isActive ? "border-blue-800/40 bg-blue-950/10" :
+                        isPaused ? "border-amber-800/40 bg-amber-950/10" :
+                        "border-[#1e1e1e] bg-[#080808]"
+                      }`}
+                      data-testid={`card-admin-gz-${ad.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {ad.artworkUrl && (
+                          <img src={ad.artworkUrl} alt={ad.title} className="w-14 h-14 rounded-lg object-cover shrink-0 border border-[#1e1e1e]" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 flex-wrap">
+                            <div>
+                              <p className="text-white font-semibold text-sm truncate">{ad.title}</p>
+                              <p className="text-[#555] text-[10px] mt-0.5">
+                                {ad.displayName ?? ad.username ?? `User #${ad.userId}`}
+                                {ad.ownerEmail && <span className="ml-2 text-blue-400/60">{ad.ownerEmail}</span>}
+                              </p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                              isActive ? "bg-blue-900/40 text-blue-300 border-blue-700/50" :
+                              isPaused ? "bg-amber-900/40 text-amber-300 border-amber-700/50" :
+                              "bg-[#111] text-[#555] border-[#222]"
+                            }`}>{ad.status}</span>
+                          </div>
+
+                          <div className="flex flex-wrap gap-3 mt-2 text-[10px] text-[#666]">
+                            <span className="flex items-center gap-1">
+                              <Tag className="h-3 w-3 text-green-400/70" />
+                              <span className="text-green-400 font-bold">${salePrice}</span>
+                              <span className="line-through">${(ad.retailPriceCents / 100).toFixed(2)}</span>
+                              <span className="bg-green-900/30 text-green-400 border border-green-800/40 rounded px-1 font-bold">{ad.discountPercent}% OFF</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3 text-blue-400/70" />
+                              {remaining}/{ad.quantity} left
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Flame className="h-3 w-3 text-blue-400/70" />
+                              <span className="text-blue-400 font-mono">{ad.potencyScore.toFixed(2)}</span>
+                            </span>
+                            {isActive && <span>{minsLeft}m remaining</span>}
+                          </div>
+
+                          {ad.adminNote && (
+                            <div className="mt-2 bg-amber-950/20 border border-amber-800/30 rounded-lg px-2.5 py-1.5 text-[10px] text-amber-300">
+                              <span className="font-bold">Admin note: </span>{ad.adminNote}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action row */}
+                      <div className="flex gap-2 mt-3 flex-wrap">
+                        {isActive && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2.5 text-xs border border-amber-700/40 text-amber-400 hover:text-amber-300 hover:bg-amber-900/20"
+                            onClick={() => gzStatusMutation.mutate({ id: ad.id, status: "paused" })}
+                            disabled={gzStatusMutation.isPending}
+                            data-testid={`btn-gz-pause-${ad.id}`}
+                          >
+                            <Pause className="h-3 w-3 mr-1" /> Pause
+                          </Button>
+                        )}
+                        {isPaused && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2.5 text-xs border border-blue-700/40 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                            onClick={() => gzStatusMutation.mutate({ id: ad.id, status: "active" })}
+                            disabled={gzStatusMutation.isPending}
+                            data-testid={`btn-gz-resume-${ad.id}`}
+                          >
+                            <Play className="h-3 w-3 mr-1" /> Resume
+                          </Button>
+                        )}
+                        {!isExpired && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2.5 text-xs border border-[#333] text-[#666] hover:text-[#aaa] hover:bg-[#111]"
+                            onClick={() => gzStatusMutation.mutate({ id: ad.id, status: "expired" })}
+                            disabled={gzStatusMutation.isPending}
+                            data-testid={`btn-gz-expire-${ad.id}`}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" /> Force Expire
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2.5 text-xs border border-[#333] text-[#666] hover:text-white hover:bg-[#111]"
+                          onClick={() => { setGzMessageAd(ad); setGzMessageText(ad.adminNote ?? ""); }}
+                          data-testid={`btn-gz-message-${ad.id}`}
+                        >
+                          <MessageSquare className="h-3 w-3 mr-1" /> {ad.adminNote ? "Edit Note" : "Send Note"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2.5 text-xs border border-red-900/40 text-red-500 hover:text-red-400 hover:bg-red-950/20 ml-auto"
+                          onClick={() => gzDeleteMutation.mutate(ad.id)}
+                          disabled={gzDeleteMutation.isPending}
+                          data-testid={`btn-gz-delete-${ad.id}`}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "geo" && (
           <div className="space-y-4" data-testid="section-admin-geo">
             <div className="flex items-center gap-2">
@@ -2305,6 +2507,61 @@ export default function AdminPage() {
         )}
 
       </div>
+
+      {/* ─── GZFlash Admin Note Modal ───────────────────────────────────────── */}
+      {gzMessageAd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" data-testid="modal-gz-message">
+          <div className="w-full max-w-md rounded-2xl bg-[#0a0f1e] border border-blue-800/50 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-blue-900/40">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-blue-400" />
+                <h3 className="font-semibold text-white text-sm">Admin Note for Owner</h3>
+              </div>
+              <button onClick={() => { setGzMessageAd(null); setGzMessageText(""); }} className="text-[#555] hover:text-white transition-colors" data-testid="btn-close-gz-message">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <p className="text-xs text-[#777] mb-1">Ad: <span className="text-white font-semibold">{gzMessageAd.title}</span></p>
+                <p className="text-xs text-[#555]">
+                  Owner: {gzMessageAd.displayName ?? gzMessageAd.username ?? `User #${gzMessageAd.userId}`}
+                  {gzMessageAd.ownerEmail && <span className="ml-2 text-blue-400">{gzMessageAd.ownerEmail}</span>}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[#666] mb-1.5 font-medium">Note (visible to owner in their GZBusiness Portal)</p>
+                <textarea
+                  value={gzMessageText}
+                  onChange={(e) => setGzMessageText(e.target.value)}
+                  placeholder="e.g. Your ad has been paused — discount exceeds permitted limits. Contact support."
+                  rows={4}
+                  className="w-full bg-[#060c18] border border-blue-900/50 rounded-xl text-white text-sm px-3 py-2 resize-none placeholder-[#333] focus:outline-none focus:border-blue-700/70"
+                  data-testid="input-gz-note"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold h-9 text-sm"
+                  onClick={() => gzMessageMutation.mutate({ id: gzMessageAd.id, note: gzMessageText })}
+                  disabled={gzMessageMutation.isPending || !gzMessageText.trim()}
+                  data-testid="btn-send-gz-note"
+                >
+                  {gzMessageMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Save Note"}
+                </Button>
+                <Button variant="ghost" className="border border-[#222] text-[#666] hover:text-white h-9 text-sm" onClick={() => { setGzMessageAd(null); setGzMessageText(""); }}>
+                  Cancel
+                </Button>
+              </div>
+              {gzMessageAd.ownerEmail && (
+                <p className="text-[10px] text-[#444] text-center">
+                  Also email directly: <a href={`mailto:${gzMessageAd.ownerEmail}?subject=Re: Your GZFlash Ad "${gzMessageAd.title}"&body=Hello,\n\n`} className="text-blue-500 hover:underline" target="_blank">{gzMessageAd.ownerEmail}</a>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Edit GigJack Modal ─────────────────────────────────────────────── */}
       {editingGj && (

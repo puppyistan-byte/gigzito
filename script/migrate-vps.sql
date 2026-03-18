@@ -25,3 +25,5 @@ CREATE TABLE IF NOT EXISTS gz_flash_ads (
   expires_at timestamp NOT NULL,
   created_at timestamp NOT NULL DEFAULT now()
 );
+
+ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS admin_note text;

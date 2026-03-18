@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -116,6 +116,11 @@ export interface IStorage {
   deleteGzFlashAd(id: number, userId: number): Promise<void>;
   claimGzFlashAd(id: number): Promise<GzFlashAd>;
   recalculateGzFlashScores(): Promise<void>;
+  // Admin GZFlash
+  adminGetAllGzFlashAds(): Promise<GzFlashAdAdmin[]>;
+  adminSetGzFlashStatus(id: number, status: string): Promise<GzFlashAd>;
+  adminDeleteGzFlashAd(id: number): Promise<void>;
+  adminSetGzFlashNote(id: number, note: string): Promise<GzFlashAd>;
 
   // Listing Comments
   createListingComment(data: { listingId: number; authorUserId?: number | null; authorName: string; commentText: string; viewerUsername?: string | null; viewerEmail?: string | null; viewerCity?: string | null; viewerState?: string | null; viewerCountry?: string | null }): Promise<ListingComment>;
@@ -2066,6 +2071,47 @@ export class DatabaseStorage implements IStorage {
         await db.update(gzFlashAds).set({ potencyScore: score }).where(eq(gzFlashAds.id, ad.id));
       }
     }
+  }
+
+  async adminGetAllGzFlashAds(): Promise<GzFlashAdAdmin[]> {
+    const rows = await db
+      .select({
+        ad: gzFlashAds,
+        displayName: providerProfiles.displayName,
+        username: providerProfiles.username,
+        avatarUrl: providerProfiles.avatarUrl,
+        ownerEmail: users.email,
+      })
+      .from(gzFlashAds)
+      .leftJoin(providerProfiles, eq(gzFlashAds.userId, providerProfiles.userId))
+      .leftJoin(users, eq(gzFlashAds.userId, users.id))
+      .orderBy(desc(gzFlashAds.createdAt));
+    return rows.map(({ ad, displayName, username, avatarUrl, ownerEmail }) => ({
+      ...ad,
+      displayName: displayName ?? null,
+      username: username ?? null,
+      avatarUrl: avatarUrl ?? null,
+      ownerEmail: ownerEmail ?? null,
+    }));
+  }
+
+  async adminSetGzFlashStatus(id: number, status: string): Promise<GzFlashAd> {
+    const potencyScore = status === "paused" || status === "expired" ? 0 : undefined;
+    const updateData: Record<string, any> = { status };
+    if (potencyScore !== undefined) updateData.potencyScore = potencyScore;
+    const [updated] = await db.update(gzFlashAds).set(updateData).where(eq(gzFlashAds.id, id)).returning();
+    if (!updated) throw new Error("Ad not found");
+    return updated;
+  }
+
+  async adminDeleteGzFlashAd(id: number): Promise<void> {
+    await db.delete(gzFlashAds).where(eq(gzFlashAds.id, id));
+  }
+
+  async adminSetGzFlashNote(id: number, note: string): Promise<GzFlashAd> {
+    const [updated] = await db.update(gzFlashAds).set({ adminNote: note }).where(eq(gzFlashAds.id, id)).returning();
+    if (!updated) throw new Error("Ad not found");
+    return updated;
   }
 }
 

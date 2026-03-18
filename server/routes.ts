@@ -2987,5 +2987,53 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     storage.recalculateGzFlashScores().catch((e) => console.warn("GZFlash score recalculation failed:", e.message));
   }, 60_000);
 
+  // === ADMIN: GZ FLASH ===
+  app.get("/api/admin/gz-flash", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const ads = await storage.adminGetAllGzFlashAds();
+      return res.json(ads);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch GZFlash ads" });
+    }
+  });
+
+  app.patch("/api/admin/gz-flash/:id/status", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = z.object({ status: z.enum(["active", "paused", "expired"]) }).parse(req.body);
+      const ad = await storage.adminSetGzFlashStatus(id, status);
+      return res.json(ad);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Failed to update ad status" });
+    }
+  });
+
+  app.delete("/api/admin/gz-flash/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      await storage.adminDeleteGzFlashAd(id);
+      return res.json({ ok: true });
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to delete ad" });
+    }
+  });
+
+  app.post("/api/admin/gz-flash/:id/message", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const id = parseInt(req.params.id);
+      const { note } = z.object({ note: z.string().min(1).max(1000) }).parse(req.body);
+      const ad = await storage.adminSetGzFlashNote(id, note);
+      return res.json(ad);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      return res.status(500).json({ message: "Failed to save note" });
+    }
+  });
+
   return httpServer;
 }

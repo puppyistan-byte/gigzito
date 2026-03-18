@@ -908,6 +908,7 @@ export const gzFlashAds = pgTable("gz_flash_ads", {
   durationMinutes: integer("duration_minutes").notNull(),
   potencyScore: real("potency_score").notNull().default(0),
   status: text("status").notNull().default("active"),
+  adminNote: text("admin_note"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -920,4 +921,8 @@ export type GzFlashAdWithOwner = GzFlashAd & {
   displayName: string | null;
   username: string | null;
   avatarUrl: string | null;
+};
+
+export type GzFlashAdAdmin = GzFlashAdWithOwner & {
+  ownerEmail: string | null;
 };

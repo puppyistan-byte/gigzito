@@ -256,6 +256,11 @@ function MyAdCard({ ad, onEdit, onDelete }: { ad: GzFlashAd; onEdit: (a: GzFlash
           <span>{remaining}/{ad.quantity} slots</span>
           <span>Score: <span className="text-blue-400 font-mono">{ad.potencyScore.toFixed(2)}</span></span>
         </div>
+        {ad.adminNote && (
+          <div className="mt-2 bg-amber-950/30 border border-amber-700/40 rounded-lg px-2.5 py-1.5 text-[10px] text-amber-300 leading-snug">
+            <span className="font-bold uppercase tracking-wider text-amber-400">⚠ Admin note: </span>{ad.adminNote}
+          </div>
+        )}
       </div>
     </div>
   );
