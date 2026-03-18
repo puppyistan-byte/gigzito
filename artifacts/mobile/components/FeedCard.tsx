@@ -171,7 +171,7 @@ export function FeedCard({ item, isActive }: Props) {
           style={styles.railBtn}
         >
           <Image
-            source={require("@/assets/images/icon.png")}
+            source={require("@/assets/images/gz-logo.png")}
             style={styles.gzIcon}
             resizeMode="cover"
           />
@@ -358,9 +358,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   gzIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
   },
   railCount: {
     color: "#fff",
