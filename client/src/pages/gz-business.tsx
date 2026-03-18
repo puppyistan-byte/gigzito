@@ -275,7 +275,8 @@ export default function GzBusinessPage() {
   const [editingAd, setEditingAd] = useState<GzFlashAd | null>(null);
 
   const tier = (user as any)?.user?.subscriptionTier ?? "";
-  const isAllowed = tier === "GZBusiness" || (user as any)?.user?.role === "ADMIN";
+  const role = (user as any)?.user?.role ?? "";
+  const isAllowed = tier === "GZBusiness" || role === "ADMIN" || role === "SUPER_ADMIN";
 
   const { data: myAds = [], isLoading } = useQuery<GzFlashAd[]>({
     queryKey: ["/api/gz-flash/mine"],

@@ -163,6 +163,17 @@ export function Navbar() {
             Preemptive Marketing
           </DropdownMenuItem>
 
+          {(isAdmin || user?.user?.subscriptionTier === "GZBusiness") && (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer hover:bg-blue-500/10 focus:bg-blue-500/10 text-blue-400"
+              onClick={() => navigate("/gz-business")}
+              data-testid="menu-item-gzbusiness"
+            >
+              <Zap className="h-4 w-4" />
+              GZBusiness Portal
+            </DropdownMenuItem>
+          )}
+
           {isAdmin && (
             <DropdownMenuItem
               className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5 text-zinc-300"

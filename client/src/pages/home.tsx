@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, Megaphone, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
 
 const CATEGORIES = [
   { key: "ALL",           label: "All Videos" },
@@ -46,6 +47,10 @@ export default function HomePage() {
   const [showOffers, setShowOffers] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const userRole = (user as any)?.user?.role ?? "";
+  const userTier = (user as any)?.user?.subscriptionTier ?? "";
+  const isAdminOrBusiness = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(userRole) || userTier === "GZBusiness";
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu on outside click
@@ -343,7 +348,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => navigate("/advertise")}
+            onClick={() => navigate(isAdminOrBusiness ? "/gz-business" : "/advertise")}
             data-testid="button-topbar-advertise"
             style={{
               display: "flex", alignItems: "center", gap: 5,
@@ -361,7 +366,7 @@ export default function HomePage() {
             }}
           >
             <Megaphone style={{ width: 12, height: 12, color: "#fff" }} />
-            Advertise
+            {isAdminOrBusiness ? "GZBusiness" : "Advertise"}
           </button>
         </div>
 
