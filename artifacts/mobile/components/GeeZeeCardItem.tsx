@@ -1,247 +1,190 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Avatar } from "@/components/ui/Avatar";
 import Colors from "@/constants/colors";
 
-const TIER_COLOR: Record<string, string> = {
-  GZMarketerPro: Colors.accent,
-  GZBusiness: "#00D9A5",
-  GZLurker: "#7C5CBF",
-};
-
-const SOCIAL_ICONS = [
-  { key: "facebook",  icon: "facebook"  },
-  { key: "instagram", icon: "instagram" },
-  { key: "tiktok",    icon: "music"     },
-  { key: "youtube",   icon: "youtube"   },
-  { key: "twitter",   icon: "twitter"   },
-];
+const { width: SW } = Dimensions.get("window");
+const GAP = 12;
+const H_PAD = 16;
+const CARD_W = (SW - H_PAD * 2 - GAP) / 2;
+const CARD_H = CARD_W * 1.55;
 
 type Props = {
   item: any;
 };
 
+const TIER_COLORS: Record<string, string> = {
+  GZMarketerPro: Colors.accent,
+  GZBusiness: Colors.success ?? "#00C27C",
+  GZLurker: Colors.textMuted,
+};
+
 export function GeeZeeCardItem({ item }: Props) {
-  const name      = item.displayName || item.username || "Unknown";
-  const handle    = item.username ? `@${item.username}` : null;
-  const tier      = item.subscriptionTier || "GZLurker";
-  const tierColor = TIER_COLOR[tier] ?? "#7C5CBF";
-  const demo      = [item.ageRange, item.gender].filter(Boolean).join(" • ");
+  const handlePress = () => {
+    Haptics.selectionAsync();
+    router.push({ pathname: "/geezee/[id]", params: { id: item.id } });
+  };
+
+  const tier = item.subscriptionTier || "GZLurker";
+  const tierColor = TIER_COLORS[tier] ?? Colors.teal;
+  const name = item.displayName || item.username || "Unknown";
+  const handle = item.username ? `@${item.username}` : null;
 
   return (
     <Pressable
-      onPress={() => { Haptics.selectionAsync(); router.push({ pathname: "/geezee/[id]", params: { id: item.id } }); }}
+      onPress={handlePress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      {/* ── Row 1: avatar + info ── */}
-      <View style={styles.topRow}>
-        <Avatar uri={item.avatarUrl} name={name} size={58} style={styles.avatar} />
+      <LinearGradient
+        colors={["#1A1A1A", "#0D0D0D"]}
+        style={styles.gradient}
+      >
+        <View style={[styles.tierBar, { backgroundColor: tierColor }]} />
 
-        <View style={styles.info}>
-          <View style={styles.badgeRow}>
-            <View style={[styles.pill, { borderColor: `${tierColor}55`, backgroundColor: `${tierColor}18` }]}>
-              <Text style={[styles.pillText, { color: tierColor }]}>{tier}</Text>
-            </View>
-            {item.category ? (
-              <View style={[styles.pill, { borderColor: "#7C5CBF55", backgroundColor: "#7C5CBF18" }]}>
-                <Text style={[styles.pillText, { color: "#B89AE0" }]}>{item.category}</Text>
-              </View>
-            ) : null}
-            {handle ? <Text style={styles.handle}>{handle}</Text> : null}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarRing}>
+            <Avatar uri={item.avatarUrl} name={name} size={60} />
           </View>
+        </View>
 
+        <View style={styles.body}>
           <Text style={styles.name} numberOfLines={1}>{name}</Text>
+          {handle ? (
+            <Text style={styles.handle} numberOfLines={1}>{handle}</Text>
+          ) : null}
 
-          <View style={styles.demRow}>
-            {demo ? <Text style={styles.demographic}>{demo}</Text> : null}
-            <Text style={styles.viewLink}>View →</Text>
+          <View style={[styles.tierPill, { borderColor: `${tierColor}55`, backgroundColor: `${tierColor}15` }]}>
+            <Text style={[styles.tierText, { color: tierColor }]} numberOfLines={1}>
+              {tier}
+            </Text>
           </View>
-        </View>
-      </View>
 
-      {/* ── Row 2: social icons ── */}
-      <View style={styles.divider} />
-      <View style={styles.socialRow}>
-        {SOCIAL_ICONS.map(({ key, icon }) => {
-          const active = !!item.socialLinks?.[key];
-          return (
-            <View key={key} style={styles.socialIcon}>
-              <Feather
-                name={icon as any}
-                size={15}
-                color={active ? Colors.textSecondary : Colors.surfaceBorder}
-              />
+          {item.bio ? (
+            <Text style={styles.bio} numberOfLines={3}>{item.bio}</Text>
+          ) : (
+            <Text style={styles.bioEmpty}>No bio yet</Text>
+          )}
+        </View>
+
+        <View style={styles.footer}>
+          {item.engageCount !== undefined ? (
+            <View style={styles.stat}>
+              <Feather name="zap" size={11} color={Colors.accent} />
+              <Text style={styles.statText}>{item.engageCount}</Text>
             </View>
-          );
-        })}
-      </View>
-
-      {/* ── Row 3: stats + actions ── */}
-      <View style={styles.divider} />
-      <View style={styles.actionBar}>
-        <View style={styles.statsGroup}>
-          <View style={styles.stat}>
-            <Feather name="heart" size={13} color={Colors.accent} />
-            <Text style={styles.statText}>{item.engageCount ?? 0}</Text>
-          </View>
-          <Feather name="message-square" size={13} color={Colors.textMuted} />
-          <Feather name="bar-chart-2"    size={13} color={Colors.textMuted} />
+          ) : null}
+          {item.followerCount !== undefined ? (
+            <View style={styles.stat}>
+              <Feather name="users" size={11} color={Colors.textMuted} />
+              <Text style={styles.statText}>{item.followerCount}</Text>
+            </View>
+          ) : null}
+          <Feather name="chevron-right" size={13} color={Colors.textMuted} style={{ marginLeft: "auto" }} />
         </View>
-        <View style={styles.ctaGroup}>
-          <Pressable onPress={() => Haptics.selectionAsync()} style={styles.followBtn}>
-            <Feather name="user-plus" size={12} color={Colors.textPrimary} />
-            <Text style={styles.followText}>Follow</Text>
-          </Pressable>
-          <Pressable onPress={() => Haptics.selectionAsync()} style={styles.engageBtn}>
-            <Feather name="heart" size={12} color={Colors.accent} />
-            <Text style={styles.engageText}>Engage</Text>
-          </Pressable>
-        </View>
-      </View>
+      </LinearGradient>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    backgroundColor: "#0D0D1A",
-    borderRadius: 16,
+    width: CARD_W,
+    height: CARD_H,
+    borderRadius: 18,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
-    padding: 12,
-    gap: 10,
   },
   pressed: {
     opacity: 0.88,
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.97 }],
   },
-  topRow: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-start",
-  },
-  avatar: {
-    borderRadius: 10,
-  },
-  info: {
+  gradient: {
     flex: 1,
-    gap: 4,
+    borderRadius: 18,
   },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  tierBar: {
+    height: 4,
+    width: "100%",
+    opacity: 0.9,
+  },
+  avatarSection: {
     alignItems: "center",
-    gap: 5,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+  avatarRing: {
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: Colors.surfaceBorder,
+    padding: 2,
   },
-  pillText: {
-    fontSize: 9,
-    fontFamily: "Inter_600SemiBold",
-  },
-  handle: {
-    marginLeft: "auto",
-    color: Colors.textMuted,
-    fontSize: 10,
-    fontFamily: "Inter_400Regular",
+  body: {
+    flex: 1,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    gap: 6,
   },
   name: {
     color: Colors.textPrimary,
     fontSize: 14,
     fontFamily: "Inter_700Bold",
+    textAlign: "center",
   },
-  demRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  demographic: {
+  handle: {
     color: Colors.textMuted,
     fontSize: 11,
     fontFamily: "Inter_400Regular",
+    textAlign: "center",
   },
-  viewLink: {
-    color: Colors.accent,
-    fontSize: 11,
+  tierPill: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    maxWidth: "100%",
+  },
+  tierText: {
+    fontSize: 10,
     fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.surfaceBorder,
+  bio: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 16,
   },
-  socialRow: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
+  bioEmpty: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    fontStyle: "italic",
   },
-  socialIcon: {
-    width: 24,
-    height: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  statsGroup: {
+  footer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceBorder,
   },
   stat: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
   },
   statText: {
-    color: Colors.textSecondary,
-    fontSize: 12,
+    color: Colors.textMuted,
+    fontSize: 11,
     fontFamily: "Inter_500Medium",
-  },
-  ctaGroup: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  followBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  followText: {
-    color: Colors.textPrimary,
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-  },
-  engageBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: `${Colors.accent}15`,
-    borderWidth: 1,
-    borderColor: `${Colors.accent}44`,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  engageText: {
-    color: Colors.accent,
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
   },
 });
