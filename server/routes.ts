@@ -1470,25 +1470,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (isNaN(listingId)) return res.status(400).json({ message: "Invalid listing id" });
     const schema = z.object({
       commentText: z.string().min(1).max(300),
-      authorName: z.string().max(60).optional(),
-      viewerEmail: z.string().email().optional().or(z.literal("")),
     });
     try {
-      const { commentText, authorName, viewerEmail } = schema.parse(req.body);
+      const { commentText } = schema.parse(req.body);
       const listing = await storage.getListingById(listingId);
       if (!listing) return res.status(404).json({ message: "Listing not found" });
-      // Resolve display name: prefer passed authorName, then provider profile, then user email prefix
-      let resolvedAuthorName = authorName?.trim() || "";
+      // Auto-resolve name and email from the logged-in user's account — no manual input needed
+      let resolvedAuthorName = "";
+      let viewerEmail: string | null = null;
       let viewerUsername: string | null = null;
-      const profile = await storage.getProfileByUserId(authorUserId);
+      const [profile, authorUser] = await Promise.all([
+        storage.getProfileByUserId(authorUserId),
+        storage.getUserById(authorUserId),
+      ]);
       if (profile?.username) viewerUsername = profile.username;
-      if (!resolvedAuthorName) {
-        if (profile?.displayName) resolvedAuthorName = profile.displayName;
-        else {
-          const user = await storage.getUserById(authorUserId);
-          resolvedAuthorName = user?.email?.split("@")[0] || "Anonymous";
-        }
-      }
+      if (profile?.displayName) resolvedAuthorName = profile.displayName;
+      else resolvedAuthorName = authorUser?.email?.split("@")[0] || "Anonymous";
+      viewerEmail = authorUser?.email ?? null;
       // Geo lookup from IP
       let viewerCity: string | undefined;
       let viewerState: string | undefined;

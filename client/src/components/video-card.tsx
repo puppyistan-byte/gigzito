@@ -277,7 +277,6 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [linkCopied, setLinkCopied] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
-  const [commentEmail, setCommentEmail] = useState("");
   const [nativeVideoFailed, setNativeVideoFailed] = useState(false);
 
   const unsupportedPlatform = getUnsupportedPlatform(listing.videoUrl ?? "");
@@ -291,11 +290,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const commentMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/listings/${listing.id}/comments`, {
       commentText: commentInput.trim(),
-      viewerEmail: commentEmail.trim() || undefined,
     }),
     onSuccess: () => {
       setCommentInput("");
-      setCommentEmail("");
       refetchComments();
     },
     onError: (err: Error) => {
@@ -1103,18 +1100,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <div style={{ padding: "10px 12px 16px", borderTop: "1px solid #1e1e1e" }}>
               {user ? (
                 <>
-                  <input
-                    value={commentEmail}
-                    onChange={(e) => setCommentEmail(e.target.value)}
-                    placeholder="Your email (optional, for replies)"
-                    type="email"
-                    style={{
-                      width: "100%", background: "#161616", border: "1px solid #222", borderRadius: 8,
-                      padding: "6px 10px", color: "#aaa", fontSize: 11, outline: "none",
-                      marginBottom: 6, boxSizing: "border-box",
-                    }}
-                    data-testid={`input-comment-email-${listing.id}`}
-                  />
+                  <p style={{ fontSize: 10, color: "#555", marginBottom: 6, lineHeight: 1.4 }}>
+                    Posting as <span style={{ color: "#888" }}>{(user as any)?.user?.profile?.displayName || (user as any)?.user?.email}</span> — your name &amp; email are logged automatically.
+                  </p>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <input
                       value={commentInput}
