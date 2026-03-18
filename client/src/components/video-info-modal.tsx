@@ -111,7 +111,7 @@ export function VideoInfoModal({ listing, onClose, onInquire }: VideoInfoModalPr
           {listing.ctaUrl && <Row icon={ExternalLink} label="Destination" value={listing.ctaUrl} href={listing.ctaUrl} />}
           {p.bio && <Row icon={MessageCircle} label="About" value={p.bio} />}
           {p.contactEmail && <Row icon={Mail} label="Email" value={p.contactEmail} href={`mailto:${p.contactEmail}`} />}
-          {p.contactPhone && <Row icon={Phone} label="Phone" value={p.contactPhone} href={`tel:${p.contactPhone}`} />}
+          {p.contactPhone && (p as any).showPhone && <Row icon={Phone} label="Phone" value={p.contactPhone} href={`tel:${p.contactPhone}`} />}
           {p.websiteUrl && <Row icon={Globe} label="Website" value={p.websiteUrl} href={p.websiteUrl} />}
           {p.instagramUrl && <Row icon={Instagram} label="Instagram" value={p.instagramUrl} href={p.instagramUrl} />}
           {p.youtubeUrl && <Row icon={Youtube} label="YouTube" value={p.youtubeUrl} href={p.youtubeUrl} />}

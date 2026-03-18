@@ -61,6 +61,7 @@ export const providerProfiles = pgTable("provider_profiles", {
   photo6Url: text("photo6_url"),
   webhookUrl: text("webhook_url"),
   adFormat: text("ad_format"),
+  showPhone: boolean("show_phone").notNull().default(false),
 });
 
 export const videoListings = pgTable("video_listings", {
@@ -212,6 +213,7 @@ export type ScanStatus = typeof SCAN_STATUSES[number];
 
 export interface ListingWithProvider extends VideoListing {
   provider: ProviderProfile & { user: User };
+  commentCount?: number;
 }
 
 export interface GigJackWithProvider extends GigJack {

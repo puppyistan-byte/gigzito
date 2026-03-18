@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
@@ -168,6 +168,7 @@ type FormState = {
   photo6Url: string;
   webhookUrl: string;
   adFormat: string;
+  showPhone: boolean;
 };
 
 const EMPTY: FormState = {
@@ -176,7 +177,7 @@ const EMPTY: FormState = {
   contactTelegram: "", websiteUrl: "", instagramUrl: "", youtubeUrl: "", tiktokUrl: "",
   facebookUrl: "", discordUrl: "", twitterUrl: "",
   photo1Url: "", photo2Url: "", photo3Url: "", photo4Url: "", photo5Url: "", photo6Url: "",
-  webhookUrl: "", adFormat: "",
+  webhookUrl: "", adFormat: "", showPhone: false,
 };
 
 const inputCls = "bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]";
@@ -225,6 +226,7 @@ export default function ProviderProfilePage() {
         photo6Url:        (profile as any).photo6Url ?? "",
         webhookUrl:       (profile as any).webhookUrl ?? "",
         adFormat:         (profile as any).adFormat ?? "",
+        showPhone:        (profile as any).showPhone ?? false,
       });
     }
   }, [profile]);
@@ -273,7 +275,7 @@ export default function ProviderProfilePage() {
     onError: () => toast({ title: "Error saving profile", variant: "destructive" }),
   });
 
-  const set = (field: keyof FormState, value: string) =>
+  const set = (field: keyof FormState, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -453,6 +455,24 @@ export default function ProviderProfilePage() {
               <div className="space-y-1.5">
                 <Label htmlFor="contactPhone" className="text-[#aaa] text-sm">Phone</Label>
                 <Input id="contactPhone" type="tel" placeholder="+1 555 000 0000" value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} className={inputCls} data-testid="input-contact-phone" />
+                <div className="mt-1.5 rounded-lg border border-yellow-600/40 bg-yellow-950/30 px-3 py-2 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <p className="text-xs text-yellow-400 font-medium leading-snug">
+                      Warning: Showing your phone number publicly exposes it to the entire internet. Spam calls, scrapers, and unwanted contact are likely. Only enable this if you fully accept that risk.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.showPhone}
+                        onChange={(e) => set("showPhone", e.target.checked)}
+                        data-testid="checkbox-show-phone"
+                        className="w-4 h-4 accent-yellow-500 cursor-pointer"
+                      />
+                      <span className="text-xs text-yellow-300 font-semibold">I understand — show my phone publicly</span>
+                    </label>
+                  </div>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="contactTelegram" className="text-[#aaa] text-sm">Telegram</Label>

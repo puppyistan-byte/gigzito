@@ -94,7 +94,7 @@ function GigCard({ listing }: { listing: ListingWithProvider }) {
               <span className="truncate">{provider.websiteUrl.replace(/^https?:\/\//, "")}</span>
             </a>
           )}
-          {provider?.contactPhone && (
+          {provider?.contactPhone && (provider as any)?.showPhone && (
             <a href={`tel:${provider.contactPhone}`} className="flex items-center gap-2 text-xs text-[#666] hover:text-white transition-colors">
               <Phone className="h-3 w-3 shrink-0" />
               <span className="truncate">{provider.contactPhone}</span>

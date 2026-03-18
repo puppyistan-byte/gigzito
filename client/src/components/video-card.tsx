@@ -755,7 +755,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)", fontVariantNumeric: "tabular-nums" }}
               data-testid={`text-like-count-${listing.id}`}
             >
-              {likeCount > 0 ? likeCount.toLocaleString() : ""}
+              {(likeCount ?? 0).toLocaleString()}
             </span>
           </div>
 
@@ -778,6 +778,14 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             >
               <MessageCircle className="w-5 h-5 text-white/80" />
             </button>
+            <span
+              style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)", fontVariantNumeric: "tabular-nums" }}
+              data-testid={`text-comment-count-${listing.id}`}
+            >
+              {showComments
+                ? (commentsData.length > 0 ? commentsData.length.toLocaleString() : "0")
+                : ((listing.commentCount ?? 0) > 0 ? (listing.commentCount ?? 0).toLocaleString() : "0")}
+            </span>
           </div>
 
           {/* FLOATING CREATOR AVATAR */}

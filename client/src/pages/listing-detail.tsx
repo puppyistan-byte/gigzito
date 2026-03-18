@@ -161,7 +161,7 @@ export default function ListingDetailPage() {
                 </Button>
               </a>
             )}
-            {provider.contactPhone && (
+            {provider.contactPhone && (provider as any).showPhone && (
               <a href={`tel:${provider.contactPhone}`} data-testid="link-contact-phone">
                 <Button size="sm" variant="outline" className="h-8">
                   <Phone className="h-3.5 w-3.5 mr-1.5" />

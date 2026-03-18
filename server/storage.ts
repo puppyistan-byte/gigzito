@@ -279,9 +279,18 @@ export class DatabaseStorage implements IStorage {
     const profileMap = new Map(
       profiles.map((p) => [p.id, { ...p, user: userMap.get(p.userId)! }])
     );
+    // Fetch comment counts for all listings in one query
+    const listingIds = rows.map((r) => r.id);
+    const commentCountRows = await db
+      .select({ listingId: listingComments.listingId, cnt: sql<number>`count(*)::int` })
+      .from(listingComments)
+      .where(inArray(listingComments.listingId, listingIds))
+      .groupBy(listingComments.listingId);
+    const commentCountMap = new Map(commentCountRows.map((r) => [r.listingId, r.cnt]));
     return rows.map((listing) => ({
       ...listing,
       provider: profileMap.get(listing.providerId)!,
+      commentCount: commentCountMap.get(listing.id) ?? 0,
     }));
   }
 

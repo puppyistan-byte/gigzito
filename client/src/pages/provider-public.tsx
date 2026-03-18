@@ -211,7 +211,7 @@ export default function ProviderPublicPage() {
                       <Mail className="h-3.5 w-3.5" /> Email
                     </a>
                   )}
-                  {profile.contactPhone && (
+                  {profile.contactPhone && (profile as any).showPhone && (
                     <a href={`tel:${profile.contactPhone}`}
                       className="flex items-center gap-1.5 text-xs text-[#888] hover:text-white transition-colors"
                       data-testid="link-phone">
