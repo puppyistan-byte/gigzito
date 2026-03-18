@@ -1,0 +1,137 @@
+Here's the complete API reference to paste into the Gigzito-Mobile Repl:
+
+Gigzito Backend API — Mobile Reference
+Base URL (dev): your Replit dev URL
+Base URL (production): http://5.78.128.185 (Hillsboro VPS)
+Auth: All protected routes accept Authorization: Bearer <token> header
+Content-Type: application/json for all POST/PUT/PATCH requests
+
+MOBILE AUTH (JWT — use these, not the web cookie routes)
+Method	Path	Auth	Body	Returns
+POST	/api/mobile/login	None	{ email, password }	{ mfaRequired: true, email }
+POST	/api/mobile/mfa/verify	None	{ email, code }	{ token, user }
+POST	/api/mobile/refresh	Bearer	—	{ token, user }
+GET	/api/mobile/me	Bearer	—	{ user, profile }
+user object: { id, email, role, subscriptionTier }
+profile object: { username, displayName, avatarUrl, bio }
+Subscription tiers: GZLurker (free) · GZMarketer · GZMarketerPro · GZBusiness · GZEnterprise
+
+CURRENT USER
+Method	Path	Auth	Notes
+GET	/api/auth/me	Bearer	Full user + profile
+GET	/api/profile/me	Bearer	My profile
+PUT	/api/profile/me	Bearer	Update profile
+GET	/api/profile/me/completion	Bearer	{ isComplete, missing[] }
+GET	/api/profile/:id	None	Any public provider profile
+POST	/api/auth/change-password	Bearer	{ currentPassword, newPassword }
+VIDEO LISTINGS (The Feed)
+Method	Path	Auth	Notes
+GET	/api/listings	None	All listings — main feed. Query: ?category=&search=
+GET	/api/listings/:id	None	Single listing
+GET	/api/listings/mine	Bearer	My own listings
+POST	/api/listings/submit	Bearer	Submit new listing with payment
+PATCH	/api/listings/:id/status	Bearer	Update listing status
+GET	/api/listings/:id/comments	None	Comments on a listing
+POST	/api/listings/:id/comments	Bearer	Post a comment
+GET	/api/listings/comments/mine	Bearer	All my comments
+VIDEO LIKES
+Method	Path	Auth	Notes
+POST	/api/videos/:id/like	Bearer	Toggle like on a listing
+GET	/api/videos/:id/likes	None	Like count for a listing
+GET	/api/videos/likes/batch	None	Query: ?ids=1,2,3
+GET	/api/profile/me/total-likes	Bearer	My total like count
+GEEZEE CARDS (Social Profile Cards)
+Method	Path	Auth	Notes
+GET	/api/gigness-cards	None	All public GeeZee cards
+GET	/api/gigness-cards/mine	Bearer	My GeeZee card
+GET	/api/gigness-cards/user/:userId	None	GeeZee card by user ID
+GET	/api/gigness-cards/qr/:uuid	None	Lookup card by QR UUID
+POST	/api/gigness-cards	Bearer	Create/update my GeeZee card
+POST	/api/gigness-cards/:id/engage	Bearer	Send a Geemotion engage
+POST	/api/gigness-cards/:id/message	Bearer	Send private message
+GET	/api/gigness-cards/inbox	Bearer	My private messages inbox
+GET	/api/gigness-cards/:id/comments	None	Comments on a GeeZee card
+POST	/api/gigness-cards/:id/comments	Bearer	Post a comment
+GEEMOTIONS (Zee-Motions)
+Method	Path	Auth	Notes
+POST	/api/zee-motions	Bearer	Post a Geemotion
+GET	/api/zee-motions/mine	Bearer	My Geemotions
+GET	/api/zee-motions/feed	None	Public Geemotion feed
+GET	/api/zee-motions/user/:userId	None	Geemotions by user
+GET	/api/zee-motions/:id/comments	None	Comments on a Geemotion
+POST	/api/zee-motions/:id/comments	Bearer	Comment on a Geemotion
+DELETE	/api/zee-motions/:id	Bearer	Delete my Geemotion
+FOLLOWS & PRESENTER CONTACTS
+Method	Path	Auth	Notes
+POST	/api/geezee-follows/:userId	Bearer	Follow a user
+DELETE	/api/geezee-follows/:userId	Bearer	Unfollow
+GET	/api/geezee-follows/status/:userId	Bearer	{ following: bool }
+POST	/api/presenter-contacts/opt-in/:presenterUserId	Bearer	Subscribe to presenter
+DELETE	/api/presenter-contacts/opt-out/:presenterUserId	Bearer	Unsubscribe
+GET	/api/presenter-contacts/status/:presenterUserId	Bearer	Subscription status
+GET	/api/presenter-contacts/mine	Bearer	My subscriptions
+LOVE / HEARTS
+Method	Path	Auth	Notes
+POST	/api/love/:providerId	Bearer	Toggle love for a provider
+GET	/api/love/:providerId/status	Bearer	My love status for provider
+GET	/api/love/leaderboard	None	Top loved providers
+GET	/api/geezee/engage-leaderboard	None	Top engaged GeeZee cards
+GIGJACK FLASH EVENTS
+Method	Path	Auth	Notes
+GET	/api/gigjacks/active	None	Currently live flash events
+GET	/api/gigjacks/today	None	Today's approved events
+GET	/api/gigjacks/live-state	None	Live/siren/flash state
+GET	/api/gigjacks/slots	None	Available time slots
+GET	/api/gigjacks/availability	None	Slot availability calendar
+POST	/api/gigjacks/submit	Bearer	Submit a flash event
+GET	/api/gigjacks/mine	Bearer	My submitted events
+LIVE STREAMING
+Method	Path	Auth	Notes
+GET	/api/live/active	None	Currently live streams
+GET	/api/live/:id	None	Single stream info
+POST	/api/live/start	Bearer	Start a live stream
+PATCH	/api/live/:id/end	Bearer	End a live stream
+ALL-EYES BOOKINGS
+Method	Path	Auth	Notes
+GET	/api/all-eyes/active	None	Active bookings
+GET	/api/all-eyes/upcoming	None	Upcoming bookings
+GET	/api/all-eyes/all	None	All bookings
+POST	/api/all-eyes/book	Bearer	Create a booking
+PATCH	/api/all-eyes/:id/cancel	Bearer	Cancel a booking
+ZITO TV
+Method	Path	Auth	Notes
+GET	/api/zitotv/events	None	All Zito TV events
+GET	/api/zitotv/events/:id	None	Single event
+POST	/api/zitotv/events	Bearer	Create event
+PATCH	/api/zitotv/events/:id	Bearer	Update event
+DELETE	/api/zitotv/events/:id	Bearer	Delete event
+GEO CAMPAIGNS (Preemptive Marketing)
+Method	Path	Auth	Notes
+POST	/api/geo-campaigns	Bearer	Create geo push campaign
+GET	/api/geo-campaigns	Bearer	My campaigns
+AUDIENCE / LEADS
+Method	Path	Auth	Notes
+GET	/api/my-audience	Bearer	My audience contacts
+POST	/api/my-audience/broadcast	Bearer	Send broadcast to audience
+GET	/api/my-audience/broadcasts	Bearer	My broadcast history
+POST	/api/leads	None	Submit a lead
+GET	/api/leads/mine	Bearer	My leads
+UPLOADS
+Method	Path	Auth	Body	Notes
+POST	/api/upload/image	Bearer	multipart/form-data field: image	Returns { url }
+POST	/api/upload/video	Bearer	multipart/form-data field: video	Returns { url }
+SPONSOR ADS
+Method	Path	Auth	Notes
+GET	/api/sponsor-ads	None	Active sponsor ads
+GET	/api/ads/availability	None	Ad slot availability
+POST	/api/ad-inquiries	None	Submit ad inquiry
+ERROR RESPONSES
+All errors return { message: string }. Common codes:
+
+Code	Meaning
+400	Bad request / validation failed
+401	Not authenticated — missing or invalid token
+403	Forbidden — wrong tier or role
+404	Not found
+409	Conflict (e.g. email already registered)
+500	Server error
