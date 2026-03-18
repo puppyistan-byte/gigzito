@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
 import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
-import { GigJackFlashOverlay } from "@/components/gigjack-flash-overlay";
-import { TodaysGigJacks } from "@/components/todays-gigjacks";
 import { AllEyesBanner } from "@/components/all-eyes-banner";
 import { LoveLeaderboardPanel } from "@/components/love-leaderboard-panel";
 import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
@@ -43,7 +41,7 @@ export default function HomePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [fadeSplash, setFadeSplash] = useState(false);
-  const [showOffers, setShowOffers] = useState(false);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [, navigate] = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -570,27 +568,6 @@ export default function HomePage() {
 
       <BottomNav activeVertical={activeVertical} onVerticalChange={setActiveVertical} />
 
-      <GigJackFlashOverlay />
-
-      {/* Today's Offers button */}
-      <button
-        className="fixed z-[9970] flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-all hover:scale-105 active:scale-95"
-        style={{
-          bottom: "84px",
-          right: "12px",
-          background: "rgba(29,78,216,0.2)",
-          border: "1px solid rgba(59,130,246,0.45)",
-          color: "#60a5fa",
-          backdropFilter: "blur(8px)",
-          boxShadow: "0 2px 12px rgba(29,78,216,0.25)",
-        }}
-        onClick={() => setShowOffers(true)}
-        data-testid="btn-todays-offers"
-      >
-        <Zap className="h-3 w-3" />
-        Today's Offers
-      </button>
-
       {/* Nav arrows (desktop) */}
       {listings.length > 1 && (
         <div className="fixed right-4 bottom-[140px] flex flex-col gap-2 z-40">
@@ -612,8 +589,6 @@ export default function HomePage() {
           </button>
         </div>
       )}
-
-      <TodaysGigJacks open={showOffers} onClose={() => setShowOffers(false)} />
 
       <LoveLeaderboardPanel />
 
