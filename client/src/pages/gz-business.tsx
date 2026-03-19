@@ -78,7 +78,7 @@ export default function GzBusinessPage() {
 
   const tier = (user as any)?.user?.subscriptionTier ?? "";
   const role = (user as any)?.user?.role ?? "";
-  const isAllowed = tier === "GZBusiness" || role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERUSER";
+  const isAllowed = tier === "GZMarketerPro" || tier === "GZBusiness" || tier === "GZEnterprise" || role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERUSER";
 
   const { data: myAds = [], isLoading } = useQuery<GzFlashAd[]>({
     queryKey: ["/api/gz-flash/mine"],
@@ -113,8 +113,8 @@ export default function GzBusinessPage() {
         <Navbar />
         <div className="flex flex-col items-center justify-center py-32 text-center px-4">
           <CreditCard className="h-12 w-12 text-blue-500/50 mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">GZBusiness Tier Required</h2>
-          <p className="text-[#666] text-sm max-w-sm">The GZFlash Ad Center is exclusive to GZBusiness members. Upgrade to unlock the Offer Center, GZFlash ads, and the full merchant suite.</p>
+          <h2 className="text-xl font-bold text-white mb-2">GZMarketerPro or Higher Required</h2>
+          <p className="text-[#666] text-sm max-w-sm">GZFlash Ad Center is available to GZMarketerPro, GZBusiness, and GZEnterprise members. Upgrade your plan to unlock flash ads and the full merchant suite.</p>
           <Link href="/pricing"><Button className="mt-5 bg-blue-600 hover:bg-blue-500 text-white" data-testid="btn-upgrade-gzbusiness">View Plans</Button></Link>
         </div>
       </div>

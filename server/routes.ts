@@ -3120,13 +3120,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  const GZ_FLASH_TIERS = ["GZMarketerPro", "GZBusiness", "GZEnterprise"];
+
   app.get("/api/gz-flash/mine", async (req, res) => {
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
     const isAdminRole = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user?.role ?? "");
-    if (user?.subscriptionTier !== "GZBusiness" && !isAdminRole) {
-      return res.status(403).json({ message: "GZBusiness tier required" });
+    if (!GZ_FLASH_TIERS.includes(user?.subscriptionTier ?? "") && !isAdminRole) {
+      return res.status(403).json({ message: "GZMarketerPro, GZBusiness, or GZEnterprise tier required" });
     }
     try {
       const ads = await storage.getMyGzFlashAds(session.userId);
@@ -3141,8 +3143,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
     const isAdminRole = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user?.role ?? "");
-    if (user?.subscriptionTier !== "GZBusiness" && !isAdminRole) {
-      return res.status(403).json({ message: "GZBusiness tier required" });
+    if (!GZ_FLASH_TIERS.includes(user?.subscriptionTier ?? "") && !isAdminRole) {
+      return res.status(403).json({ message: "GZMarketerPro, GZBusiness, or GZEnterprise tier required" });
     }
     try {
       const data = gzFlashSchema.parse(req.body);
@@ -3159,8 +3161,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
     const isAdminRole = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user?.role ?? "");
-    if (user?.subscriptionTier !== "GZBusiness" && !isAdminRole) {
-      return res.status(403).json({ message: "GZBusiness tier required" });
+    if (!GZ_FLASH_TIERS.includes(user?.subscriptionTier ?? "") && !isAdminRole) {
+      return res.status(403).json({ message: "GZMarketerPro, GZBusiness, or GZEnterprise tier required" });
     }
     try {
       const id = parseInt(req.params.id);

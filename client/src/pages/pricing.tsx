@@ -134,6 +134,11 @@ const FEATURES: Feature[] = [
     values: [false, false, true, true],
   },
   {
+    label: "GZFlash Ad Center",
+    tooltip: "Deploy time-limited flash deals that compete in real-time for Pole Position on the platform. Set discount %, quantity, and duration. Potency score determines ranking. Available to GZMarketerPro, GZBusiness, and GZEnterprise.",
+    values: [false, false, true, true],
+  },
+  {
     label: "GigJack Location Marketing",
     tooltip: "Pin your business or campaign to a GigJack — a geo-targeted marketing slot that surfaces your content to viewers in a specific area.",
     values: [false, false, false, true],

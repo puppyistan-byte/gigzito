@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video, Zap, Lock } from "lucide-react";
 import { InviteCard } from "@/components/invite-card";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
@@ -650,6 +650,60 @@ export default function ProviderProfilePage() {
               <p className="text-xs text-[#444]">When set, new lead inquiries will be POSTed as JSON to this URL in real time.</p>
             </div>
           </div>
+
+          {/* ── GZFlash Ad Center ───────────────────────────────────────────────── */}
+          {(() => {
+            const tier = (user as any)?.user?.subscriptionTier ?? "";
+            const role = (user as any)?.user?.role ?? "";
+            const hasFlash = ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(tier) ||
+              ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role);
+            return hasFlash ? (
+              <div className="rounded-xl border border-blue-700/40 bg-blue-950/10 p-4 space-y-3" data-testid="section-gzflash-profile">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-900/40 border border-blue-700/40 flex items-center justify-center shrink-0">
+                    <Zap className="h-3.5 w-3.5 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">GZFlash Ad Center</p>
+                    <p className="text-[11px] text-[#666]">Deploy time-limited flash deals — compete for Pole Position in real-time</p>
+                  </div>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded border border-blue-700/50 text-blue-300 bg-blue-900/30 uppercase tracking-widest">
+                    {tier}
+                  </span>
+                </div>
+                <p className="text-xs text-[#555] leading-relaxed">
+                  Create flash deals with countdown timers, set your discount percentage, quantity, and how long the deal runs.
+                  Ads are ranked by a live <span className="text-blue-400 font-semibold">Potency Score</span> — HOT, TRENDING, ACTIVE, or COOL — based on claims and time remaining.
+                </p>
+                <a href="/gz-business" data-testid="btn-open-gzflash-center">
+                  <Button
+                    type="button"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl h-10 text-sm flex items-center justify-center gap-2"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Open GZFlash Ad Center
+                  </Button>
+                </a>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[#1e1e1e] bg-[#0a0a0a] p-4 space-y-2" data-testid="section-gzflash-locked">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-[#444]" />
+                  <p className="text-sm font-semibold text-[#555]">GZFlash Ad Center</p>
+                  <span className="ml-auto text-[9px] font-semibold text-[#444] uppercase tracking-wider">Locked</span>
+                </div>
+                <p className="text-xs text-[#444] leading-relaxed">
+                  Flash ads are available to <span className="text-blue-400">GZMarketerPro</span>, <span className="text-amber-400">GZBusiness</span>, and <span className="text-cyan-400">GZEnterprise</span> members.
+                  Upgrade your plan to unlock time-limited flash deals that compete for real-time Pole Position.
+                </p>
+                <a href="/pricing" data-testid="btn-upgrade-for-gzflash">
+                  <Button type="button" variant="ghost" className="w-full border border-[#2a2a2a] text-[#555] hover:text-white hover:border-blue-700/50 text-xs rounded-xl h-9">
+                    View Upgrade Plans
+                  </Button>
+                </a>
+              </div>
+            );
+          })()}
 
           <Button
             type="submit"
