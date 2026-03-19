@@ -66,7 +66,7 @@ export function InviteCard() {
             The Gift That Keeps Giving
           </p>
           <p className="text-sm font-semibold text-white">
-            Invite a Friend — Free to Enterprise
+            Invite a Friend to Gigzito
           </p>
           <p className="text-xs text-gray-500 mt-1 leading-relaxed">
             Send them a formal invite and they'll receive a full breakdown of every tier with your name on it.
