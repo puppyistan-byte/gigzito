@@ -2915,7 +2915,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
-    if (user?.subscriptionTier !== "GZBusiness" && user?.role !== "ADMIN") {
+    const isAdminRole = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user?.role ?? "");
+    if (user?.subscriptionTier !== "GZBusiness" && !isAdminRole) {
       return res.status(403).json({ message: "GZBusiness tier required" });
     }
     try {
@@ -2930,7 +2931,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
-    if (user?.subscriptionTier !== "GZBusiness" && user?.role !== "ADMIN") {
+    const isAdminRole = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user?.role ?? "");
+    if (user?.subscriptionTier !== "GZBusiness" && !isAdminRole) {
       return res.status(403).json({ message: "GZBusiness tier required" });
     }
     try {
@@ -2947,7 +2949,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
-    if (user?.subscriptionTier !== "GZBusiness" && user?.role !== "ADMIN") {
+    const isAdminRole = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user?.role ?? "");
+    if (user?.subscriptionTier !== "GZBusiness" && !isAdminRole) {
       return res.status(403).json({ message: "GZBusiness tier required" });
     }
     try {
