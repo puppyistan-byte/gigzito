@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -88,6 +88,15 @@ export function Navbar() {
               Dashboard
             </DropdownMenuItem>
           )}
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-yellow-500/10 focus:bg-yellow-500/10 text-yellow-300"
+            onClick={() => navigate("/activity")}
+            data-testid="menu-item-activity"
+          >
+            <Bell className="h-4 w-4" />
+            Activity Feed
+          </DropdownMenuItem>
 
           <DropdownMenuItem
             className="gap-2 cursor-pointer hover:bg-white/5 focus:bg-white/5 text-zinc-300"

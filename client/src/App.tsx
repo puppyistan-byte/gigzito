@@ -36,6 +36,7 @@ import GeeZeeProfilePage from "@/pages/geezee-profile";
 import GzBusinessPage from "@/pages/gz-business";
 import OfferCenterPage from "@/pages/offer-center";
 import InviteLandingPage from "@/pages/invite-landing";
+import ActivityPage from "@/pages/activity";
 
 function Router() {
   return (
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/gz-business" component={GzBusinessPage} />
       <Route path="/offer-center" component={OfferCenterPage} />
       <Route path="/gz-invite" component={InviteLandingPage} />
+      <Route path="/activity" component={ActivityPage} />
       <Route component={NotFound} />
     </Switch>
   );

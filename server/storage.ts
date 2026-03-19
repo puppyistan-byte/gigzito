@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -174,6 +174,19 @@ export interface IStorage {
   castLoveVote(voterUserId: number, providerId: number, monthKey: string): Promise<{ success: boolean; alreadyVoted: boolean }>;
   getLoveVoteStatus(voterUserId: number | null, providerId: number, monthKey: string): Promise<{ voteCount: number; hasVoted: boolean }>;
   getLoveLeaderboard(monthKey: string): Promise<import("@shared/schema").LoveLeaderboardEntry[]>;
+
+  // Profile Views
+  trackProfileView(viewerUserId: number, profileId: number): Promise<void>;
+  getProfileViewers(profileId: number, limit?: number): Promise<Array<{ viewerUserId: number; viewedAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>>;
+
+  // Comment Likes
+  toggleCommentLike(commentId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
+  getCommentLikeCount(commentId: number): Promise<number>;
+  isCommentLikedByUser(commentId: number, userId: number): Promise<boolean>;
+  getCommentLikers(commentId: number, limit?: number): Promise<Array<{ userId: number; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>>;
+
+  // Activity Feed
+  getMyActivityFeed(providerProfileId: number, limit?: number): Promise<ActivityEvent[]>;
 
   // All Eyes On Me
   bookAllEyesSlot(providerId: number, userId: number, data: BookAllEyesRequest): Promise<{ slot?: AllEyesSlot; error?: string }>;
@@ -2134,6 +2147,186 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(gzFlashAds).set({ adminNote: note }).where(eq(gzFlashAds.id, id)).returning();
     if (!updated) throw new Error("Ad not found");
     return updated;
+  }
+
+  // ── Profile Views ───────────────────────────────────────────────────────────
+  async trackProfileView(viewerUserId: number, profileId: number): Promise<void> {
+    await db.insert(profileViews)
+      .values({ viewerUserId, profileId, viewedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [profileViews.viewerUserId, profileViews.profileId],
+        set: { viewedAt: new Date() },
+      });
+  }
+
+  async getProfileViewers(profileId: number, limit = 100): Promise<Array<{ viewerUserId: number; viewedAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>> {
+    const rows = await db
+      .select({
+        viewerUserId: profileViews.viewerUserId,
+        viewedAt: profileViews.viewedAt,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(profileViews)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, profileViews.viewerUserId))
+      .where(eq(profileViews.profileId, profileId))
+      .orderBy(desc(profileViews.viewedAt))
+      .limit(limit);
+    return rows.map(r => ({ ...r, viewedAt: r.viewedAt.toISOString() }));
+  }
+
+  // ── Comment Likes ───────────────────────────────────────────────────────────
+  async toggleCommentLike(commentId: number, userId: number): Promise<{ liked: boolean; likeCount: number }> {
+    const [existing] = await db.select().from(commentLikes)
+      .where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)));
+    if (existing) {
+      await db.delete(commentLikes).where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)));
+    } else {
+      await db.insert(commentLikes).values({ commentId, userId });
+    }
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(commentLikes).where(eq(commentLikes.commentId, commentId));
+    return { liked: !existing, likeCount: count };
+  }
+
+  async getCommentLikeCount(commentId: number): Promise<number> {
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(commentLikes).where(eq(commentLikes.commentId, commentId));
+    return count;
+  }
+
+  async isCommentLikedByUser(commentId: number, userId: number): Promise<boolean> {
+    const [row] = await db.select().from(commentLikes)
+      .where(and(eq(commentLikes.commentId, commentId), eq(commentLikes.userId, userId)));
+    return !!row;
+  }
+
+  async getCommentLikers(commentId: number, limit = 50): Promise<Array<{ userId: number; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>> {
+    const rows = await db
+      .select({
+        userId: commentLikes.userId,
+        createdAt: commentLikes.createdAt,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(commentLikes)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, commentLikes.userId))
+      .where(eq(commentLikes.commentId, commentId))
+      .orderBy(desc(commentLikes.createdAt))
+      .limit(limit);
+    return rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() }));
+  }
+
+  // ── Activity Feed ───────────────────────────────────────────────────────────
+  async getMyActivityFeed(providerProfileId: number, limit = 60): Promise<ActivityEvent[]> {
+    const events: ActivityEvent[] = [];
+
+    // 1. Profile views
+    const views = await db
+      .select({
+        viewerUserId: profileViews.viewerUserId,
+        viewedAt: profileViews.viewedAt,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(profileViews)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, profileViews.viewerUserId))
+      .where(eq(profileViews.profileId, providerProfileId))
+      .orderBy(desc(profileViews.viewedAt))
+      .limit(limit);
+
+    for (const v of views) {
+      events.push({
+        type: "profile_view",
+        at: v.viewedAt.toISOString(),
+        actorId: v.viewerUserId,
+        actorName: v.displayName ?? "Someone",
+        actorAvatar: v.avatarUrl ?? null,
+        actorUsername: v.username ?? null,
+      });
+    }
+
+    // 2. Love votes — join voterUserId → providerProfiles
+    const loves = await db
+      .select({
+        voterUserId: loveVotes.voterUserId,
+        monthKey: loveVotes.monthKey,
+        createdAt: loveVotes.createdAt,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(loveVotes)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, loveVotes.voterUserId))
+      .where(eq(loveVotes.providerId, providerProfileId))
+      .orderBy(desc(loveVotes.createdAt))
+      .limit(limit);
+
+    for (const l of loves) {
+      events.push({
+        type: "love",
+        at: l.createdAt.toISOString(),
+        actorId: l.voterUserId,
+        actorName: l.displayName ?? "Someone",
+        actorAvatar: l.avatarUrl ?? null,
+        actorUsername: l.username ?? null,
+        monthKey: l.monthKey,
+      });
+    }
+
+    // 3. Comment likes — find comments on this provider's listings, then who liked them
+    const myListings = await db
+      .select({ id: videoListings.id })
+      .from(videoListings)
+      .where(eq(videoListings.providerId, providerProfileId));
+
+    if (myListings.length > 0) {
+      const listingIds = myListings.map(l => l.id);
+      const myComments = await db
+        .select({ id: listingComments.id, commentText: listingComments.commentText, listingId: listingComments.listingId })
+        .from(listingComments)
+        .where(inArray(listingComments.listingId, listingIds));
+
+      if (myComments.length > 0) {
+        const commentIds = myComments.map(c => c.id);
+        const commentMap = new Map(myComments.map(c => [c.id, c]));
+        const likes = await db
+          .select({
+            commentId: commentLikes.commentId,
+            userId: commentLikes.userId,
+            createdAt: commentLikes.createdAt,
+            displayName: providerProfiles.displayName,
+            avatarUrl: providerProfiles.avatarUrl,
+            username: providerProfiles.username,
+          })
+          .from(commentLikes)
+          .leftJoin(providerProfiles, eq(providerProfiles.userId, commentLikes.userId))
+          .where(inArray(commentLikes.commentId, commentIds))
+          .orderBy(desc(commentLikes.createdAt))
+          .limit(limit);
+
+        for (const lk of likes) {
+          const comment = commentMap.get(lk.commentId);
+          if (!comment) continue;
+          events.push({
+            type: "comment_like",
+            at: lk.createdAt.toISOString(),
+            actorId: lk.userId,
+            actorName: lk.displayName ?? "Someone",
+            actorAvatar: lk.avatarUrl ?? null,
+            actorUsername: lk.username ?? null,
+            commentId: lk.commentId,
+            commentText: comment.commentText,
+            listingId: comment.listingId,
+          });
+        }
+      }
+    }
+
+    // Sort unified feed by date desc, cap at limit
+    events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    return events.slice(0, limit);
   }
 }
 

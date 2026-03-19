@@ -968,6 +968,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const profile = await storage.getProfileById(id);
     if (!profile) return res.status(404).json({ message: "Provider not found" });
     const user = await storage.getUserById(profile.userId);
+    // Track profile view — only when a different logged-in user views this profile
+    const viewerUserId = (req.session as any)?.userId;
+    if (viewerUserId && viewerUserId !== profile.userId) {
+      storage.trackProfileView(viewerUserId, profile.id).catch(() => {});
+    }
     return res.json({ ...profile, user: { ...user, password: undefined } });
   });
 
@@ -2313,6 +2318,78 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get("/api/love/leaderboard", async (req, res) => {
     const entries = await storage.getLoveLeaderboard(currentMonthKey());
     return res.json(entries ?? []);
+  });
+
+  // === ACTIVITY FEED (who viewed / loved / liked my comments) ================
+
+  // Unified activity feed for the authenticated user's provider profile
+  app.get("/api/notifications/activity", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login required" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+      const feed = await storage.getMyActivityFeed(profile.id, 60);
+      return res.json(feed);
+    } catch (err) {
+      console.error("[activity-feed]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Who viewed my profile
+  app.get("/api/profile/me/viewers", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login required" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+      const viewers = await storage.getProfileViewers(profile.id, 100);
+      return res.json(viewers);
+    } catch (err) {
+      console.error("[profile/viewers]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Who showed me love
+  app.get("/api/profile/me/who-loved-me", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login required" });
+    try {
+      const profile = await storage.getProfileByUserId(req.session.userId);
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+      // Re-use getMyActivityFeed filtered to love only
+      const feed = await storage.getMyActivityFeed(profile.id, 100);
+      return res.json(feed.filter(e => e.type === "love"));
+    } catch (err) {
+      console.error("[who-loved-me]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Toggle like on a listing comment
+  app.post("/api/listings/comments/:id/like", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login required to like comments" });
+    const commentId = parseInt(req.params.id);
+    if (isNaN(commentId)) return res.status(400).json({ message: "Invalid comment id" });
+    try {
+      const result = await storage.toggleCommentLike(commentId, req.session.userId);
+      return res.json(result);
+    } catch (err) {
+      console.error("[comment-like]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Who liked a specific comment
+  app.get("/api/listings/comments/:id/likers", async (req, res) => {
+    const commentId = parseInt(req.params.id);
+    if (isNaN(commentId)) return res.status(400).json({ message: "Invalid comment id" });
+    try {
+      const likers = await storage.getCommentLikers(commentId, 50);
+      return res.json(likers);
+    } catch (err) {
+      console.error("[comment-likers]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
   });
 
   app.get("/api/engagement/leaderboard", async (_req, res) => {

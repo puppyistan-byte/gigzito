@@ -927,3 +927,29 @@ export type GzFlashAdWithOwner = GzFlashAd & {
 export type GzFlashAdAdmin = GzFlashAdWithOwner & {
   ownerEmail: string | null;
 };
+
+// ─── Profile Views ────────────────────────────────────────────────────────────
+export const profileViews = pgTable("profile_views", {
+  id: serial("id").primaryKey(),
+  viewerUserId: integer("viewer_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  profileId: integer("profile_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
+  viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.viewerUserId, t.profileId)]);
+
+export type ProfileView = typeof profileViews.$inferSelect;
+
+// ─── Comment Likes ────────────────────────────────────────────────────────────
+export const commentLikes = pgTable("comment_likes", {
+  id: serial("id").primaryKey(),
+  commentId: integer("comment_id").notNull().references(() => listingComments.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.commentId, t.userId)]);
+
+export type CommentLike = typeof commentLikes.$inferSelect;
+
+// ─── Activity Feed (unified response type) ────────────────────────────────────
+export type ActivityEvent =
+  | { type: "comment_like"; at: string; actorId: number | null; actorName: string; actorAvatar: string | null; actorUsername: string | null; commentId: number; commentText: string; listingId: number }
+  | { type: "love"; at: string; actorId: number | null; actorName: string; actorAvatar: string | null; actorUsername: string | null; monthKey: string }
+  | { type: "profile_view"; at: string; actorId: number | null; actorName: string; actorAvatar: string | null; actorUsername: string | null };
