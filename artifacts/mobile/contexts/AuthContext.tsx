@@ -46,6 +46,10 @@ type AuthContextValue = AuthState & {
   verifyMfa: (email: string, code: string) => Promise<void>;
   resendMfaCode: (email: string) => Promise<{ message: string; waitSeconds?: number }>;
   resendVerification: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resetMfa: () => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
   apiRequest: <T>(path: string, options?: RequestInit) => Promise<T>;
@@ -193,6 +197,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok) throw new Error(data.message || "Failed to resend verification");
   }, []);
 
+  const forgotPassword = useCallback(async (email: string) => {
+    const res = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({ message: "Request failed" }));
+    if (!res.ok) throw new Error(data.message || "Failed to send reset email");
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, password: string) => {
+    const res = await fetch(`${BASE_URL}/api/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password }),
+    });
+    const data = await res.json().catch(() => ({ message: "Request failed" }));
+    if (!res.ok) throw new Error(data.message || "Password reset failed");
+  }, []);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    if (!state.token) throw new Error("Not signed in");
+    const res = await fetch(`${BASE_URL}/api/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.token}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json().catch(() => ({ message: "Request failed" }));
+    if (!res.ok) throw new Error(data.message || "Failed to change password");
+  }, [state.token]);
+
+  const resetMfa = useCallback(async () => {
+    if (!state.token) throw new Error("Not signed in");
+    const res = await fetch(`${BASE_URL}/api/auth/mfa/reset`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    const data = await res.json().catch(() => ({ message: "Request failed" }));
+    if (!res.ok) throw new Error(data.message || "Failed to reset MFA");
+  }, [state.token]);
+
   const logout = useCallback(async () => {
     if (state.token) {
       try {
@@ -221,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, verifyMfa, resendMfaCode, resendVerification, logout, refreshMe, apiRequest }}
+      value={{ ...state, login, verifyMfa, resendMfaCode, resendVerification, forgotPassword, resetPassword, changePassword, resetMfa, logout, refreshMe, apiRequest }}
     >
       {children}
     </AuthContext.Provider>

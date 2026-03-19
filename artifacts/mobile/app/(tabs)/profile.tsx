@@ -212,9 +212,19 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.menuSection}>
+        <Text style={styles.menuHeader}>Security</Text>
+        <View style={styles.menuCard}>
+          <MenuItem
+            icon="shield"
+            label="Password & MFA"
+            onPress={() => router.push("/profile/security")}
+          />
+        </View>
+      </View>
+
+      <View style={styles.menuSection}>
         <Text style={styles.menuHeader}>Settings</Text>
         <View style={styles.menuCard}>
-          <MenuItem icon="lock" label="Change Password" />
           <MenuItem icon="log-out" label="Sign Out" onPress={handleLogout} danger />
         </View>
       </View>
