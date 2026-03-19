@@ -32,35 +32,40 @@ export default function GeeZeeDetailScreen() {
   const [messaging, setMessaging] = useState(false);
   const [messageText, setMessageText] = useState("");
 
-  const { data: card, isLoading } = useQuery({
+  // id param is the card owner's userId
+  const { data: card, isLoading, isError } = useQuery({
     queryKey: ["geezee-card", id],
-    queryFn: () => apiRequest<any>(`/api/gigness-cards/${id}`),
+    queryFn: () => apiRequest<any>(`/api/gigness-cards/user/${id}`),
     enabled: !!id,
+    retry: 1,
   });
 
+  // card.id is the numeric card ID used for engage/message/comment
+  const cardId = card?.id;
+
   const { data: comments, refetch: refetchComments } = useQuery({
-    queryKey: ["geezee-comments", id],
-    queryFn: () => apiRequest<any[]>(`/api/gigness-cards/${id}/comments`),
-    enabled: !!id,
+    queryKey: ["geezee-comments", cardId],
+    queryFn: () => apiRequest<any[]>(`/api/gigness-cards/${cardId}/comments`),
+    enabled: !!cardId,
   });
 
   const handleEngage = async () => {
-    if (!token) return;
+    if (!token || !cardId) return;
     setEngaging(true);
     try {
-      await apiRequest(`/api/gigness-cards/${id}/engage`, { method: "POST" });
+      await apiRequest(`/api/gigness-cards/${cardId}/engage`, { method: "POST" });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
     setEngaging(false);
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !token) return;
+    if (!messageText.trim() || !token || !cardId) return;
     setSubmitting(true);
     try {
-      await apiRequest(`/api/gigness-cards/${id}/message`, {
+      await apiRequest(`/api/gigness-cards/${cardId}/message`, {
         method: "POST",
-        body: JSON.stringify({ message: messageText.trim() }),
+        body: JSON.stringify({ messageText: messageText.trim() }),
       });
       setMessageText("");
       setMessaging(false);
@@ -70,12 +75,12 @@ export default function GeeZeeDetailScreen() {
   };
 
   const handleComment = async () => {
-    if (!comment.trim() || !token) return;
+    if (!comment.trim() || !token || !cardId) return;
     setSubmitting(true);
     try {
-      await apiRequest(`/api/gigness-cards/${id}/comments`, {
+      await apiRequest(`/api/gigness-cards/${cardId}/comments`, {
         method: "POST",
-        body: JSON.stringify({ content: comment.trim() }),
+        body: JSON.stringify({ commentText: comment.trim() }),
       });
       setComment("");
       refetchComments();
@@ -87,7 +92,17 @@ export default function GeeZeeDetailScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   if (isLoading) return <LoadingScreen />;
-  if (!card) return <LoadingScreen label="Loading..." />;
+  if (isError || !card) return (
+    <View style={[styles.container, { alignItems: "center", justifyContent: "center", gap: 16, paddingTop: topPad }]}>
+      <Feather name="alert-circle" size={40} color={Colors.textMuted} />
+      <Text style={{ color: Colors.textMuted, fontSize: 15, fontFamily: "Inter_400Regular" }}>
+        Card not found or unavailable
+      </Text>
+      <Pressable onPress={() => router.back()} style={{ paddingHorizontal: 24, paddingVertical: 10, backgroundColor: Colors.surface, borderRadius: 12, borderWidth: 1, borderColor: Colors.surfaceBorder }}>
+        <Text style={{ color: Colors.textPrimary, fontFamily: "Inter_600SemiBold" }}>Go Back</Text>
+      </Pressable>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView

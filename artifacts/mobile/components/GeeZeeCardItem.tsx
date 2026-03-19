@@ -70,7 +70,8 @@ type Props = { item: any };
 export function GeeZeeCardItem({ item }: Props) {
   const handlePress = () => {
     Haptics.selectionAsync();
-    router.push({ pathname: "/geezee/[id]", params: { id: item.id } });
+    // Route with userId so the detail screen can use GET /api/gigness-cards/user/:userId
+    router.push({ pathname: "/geezee/[id]", params: { id: item.userId ?? item.id } });
   };
 
   const tier      = item.userTier || "GZLurker";

@@ -1,0 +1,205 @@
+Let me pull up the relevant code so I can give accurate details — and restart the server at the same time:
+
+Good. Now let me read the actual route implementations for the key operations:
+
+Now let me also read the message management routes and the engagement leaderboard endpoint:
+
+Here is the complete GeeZee Card + Geemotion API reference for your mobile developer:
+
+GeeZee Card & Geemotion — Mobile API Reference
+All requests require a Bearer <JWT> header unless noted as public. Base URL is your server root.
+
+1. The GeeZee Card (GignessCard)
+Each user owns one GeeZee card — it's their social identity tile. It's created on first setup and updated at any time.
+
+Create / Update your card
+POST /api/gigness-cards
+Auth: Required
+Body (all fields optional on update):
+{
+  "slogan": "Let's connect!",          // max 120 chars
+  "profilePic": "https://...",          // URL string or null
+  "gallery": ["https://...", ...],      // up to 9 image URLs
+  "isPublic": true,                     // whether card appears in browse
+  "locationServicesEnabled": false,
+  "allowMessaging": true,
+  "ageBracket": "25-40",               // "18-25" | "25-40" | "40+" | null
+  "gender": "Female",                  // "Male" | "Female" | "Other" | null
+  "intent": "marketing"                // "marketing" | "social" | "activity" | null
+}
+Response: full GignessCard object
+Get your own card
+GET /api/gigness-cards/mine
+Auth: Required
+Response: GignessCard object or null
+Browse public cards (filterable)
+GET /api/gigness-cards
+Auth: Public (no auth needed)
+Query params (all optional):
+  ?ageBracket=25-40
+  &gender=Female
+  &intent=social
+  &tier=GZMarketer           // subscription tier filter
+Response: array of GignessCard objects
+View a specific user's card
+GET /api/gigness-cards/user/:userId
+Auth: Public
+Response: GignessCard + social links + displayName/username/avatarUrl
+Note: returns 404 if card doesn't exist or isPublic=false
+QR Code lookup (deep-link)
+GET /api/gigness-cards/qr/:uuid
+Auth: Public
+Response: GignessCard object
+Use case: scan QR → decode UUID → hit this endpoint to load the card
+Quick Broadcast (make card public instantly)
+POST /api/gigness-cards/broadcast
+Auth: Required
+Body: {}
+Response: { success: true, card: GignessCard }
+Use case: one-tap "go live" button
+2. Engage (Tap to Engage)
+This is the core interaction — tapping on someone's card registers an engagement. It increments the engagementCount on the card and feeds into the leaderboard.
+
+POST /api/gigness-cards/:id/engage
+Auth: Required
+Body: {}
+Response: { success: true }
+Where :id is the numeric card ID (not the userId).
+
+3. Messaging (Card DMs)
+Users can send a text message and/or an emoji reaction directly to a card. All text goes through the GZ-Bot content scrubber first — flagged messages are rejected with a friendly error.
+
+Send a message / emoji
+POST /api/gigness-cards/:id/message
+Auth: Required
+Body (at least one field required):
+{
+  "messageText": "Hey, let's collaborate!",   // max 500 chars, optional
+  "emojiReaction": "🔥"                        // max 8 chars, optional
+}
+Response: { success: true, messageId: 42 }
+Note: also increments engagementCount; triggers real-time socket event "GZ_MESSAGE" 
+      to the card owner's room (user:<toUserId>)
+Error: 400 if GZ-Bot flags the text as inappropriate
+Real-time socket event (for mobile socket client)
+When a message arrives at the card owner, the server emits:
+
+{
+  "event": "GZ_MESSAGE",
+  "data": {
+    "from": 12,           // sender's userId
+    "cardId": 7,
+    "emojiReaction": "🔥",
+    "preview": "Hey, let's..."  // first 60 chars of text
+  }
+}
+The mobile app should join room user:<myUserId> via Socket.io on login and listen for this event to show push-style in-app notifications.
+
+4. Inbox (Received Messages)
+GET /api/gigness-cards/inbox
+Auth: Required
+Response: array of CardMessage objects
+Fields per message:
+  id, fromUserId, toUserId, gignessCardId,
+  messageText, emojiReaction, isRead, createdAt
+Mark a message as read
+PATCH /api/gigness-cards/messages/:id/read
+Auth: Required
+Body: {}
+Response: { ok: true }
+Delete a message
+DELETE /api/gigness-cards/messages/:id
+Auth: Required
+Response: { ok: true }
+Bulk delete messages
+POST /api/gigness-cards/messages/bulk-delete
+Auth: Required
+Body: { "ids": [1, 2, 3] }
+Response: { ok: true }
+Reply to a message (sends email to the sender)
+POST /api/gigness-cards/messages/:id/reply
+Auth: Required
+Body: { "replyText": "Thanks! Let's talk." }
+Response: { ok: true }
+Note: this fires an actual email to the original sender — use for async follow-up
+5. Comments (Public Thread on a Card)
+Get comments
+GET /api/gigness-cards/:id/comments
+Auth: Public
+Response: array of GignessCardComment objects
+Fields: id, cardId, authorUserId, authorName, commentText, isClean, createdAt
+Post a comment
+POST /api/gigness-cards/:id/comments
+Auth: Required
+Body: { "commentText": "Great card!" }    // max 300 chars
+Response: 201 + GignessCardComment object
+Note: GZ-Bot scrubs all comments; name is auto-resolved from the user's profile
+Error: 400 if GZ-Bot flags content
+6. ZeeMotion (Geemotion — Status Posts)
+ZeeMotions are short-form status updates the user posts to their GeeZee stream — think a micro-story or mood post. They appear in a social feed and support comments.
+
+Post a ZeeMotion
+POST /api/zee-motions
+Auth: Required
+Body (text or mediaUrl required):
+{
+  "text": "Just landed a huge deal 🎉",    // max 500 chars
+  "mediaUrl": "https://...",               // image/gif/sticker URL (optional)
+  "mediaType": "image"                     // "image" | "gif" | "sticker"
+}
+Response: ZeeMotion object
+Get your own ZeeMotions
+GET /api/zee-motions/mine
+Auth: Required
+Response: array of ZeeMotion objects
+Social feed (from people you follow)
+GET /api/zee-motions/feed
+Auth: Required
+Response: array of ZeeMotion objects from followed users
+View another user's ZeeMotions
+GET /api/zee-motions/user/:userId
+Auth: Public
+Response: array of ZeeMotion objects
+Comment on a ZeeMotion
+GET /api/zee-motions/:id/comments   → get comments (public)
+POST /api/zee-motions/:id/comments  → post comment (auth optional)
+Body: { "commentText": "...", "authorName": "Alex" }   // name required if not logged in
+Delete a ZeeMotion
+DELETE /api/zee-motions/:id
+Auth: Required (only owner can delete)
+Response: { ok: true }
+7. GeeZee Follows
+Users follow each other in the GeeZee social graph. Following feeds ZeeMotion content into the follower's feed.
+
+Follow a user
+POST /api/geezee-follows/:userId
+Auth: Required
+Response: { ok: true }
+Note: cannot follow yourself
+Unfollow a user
+DELETE /api/geezee-follows/:userId
+Auth: Required
+Response: { ok: true }
+Check follow status + follower count
+GET /api/geezee-follows/status/:userId
+Auth: Required
+Response: { "following": true, "followerCount": 42 }
+Use this to drive the Follow/Unfollow button state on any profile screen
+8. Engagement Leaderboard
+GET /api/geezee/engage-leaderboard
+Auth: Public
+Response: top 20 cards ranked by engagementCount
+Key Data Model Summary
+Field	Type	Notes
+id	integer	Card ID — use for engage, message, comment endpoints
+userId	integer	Owner's user ID — use for follow, lookup endpoints
+qrUuid	string (UUID)	Use for QR code generation + deep-link scanning
+engagementCount	integer	Total taps + messages received
+isPublic	boolean	Controls visibility in browse
+allowMessaging	boolean	Check before showing "Send Message" button
+intent	"marketing" | "social" | "activity"	Filter/display purpose of the card
+GZ-Bot Content Policy
+Any endpoint that accepts user text (messageText, commentText, ZeeMotion text) passes it through an AI moderation scrub. If the content is flagged, the server returns:
+
+{ "message": "Hey! GeeZee stays PG. Clean up your pitch..." }
+The mobile app should show this as a user-facing validation error inline (not a toast), so the user can edit and retry.
