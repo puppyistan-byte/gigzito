@@ -336,6 +336,82 @@ export async function sendEmail(opts: { toEmail: string; subject: string; html: 
   return { devMode: false };
 }
 
+export async function sendMassNotification(opts: {
+  toEmail: string;
+  toName: string;
+  subject: string;
+  message: string;
+}): Promise<{ devMode: boolean }> {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#080808;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#080808;padding:40px 20px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+  <!-- HEADER -->
+  <tr><td style="background:linear-gradient(135deg,#1a0000 0%,#0a0a0a 100%);border:1px solid #2a0000;border-radius:20px 20px 0 0;padding:36px 40px 28px;text-align:center;">
+    <div style="font-size:28px;font-weight:900;letter-spacing:-1px;color:#ff2b2b;margin-bottom:4px;">GIGZITO</div>
+    <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:4px;">Platform Update</div>
+  </td></tr>
+
+  <!-- FROM BADGE -->
+  <tr><td style="background:#0d0d0d;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:24px 40px 0;">
+    <div style="display:inline-block;background:#ff2b2b18;border:1px solid #ff2b2b30;border-radius:999px;padding:6px 16px;margin-bottom:20px;">
+      <span style="font-size:11px;color:#ff2b2b;font-weight:700;text-transform:uppercase;letter-spacing:2px;">From Gigzito Webmaster</span>
+    </div>
+  </td></tr>
+
+  <!-- SUBJECT -->
+  <tr><td style="background:#0d0d0d;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:4px 40px 24px;">
+    <h1 style="font-size:26px;font-weight:900;color:#fff;margin:0 0 8px;line-height:1.25;">${opts.subject}</h1>
+    ${opts.toName ? `<p style="color:#555;font-size:13px;margin:0;">Hi ${opts.toName},</p>` : ""}
+  </td></tr>
+
+  <!-- MESSAGE BODY -->
+  <tr><td style="background:#0a0a0a;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:28px 40px;">
+    <div style="background:#111;border:1px solid #222;border-radius:12px;padding:24px 28px;color:#ccc;font-size:15px;line-height:1.8;white-space:pre-wrap;">${opts.message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:linear-gradient(135deg,#1a0000 0%,#0a0a0a 100%);border:1px solid #2a0000;border-radius:0 0 20px 20px;padding:28px 40px;text-align:center;">
+    <a href="https://gigzito.com" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:700;font-size:14px;padding:12px 32px;border-radius:999px;text-decoration:none;margin-bottom:20px;">
+      Visit Gigzito →
+    </a>
+    <p style="color:#444;font-size:11px;margin:0;">
+      Sent by Gigzito Webmaster · <a href="https://gigzito.com" style="color:#555;text-decoration:none;">gigzito.com</a>
+    </p>
+    <p style="color:#333;font-size:10px;margin:8px 0 0;">You are receiving this as a registered Gigzito member. To unsubscribe, reply with "unsubscribe".</p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Mass notification to:", opts.toEmail);
+    console.log("  Subject:", opts.subject);
+    console.log("  Preview:", opts.message.substring(0, 80));
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: `Gigzito Webmaster <${SMTP_USER ?? "noreply@gigzito.com"}>`,
+    to: opts.toEmail,
+    subject: opts.subject,
+    html,
+    text: `${opts.subject}\n\n${opts.message}\n\n— Gigzito Webmaster`,
+  });
+
+  return { devMode: false };
+}
+
 export async function sendInvitationEmail(opts: {
   senderName: string;
   senderEmail: string;

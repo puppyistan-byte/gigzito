@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -3245,6 +3245,69 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       return res.status(500).json({ message: "Failed to save note" });
+    }
+  });
+
+  // ── Mass Notification (SUPER_ADMIN only) ────────────────────────────────────
+  app.get("/api/admin/notifications/recipients", async (req, res) => {
+    injectJwtSession(req);
+    if (!requireSuperAdmin(req, res)) return;
+    try {
+      const users = await storage.getAllUsers();
+      const eligible = users.filter((u: any) => u.email && u.emailVerified && u.status !== "disabled");
+      return res.json({ count: eligible.length, emails: eligible.map((u: any) => ({ id: u.id, email: u.email, name: u.profile?.displayName ?? u.email.split("@")[0] })) });
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to load recipients" });
+    }
+  });
+
+  app.post("/api/admin/notifications/send", async (req, res) => {
+    injectJwtSession(req);
+    if (!requireSuperAdmin(req, res)) return;
+    try {
+      const schema = z.object({
+        subject: z.string().min(1).max(200),
+        message: z.string().min(1).max(10000),
+        recipientGroup: z.enum(["all"]),
+      });
+      const { subject, message, recipientGroup } = schema.parse(req.body);
+
+      const users = await storage.getAllUsers();
+      const eligible = users.filter((u: any) => u.email && u.emailVerified && u.status !== "disabled");
+
+      let sent = 0;
+      let failed = 0;
+      let devMode = false;
+
+      for (const u of eligible) {
+        try {
+          const result = await sendMassNotification({
+            toEmail: u.email,
+            toName: (u as any).profile?.displayName ?? u.email.split("@")[0],
+            subject,
+            message,
+          });
+          if (result.devMode) devMode = true;
+          sent++;
+        } catch (err) {
+          console.error(`[notifications] failed to send to ${u.email}:`, err);
+          failed++;
+        }
+      }
+
+      // Audit log
+      const senderUserId = (req.session as any)?.userId;
+      await storage.createAuditLog({
+        userId: senderUserId,
+        action: "MASS_NOTIFICATION_SENT",
+        details: `Subject: "${subject}" | Recipients: ${sent} | Failed: ${failed}`,
+      }).catch(() => {});
+
+      return res.json({ sent, failed, total: eligible.length, devMode });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      console.error("[notifications/send]", err);
+      return res.status(500).json({ message: "Server error" });
     }
   });
 

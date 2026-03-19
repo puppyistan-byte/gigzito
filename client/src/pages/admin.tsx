@@ -17,7 +17,7 @@ import {
   ToggleLeft, ToggleRight, ShieldAlert, Archive, RefreshCw,
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
   ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power, MapPin,
-  FileText, Bot, Info, Flame, Pause, Play, MessageSquare, Tag,
+  FileText, Bot, Info, Flame, Pause, Play, MessageSquare, Tag, Mail, Send, CheckSquare, Square, Users2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
@@ -77,7 +77,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo" | "gzbusiness";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo" | "gzbusiness" | "notifications";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -228,6 +228,11 @@ export default function AdminPage() {
   const [overrideMode, setOverrideMode] = useState(false);
   const [showAdminGzForm, setShowAdminGzForm] = useState(false);
   const [showAdminGzTooltip, setShowAdminGzTooltip] = useState(false);
+  // Notifications tab state
+  const [notifSubject, setNotifSubject] = useState("");
+  const [notifMessage, setNotifMessage] = useState("");
+  const [notifGigzitoAll, setNotifGigzitoAll] = useState(true);
+  const [notifResult, setNotifResult] = useState<{ sent: number; failed: number; total: number; devMode: boolean } | null>(null);
 
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
@@ -315,6 +320,26 @@ export default function AdminPage() {
     queryKey: ["/api/admin/gz-flash"],
     enabled: enabled && activeTab === "gzbusiness",
     refetchInterval: activeTab === "gzbusiness" ? 30_000 : false,
+  });
+
+  const { data: notifRecipients } = useQuery<{ count: number; emails: { id: number; email: string; name: string }[] }>({
+    queryKey: ["/api/admin/notifications/recipients"],
+    enabled: enabled && activeTab === "notifications",
+  });
+
+  const sendNotifMutation = useMutation({
+    mutationFn: async (data: { subject: string; message: string; recipientGroup: "all" }) => {
+      const res = await apiRequest("POST", "/api/admin/notifications/send", data);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed to send"); }
+      return res.json() as Promise<{ sent: number; failed: number; total: number; devMode: boolean }>;
+    },
+    onSuccess: (result) => {
+      setNotifResult(result);
+      toast({ title: `Sent to ${result.sent} recipients${result.devMode ? " (dev mode – logged to console)" : ""}`, description: result.failed > 0 ? `${result.failed} failed` : undefined });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Send failed", description: err.message, variant: "destructive" });
+    },
   });
 
   const createInjMutation = useMutation({
@@ -784,6 +809,9 @@ export default function AdminPage() {
           <TabBtn label="Ads" icon={Megaphone} active={activeTab === "ads"} onClick={() => setActiveTab("ads")} />
           <TabBtn label="Geo Campaigns" icon={MapPin} active={activeTab === "geo"} onClick={() => setActiveTab("geo")} />
           <TabBtn label="GZBusiness" icon={Flame} active={activeTab === "gzbusiness"} onClick={() => setActiveTab("gzbusiness")} badge={adminGzFlashAds.filter(a => a.status === "active").length || undefined} />
+          {isSuperAdmin && (
+            <TabBtn label="Notifications" icon={Mail} active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
+          )}
           {/* Always-visible Sign Out — right edge of tab bar */}
           <button
             onClick={async () => { await logout(); navigate("/"); }}
@@ -2889,6 +2917,117 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ─────────────────────── NOTIFICATIONS TAB ─────────────────────── */}
+      {activeTab === "notifications" && isSuperAdmin && (
+        <div className="space-y-5" data-testid="section-admin-notifications">
+          {/* Header */}
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-[#ff2b2b]" />
+            <h2 className="text-sm font-semibold text-white">Mass Notification — All Members</h2>
+            <span className="text-xs text-[#444] ml-1">From: Gigzito Webmaster</span>
+          </div>
+
+          {/* Compose form card */}
+          <div className="rounded-xl border border-[#1e1e1e] bg-[#0b0b0b] p-5 space-y-4">
+
+            {/* Recipient selector */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[#111] border border-[#1e1e1e]">
+              <button
+                type="button"
+                onClick={() => setNotifGigzitoAll((v) => !v)}
+                className="flex items-center gap-2 text-sm text-white font-medium"
+                data-testid="btn-notif-toggle-all"
+              >
+                {notifGigzitoAll
+                  ? <CheckSquare className="h-5 w-5 text-[#ff2b2b]" />
+                  : <Square className="h-5 w-5 text-[#555]" />}
+                <span>Gigzito All</span>
+              </button>
+              <div className="flex items-center gap-1.5 ml-auto text-xs text-[#666]">
+                <Users2 className="h-3.5 w-3.5" />
+                {notifRecipients != null
+                  ? <span data-testid="text-notif-count">{notifRecipients.count.toLocaleString()} eligible recipients</span>
+                  : <span className="text-[#444]">Loading…</span>}
+              </div>
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#888] uppercase tracking-wider">Subject</label>
+              <Input
+                value={notifSubject}
+                onChange={(e) => setNotifSubject(e.target.value)}
+                placeholder="e.g. Important platform update from Gigzito"
+                maxLength={200}
+                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444]"
+                data-testid="input-notif-subject"
+              />
+            </div>
+
+            {/* Message */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#888] uppercase tracking-wider">Message</label>
+              <textarea
+                value={notifMessage}
+                onChange={(e) => setNotifMessage(e.target.value)}
+                placeholder="Compose your message to all Gigzito members…"
+                maxLength={10000}
+                rows={10}
+                className="w-full bg-[#111] border border-[#2a2a2a] rounded-lg text-white text-sm p-3 placeholder:text-[#444] focus:outline-none focus:ring-1 focus:ring-[#ff2b2b40] resize-y leading-relaxed"
+                data-testid="textarea-notif-message"
+              />
+              <div className="text-right text-[10px] text-[#444]">{notifMessage.length}/10000</div>
+            </div>
+
+            {/* Preview / warning row */}
+            {notifRecipients && notifGigzitoAll && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-950/20 border border-amber-700/30">
+                <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-300 leading-relaxed">
+                  This email will be sent to <strong className="text-amber-200">{notifRecipients.count.toLocaleString()} members</strong>. It will appear from <em>Gigzito Webmaster</em>. Double-check your content before sending.
+                </p>
+              </div>
+            )}
+
+            {/* Send button */}
+            <div className="flex items-center justify-end gap-3 pt-1">
+              {notifResult && (
+                <div className="flex items-center gap-2 text-xs text-green-400" data-testid="text-notif-result">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>
+                    Sent to {notifResult.sent} / {notifResult.total} recipients
+                    {notifResult.failed > 0 && <span className="text-red-400 ml-1">({notifResult.failed} failed)</span>}
+                    {notifResult.devMode && <span className="text-[#555] ml-1">(dev mode — console only)</span>}
+                  </span>
+                </div>
+              )}
+              <Button
+                onClick={() => {
+                  if (!notifSubject.trim() || !notifMessage.trim()) {
+                    toast({ title: "Subject and message are required", variant: "destructive" });
+                    return;
+                  }
+                  setNotifResult(null);
+                  sendNotifMutation.mutate({ subject: notifSubject.trim(), message: notifMessage.trim(), recipientGroup: "all" });
+                }}
+                disabled={sendNotifMutation.isPending || !notifGigzitoAll || !notifSubject.trim() || !notifMessage.trim()}
+                className="bg-[#ff2b2b] hover:bg-[#e02020] text-white font-semibold px-5"
+                data-testid="btn-notif-send"
+              >
+                {sendNotifMutation.isPending
+                  ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending…</>
+                  : <><Send className="h-4 w-4 mr-2" />Send to {notifGigzitoAll && notifRecipients ? `${notifRecipients.count.toLocaleString()} Members` : "Members"}</>}
+              </Button>
+            </div>
+          </div>
+
+          {/* Dev mode note */}
+          <p className="text-[10px] text-[#333] text-center">
+            In dev mode (no SMTP configured) emails are logged to the server console. Configure SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.
+          </p>
         </div>
       )}
     </div>
