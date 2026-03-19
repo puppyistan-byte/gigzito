@@ -97,22 +97,43 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
   const mode = (ad as any).displayMode ?? "countdown";
   const score = Math.round(ad.potencyScore);
 
+  const fireSize =
+    rank === 1 ? "3.8rem" :
+    rank <= 3  ? "3.2rem" :
+    rank <= 10 ? "2.6rem" : "2.1rem";
+
   return (
     <div
-      className={`relative rounded-2xl border ${cfg.border} ${cfg.bg} ${cfg.glow} p-4 flex flex-col h-full transition-all duration-500 group hover:scale-[1.015]`}
+      className={`relative rounded-2xl border overflow-hidden ${cfg.border} ${cfg.bg} ${cfg.glow} p-4 flex flex-col h-full transition-all duration-500 group hover:scale-[1.015]`}
       data-testid={`card-ad-${ad.id}`}
     >
       {rank === 1 && (
         <div className="absolute -top-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500 to-transparent" />
       )}
 
+      {/* Fiery rank number — top 30 only */}
+      {rank <= 30 && (
+        <div
+          className="absolute top-1 right-2 font-black italic leading-none select-none pointer-events-none z-0"
+          style={{
+            fontSize: fireSize,
+            background: "linear-gradient(170deg, #FDE68A 0%, #FB923C 38%, #EF4444 72%, #991B1B 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            filter: "drop-shadow(0 0 10px rgba(251,146,60,0.65)) drop-shadow(0 2px 4px rgba(0,0,0,0.8))",
+            opacity: rank === 1 ? 0.95 : rank <= 5 ? 0.85 : 0.7,
+          }}
+          data-testid={`rank-fire-${ad.id}`}
+        >
+          {rank}
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2 mb-3">
-        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider ${cfg.badge}`}>
+        <span className={`relative z-10 text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider ${cfg.badge}`}>
           {cfg.badgeText}
         </span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-[#333] font-mono">#{rank}</span>
-        </div>
       </div>
 
       {ad.artworkUrl && (
