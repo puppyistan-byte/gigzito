@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video } from "lucide-react";
 import { InviteCard } from "@/components/invite-card";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
@@ -338,14 +338,25 @@ export default function ProviderProfilePage() {
                 </button>
               </Link>
             </div>
-            <button
-              onClick={async () => { await logout(); navigate("/"); }}
-              className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/70 hover:bg-red-500/10 rounded-full px-3 py-1.5 transition-colors"
-              data-testid="button-sign-out-profile"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign Out
-            </button>
+            <div className="flex items-center gap-2">
+              <Link href="/provider/new">
+                <button
+                  className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#ff1a1a] hover:bg-[#ff3333] active:scale-95 rounded-full px-3 py-1.5 transition-all"
+                  data-testid="button-post-video-profile"
+                >
+                  <Video className="h-3.5 w-3.5" />
+                  Post Video
+                </button>
+              </Link>
+              <button
+                onClick={async () => { await logout(); navigate("/"); }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-500/70 hover:bg-red-500/10 rounded-full px-3 py-1.5 transition-colors"
+                data-testid="button-sign-out-profile"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
+              </button>
+            </div>
           </div>
           <h1 className="text-xl font-bold text-white" data-testid="text-page-title">Creator Profile</h1>
         </div>
