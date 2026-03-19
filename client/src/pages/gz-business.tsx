@@ -78,7 +78,7 @@ export default function GzBusinessPage() {
 
   const tier = (user as any)?.user?.subscriptionTier ?? "";
   const role = (user as any)?.user?.role ?? "";
-  const isAllowed = tier === "GZBusiness" || role === "ADMIN" || role === "SUPER_ADMIN";
+  const isAllowed = tier === "GZBusiness" || role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERUSER";
 
   const { data: myAds = [], isLoading } = useQuery<GzFlashAd[]>({
     queryKey: ["/api/gz-flash/mine"],
