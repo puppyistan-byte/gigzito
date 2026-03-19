@@ -207,7 +207,7 @@ export default function ProfileScreen() {
         <View style={styles.menuCard}>
           <MenuItem icon="video" label="My Listings" value={String(myListings?.length ?? 0)} />
           <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} />
-          <MenuItem icon="star" label="GeeZee Card" />
+          <MenuItem icon="star" label="GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
         </View>
       </View>
 

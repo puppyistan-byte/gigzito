@@ -235,6 +235,39 @@ export function useGeeZeeInbox() {
   });
 }
 
+export function useFullProfile() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["full-profile"],
+    queryFn: () => apiRequest<any>("/api/mobile/me"),
+    enabled: !!token,
+  });
+}
+
+export function useUpdateProfile() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, any>) =>
+      apiRequest<any>("/api/mobile/profile", { method: "PUT", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["full-profile"] });
+      qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["geezee-cards"] });
+    },
+  });
+}
+
+export function useUpdateAccount() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { email: string }) =>
+      apiRequest<any>("/api/mobile/account", { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["full-profile"] }),
+  });
+}
+
 export function useGZFlash() {
   const { apiRequest } = useAuth();
   return useQuery({

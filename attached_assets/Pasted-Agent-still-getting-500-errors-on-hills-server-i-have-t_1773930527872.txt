@@ -1,0 +1,140 @@
+Agent
+still getting 500 errors on hills server
+
+i have two profile windows. eliminate the outer one please
+
+can you tell my mobile developer the api for the GZFlash Sales Module and the Coloring - Blue
+
+I want to make the first 30 gigzito GZFlash ads have 1 Ranking number that changes and for the 1st 30 ads as you arange them by score give them a fiery number rank . the fiery number is big enough to grab your attention and its right in this area (my number 1)
+
+anything jim has to do in hills?
+
+can you give the mobile developer the api and smtp information for a password reset function that we have
+
+need an api for mobile app users to get their personal profile and their geezee podile to edit both. regardless of tier
+
+Let me check what profile endpoints already exist:
+
+There's already a /api/mobile/me endpoint. Let me check it and the user account schema:
+
+Now I have everything I need. The existing GET /api/mobile/me only returns 4 profile fields and there's no way to edit anything via JWT. I'll:
+
+Expand GET /api/mobile/me to return all account + all profile fields
+Add PUT /api/mobile/profile to edit the GeeZee profile
+Add PATCH /api/mobile/account to edit account-level info (email)
+Good. Now I'll add the three mobile profile endpoints. I also need to check if there's a method to update the user's email:
+
+I need to add a user email update method to storage, then build all three endpoints:
+
+Now I'll make all changes:
+
+Now add the implementation to the storage class:
+
+Now expand GET /api/mobile/me and add the two edit endpoints:
+
+Now let me restart the app and run a quick test to verify all three endpoints work:
+
+All three endpoints are live and tested. Here's the complete reference for your mobile developer:
+
+Mobile Profile API
+All endpoints use Authorization: Bearer <token> (same token from /api/mobile/login + /api/mobile/mfa/verify). Works for any subscription tier.
+
+GET /api/mobile/me — Fetch full profile
+Returns the user's account info and their complete GeeZee profile.
+
+GET /api/mobile/me
+Authorization: Bearer <token>
+Response:
+
+{
+  "account": {
+    "id": 7,
+    "email": "user@example.com",
+    "role": "PROVIDER",
+    "subscriptionTier": "GZLurker",
+    "status": "active",
+    "emailVerified": true,
+    "createdAt": "2026-03-03T14:52:02.191Z"
+  },
+  "profile": {
+    "id": 34,
+    "username": "myhandle",
+    "displayName": "My Name",
+    "bio": "About me...",
+    "avatarUrl": "https://...",
+    "thumbUrl": "https://...",
+    "primaryCategory": "MARKETING",
+    "location": "Hillsboro OR",
+    "contactEmail": "me@example.com",
+    "contactPhone": null,
+    "contactTelegram": null,
+    "websiteUrl": null,
+    "instagramUrl": null,
+    "youtubeUrl": null,
+    "tiktokUrl": null,
+    "facebookUrl": null,
+    "discordUrl": null,
+    "twitterUrl": null,
+    "photo1Url": null,
+    "photo2Url": null,
+    "photo3Url": null,
+    "photo4Url": null,
+    "photo5Url": null,
+    "photo6Url": null,
+    "showPhone": false
+  }
+}
+profile is null if the user has never set up their GeeZee profile on the web app yet.
+
+PUT /api/mobile/profile — Edit GeeZee profile
+Send any subset of profile fields — only what you include gets updated.
+
+PUT /api/mobile/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+Body (all fields optional — send only what changed):
+
+{
+  "displayName": "My Name",
+  "bio": "Updated bio text",
+  "username": "myhandle",
+  "avatarUrl": "https://...",
+  "thumbUrl": "https://...",
+  "primaryCategory": "MARKETING",
+  "location": "Portland OR",
+  "contactEmail": "me@example.com",
+  "contactPhone": "+1-503-555-0100",
+  "contactTelegram": "@myhandle",
+  "websiteUrl": "https://mysite.com",
+  "instagramUrl": "https://instagram.com/me",
+  "youtubeUrl": "https://youtube.com/@me",
+  "tiktokUrl": "https://tiktok.com/@me",
+  "facebookUrl": "https://facebook.com/me",
+  "discordUrl": "https://discord.gg/...",
+  "twitterUrl": "https://twitter.com/me",
+  "photo1Url": "https://...",
+  "photo2Url": "https://...",
+  "photo3Url": "https://...",
+  "photo4Url": "https://...",
+  "photo5Url": "https://...",
+  "photo6Url": "https://...",
+  "showPhone": false
+}
+Response: { "ok": true, "profile": { ...full profile } }
+
+PATCH /api/mobile/account — Change email address
+PATCH /api/mobile/account
+Authorization: Bearer <token>
+Content-Type: application/json
+{ "email": "newemail@example.com" }
+Response: { "ok": true, "account": { id, email, role, subscriptionTier } }
+
+Errors:
+
+400 — missing or invalid email format
+409 — email already in use by another account
+401 — bad/expired token
+Note: Image uploads (avatar, photos) still go through POST /api/upload/image with a Bearer token and multipart/form-data — that endpoint already supports Bearer tokens. Returns { "url": "/uploads/filename.jpg" } which you can then save via PUT /api/mobile/profile.
+
+
+Make, test, iterate…
