@@ -1,0 +1,114 @@
+Here is the full specification for your mobile developer:
+
+GZFlash Sales Module — Mobile API & Design Spec
+Base URL
+https://gigzito.com (production VPS) / http://localhost:5000 (dev)
+
+Authentication
+All write endpoints require a session cookie from /api/auth/login + /api/auth/mfa/verify. The public GET is cookie-free.
+
+POST /api/auth/login
+Body: { "email": "...", "password": "..." }
+Response: { "mfaRequired": true, "email": "...", "devCode": "123456" }
+POST /api/auth/mfa/verify
+Body: { "email": "...", "code": "123456" }
+Response: { user: { id, role, subscriptionTier }, profile: { username, avatarUrl, ... } }
+Endpoints
+1. GET /api/gz-flash — Public feed (no auth)
+Returns all active, non-expired ads sorted by potency score descending.
+
+[
+  {
+    "id": 3,
+    "userId": 7,
+    "title": "Summer Sale Test",
+    "artworkUrl": "https://example.com/image.png",   // nullable
+    "retailPriceCents": 9595,
+    "discountPercent": 77,
+    "quantity": 10,
+    "claimedCount": 2,
+    "durationMinutes": 1440,
+    "potencyScore": 63.08,
+    "status": "active",
+    "displayMode": "countdown",   // "countdown" | "slots"
+    "adminNote": null,            // nullable
+    "expiresAt": "2026-03-20T00:40:14.079Z",
+    "createdAt": "2026-03-19T00:40:14.079Z",
+    // joined from provider_profiles:
+    "displayName": "Admin",
+    "username": "admin",
+    "avatarUrl": "https://picsum.photos/200"
+  }
+]
+2. GET /api/gz-flash/mine — Owner's ads (auth + GZBusiness tier)
+Returns only the logged-in user's ads (all statuses).
+
+3. POST /api/gz-flash — Create ad (auth + GZBusiness tier)
+// Request body
+{
+  "title": "Summer Blowout",           // string, required, min 1 char
+  "artworkUrl": "https://...",          // string | null
+  "retailPriceCents": 9999,            // integer cents, e.g. $99.99 = 9999
+  "discountPercent": 75,               // integer 1–99
+  "quantity": 10,                      // integer ≥ 1
+  "durationMinutes": 120,              // integer 5–43200 (max 30 days)
+  "displayMode": "countdown"           // "countdown" | "slots"
+}
+// Response 201 — full ad object (same shape as GET)
+4. PUT /api/gz-flash/:id — Update ad (auth + GZBusiness tier, must own ad)
+Same body shape as POST.
+
+5. DELETE /api/gz-flash/:id — Delete ad (auth, must own ad)
+// Response
+{ "ok": true }
+6. POST /api/gz-flash/:id/claim — Claim a deal (no auth required)
+Decrements available slots. Fails if claimedCount >= quantity or ad is expired/paused.
+
+// Response — updated ad object
+// Error (400): { "message": "No slots remaining" }
+Admin-Only Endpoints (ADMIN / SUPER_ADMIN / SUPERUSER role)
+Method	Path	Description
+GET	/api/admin/gz-flash	All ads, all statuses, with owner email
+PATCH	/api/admin/gz-flash/:id/status	Body: { "status": "active" | "paused" | "expired" }
+DELETE	/api/admin/gz-flash/:id	Hard delete any ad
+POST	/api/admin/gz-flash/:id/message	Body: { "note": "..." } — sets adminNote on the ad
+Score Formula (compute client-side for live preview)
+COMFORT = 100  // $100 impulse-buy threshold
+savingsIndex   = (retailDollars - flashDollars) / retailDollars
+timeFactor     = 1 + (1 - timeRemainingMinutes / durationMinutes)    // 1.0 → 2.0
+scarcityFactor = 1 + (1 - slotsRemaining / quantity)                 // 1.0 → 2.0
+priceFriction  = 1 / (1 + flashDollars / COMFORT)                    // lower price = higher
+score = min(100,  savingsIndex × timeFactor × scarcityFactor × priceFriction × 100)
+The server recalculates potencyScore every 60 seconds automatically. At launch: timeFactor = 1.0, scarcityFactor = 1.0. Both climb toward 2.0× as time and slots drain.
+
+Zone Thresholds
+Score	Zone	Accent Color
+≥ 90	HOT	#F87171 (red-400)
+≥ 70	TRENDING	#FB923C (orange-400)
+≥ 40	ACTIVE	#FACC15 (yellow-400)
+< 40	COOL	#444444 (gray)
+Color System (Blue Theme)
+Role	Hex	Usage
+Page background	#050505	Full-screen bg
+Card background	#070d1a	Ad card outer shell
+Card inner	#0a1020	Inner sections, inputs
+Card border	#1a2030	Subtle dividers
+Primary blue	#3B82F6	Score bar, buttons
+Blue highlight	#60A5FA	Labels, icons
+Blue border	#1D4ED8 at 60% alpha	Active card border
+Flash price	#4ADE80 (green-400)	The deal price in large bold text
+Retail price	#888888	Strikethrough original price
+Discount badge	#93C5FD text on #1E3A8A bg	e.g. "78% OFF"
+Claim button	#2563EB	Primary CTA, full-width
+Claim button text	#FFFFFF	White, bold
+Zone badge bg (HOT)	#7F1D1D at 40% alpha	Red zone pill
+Zone badge bg (TRENDING)	#7C2D12 at 40% alpha	Orange zone pill
+Zone badge bg (ACTIVE)	#713F12 at 40% alpha	Yellow zone pill
+displayMode — Two Card Variants
+"countdown" — Show a live countdown timer (expiresAt - now). Drives time urgency.
+"slots" — Show quantity - claimedCount slots remaining. Drives scarcity urgency.
+Price Conversion
+All prices are stored and transmitted in cents (integers).
+
+Display: divide by 100 → $95.95
+Send to API: multiply by 100 → 9595

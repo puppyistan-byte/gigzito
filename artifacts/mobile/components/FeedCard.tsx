@@ -172,6 +172,18 @@ export function FeedCard({ item, isActive }: Props) {
 
       {/* Right rail buttons */}
       <View style={styles.rightRail}>
+        {/* GZFlash — above GeeZee */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/gzflash" as any); }}
+          style={styles.railBtn}
+        >
+          <Image
+            source={require("@/assets/images/gz-flash-logo.png")}
+            style={styles.gzIcon}
+            resizeMode="contain"
+          />
+        </Pressable>
+
         {/* GeeZee Rolodex */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/geezee" as any); }}

@@ -234,3 +234,22 @@ export function useGeeZeeInbox() {
     queryFn: () => apiRequest<any[]>("/api/gigness-cards/inbox"),
   });
 }
+
+export function useGZFlash() {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-flash"],
+    queryFn: () => apiRequest<any[]>("/api/gz-flash"),
+    refetchInterval: 60000,
+  });
+}
+
+export function useClaimFlash() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiRequest<any>(`/api/gz-flash/${id}/claim`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gz-flash"] }),
+  });
+}
