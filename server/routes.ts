@@ -878,7 +878,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       catch (err: any) {
         return res.status(400).json({ message: err.errors?.[0]?.message ?? "Invalid input" });
       }
-      const APP_URL = process.env.APP_URL ?? "https://gigzito.com";
+      const APP_URL = process.env.APP_URL ?? `${req.protocol}://${req.get("host")}`;
       const landingUrl = `${APP_URL}/gz-invite`;
       await sendInvitationEmail({ ...body, landingUrl });
       return res.json({ ok: true, devMode: !process.env.SMTP_HOST });

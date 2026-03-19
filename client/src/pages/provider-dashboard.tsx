@@ -38,6 +38,7 @@ import {
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
   Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
 } from "lucide-react";
+import { InviteCard } from "@/components/invite-card";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -809,6 +810,9 @@ function ProviderDashboardInner() {
         ) : (
           <Skeleton className="h-20 w-full bg-[#111] rounded-xl" />
         )}
+
+        {/* Invite card — visible to all users */}
+        <InviteCard />
 
         {/* Stats row */}
         {dailyStats && (

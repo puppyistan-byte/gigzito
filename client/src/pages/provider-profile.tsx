@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle } from "lucide-react";
+import { InviteCard } from "@/components/invite-card";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
 
@@ -350,6 +351,8 @@ export default function ProviderProfilePage() {
         </div>
 
         <ProfileCard profile={previewProfile} />
+
+        <InviteCard />
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
