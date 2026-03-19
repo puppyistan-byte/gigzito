@@ -191,11 +191,11 @@ export function useMyTotalLikes() {
 }
 
 export function useFollowStatus(userId: number) {
-  const { apiRequest } = useAuth();
+  const { apiRequest, token } = useAuth();
   return useQuery({
     queryKey: ["follow-status", userId],
-    queryFn: () => apiRequest<{ following: boolean }>(`/api/geezee-follows/status/${userId}`),
-    enabled: !!userId,
+    queryFn: () => apiRequest<{ following: boolean; followerCount: number }>(`/api/geezee-follows/status/${userId}`),
+    enabled: !!userId && !!token,
   });
 }
 

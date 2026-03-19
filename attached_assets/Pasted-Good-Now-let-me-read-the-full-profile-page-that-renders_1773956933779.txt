@@ -1,0 +1,192 @@
+Good. Now let me read the full profile page that renders the card view:
+
+Here is the complete, precise reference your mobile developer needs to build the full GeeZee card view screen:
+
+Viewing a GeeZee Card — Mobile App Implementation
+The card view screen requires 3 parallel API calls on load, then individual calls for each user action. Everything below is exactly what the web app uses.
+
+Step 1: Load the Screen (3 calls, fire in parallel)
+Call 1 — The Card itself
+GET /api/gigness-cards/user/{userId}
+Auth: Not required (public endpoint)
+Full response shape:
+
+{
+  "id": 7,
+  "userId": 12,
+  "qrUuid": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "slogan": "Let's connect and grow together",
+  "profilePic": "https://cdn.example.com/myphoto.jpg",
+  "gallery": [
+    "https://cdn.example.com/img1.jpg",
+    "https://cdn.example.com/img2.jpg",
+    "https://cdn.example.com/img3.jpg"
+  ],
+  "isPublic": true,
+  "allowMessaging": true,
+  "locationServicesEnabled": false,
+  "showSocialLinks": false,
+  "ageBracket": "25-40",
+  "gender": "Female",
+  "intent": "marketing",
+  "engagementCount": 241,
+  "createdAt": "2026-01-15T10:22:00.000Z",
+  "updatedAt": "2026-03-10T08:14:00.000Z",
+  "displayName": "Sofia Martinez",
+  "username": "sofiamarketing",
+  "avatarUrl": "https://cdn.example.com/sofia-avatar.jpg",
+  "instagramUrl": "https://instagram.com/sofiamarketing",
+  "tiktokUrl": null,
+  "facebookUrl": null,
+  "twitterUrl": null,
+  "discordUrl": null
+}
+Error responses:
+
+404 — card doesn't exist, or the owner set isPublic = false. Show "This GeeZee card is private or doesn't exist."
+400 — userId was not a valid number
+Call 2 — Their Geemotion posts
+GET /api/zee-motions/user/{userId}
+Auth: Not required (public endpoint)
+Response — array, newest first:
+
+[
+  {
+    "id": 34,
+    "userId": 12,
+    "text": "Just closed a massive deal — feeling unstoppable! 🚀",
+    "mediaUrl": "https://cdn.example.com/celebration.gif",
+    "mediaType": "gif",
+    "createdAt": "2026-03-18T14:30:00.000Z"
+  },
+  {
+    "id": 29,
+    "userId": 12,
+    "text": "New content dropping tomorrow. Stay tuned.",
+    "mediaUrl": null,
+    "mediaType": null,
+    "createdAt": "2026-03-15T09:00:00.000Z"
+  }
+]
+mediaType values: "image" | "gif" | "sticker" | null
+
+Empty array [] if the user has no Geemotions — show a "No Geemotions yet" placeholder.
+
+Call 3 — Follow status + follower count
+GET /api/geezee-follows/status/{userId}
+Auth: Required (JWT)
+Response:
+
+{
+  "following": true,
+  "followerCount": 42
+}
+Only make this call if the viewer is logged in. If not logged in, skip it — show a "Sign in to follow" prompt and followerCount will not be shown (or you can still call the endpoint anonymously, it will return 401, and you just omit the follower count from the UI).
+
+What to Display on Screen (in order, top to bottom)
+UI Element	Data source	Notes
+Profile photo	card.profilePic	Fall back to avatar initials if null
+Display name	card.displayName	Bold, large
+Username	card.username	Prefixed with @, smaller
+Tier badge	card.subscriptionTier (see table below)	Colored pill badge
+Intent tag	card.intent	Capitalize: "Marketing", "Social", "Activity"
+Slogan	card.slogan	Gradient text effect — purple → pink → amber
+Age bracket	card.ageBracket	e.g. "25-40"
+Gender	card.gender	e.g. "Female"
+Follower count	followStatus.followerCount	e.g. "42 followers"
+Social links	card.instagramUrl, tiktokUrl, facebookUrl, twitterUrl, discordUrl	Show icon buttons only for non-null URLs
+Photo gallery	card.gallery[]	3-column grid, up to 9 photos, skip null/empty entries
+Follow / Unfollow button	followStatus.following	Purple = follow, dimmed = unfollow
+QR Card button	card.qrUuid	Opens /qr/{qrUuid} or share sheet
+Engagement count	card.engagementCount	Show as a stat
+Send Private Message panel	card.allowMessaging	Hide entire panel if allowMessaging = false
+Geemotions feed	motions[] array	Each post with timestamp + optional image/gif + comment toggle
+Tier Badge Colors
+subscriptionTier value	Display label	Color
+GZLurker	GZ Lurker	Gray
+GZMarketer	GZMarketer	Blue
+GZMarketerPro	GZMarketerPro	Purple
+GZBusiness	GZBusiness	Amber / Gold
+Step 2: User Actions
+Tap to Engage
+Fire this whenever the viewer taps the card or an engage button. No body needed.
+
+POST /api/gigness-cards/{card.id}/engage
+Auth: Required (JWT)
+Body: {}
+Response: { "success": true }
+Optimistically increment engagementCount in the UI, no need to reload the card.
+
+Send Private Message
+Only show this if card.allowMessaging === true and the viewer is not the card owner.
+
+POST /api/gigness-cards/{card.id}/message
+Auth: Required (JWT)
+Body:
+{
+  "messageText": "Hey, I'd love to collaborate!",   // max 500 chars
+  "emojiReaction": "🔥"                              // optional, max 8 chars
+}
+At least one of messageText or emojiReaction must be present.
+
+Success: 201 { "success": true, "messageId": 42 }
+
+Error (GZ-Bot flagged the text):
+
+{ "message": "Hey! GeeZee stays PG. Clean up your pitch to engage with this card." }
+Show this as an inline field error — let the user edit and retry, do not dismiss the form.
+
+Follow / Unfollow
+POST   /api/geezee-follows/{userId}    → Follow
+DELETE /api/geezee-follows/{userId}    → Unfollow
+Auth: Required
+Body: {}
+Response: { "ok": true }
+After success, re-fetch GET /api/geezee-follows/status/{userId} to update the button and follower count.
+
+Comments on a Geemotion (expandable thread under each post)
+Load comments (lazy — only when user taps "Comments"):
+
+GET /api/zee-motions/{motionId}/comments
+Auth: Not required
+Response:
+[
+  {
+    "id": 5,
+    "motionId": 34,
+    "authorUserId": 9,
+    "authorName": "alexrivera",
+    "commentText": "Incredible work, congrats!",
+    "createdAt": "2026-03-18T15:00:00.000Z"
+  }
+]
+Post a comment:
+
+POST /api/zee-motions/{motionId}/comments
+Auth: Not required (name is provided manually if not logged in)
+Body:
+{
+  "commentText": "Love this energy!",
+  "authorName": "alexrivera"
+}
+If the user is logged in, resolve authorName automatically from their profile (displayName → username → email prefix). Do not ask them to type their name.
+
+Response: 201 + comment object
+
+QR Code / Deep Link
+The card's QR UUID lives at card.qrUuid. On mobile, generate a QR code from:
+
+https://gigzito.com/qr/{card.qrUuid}
+Or pass the UUID to:
+
+GET /api/gigness-cards/qr/{qrUuid}
+Auth: Public
+This is the entry point when someone scans a physical QR card — use it to load the card and redirect to the card view screen.
+
+Recommended Load Sequence
+1. Fire calls 1, 2, 3 in parallel on screen mount
+2. Render skeleton placeholders while loading
+3. Once card loads → render identity block, gallery, action buttons
+4. Once motions load → render Geemotions feed below
+5. Follow status → toggle Follow button state
+6. Comments → lazy load per Geemotion only when tapped
