@@ -224,6 +224,7 @@ const styles = StyleSheet.create({
   row: {
     gap: ITEM_GAP,
     flex: 1,
+    alignItems: "stretch",
   },
   cellWrap: {
     flex: 1,

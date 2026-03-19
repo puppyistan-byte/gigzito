@@ -81,7 +81,7 @@ export function GZFlashCard({ item, onClaim, claiming, size }: Props) {
   /* ── COMPACT (3-col) ── */
   if (size === "compact") {
     return (
-      <View style={[s.card, s.cardCompact]}>
+      <View style={[s.card, s.cardCompact, s.cardStretch]}>
         {/* Zone stripe */}
         <View style={[s.stripe, { backgroundColor: zone.stripe }]} />
         {/* Zone badge */}
@@ -92,19 +92,21 @@ export function GZFlashCard({ item, onClaim, claiming, size }: Props) {
         {artworkUri ? (
           <Image source={{ uri: artworkUri }} style={s.artworkCompact} resizeMode="cover" />
         ) : null}
-        <View style={[s.inner, { padding: 7, gap: 5 }]}>
-          <Text style={s.titleCompact} numberOfLines={2}>{item.title}</Text>
-          <Text style={s.flashPriceCompact}>{formatCents(flashPrice)}</Text>
-          <View style={[s.discountBadge, { paddingHorizontal: 5, paddingVertical: 2 }]}>
-            <Text style={[s.discountText, { fontSize: 9 }]}>{item.discountPercent}% OFF</Text>
+        <View style={[s.inner, s.innerStretch, { padding: 7 }]}>
+          <View style={s.innerGrow}>
+            <Text style={s.titleCompact} numberOfLines={2}>{item.title}</Text>
+            <Text style={s.flashPriceCompact}>{formatCents(flashPrice)}</Text>
+            <View style={[s.discountBadge, { paddingHorizontal: 5, paddingVertical: 2 }]}>
+              <Text style={[s.discountText, { fontSize: 9 }]}>{item.discountPercent}% OFF</Text>
+            </View>
+            {item.displayMode === "countdown"
+              ? <CountdownDisplay expiresAt={item.expiresAt} tiny />
+              : <View style={s.urgencyRow}>
+                  <Feather name="layers" size={10} color="#60A5FA" />
+                  <Text style={s.urgencyTextTiny}>{slotsLeft} left</Text>
+                </View>
+            }
           </View>
-          {item.displayMode === "countdown"
-            ? <CountdownDisplay expiresAt={item.expiresAt} tiny />
-            : <View style={s.urgencyRow}>
-                <Feather name="layers" size={10} color="#60A5FA" />
-                <Text style={s.urgencyTextTiny}>{slotsLeft} left</Text>
-              </View>
-          }
           <Pressable
             onPress={() => { Haptics.impactAsync(); onClaim(item.id); }}
             disabled={claiming || sold}
@@ -122,7 +124,7 @@ export function GZFlashCard({ item, onClaim, claiming, size }: Props) {
   /* ── MEDIUM (2-col) ── */
   if (size === "medium") {
     return (
-      <View style={[s.card, s.cardMedium]}>
+      <View style={[s.card, s.cardMedium, s.cardStretch]}>
         <View style={[s.stripe, { backgroundColor: zone.stripe }]} />
         <View style={s.topRow}>
           <View style={s.sellerRow}>
@@ -144,25 +146,27 @@ export function GZFlashCard({ item, onClaim, claiming, size }: Props) {
         {artworkUri ? (
           <Image source={{ uri: artworkUri }} style={s.artworkMedium} resizeMode="cover" />
         ) : null}
-        <View style={[s.inner, { padding: 10, gap: 7 }]}>
-          <Text style={s.titleMedium} numberOfLines={2}>{item.title}</Text>
-          <View style={s.priceRow}>
-            <Text style={s.flashPriceMedium}>{formatCents(flashPrice)}</Text>
-            <Text style={s.retailPrice}>{formatCents(item.retailPriceCents)}</Text>
+        <View style={[s.inner, s.innerStretch, { padding: 10 }]}>
+          <View style={s.innerGrow}>
+            <Text style={s.titleMedium} numberOfLines={2}>{item.title}</Text>
+            <View style={s.priceRow}>
+              <Text style={s.flashPriceMedium}>{formatCents(flashPrice)}</Text>
+              <Text style={s.retailPrice}>{formatCents(item.retailPriceCents)}</Text>
+            </View>
+            <View style={[s.discountBadge, { alignSelf: "flex-start" }]}>
+              <Text style={s.discountText}>{item.discountPercent}% OFF</Text>
+            </View>
+            <View style={s.scoreBarBg}>
+              <View style={[s.scoreBarFill, { width: scoreWidth }]} />
+            </View>
+            {item.displayMode === "countdown"
+              ? <CountdownDisplay expiresAt={item.expiresAt} tiny />
+              : <View style={s.urgencyRow}>
+                  <Feather name="layers" size={11} color="#60A5FA" />
+                  <Text style={s.urgencyTextTiny}>{slotsLeft}/{item.quantity} left</Text>
+                </View>
+            }
           </View>
-          <View style={[s.discountBadge, { alignSelf: "flex-start" }]}>
-            <Text style={s.discountText}>{item.discountPercent}% OFF</Text>
-          </View>
-          <View style={s.scoreBarBg}>
-            <View style={[s.scoreBarFill, { width: scoreWidth }]} />
-          </View>
-          {item.displayMode === "countdown"
-            ? <CountdownDisplay expiresAt={item.expiresAt} tiny />
-            : <View style={s.urgencyRow}>
-                <Feather name="layers" size={11} color="#60A5FA" />
-                <Text style={s.urgencyTextTiny}>{slotsLeft}/{item.quantity} left</Text>
-              </View>
-          }
           <Pressable
             onPress={() => { Haptics.impactAsync(); onClaim(item.id); }}
             disabled={claiming || sold}
@@ -245,6 +249,9 @@ const s = StyleSheet.create({
     borderColor: "#1a2030",
     overflow: "hidden",
   },
+  cardStretch: {
+    alignSelf: "stretch",
+  },
   cardCompact: {
     borderRadius: 10,
   },
@@ -325,6 +332,16 @@ const s = StyleSheet.create({
     padding: 12,
     gap: 8,
     backgroundColor: "#0a1020",
+  },
+  innerStretch: {
+    flex: 1,
+    justifyContent: "space-between",
+    gap: 0,
+  },
+  innerGrow: {
+    flex: 1,
+    gap: 5,
+    paddingBottom: 7,
   },
   title: {
     color: "#FFFFFF",
