@@ -241,14 +241,19 @@ export function useCreateListing() {
   return useMutation({
     mutationFn: (data: {
       title: string;
-      description?: string;
+      vertical: string;
+      postType?: string;
       videoUrl?: string;
-      category?: string;
-      price?: number;
+      durationSeconds?: number;
+      description?: string;
+      tags?: string[];
+      ctaType?: string;
+      ctaUrl?: string;
+      ctaLabel?: string;
     }) =>
-      apiRequest<any>("/api/listings", {
+      apiRequest<any>("/api/listings/submit", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({ postType: "VIDEO", ...data }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["listings", "mine"] });
