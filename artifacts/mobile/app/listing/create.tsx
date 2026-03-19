@@ -44,7 +44,7 @@ const VERTICAL_LABELS: Record<string, string> = {
   FOR_SALE: "For Sale",
 };
 
-const CTA_TYPES = ["Visit Offer", "Shop Product", "Join Event", "Book Service", "Join Guild"];
+const PROFILE_BASE = "https://gigzito.com/p";
 
 function Section({ title, icon, children }: {
   title: string; icon: keyof typeof Feather.glyphMap; children: React.ReactNode;
@@ -95,9 +95,10 @@ export default function CreateListingScreen() {
   const [description, setDescription] = useState("");
   const [vertical, setVertical]     = useState("");
   const [tags, setTags]             = useState("");
-  const [ctaType, setCtaType]       = useState("");
-  const [ctaUrl, setCtaUrl]         = useState("");
-  const [ctaLabel, setCtaLabel]     = useState("");
+  // "none" | "profile" | "url"
+  const [ctaMode, setCtaMode]   = useState<"none" | "profile" | "url">("none");
+  const [funnelUrl, setFunnelUrl] = useState("");
+  const [funnelLabel, setFunnelLabel] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState("");
@@ -164,10 +165,14 @@ export default function CreateListingScreen() {
       };
       if (description.trim()) body.description = description.trim();
       if (tags.trim()) body.tags = tags.split(",").map((t) => t.trim()).filter(Boolean);
-      if (ctaType) {
-        body.ctaType  = ctaType;
-        if (ctaUrl.trim())   body.ctaUrl   = ctaUrl.trim();
-        if (ctaLabel.trim()) body.ctaLabel = ctaLabel.trim();
+      if (ctaMode === "profile") {
+        body.ctaType  = "Visit Offer";
+        body.ctaUrl   = `${PROFILE_BASE}/${user?.username ?? user?.id}`;
+        body.ctaLabel = "View Profile";
+      } else if (ctaMode === "url" && funnelUrl.trim()) {
+        body.ctaType  = "Visit Offer";
+        body.ctaUrl   = funnelUrl.trim();
+        body.ctaLabel = funnelLabel.trim() || "Learn More";
       }
 
       const res = await fetch(`${API_BASE}/api/listings/submit`, {
@@ -328,40 +333,79 @@ export default function CreateListingScreen() {
           <VerticalPicker value={vertical} onChange={setVertical} />
         </Section>
 
-        {/* CTA (optional) */}
-        <Section title="Call to Action (optional)" icon="external-link">
-          <View style={s.pillWrap}>
-            {["", ...CTA_TYPES].map((type) => (
-              <Pressable
-                key={type || "none"}
-                onPress={() => { Haptics.selectionAsync(); setCtaType(type); }}
-                style={[s.pill, ctaType === type && s.pillActive]}
-              >
-                <Text style={[s.pillText, ctaType === type && s.pillTextActive]}>
-                  {type || "None"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {ctaType ? (
-            <View style={{ gap: 10, marginTop: 4 }}>
+        {/* CTA */}
+        <Section title="Call to Action" icon="mouse-pointer">
+          <Text style={s.ctaIntro}>
+            Choose what happens when viewers tap your button:
+          </Text>
+
+          {/* Option 1 — Profile */}
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setCtaMode(ctaMode === "profile" ? "none" : "profile"); }}
+            style={[s.ctaCard, ctaMode === "profile" && s.ctaCardActive]}
+          >
+            <View style={[s.ctaCardIcon, ctaMode === "profile" && s.ctaCardIconActive]}>
+              <Feather name="user" size={18} color={ctaMode === "profile" ? Colors.danger : Colors.textMuted} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.ctaCardTitle, ctaMode === "profile" && s.ctaCardTitleActive]}>
+                Profile Inbox
+              </Text>
+              <Text style={s.ctaCardSub}>
+                Send viewers to your Gigzito profile — inquiries go to your inbox &amp; email list
+              </Text>
+            </View>
+            <View style={[s.ctaCheck, ctaMode === "profile" && s.ctaCheckActive]}>
+              {ctaMode === "profile" && <Feather name="check" size={12} color="#fff" />}
+            </View>
+          </Pressable>
+
+          {/* Option 2 — Funnel URL */}
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setCtaMode(ctaMode === "url" ? "none" : "url"); }}
+            style={[s.ctaCard, ctaMode === "url" && s.ctaCardActive]}
+          >
+            <View style={[s.ctaCardIcon, ctaMode === "url" && s.ctaCardIconActive]}>
+              <Feather name="link" size={18} color={ctaMode === "url" ? Colors.danger : Colors.textMuted} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.ctaCardTitle, ctaMode === "url" && s.ctaCardTitleActive]}>
+                Funnel URL
+              </Text>
+              <Text style={s.ctaCardSub}>
+                Send viewers to your website, landing page, or sales funnel
+              </Text>
+            </View>
+            <View style={[s.ctaCheck, ctaMode === "url" && s.ctaCheckActive]}>
+              {ctaMode === "url" && <Feather name="check" size={12} color="#fff" />}
+            </View>
+          </Pressable>
+
+          {/* Funnel URL fields */}
+          {ctaMode === "url" ? (
+            <View style={{ gap: 10 }}>
               <TextInput
-                label="Button URL"
+                label="Funnel URL *"
                 icon="link"
-                value={ctaUrl}
-                onChangeText={setCtaUrl}
-                placeholder="https://..."
+                value={funnelUrl}
+                onChangeText={setFunnelUrl}
+                placeholder="https://your-funnel.com/offer"
                 keyboardType="url"
                 autoCapitalize="none"
+                autoCorrect={false}
               />
               <TextInput
-                label="Button Label"
+                label="Button Label (optional)"
                 icon="edit-2"
-                value={ctaLabel}
-                onChangeText={setCtaLabel}
-                placeholder={ctaType}
+                value={funnelLabel}
+                onChangeText={setFunnelLabel}
+                placeholder="e.g. Shop Now, Book Me, Learn More"
               />
             </View>
+          ) : null}
+
+          {ctaMode === "none" ? (
+            <Text style={s.ctaNone}>No button — viewers watch only (you can add one later)</Text>
           ) : null}
         </Section>
 
@@ -469,6 +513,64 @@ const s = StyleSheet.create({
   pillText: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_500Medium" },
   pillTextActive: { color: Colors.danger, fontFamily: "Inter_600SemiBold" },
 
+  ctaIntro: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  ctaCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.darker,
+  },
+  ctaCardActive: {
+    borderColor: Colors.danger,
+    backgroundColor: `${Colors.danger}10`,
+  },
+  ctaCardIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: `${Colors.textMuted}18`,
+    alignItems: "center", justifyContent: "center",
+  },
+  ctaCardIconActive: {
+    backgroundColor: `${Colors.danger}18`,
+  },
+  ctaCardTitle: {
+    color: Colors.textSecondary,
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 2,
+  },
+  ctaCardTitleActive: {
+    color: Colors.danger,
+  },
+  ctaCardSub: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 16,
+  },
+  ctaCheck: {
+    width: 22, height: 22, borderRadius: 11,
+    borderWidth: 1.5, borderColor: Colors.surfaceBorder,
+    alignItems: "center", justifyContent: "center",
+  },
+  ctaCheckActive: {
+    backgroundColor: Colors.danger,
+    borderColor: Colors.danger,
+  },
+  ctaNone: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    paddingVertical: 4,
+  },
   errorBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
     backgroundColor: `${Colors.danger}15`, borderRadius: 10,
