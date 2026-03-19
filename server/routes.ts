@@ -787,6 +787,81 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // GET /api/mobile/admin/dashboard — Super-admin dashboard summary (Bearer token, SUPER_ADMIN only)
+  app.get("/api/mobile/admin/dashboard", async (req, res) => {
+    try {
+      if (!requireSuperAdmin(req, res)) return;
+
+      const [allUsers, allListings, allGigJacks, auditLogs, todayCount, todayRevenue, flashAds] = await Promise.all([
+        storage.getAllUsers(),
+        storage.getAllListingsWithProviders(),
+        storage.getAllGigJacks(),
+        storage.getAuditLogs(20),
+        storage.getTodayListingCount(),
+        storage.getTodayRevenue(),
+        storage.adminGetAllGzFlashAds(),
+      ]);
+
+      // Users
+      const totalUsers = allUsers.length;
+      const activeUsers = allUsers.filter((u) => u.status !== "disabled" && !u.deletedAt).length;
+      const disabledUsers = allUsers.filter((u) => u.status === "disabled").length;
+      const deletedUsers = allUsers.filter((u) => !!u.deletedAt).length;
+      const byTier = {
+        GZLurker: allUsers.filter((u) => (u.subscriptionTier ?? "GZLurker") === "GZLurker").length,
+        GZMarketer: allUsers.filter((u) => u.subscriptionTier === "GZMarketer").length,
+        GZMarketerPro: allUsers.filter((u) => u.subscriptionTier === "GZMarketerPro").length,
+        GZBusiness: allUsers.filter((u) => u.subscriptionTier === "GZBusiness").length,
+      };
+      const byRole: Record<string, number> = {};
+      for (const u of allUsers) { byRole[u.role] = (byRole[u.role] ?? 0) + 1; }
+
+      // Listings
+      const listingsByStatus: Record<string, number> = {};
+      for (const l of allListings) { listingsByStatus[l.status] = (listingsByStatus[l.status] ?? 0) + 1; }
+
+      // GigJacks
+      const gigJacksByStatus: Record<string, number> = {};
+      for (const g of allGigJacks) { gigJacksByStatus[g.reviewStatus ?? "UNKNOWN"] = (gigJacksByStatus[g.reviewStatus ?? "UNKNOWN"] ?? 0) + 1; }
+
+      // GZFlash
+      const flashByStatus: Record<string, number> = {};
+      for (const f of flashAds) { flashByStatus[f.status] = (flashByStatus[f.status] ?? 0) + 1; }
+      const activeFlash = flashAds.filter((f: any) => f.status === "active").length;
+      const hotFlash = flashAds.filter((f: any) => (f.potencyScore ?? 0) >= 90).length;
+
+      // Recent 10 users
+      const recentUsers = allUsers
+        .filter((u) => u.createdAt)
+        .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+        .slice(0, 10)
+        .map((u) => ({
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          subscriptionTier: u.subscriptionTier ?? "GZLurker",
+          status: u.status,
+          createdAt: u.createdAt,
+          profile: u.profile
+            ? { displayName: u.profile.displayName, username: u.profile.username, avatarUrl: u.profile.avatarUrl }
+            : null,
+        }));
+
+      return res.json({
+        users: { total: totalUsers, active: activeUsers, disabled: disabledUsers, deleted: deletedUsers, byTier, byRole },
+        listings: { total: allListings.length, today: todayCount, byStatus: listingsByStatus },
+        gigJacks: { total: allGigJacks.length, byStatus: gigJacksByStatus },
+        gzFlash: { total: flashAds.length, active: activeFlash, hot: hotFlash, byStatus: flashByStatus },
+        revenue: { todayCents: todayRevenue, todayDollars: (todayRevenue / 100).toFixed(2) },
+        recentUsers,
+        recentAuditLog: auditLogs.slice(0, 20),
+      });
+    } catch (err) {
+      console.error("[admin/dashboard]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // =====================================================================
 
   app.post("/api/auth/change-password", requireAuth, async (req, res) => {
