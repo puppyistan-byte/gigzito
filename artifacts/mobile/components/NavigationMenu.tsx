@@ -19,13 +19,22 @@ const { width: SW } = Dimensions.get("window");
 const DRAWER_W = Math.min(SW * 0.72, 300);
 
 const logo = require("@/assets/images/gigzito-logo.png");
+const gzFlashLogo = require("@/assets/images/gz-flash-logo.png");
+const gzLogo = require("@/assets/images/gz-logo.png");
 
-const NAV_ITEMS = [
-  { label: "Feed",    icon: "play-circle",  route: "/(tabs)" },
-  { label: "GeeZee",  icon: "users",        route: "/(tabs)/geezee" },
-  { label: "Events",  icon: "zap",          route: "/(tabs)/events" },
-  { label: "Live",    icon: "radio",        route: "/(tabs)/live" },
-  { label: "Profile", icon: "user",         route: "/(tabs)/profile" },
+const NAV_ITEMS: {
+  label: string;
+  icon?: string;
+  image?: any;
+  route: string;
+  accentColor?: string;
+}[] = [
+  { label: "Home",     icon: "home",        route: "/(tabs)" },
+  { label: "GeeZee",   image: gzLogo,       route: "/(tabs)/geezee" },
+  { label: "GZ Flash", image: gzFlashLogo,  route: "/(tabs)/gzflash", accentColor: "#3B82F6" },
+  { label: "Events",   icon: "zap",         route: "/(tabs)/events" },
+  { label: "Live",     icon: "radio",       route: "/(tabs)/live" },
+  { label: "Profile",  icon: "user",        route: "/(tabs)/profile" },
 ];
 
 const CATEGORIES = [
@@ -120,23 +129,35 @@ export function NavigationMenu({ open, onClose }: Props) {
           <View style={styles.navList}>
             {NAV_ITEMS.map((item) => {
               const active = isActive(item.route);
+              const accent = item.accentColor ?? Colors.accent;
               return (
                 <Pressable
                   key={item.label}
                   onPress={() => handleNav(item.route)}
-                  style={[styles.navItem, active && styles.navItemActive]}
+                  style={[styles.navItem, active && { backgroundColor: `${accent}12` }]}
                 >
-                  <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
-                    <Feather
-                      name={item.icon as any}
-                      size={20}
-                      color={active ? Colors.accent : Colors.textSecondary}
-                    />
+                  <View style={[
+                    styles.navIconWrap,
+                    active && { backgroundColor: `${accent}20` },
+                  ]}>
+                    {item.image ? (
+                      <Image
+                        source={item.image}
+                        style={styles.navIconImg}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <Feather
+                        name={item.icon as any}
+                        size={20}
+                        color={active ? accent : Colors.textSecondary}
+                      />
+                    )}
                   </View>
-                  <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+                  <Text style={[styles.navLabel, active && { color: Colors.textPrimary, fontFamily: "Inter_600SemiBold" }]}>
                     {item.label}
                   </Text>
-                  {active && <View style={styles.activeDot} />}
+                  {active && <View style={[styles.activeDot, { backgroundColor: accent }]} />}
                 </Pressable>
               );
             })}
@@ -270,6 +291,10 @@ const styles = StyleSheet.create({
   },
   navIconWrapActive: {
     backgroundColor: `${Colors.accent}20`,
+  },
+  navIconImg: {
+    width: 24,
+    height: 24,
   },
   navLabel: {
     flex: 1,
