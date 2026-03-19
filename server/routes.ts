@@ -648,29 +648,137 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // Get current user info using Bearer token
+  // ── Shared JWT resolver for mobile endpoints ──────────────────────────────
+  function resolveMobileUser(req: any, res: any): number | null {
+    const auth = (req.headers["authorization"] as string) ?? "";
+    if (!auth.startsWith("Bearer ")) { res.status(401).json({ message: "Bearer token required" }); return null; }
+    try {
+      const payload: any = jwt.verify(auth.slice(7), JWT_SECRET);
+      return payload.userId as number;
+    } catch {
+      res.status(401).json({ message: "Invalid or expired token" });
+      return null;
+    }
+  }
+
+  // GET /api/mobile/me — full account + GeeZee profile (Bearer token)
   app.get("/api/mobile/me", async (req, res) => {
     try {
-      const auth = req.headers["authorization"] ?? "";
-      if (!auth.startsWith("Bearer ")) return res.status(401).json({ message: "Bearer token required" });
-      let payload: any;
-      try { payload = jwt.verify(auth.slice(7), JWT_SECRET); }
-      catch { return res.status(401).json({ message: "Invalid or expired token" }); }
-      const user = await storage.getUserById(payload.userId);
+      const userId = resolveMobileUser(req, res);
+      if (userId === null) return;
+      const user = await storage.getUserById(userId);
       if (!user) return res.status(404).json({ message: "User not found" });
       const profile = await storage.getProfileByUserId(user.id);
       return res.json({
-        user: {
+        account: {
           id: user.id,
           email: user.email,
           role: user.role,
           subscriptionTier: user.subscriptionTier ?? "GZLurker",
+          status: user.status,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
         },
-        profile: {
-          username: profile?.username ?? null,
-          displayName: profile?.displayName ?? null,
-          avatarUrl: profile?.avatarUrl ?? null,
-          bio: profile?.bio ?? null,
+        profile: profile
+          ? {
+              id: profile.id,
+              username: profile.username,
+              displayName: profile.displayName,
+              bio: profile.bio,
+              avatarUrl: profile.avatarUrl,
+              thumbUrl: profile.thumbUrl,
+              primaryCategory: profile.primaryCategory,
+              location: profile.location,
+              contactEmail: profile.contactEmail,
+              contactPhone: profile.contactPhone,
+              contactTelegram: profile.contactTelegram,
+              websiteUrl: profile.websiteUrl,
+              instagramUrl: profile.instagramUrl,
+              youtubeUrl: profile.youtubeUrl,
+              tiktokUrl: profile.tiktokUrl,
+              facebookUrl: profile.facebookUrl,
+              discordUrl: profile.discordUrl,
+              twitterUrl: profile.twitterUrl,
+              photo1Url: profile.photo1Url,
+              photo2Url: profile.photo2Url,
+              photo3Url: profile.photo3Url,
+              photo4Url: profile.photo4Url,
+              photo5Url: profile.photo5Url,
+              photo6Url: profile.photo6Url,
+              showPhone: profile.showPhone,
+            }
+          : null,
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // PUT /api/mobile/profile — update GeeZee profile (Bearer token)
+  // Any field from the GeeZee profile can be sent; only provided fields are updated.
+  // Available regardless of subscription tier.
+  app.put("/api/mobile/profile", async (req, res) => {
+    try {
+      const userId = resolveMobileUser(req, res);
+      if (userId === null) return;
+      const user = await storage.getUserById(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      // Strip protected fields so callers cannot spoof them
+      const { id: _id, userId: _uid, ...editable } = req.body as any;
+
+      const ALLOWED_PROFILE_FIELDS = new Set([
+        "displayName", "bio", "avatarUrl", "thumbUrl", "primaryCategory", "location",
+        "contactEmail", "contactPhone", "contactTelegram", "websiteUrl", "username",
+        "instagramUrl", "youtubeUrl", "tiktokUrl", "facebookUrl", "discordUrl", "twitterUrl",
+        "photo1Url", "photo2Url", "photo3Url", "photo4Url", "photo5Url", "photo6Url",
+        "showPhone",
+      ]);
+      const filtered: Record<string, any> = {};
+      for (const key of Object.keys(editable)) {
+        if (ALLOWED_PROFILE_FIELDS.has(key)) filtered[key] = editable[key];
+      }
+      if (Object.keys(filtered).length === 0) {
+        return res.status(400).json({ message: "No valid profile fields provided" });
+      }
+
+      const profile = await storage.updateProfile(userId, filtered);
+      if (!profile) return res.status(404).json({ message: "Profile not found — create one via the web app first" });
+      return res.json({ ok: true, profile });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // PATCH /api/mobile/account — update account-level info (email) (Bearer token)
+  app.patch("/api/mobile/account", async (req, res) => {
+    try {
+      const userId = resolveMobileUser(req, res);
+      if (userId === null) return;
+      const { email } = req.body as { email?: string };
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ message: "email is required" });
+      }
+      const emailTrimmed = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      // Check if email is already taken by another user
+      const existing = await storage.getUserByEmail(emailTrimmed);
+      if (existing && existing.id !== userId) {
+        return res.status(409).json({ message: "Email already in use" });
+      }
+      const updated = await storage.updateUserEmail(userId, emailTrimmed);
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      return res.json({
+        ok: true,
+        account: {
+          id: updated.id,
+          email: updated.email,
+          role: updated.role,
+          subscriptionTier: updated.subscriptionTier,
         },
       });
     } catch (err) {
