@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Flame, Clock, Users, Zap, RefreshCw, CheckCircle2, Plus, Tag, ArrowLeft } from "lucide-react";
+import { Flame, Clock, Users, Zap, RefreshCw, CheckCircle2, Plus, Home, Tag } from "lucide-react";
 import type { GzFlashAdWithOwner } from "@shared/schema";
 
 function useCountdown(expiresAt: string) {
@@ -252,9 +251,58 @@ export default function OfferCenterPage() {
     return acc;
   }, { hot: 0, trending: 0, active: 0, cool: 0 });
 
+  const avatarUrl = (user as any)?.profile?.avatarUrl as string | undefined;
+  const username = (user as any)?.profile?.username as string | undefined;
+  const initials = username ? username.slice(0, 2).toUpperCase() : "?";
+
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <Navbar />
+
+      {/* Slim top bar */}
+      <div className="sticky top-0 z-50 border-b border-[#111] bg-[#050505]/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 h-12 flex items-center justify-between">
+          <Link href="/">
+            <button
+              className="flex items-center gap-2 text-[#555] hover:text-white transition-colors text-sm font-medium"
+              data-testid="btn-back-home"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </button>
+          </Link>
+
+          {user ? (
+            <Link href="/profile">
+              <button
+                className="flex items-center gap-2 group"
+                data-testid="btn-profile-avatar"
+                title={username ?? "Profile"}
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={username ?? "avatar"}
+                    className="w-8 h-8 rounded-full object-cover border border-[#222] group-hover:border-blue-500/50 transition-all"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center text-blue-300 text-xs font-bold group-hover:border-blue-500/60 transition-all">
+                    {initials}
+                  </div>
+                )}
+              </button>
+            </Link>
+          ) : (
+            <Link href="/auth">
+              <button
+                className="text-xs font-semibold text-[#555] hover:text-white transition-colors"
+                data-testid="btn-login"
+              >
+                Log in
+              </button>
+            </Link>
+          )}
+        </div>
+      </div>
 
       <div className="max-w-6xl mx-auto px-4 pt-6 pb-16">
 
