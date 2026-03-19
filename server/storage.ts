@@ -2016,7 +2016,20 @@ export class DatabaseStorage implements IStorage {
   async createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd> {
     const expiresAt = new Date(Date.now() + data.durationMinutes * 60 * 1000);
     const potencyScore = this.computePotency(data.retailPriceCents, data.discountPercent, data.quantity, 0, data.durationMinutes, expiresAt);
-    const [ad] = await db.insert(gzFlashAds).values({ userId, ...data, artworkUrl: data.artworkUrl ?? null, displayMode: data.displayMode ?? "countdown", claimedCount: 0, potencyScore, status: "active", expiresAt }).returning();
+    const [ad] = await db.insert(gzFlashAds).values({
+      userId,
+      title: data.title,
+      artworkUrl: data.artworkUrl ?? null,
+      retailPriceCents: data.retailPriceCents,
+      discountPercent: data.discountPercent,
+      quantity: data.quantity,
+      durationMinutes: data.durationMinutes,
+      displayMode: data.displayMode ?? "countdown",
+      claimedCount: 0,
+      potencyScore,
+      status: "active",
+      expiresAt,
+    }).returning();
     return ad;
   }
 
