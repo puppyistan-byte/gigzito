@@ -7,7 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Zap, X, Flame, Clock, Tag, Users, TrendingUp, RefreshCw,
-  Upload, Calendar, ImageIcon, Timer, Hash,
+  Upload, Calendar, ImageIcon, Timer, Hash, FileText,
+  CheckCircle2, AlertCircle, AlertTriangle, ChevronRight,
 } from "lucide-react";
 import type { GzFlashAd } from "@shared/schema";
 
@@ -110,6 +111,236 @@ export function PotencyTooltip({ open, onClose }: { open: boolean; onClose: () =
   );
 }
 
+type Grade = "strong" | "good" | "fair" | "weak";
+
+function gradeIcon(g: Grade) {
+  if (g === "strong") return <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0" />;
+  if (g === "good")   return <CheckCircle2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />;
+  if (g === "fair")   return <AlertTriangle className="h-3.5 w-3.5 text-yellow-400 shrink-0" />;
+  return                     <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />;
+}
+function gradeBadgeBg(g: Grade) {
+  if (g === "strong") return "bg-green-900/30 border-green-700/40 text-green-300";
+  if (g === "good")   return "bg-blue-900/30 border-blue-700/40 text-blue-300";
+  if (g === "fair")   return "bg-yellow-900/30 border-yellow-700/40 text-yellow-300";
+  return "bg-red-900/30 border-red-700/40 text-red-300";
+}
+function gradeLabel(g: Grade) {
+  if (g === "strong") return "STRONG";
+  if (g === "good")   return "GOOD";
+  if (g === "fair")   return "FAIR";
+  return "WEAK";
+}
+
+function buildReport(
+  retailDollars: number,
+  flashDollars: number,
+  discountNum: number,
+  qtyNum: number,
+  durationMinutes: number,
+  initialScore: number,
+  peakScore: number,
+) {
+  const savingsIndex = retailDollars > 0 ? (retailDollars - flashDollars) / retailDollars : 0;
+  const priceFriction = flashDollars > 0 ? 1 / (1 + flashDollars / COMFORT_DOLLARS) : 0;
+
+  let savingsGrade: Grade;
+  let savingsTip: string;
+  if (discountNum >= 70) { savingsGrade = "strong"; savingsTip = "Your discount is powerful — buyers will notice the deal immediately."; }
+  else if (discountNum >= 50) { savingsGrade = "good"; savingsTip = `Solid discount. Pushing to 70%+ would move you into the TRENDING zone faster.`; }
+  else if (discountNum >= 30) { savingsGrade = "fair"; savingsTip = `A ${discountNum}% discount is moderate. Increase to 50%+ to meaningfully boost your At Launch score.`; }
+  else { savingsGrade = "weak"; savingsTip = `${discountNum}% is a low discount. Buyers compare fast — under 30% often gets ignored. Aim for at least 50%.`; }
+
+  let priceGrade: Grade;
+  let priceTip: string;
+  if (flashDollars <= 0) { priceGrade = "weak"; priceTip = "Enter a flash price to see your score."; }
+  else if (flashDollars < 25) { priceGrade = "strong"; priceTip = `$${flashDollars.toFixed(2)} is well below the $100 impulse-buy comfort zone — excellent for Price Ease.`; }
+  else if (flashDollars < 75) { priceGrade = "good"; priceTip = `$${flashDollars.toFixed(2)} is manageable. Dropping below $25 would push Price Ease significantly higher.`; }
+  else if (flashDollars < 150) { priceGrade = "fair"; priceTip = `$${flashDollars.toFixed(2)} is above the sweet spot. Prices above $100 create friction — buyers hesitate on impulse buys.`; }
+  else { priceGrade = "weak"; priceTip = `$${flashDollars.toFixed(2)} is a high flash price. The formula applies a steep friction penalty above $100 — this is your biggest drag.`; }
+
+  let qtyGrade: Grade;
+  let qtyTip: string;
+  if (qtyNum <= 5) { qtyGrade = "strong"; qtyTip = `Only ${qtyNum} slot${qtyNum > 1 ? "s" : ""} creates instant scarcity. The Scarcity multiplier climbs quickly as each one is claimed.`; }
+  else if (qtyNum <= 20) { qtyGrade = "good"; qtyTip = `${qtyNum} slots is a healthy offer size. Scarcity pressure builds as the first half sells out.`; }
+  else if (qtyNum <= 50) { qtyGrade = "fair"; qtyTip = `${qtyNum} slots means it takes longer for scarcity to kick in. Consider limiting to 20 or fewer for faster momentum.`; }
+  else { qtyGrade = "weak"; qtyTip = `${qtyNum} slots is a large inventory. Scarcity won't become a meaningful factor until you're near sold-out. Smaller batches perform better.`; }
+
+  let durGrade: Grade;
+  let durTip: string;
+  const durHours = durationMinutes / 60;
+  if (durHours <= 2) { durGrade = "strong"; durTip = `${durationMinutes < 120 ? durationMinutes + " minutes" : "2 hours"} is a tight window — Time Pressure ramps up fast, pushing toward 2× quickly.`; }
+  else if (durHours <= 8) { durGrade = "good"; durTip = `${Math.round(durHours)}h is a good flash window. Urgency builds through the afternoon/evening cycle.`; }
+  else if (durHours <= 24) { durGrade = "fair"; durTip = `${Math.round(durHours)}h is a long run. Time Pressure won't feel urgent until the final few hours. Try 4–6h for better punch.`; }
+  else { durGrade = "weak"; durTip = `${Math.round(durHours)}h is too long for a flash event. Buyers have no urgency to act. Shorten to 8h or less to compress the Time factor.`; }
+
+  const scoreNeededForHot = 90;
+  const scoreNeededForTrending = 70;
+
+  let target = "";
+  let targetTips: string[] = [];
+  if (initialScore >= 90) {
+    target = "You're already in the HOT zone at launch — you're maximizing your position.";
+  } else if (initialScore >= 70) {
+    target = "You're TRENDING. To reach HOT (90+) at launch you need both a very steep discount (90%+) and a very low flash price (under $10).";
+    if (discountNum < 90) targetTips.push(`Raise your discount to 90%+ (currently ${discountNum}%)`);
+    if (flashDollars >= 10) targetTips.push(`Lower your flash price below $10 (currently $${flashDollars.toFixed(2)})`);
+  } else if (initialScore >= 40) {
+    target = "You're ACTIVE. To climb to TRENDING (70+) at launch, focus on these two levers:";
+    if (discountNum < 70) targetTips.push(`Push discount to 70%+ (currently ${discountNum}%)`);
+    if (flashDollars >= 30) targetTips.push(`Bring flash price under $30 (currently $${flashDollars.toFixed(2)})`);
+    if (qtyNum > 20) targetTips.push(`Reduce slots to 20 or fewer (currently ${qtyNum})`);
+  } else {
+    target = `Your At Launch score is ${initialScore.toFixed(1)} (COOL). Here's what to fix first:`;
+    if (discountNum < 50) targetTips.push(`Increase discount to at least 50% (currently ${discountNum}%)`);
+    if (flashDollars >= 75) targetTips.push(`Lower your flash price below $75 (currently $${flashDollars.toFixed(2)})`);
+    if (qtyNum > 30) targetTips.push(`Cut slots down to 10–20 (currently ${qtyNum})`);
+    if (durHours > 12) targetTips.push(`Shorten duration to 6–12h (currently ${Math.round(durHours)}h)`);
+  }
+
+  return {
+    savingsGrade, savingsTip, savingsIndex,
+    priceGrade, priceTip, priceFriction,
+    qtyGrade, qtyTip,
+    durGrade, durTip,
+    target, targetTips,
+    initialScore, peakScore,
+  };
+}
+
+function ScoreReportModal({
+  open, onClose,
+  retailDollars, flashDollars, discountNum, qtyNum, durationMinutes, initialScore, peakScore,
+}: {
+  open: boolean; onClose: () => void;
+  retailDollars: number; flashDollars: number; discountNum: number;
+  qtyNum: number; durationMinutes: number; initialScore: number; peakScore: number;
+}) {
+  if (!open) return null;
+  const r = buildReport(retailDollars, flashDollars, discountNum, qtyNum, durationMinutes, initialScore, peakScore);
+  const launchZone = getHeatZone(initialScore);
+  const peakZone = getHeatZone(peakScore);
+
+  const factors: { icon: React.ReactNode; label: string; value: string; grade: Grade; tip: string }[] = [
+    {
+      icon: <Tag className="h-3.5 w-3.5 text-green-400" />,
+      label: "Savings Index",
+      value: `${discountNum}% off  →  ${(r.savingsIndex * 100).toFixed(1)} pts`,
+      grade: r.savingsGrade,
+      tip: r.savingsTip,
+    },
+    {
+      icon: <TrendingUp className="h-3.5 w-3.5 text-blue-400" />,
+      label: "Price Ease",
+      value: flashDollars > 0 ? `$${flashDollars.toFixed(2)} flash  →  ${(r.priceFriction).toFixed(3)}×` : "Enter a price",
+      grade: r.priceGrade,
+      tip: r.priceTip,
+    },
+    {
+      icon: <Users className="h-3.5 w-3.5 text-purple-400" />,
+      label: "Scarcity (at launch)",
+      value: `${qtyNum} slot${qtyNum !== 1 ? "s" : ""}  →  starts at 1.0×, peaks at 2.0×`,
+      grade: r.qtyGrade,
+      tip: r.qtyTip,
+    },
+    {
+      icon: <Clock className="h-3.5 w-3.5 text-orange-400" />,
+      label: "Time Pressure (at launch)",
+      value: `${durationMinutes >= 60 ? `${Math.round(durationMinutes / 60)}h` : `${durationMinutes}m`} duration  →  starts at 1.0×, peaks at 2.0×`,
+      grade: r.durGrade,
+      tip: r.durTip,
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
+      <div
+        className="bg-[#060c1a] border border-blue-800/60 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="score-report-modal"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-400" />
+            <h3 className="text-white font-bold text-base">AT Launch Score Report</h3>
+          </div>
+          <button onClick={onClose} className="text-[#555] hover:text-white" data-testid="close-report">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Score summary */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl p-3 text-center">
+            <p className="text-[10px] text-[#555] mb-1 uppercase tracking-wider">At Launch</p>
+            <p className="text-3xl font-black font-mono text-white">{initialScore.toFixed(1)}</p>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${launchZone.bg} ${launchZone.color}`}>
+              {launchZone.label}
+            </span>
+          </div>
+          <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl p-3 text-center">
+            <p className="text-[10px] text-[#555] mb-1 uppercase tracking-wider">Peak Potential</p>
+            <p className="text-3xl font-black font-mono text-white">{peakScore.toFixed(1)}</p>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${peakZone.bg} ${peakZone.color}`}>
+              {peakZone.label}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-blue-950/30 border border-blue-800/30 rounded-xl px-4 py-2.5 text-center mb-5">
+          <span className="text-blue-200 font-mono text-[10px]">
+            Score = Savings × TimePressure × Scarcity × PriceEase × 100
+          </span>
+        </div>
+
+        {/* Factor breakdown */}
+        <div className="space-y-3 mb-5">
+          {factors.map(({ icon, label, value, grade, tip }) => (
+            <div key={label} className="bg-[#0a0f1e] border border-[#1a2030] rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  {icon}
+                  <span className="text-xs font-semibold text-[#ccc]">{label}</span>
+                </div>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${gradeBadgeBg(grade)}`}>
+                  {gradeLabel(grade)}
+                </span>
+              </div>
+              <p className="text-[10px] text-[#666] font-mono mb-2">{value}</p>
+              <div className="flex items-start gap-1.5">
+                {gradeIcon(grade)}
+                <p className="text-[10px] text-[#aaa] leading-relaxed">{tip}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* What to fix */}
+        <div className="bg-[#0a0f1e] border border-blue-900/50 rounded-xl p-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <ChevronRight className="h-3.5 w-3.5 text-blue-400" />
+            <p className="text-xs font-semibold text-blue-300">Score Advice</p>
+          </div>
+          <p className="text-[10px] text-[#aaa] leading-relaxed mb-2">{r.target}</p>
+          {r.targetTips.length > 0 && (
+            <ul className="space-y-1">
+              {r.targetTips.map((t) => (
+                <li key={t} className="flex items-start gap-1.5 text-[10px] text-[#bbb]">
+                  <span className="text-blue-400 mt-0.5">→</span>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[9px] text-[#444] mt-3">
+            Time Pressure and Scarcity always start at 1.0× and climb to 2.0× as time expires and slots are claimed. Your At Launch score is determined entirely by Savings and Price Ease.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function minToNow(m: number): Date {
   return new Date(Date.now() + m * 60 * 1000);
 }
@@ -156,6 +387,7 @@ export function GzFlashForm({
   const [displayMode, setDisplayMode] = useState<"countdown" | "slots">(
     (existing?.displayMode as "countdown" | "slots") ?? "countdown",
   );
+  const [showReport, setShowReport] = useState(false);
 
   const retailDollars = parseFloat(retailStr || "0");
   const flashDollars = parseFloat(flashStr || "0");
@@ -230,6 +462,18 @@ export function GzFlashForm({
   };
 
   return (
+    <>
+    <ScoreReportModal
+      open={showReport}
+      onClose={() => setShowReport(false)}
+      retailDollars={retailDollars}
+      flashDollars={flashDollars}
+      discountNum={discountNum}
+      qtyNum={qtyNum}
+      durationMinutes={durationMinutes}
+      initialScore={initialScore}
+      peakScore={peakScore}
+    />
     <div className="bg-[#070d1a] border border-blue-800/50 rounded-2xl p-6" data-testid="flash-ad-form">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
@@ -500,9 +744,20 @@ export function GzFlashForm({
         {/* Live Score Preview */}
         {initialScore > 0 && (
           <div className="bg-[#060c1a] border border-blue-900/50 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Flame className="h-4 w-4 text-blue-400" />
-              <span className="text-xs text-[#777] uppercase tracking-wider font-semibold">GZFlash Score Preview</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Flame className="h-4 w-4 text-blue-400" />
+                <span className="text-xs text-[#777] uppercase tracking-wider font-semibold">GZFlash Score Preview</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReport(true)}
+                className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-200 border border-blue-800/50 hover:border-blue-600/60 rounded-lg px-2 py-1 transition-colors"
+                data-testid="btn-explain-report"
+              >
+                <FileText className="h-3 w-3" />
+                Explain Report
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -577,5 +832,6 @@ export function GzFlashForm({
         </Button>
       </div>
     </div>
+    </>
   );
 }
