@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "NKDpSkpxXWVF4X3YPbk3k"
+uri = "file://mobile-app.tar.gz"
+type = "unspecified"
+title = "mobile-app.tar.gz"
