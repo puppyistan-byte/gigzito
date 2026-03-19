@@ -227,6 +227,34 @@ export function useMyAudience() {
   });
 }
 
+export function useActivityFeed() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["activity-feed"],
+    queryFn: () => apiRequest<any[]>("/api/notifications/activity"),
+    enabled: !!token,
+    refetchInterval: 30000,
+  });
+}
+
+export function useProfileViewers() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["profile-viewers"],
+    queryFn: () => apiRequest<any[]>("/api/profile/me/viewers"),
+    enabled: !!token,
+  });
+}
+
+export function useWhoLovedMe() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["who-loved-me"],
+    queryFn: () => apiRequest<any[]>("/api/profile/me/who-loved-me"),
+    enabled: !!token,
+  });
+}
+
 export function useGeeZeeInbox() {
   const { apiRequest, token } = useAuth();
   return useQuery({

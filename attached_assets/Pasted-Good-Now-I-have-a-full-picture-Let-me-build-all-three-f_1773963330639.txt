@@ -1,0 +1,75 @@
+Good. Now I have a full picture. Let me build all three features end-to-end:
+
+Profile views — new table, tracking on public profile visits, "who viewed me" feed
+Comment likes — new table, toggle endpoint, "who liked my comment" feed
+Who loved me — existing data, just needs an endpoint
+Plus a unified Activity Feed page.
+
+Now let me build everything. Starting with schema additions, then storage, routes, and frontend:
+
+Now update storage.ts — add the imports, interface declarations, and implementations:
+
+Now I'll add the imports, interface methods, and implementations all at once:
+
+Now add the interface methods to IStorage:
+
+Now add the implementations at the end of DatabaseStorage:
+
+Now add all the new API routes to routes.ts:
+
+Now I need to inject profile view tracking into the public provider profile endpoint. Let me find it:
+
+Found it — the public profile endpoint is /api/profile/:id. Let me find and update it:
+
+Found it. Now inject profile view tracking into the public provider profile endpoint:
+
+Now create the two new database tables directly via SQL:
+
+Both tables created. Now let me build the frontend Activity Feed page:
+
+Now let me check App.tsx and the navbar to know what to update:
+
+Now create the Activity Feed page and update the navbar and routing simultaneously:
+
+Now update App.tsx and navbar.tsx together:
+
+Now add the Activity link to the navbar dropdown:
+
+Let me verify the server compiled correctly with the new changes:
+
+Server is running cleanly with live hot updates. Let me do a quick endpoint test to confirm everything is wired up:
+
+The server seems to be serving the frontend instead of API JSON, which means there might be a TypeScript/compilation error. Let me restart and check:
+
+All endpoints are live and responding correctly. Let me do a final verification of all the new endpoints:
+
+Everything is live and working correctly. Here's a complete summary of what was built:
+
+What's New — Activity & Engagement Tracking
+Profile View Tracking
+Every time a logged-in user visits another provider's public profile page, it's silently recorded. You won't track your own views — only distinct other users count.
+
+Comment Likes
+Users can now like individual comments on any video. The toggle endpoint adds or removes their like, and the like count updates in real time.
+
+Who Loved Me
+The existing "love vote" system already tracked who cast love votes — it just had no way to surface that data to the profile owner. Now it does.
+
+Activity Feed Page — /activity
+Accessible from the navbar menu under Activity Feed. Shows a unified, reverse-chronological list of:
+
+Event	Icon	Badge
+Someone viewed your profile	👁 Blue eye	VIEW
+Someone showed you love	❤️ Pink heart	LOVE
+Someone liked a comment on your video	❤️ Red heart	LIKE
+Filter tabs across the top: All / Views / Love / Likes
+Each event shows the actor's avatar, display name or @username, what they did, and time ago
+Refreshes automatically every 30 seconds in the background
+Empty state with context-sensitive messages per filter
+New API Endpoints
+Method	Path	Auth	Description
+GET	/api/notifications/activity	Required	Unified feed (views + loves + comment likes)
+GET	/api/profile/me/viewers	Required	Who viewed my profile
+GET	/api/profile/me/who-loved-me	Required	Who showed me love
+POST	/api/listings/comments/:id/like	Required	Toggle like on a comment
+GET	/api/listings/comments/:id/likers
