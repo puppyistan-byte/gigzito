@@ -62,23 +62,26 @@ function MenuItem({
   value,
   onPress,
   danger,
+  accent,
 }: {
   icon: keyof typeof Feather.glyphMap;
   label: string;
   value?: string;
   onPress?: () => void;
   danger?: boolean;
+  accent?: string;
 }) {
+  const iconColor = danger ? Colors.danger : accent ?? Colors.accent;
   return (
     <Pressable
       onPress={() => { Haptics.selectionAsync(); onPress?.(); }}
       style={({ pressed }) => [menuStyles.item, pressed && menuStyles.pressed]}
     >
       <View style={menuStyles.left}>
-        <View style={[menuStyles.iconBox, danger && menuStyles.dangerBox]}>
-          <Feather name={icon} size={16} color={danger ? Colors.danger : Colors.accent} />
+        <View style={[menuStyles.iconBox, danger && menuStyles.dangerBox, accent && { backgroundColor: `${accent}18` }]}>
+          <Feather name={icon} size={16} color={iconColor} />
         </View>
-        <Text style={[menuStyles.label, danger && menuStyles.dangerLabel]}>{label}</Text>
+        <Text style={[menuStyles.label, danger && menuStyles.dangerLabel, accent && { color: accent }]}>{label}</Text>
       </View>
       <View style={menuStyles.right}>
         {value ? <Text style={menuStyles.value}>{value}</Text> : null}
@@ -211,6 +214,25 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {(user?.role === "ADMIN" || user?.role === "SUPERADMIN") ? (
+        <View style={styles.menuSection}>
+          <View style={styles.adminHeaderRow}>
+            <View style={styles.adminBadge}>
+              <Feather name="shield" size={11} color="#fff" />
+              <Text style={styles.adminBadgeText}>SUPERADMIN</Text>
+            </View>
+          </View>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="settings"
+              label="Admin Portal"
+              onPress={() => router.push("/profile/admin")}
+              accent="#9933FF"
+            />
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.menuSection}>
         <Text style={styles.menuHeader}>Security</Text>
         <View style={styles.menuCard}>
@@ -327,5 +349,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
     overflow: "hidden",
+  },
+  adminHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  adminBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#9933FF",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  adminBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.6,
   },
 });

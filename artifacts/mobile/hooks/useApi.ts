@@ -235,6 +235,59 @@ export function useGeeZeeInbox() {
   });
 }
 
+export function useAdminDashboard() {
+  const { apiRequest, user } = useAuth();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+  return useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: () => apiRequest<any>("/api/mobile/admin/dashboard"),
+    enabled: isAdmin,
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+export function useAdminUsers(page = 1, search = "") {
+  const { apiRequest, user } = useAuth();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+  const params = new URLSearchParams({ page: String(page), limit: "20" });
+  if (search) params.set("search", search);
+  return useQuery({
+    queryKey: ["admin-users", page, search],
+    queryFn: () => apiRequest<any>(`/api/admin/users?${params.toString()}`),
+    enabled: isAdmin,
+    staleTime: 30_000,
+  });
+}
+
+export function useAdminFlash() {
+  const { apiRequest, user } = useAuth();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+  return useQuery({
+    queryKey: ["admin-flash"],
+    queryFn: () => apiRequest<any[]>("/api/gzflash"),
+    enabled: isAdmin,
+    staleTime: 30_000,
+  });
+}
+
+export function useAdminActionMutation() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ method, path, body }: { method: string; path: string; body?: object }) =>
+      apiRequest<any>(path, {
+        method,
+        body: body ? JSON.stringify(body) : undefined,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-flash"] });
+    },
+  });
+}
+
 export function useFullProfile() {
   const { apiRequest, token } = useAuth();
   return useQuery({

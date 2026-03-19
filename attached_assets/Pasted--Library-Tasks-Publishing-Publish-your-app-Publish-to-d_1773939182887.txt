@@ -1,0 +1,54 @@
+
+Library
+Tasks
+Publishing
+Publish your app
+Publish to domain
+Available
+code-canvas-puppyistan
+.replit.app
+Who can access your app
+Engagement tools
+Enable feedback widget
+Add a feedback widget to the corner of your published app. Review submissions in your inbox and send to Agent for fixes.
+
+"Made with Replit" badge
+Display a "Made with Replit" referral badge on your published app, when someone signs up using your referral link, you earn credits. Learn more.
+
+Adjust settings
+Manually configure machine settings, secrets, build commands, ports, and more.
+What does publishing do?
+Preview
+Agent
+still getting 500 errors on hills server
+
+i have two profile windows. eliminate the outer one please
+
+can you tell my mobile developer the api for the GZFlash Sales Module and the Coloring - Blue
+
+I want to make the first 30 gigzito GZFlash ads have 1 Ranking number that changes and for the 1st 30 ads as you arange them by score give them a fiery number rank . the fiery number is big enough to grab your attention and its right in this area (my number 1)
+
+anything jim has to do in hills?
+
+can you give the mobile developer the api and smtp information for a password reset function that we have
+
+need an api for mobile app users to get their personal profile and their geezee podile to edit both. regardless of tier
+
+need api for superadmin portal l for admin@gigzito.com put in the user profile to administrate the app
+
+Let me check what admin endpoints already exist:
+
+Good — there's already a rich set of admin endpoints. Let me check how they're currently protected and what auth method they use:
+
+The existing admin endpoints already accept Bearer tokens via the JWT bridge built into the auth guards. Let me check the few that read session.userId directly for self-protection logic, then I'll build a dedicated superadmin dashboard summary endpoint plus document the full list:
+
+All the existing admin routes already accept Bearer tokens — the JWT bridge is already wired in. What's missing is a single consolidated dashboard summary endpoint so the mobile admin portal can load everything in one call. I'll add that, then give you the full reference:
+
+Now I'll add the GET /api/mobile/admin/dashboard endpoint. Let me find the right spot in routes.ts to insert it — right after the existing mobile endpoints:
+
+Now I'll add the admin dashboard endpoint after the mobile section:
+
+
+Make, test, iterate…
+Agent
+Agent can make changes, review its work, and debug itself automatically.
