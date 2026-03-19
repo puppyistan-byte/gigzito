@@ -162,6 +162,17 @@ export function FeedCard({ item, isActive }: Props) {
       {/* Hamburger — top left */}
       <HamburgerButton onPress={() => setMenuOpen(true)} />
 
+      {/* Add Video — next to hamburger, only when logged in */}
+      {token ? (
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/listing/create" as any); }}
+          style={styles.addVideoBtn}
+        >
+          <Feather name="plus" size={14} color="#fff" />
+          <Text style={styles.addVideoText}>Add Video</Text>
+        </Pressable>
+      ) : null}
+
       {/* Duration timer — top right */}
       <View style={styles.timerWrap}>
         <Feather name="clock" size={11} color={timerColor} />
@@ -342,6 +353,24 @@ const styles = StyleSheet.create({
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
+  },
+  addVideoBtn: {
+    position: "absolute",
+    top: 56,
+    left: 68,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: Colors.danger,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    zIndex: 10,
+  },
+  addVideoText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   timerWrap: {
     position: "absolute",
