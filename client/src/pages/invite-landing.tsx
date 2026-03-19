@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Play, Zap, MapPin, BarChart3, CreditCard, Users, Star,
   ChevronDown, Send, CheckCircle, Tv, Video, TrendingUp, Globe,
-  Shield, Sparkles, Trophy, Gift
+  Shield, Sparkles, Trophy, Gift, Radio
 } from "lucide-react";
 
 const TIERS = [
@@ -109,7 +109,7 @@ const FEATURES = [
     color: "#f59e0b",
     title: "GigJack Flash Events",
     subtitle: "Real-Time Booking & Deals",
-    body: "Flash-duration live events where creators and businesses offer time-sensitive deals, bookings, or experiences. Scarcity drives urgency. Every second counts.",
+    body: "Flash-duration live events where creators and businesses offer time-sensitive deals, bookings, or experiences. GZMarketerPro and GZBusiness members can momentarily take over the entire site — up to 5 seconds — commanding every visitor's full attention for a standing flash offer. Scarcity drives urgency. Every second counts.",
   },
   {
     icon: TrendingUp,
@@ -367,7 +367,9 @@ export default function InviteLandingPage() {
 
       {/* ── GIGJACK CALLOUT ── */}
       <section className="py-4 px-6 pb-20">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-6">
+
+          {/* Main callout */}
           <div className="bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 rounded-3xl p-10 md:p-14 flex flex-col md:flex-row gap-10 items-center">
             <div className="shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center bg-amber-500/20 border border-amber-500/30">
               <Zap className="w-10 h-10 text-amber-400" />
@@ -380,6 +382,49 @@ export default function InviteLandingPage() {
               </p>
             </div>
           </div>
+
+          {/* Site Takeover callout */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-950/60 via-orange-950/40 to-red-950/30 border border-amber-500/30 rounded-3xl p-8 md:p-12">
+            {/* Pulse glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 pointer-events-none"
+              style={{ background: "radial-gradient(ellipse, #f59e0b 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
+
+            <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
+              <div className="shrink-0 flex flex-col items-center gap-2">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-amber-500/25 border-2 border-amber-500/50">
+                  <Radio className="w-8 h-8 text-amber-300" />
+                </div>
+                <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest text-center">Power Move</span>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 rounded-full px-3 py-1 mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-amber-400 text-xs font-bold uppercase tracking-widest">GZMarketerPro · GZBusiness</span>
+                </div>
+                <h4 className="text-xl md:text-2xl font-black text-white mb-3">
+                  Site Takeover — Own Every Screen for 5 Seconds
+                </h4>
+                <p className="text-gray-300 leading-relaxed mb-5">
+                  GZMarketerPro and GZBusiness members can command the full attention of every visitor on Gigzito simultaneously. Trigger a <strong className="text-amber-300">5-second platform-wide takeover</strong> tied to your active flash offer — your deal appears front and center, full-screen, on every device, the moment it fires.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { label: "Duration", value: "Up to 5 seconds", icon: "⏱" },
+                    { label: "Reach", value: "Every active visitor", icon: "📡" },
+                    { label: "Trigger", value: "Your standing flash offer", icon: "⚡" },
+                  ].map((item) => (
+                    <div key={item.label} className="bg-black/30 border border-amber-500/15 rounded-xl p-3 text-center">
+                      <div className="text-xl mb-1">{item.icon}</div>
+                      <div className="text-amber-400 text-[10px] font-bold uppercase tracking-wider mb-0.5">{item.label}</div>
+                      <div className="text-white text-xs font-semibold">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
