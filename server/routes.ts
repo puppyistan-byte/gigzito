@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -858,6 +858,32 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       });
     } catch (err) {
       console.error("[admin/dashboard]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // POST /api/invite/send — Public invitation email (no auth required)
+  // Rate limited to 5 invitations per IP per hour
+  const inviteRateLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { message: "Too many invitations sent. Please wait an hour." } });
+  app.post("/api/invite/send", inviteRateLimiter, async (req, res) => {
+    try {
+      const schema = z.object({
+        senderName: z.string().min(1).max(80).trim(),
+        senderEmail: z.string().email().max(150).trim(),
+        targetName: z.string().min(1).max(80).trim(),
+        targetEmail: z.string().email().max(150).trim(),
+      });
+      let body: z.infer<typeof schema>;
+      try { body = schema.parse(req.body); }
+      catch (err: any) {
+        return res.status(400).json({ message: err.errors?.[0]?.message ?? "Invalid input" });
+      }
+      const APP_URL = process.env.APP_URL ?? "https://gigzito.com";
+      const landingUrl = `${APP_URL}/gz-invite`;
+      await sendInvitationEmail({ ...body, landingUrl });
+      return res.json({ ok: true, devMode: !process.env.SMTP_HOST });
+    } catch (err) {
+      console.error("[invite/send]", err);
       return res.status(500).json({ message: "Server error" });
     }
   });

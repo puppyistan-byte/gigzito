@@ -336,6 +336,132 @@ export async function sendEmail(opts: { toEmail: string; subject: string; html: 
   return { devMode: false };
 }
 
+export async function sendInvitationEmail(opts: {
+  senderName: string;
+  senderEmail: string;
+  targetName: string;
+  targetEmail: string;
+  landingUrl: string;
+}): Promise<{ devMode: boolean }> {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#080808;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#080808;padding:40px 20px;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+  <!-- HEADER -->
+  <tr><td style="background:linear-gradient(135deg,#1a0000 0%,#0a0a0a 100%);border:1px solid #2a0000;border-radius:20px 20px 0 0;padding:40px 40px 32px;text-align:center;">
+    <div style="font-size:28px;font-weight:900;letter-spacing:-1px;color:#ff2b2b;margin-bottom:6px;">GIGZITO</div>
+    <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:4px;">Social Commerce Platform</div>
+  </td></tr>
+
+  <!-- PERSONAL NOTE -->
+  <tr><td style="background:#0d0d0d;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:32px 40px;">
+    <div style="background:#ff2b2b18;border:1px solid #ff2b2b30;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
+      <div style="font-size:11px;color:#ff2b2b;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Personal Invitation</div>
+      <div style="font-size:16px;color:#fff;font-weight:600;">
+        ${opts.senderName} <span style="color:#666;font-weight:400;">( ${opts.senderEmail} )</span> invited you to Gigzito.
+      </div>
+    </div>
+    <h1 style="font-size:32px;font-weight:900;color:#fff;margin:0 0 12px;line-height:1.2;">
+      Hi ${opts.targetName},<br>
+      <span style="color:#ff2b2b;">You're in.</span>
+    </h1>
+    <p style="color:#aaa;font-size:16px;line-height:1.7;margin:0 0 24px;">
+      ${opts.senderName} thinks you belong in an ecosystem where creators, consumers, and businesses grow together in one place. They're probably right.
+    </p>
+    <p style="color:#777;font-size:14px;line-height:1.7;margin:0;">
+      Gigzito is the first platform that combines TikTok-style video discovery, live broadcasting, digital identity cards, geo-triggered promotions, flash deals, and real engagement analytics — all in one connected system designed so that <strong style="color:#fff;">every participant's success feeds someone else's growth.</strong>
+    </p>
+  </td></tr>
+
+  <!-- FEATURE BLOCKS -->
+  <tr><td style="background:#0a0a0a;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:8px 40px 28px;">
+    <div style="font-size:11px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">What's Inside</div>
+
+    <!-- Feature rows -->
+    ${[
+      { color:"#ff2b2b", emoji:"📹", title:"The Video Feed", body:"A TikTok-style vertical scroll where creators and businesses publish short-form video to be discovered. Your story, on an open stage." },
+      { color:"#3b82f6", emoji:"📺", title:"Zito TV — Live Broadcasting", body:"Go live or relay your stream from another platform. Gigzito captures your engagement metrics either way, giving you insight no other platform offers." },
+      { color:"#a855f7", emoji:"🃏", title:"GeeZee Cards — Your Digital Identity", body:"A personal intro card, creator profile, and consumer advantage card all in one. Listed in the GeeZee Rolodex so others can find and connect with you." },
+      { color:"#f59e0b", emoji:"⚡", title:"GigJack Flash Events", body:"Time-locked, seat-limited experiences. Live bookings, skill sessions, and flash deals that vanish when the clock hits zero. The community that moves fast wins." },
+      { color:"#22c55e", emoji:"📍", title:"Geo Push Campaigns", body:"Walking near a partner business? Your phone knows. Members receive exclusive real-time offers triggered by location. Foot traffic becomes customers." },
+      { color:"#ff2b2b", emoji:"📊", title:"GZMetrics — Real Analytics", body:"Watch time, returning viewers, audience demographics, CTA clicks. Intelligence that creates strategy, not just vanity numbers." },
+    ].map(f => `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+    <tr>
+      <td width="44" valign="top" style="padding-top:2px;">
+        <div style="width:36px;height:36px;background:${f.color}20;border:1px solid ${f.color}40;border-radius:10px;text-align:center;line-height:36px;font-size:16px;">${f.emoji}</div>
+      </td>
+      <td style="padding-left:14px;">
+        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;">${f.title}</div>
+        <div style="font-size:13px;color:#777;line-height:1.6;">${f.body}</div>
+      </td>
+    </tr>
+    </table>`).join("")}
+  </td></tr>
+
+  <!-- TIERS -->
+  <tr><td style="background:#0d0d0d;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:28px 40px;">
+    <div style="font-size:11px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">Membership Tiers</div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+    ${[
+      { name:"GZLurker", price:"Free", color:"#9ca3af", desc:"Full feed access, GeeZee Card, flash coupons, geo offers, ZitoTV." },
+      { name:"GZMarketer", price:"$12/mo", color:"#3b82f6", desc:"+ Video listings, Audience Aggregator, broadcast tools, GZMetrics." },
+      { name:"GZMarketerPro", price:"$15/mo", color:"#a855f7", desc:"+ GigJack Events, All Eyes On Me slots, ZitoTV presenter access." },
+      { name:"GZBusiness", price:"$25/mo", color:"#f59e0b", desc:"+ GZFlash Ad Center, Geo Push Campaigns, Preemptive Marketing, sponsor placements." },
+    ].map(t => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #1a1a1a;">
+        <table width="100%"><tr>
+          <td><div style="font-size:13px;font-weight:700;color:${t.color};">${t.name}</div><div style="font-size:12px;color:#666;margin-top:2px;">${t.desc}</div></td>
+          <td align="right" style="white-space:nowrap;"><div style="font-size:14px;font-weight:900;color:#fff;">${t.price}</div></td>
+        </tr></table>
+      </td>
+    </tr>`).join("")}
+    </table>
+  </td></tr>
+
+  <!-- CTA -->
+  <tr><td style="background:linear-gradient(135deg,#1a0000 0%,#0a0a0a 100%);border:1px solid #2a0000;border-radius:0 0 20px 20px;padding:36px 40px;text-align:center;">
+    <p style="color:#888;font-size:14px;margin:0 0 24px;">Start free. No credit card. Join the ecosystem that gives you an unfair advantage.</p>
+    <a href="${opts.landingUrl}" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:900;font-size:16px;padding:16px 40px;border-radius:999px;text-decoration:none;letter-spacing:.3px;">
+      Claim Your Invitation →
+    </a>
+    <p style="color:#444;font-size:11px;margin:28px 0 0;">
+      Invited by ${opts.senderName} · Sent by Gigzito Marketing · <a href="https://gigzito.com" style="color:#555;text-decoration:none;">gigzito.com</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Invitation email to:", opts.targetEmail);
+    console.log("  From:", opts.senderName, `<${opts.senderEmail}>`);
+    console.log("  Landing URL:", opts.landingUrl);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: opts.targetEmail,
+    subject: `${opts.senderName} invited you to Gigzito — The Ecosystem That Gives You an Unfair Advantage`,
+    html,
+    text: `Hi ${opts.targetName},\n\n${opts.senderName} (${opts.senderEmail}) has personally invited you to join Gigzito — a social commerce platform combining video discovery, live broadcasting, digital identity, geo-triggered promotions, and flash deals in one ecosystem.\n\nSee the full invitation and join free at:\n${opts.landingUrl}\n\n— Gigzito Marketing`,
+  });
+
+  return { devMode: false };
+}
+
 export async function sendMfaCode(toEmail: string, code: string): Promise<SendMfaCodeResult> {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">

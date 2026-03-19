@@ -35,6 +35,7 @@ import PreemptiveMarketingPage from "@/pages/preemptive-marketing";
 import GeeZeeProfilePage from "@/pages/geezee-profile";
 import GzBusinessPage from "@/pages/gz-business";
 import OfferCenterPage from "@/pages/offer-center";
+import InviteLandingPage from "@/pages/invite-landing";
 
 function Router() {
   return (
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/geezee/:userId" component={GeeZeeProfilePage} />
       <Route path="/gz-business" component={GzBusinessPage} />
       <Route path="/offer-center" component={OfferCenterPage} />
+      <Route path="/gz-invite" component={InviteLandingPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -81,7 +83,7 @@ function SocketInitializer() {
 
 function AppShell() {
   const [location] = useLocation();
-  const hideNavbarRoutes = ["/offer-center"];
+  const hideNavbarRoutes = ["/offer-center", "/gz-invite"];
   const showNavbar = !hideNavbarRoutes.includes(location);
   return (
     <>
