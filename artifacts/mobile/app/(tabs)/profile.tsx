@@ -172,7 +172,8 @@ export default function ProfileScreen() {
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/listing/create"); }}
               style={styles.addVideoBtn}
             >
-              <Feather name="plus" size={14} color="#fff" />
+              <Feather name="plus" size={12} color="#fff" />
+              <Text style={styles.addVideoBtnText}>Add Video</Text>
             </Pressable>
           </View>
           <View style={styles.profileInfo}>
@@ -301,23 +302,23 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   avatarWrap: {
-    position: "relative",
-    width: 72,
-    height: 72,
+    alignItems: "center",
+    gap: 8,
   },
   addVideoBtn: {
-    position: "absolute",
-    bottom: -6,
-    right: -6,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: Colors.danger,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2.5,
-    borderColor: Colors.surface,
-    zIndex: 10,
+    gap: 4,
+    backgroundColor: Colors.danger,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  addVideoBtnText: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.2,
   },
   profileInfo: { flex: 1, gap: 4 },
   displayName: {
