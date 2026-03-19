@@ -235,6 +235,28 @@ export function useGeeZeeInbox() {
   });
 }
 
+export function useCreateListing() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      title: string;
+      description?: string;
+      videoUrl?: string;
+      category?: string;
+      price?: number;
+    }) =>
+      apiRequest<any>("/api/listings", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["listings", "mine"] });
+      qc.invalidateQueries({ queryKey: ["listings"] });
+    },
+  });
+}
+
 export function useAdminDashboard() {
   const { apiRequest, user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPERADMIN";

@@ -166,7 +166,15 @@ export default function ProfileScreen() {
       </View>
       <View style={styles.profileCard}>
         <View style={styles.avatarRow}>
-          <Avatar uri={displayProfile?.avatarUrl} name={displayName} size={72} />
+          <View style={styles.avatarWrap}>
+            <Avatar uri={displayProfile?.avatarUrl} name={displayName} size={72} />
+            <Pressable
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/listing/create"); }}
+              style={styles.addVideoBtn}
+            >
+              <Feather name="plus" size={14} color="#fff" />
+            </Pressable>
+          </View>
           <View style={styles.profileInfo}>
             <Text style={styles.displayName}>{displayName}</Text>
             {username ? <Text style={styles.username}>@{username}</Text> : null}
@@ -291,6 +299,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
+  },
+  avatarWrap: {
+    position: "relative",
+    alignItems: "center",
+  },
+  addVideoBtn: {
+    position: "absolute",
+    bottom: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.surface,
   },
   profileInfo: { flex: 1, gap: 4 },
   displayName: {
