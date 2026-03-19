@@ -1,0 +1,134 @@
+What changed in the app:
+
+GZEnterprise added to the database subscription tier enum
+All 3 GZFlash backend routes now allow GZMarketerPro, GZBusiness, GZEnterprise
+Pricing page — GZFlash Ad Center row added to the feature comparison table (checked for Pro, Business, Enterprise)
+Provider profile page — GZFlash module appears at the bottom with a direct "Open GZFlash Ad Center" button for eligible tiers, and a locked/upgrade panel for GZLurker and GZMarketer
+GZFlash Module — Mobile App API Reference
+All write endpoints require Bearer <JWT>. Auth comes from the standard 2-step MFA → JWT login flow.
+
+Tier Gate — Check Before Showing Any GZFlash UI
+After login, inspect user.subscriptionTier from GET /api/auth/me.
+Show GZFlash features only if the value is one of:
+
+"GZMarketerPro"  |  "GZBusiness"  |  "GZEnterprise"
+For GZLurker or GZMarketer, show a locked/upgrade prompt linking to /pricing.
+
+1. View All Active Flash Ads (Public Feed)
+GET /api/gz-flash
+Auth: Not required
+Response — array sorted by potency score descending:
+
+[
+  {
+    "id": 12,
+    "userId": 34,
+    "title": "50% Off Coaching Session — Today Only!",
+    "artworkUrl": "https://cdn.example.com/flash-banner.jpg",
+    "retailPriceCents": 9900,
+    "discountPercent": 50,
+    "quantity": 10,
+    "claimedCount": 4,
+    "durationMinutes": 60,
+    "potencyScore": 87.4,
+    "status": "active",
+    "displayMode": "countdown",
+    "expiresAt": "2026-03-19T23:00:00.000Z",
+    "createdAt": "2026-03-19T22:00:00.000Z",
+    "displayName": "Sofia Martinez",
+    "username": "sofiamarketing",
+    "avatarUrl": "https://cdn.example.com/sofia.jpg"
+  }
+]
+Potency Score Heat Levels — use to show badge color:
+
+Score	Label	Badge Color
+≥ 90	🔥 HOT	Red
+≥ 70	📈 TRENDING	Orange
+≥ 40	⚡ ACTIVE	Blue
+< 40	❄️ COOL	Gray
+displayMode values:
+
+"countdown" — show a live countdown timer to expiresAt
+"slots" — show remaining quantity (quantity - claimedCount)
+2. Get My Flash Ads (Eligible Tiers Only)
+GET /api/gz-flash/mine
+Auth: Required — GZMarketerPro / GZBusiness / GZEnterprise only
+Response: Same shape as the public feed but filtered to the authenticated user's ads only. Includes status: "active" | "expired" | "paused".
+
+Error if wrong tier:
+
+{ "message": "GZMarketerPro, GZBusiness, or GZEnterprise tier required" }
+→ 403
+
+3. Create a Flash Ad
+POST /api/gz-flash
+Auth: Required — GZMarketerPro / GZBusiness / GZEnterprise only
+Content-Type: application/json
+Request body:
+
+{
+  "title": "Flash Deal: 3 Sessions for $99",
+  "artworkUrl": "https://cdn.example.com/artwork.jpg",
+  "retailPriceCents": 29700,
+  "discountPercent": 67,
+  "quantity": 5,
+  "durationMinutes": 120,
+  "displayMode": "countdown"
+}
+Field	Type	Required	Notes
+title	string	✅	max 120 chars
+artworkUrl	string | null	❌	Image URL for the ad visual
+retailPriceCents	integer	✅	Original price in cents (e.g. 9900 = $99.00)
+discountPercent	integer	✅	1–99. Shown as "X% OFF"
+quantity	integer	✅	How many can be claimed. 1–9999
+durationMinutes	integer	✅	How long the ad runs. min 5, max 43200 (30 days)
+displayMode	string	❌	"countdown" (default) or "slots"
+Success: 201 + full GzFlashAd object
+
+4. Edit a Flash Ad
+PUT /api/gz-flash/{id}
+Auth: Required — must be owner, GZMarketerPro / GZBusiness / GZEnterprise
+Body: Same shape as create
+Success: 200 + updated GzFlashAd object
+
+5. Delete a Flash Ad
+DELETE /api/gz-flash/{id}
+Auth: Required — must be owner
+Body: {}
+Response: { "ok": true }
+6. Claim a Flash Ad (Viewer Action)
+This is the "I want this deal" tap — fired when any viewer claims a flash ad. Does not require a high tier. Any logged-in user can claim.
+
+POST /api/gz-flash/{id}/claim
+Auth: Not required
+Body: {}
+Success: 200 + updated GzFlashAd object with incremented claimedCount
+
+Error (fully claimed or expired):
+
+{ "message": "Ad is fully claimed" }
+→ 400
+
+Mobile Profile Screen — GZFlash Section Logic
+On load:
+  tier = user.subscriptionTier  ← from GET /api/auth/me
+If tier is GZMarketerPro, GZBusiness, or GZEnterprise:
+  → Show "GZFlash Ad Center" module — UNLOCKED
+  → Fetch GET /api/gz-flash/mine to display their current ads
+  → Show "Create GZFlash Ad" button → opens create form
+  → Show ad list with:
+      - title, artwork, potency badge
+      - countdown timer OR remaining slots
+      - edit / delete buttons
+Else (GZLurker or GZMarketer):
+  → Show locked state
+  → Text: "Flash Ads unlock at GZMarketerPro"
+  → Button: "Upgrade Plan" → links to pricing
+Potency Score — How It Ranks
+The server automatically recalculates all potency scores every 60 seconds based on:
+
+How much of the ad duration has elapsed
+How many units have been claimed vs. total quantity
+Your mobile app doesn't need to calculate it — just read potencyScore from the API and map it to a heat label. The scores update automatically without any action from the mobile client.
+

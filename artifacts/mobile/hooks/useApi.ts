@@ -366,3 +366,58 @@ export function useClaimFlash() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["gz-flash"] }),
   });
 }
+
+export function useMyFlash() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["gz-flash-mine"],
+    queryFn: () => apiRequest<any[]>("/api/gz-flash/mine"),
+    enabled: !!token,
+    refetchInterval: 60000,
+  });
+}
+
+export function useCreateFlash() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Record<string, any>) =>
+      apiRequest<any>("/api/gz-flash", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gz-flash-mine"] });
+      qc.invalidateQueries({ queryKey: ["gz-flash"] });
+    },
+  });
+}
+
+export function useUpdateFlash() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: Record<string, any> }) =>
+      apiRequest<any>(`/api/gz-flash/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gz-flash-mine"] });
+      qc.invalidateQueries({ queryKey: ["gz-flash"] });
+    },
+  });
+}
+
+export function useDeleteFlash() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiRequest<any>(`/api/gz-flash/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["gz-flash-mine"] });
+      qc.invalidateQueries({ queryKey: ["gz-flash"] });
+    },
+  });
+}

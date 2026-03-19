@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -14,13 +14,124 @@ import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMyProfile, useMyTotalLikes, useProfileCompletion, useMyListings, useMyGeemotions, useGeeZeeInbox } from "@/hooks/useApi";
+import { useMyProfile, useMyTotalLikes, useProfileCompletion, useMyListings, useMyGeemotions, useGeeZeeInbox, useMyFlash, useDeleteFlash } from "@/hooks/useApi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { NavigationMenu } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
+
+const GZ_FLASH_TIERS = ["GZMarketerPro", "GZBusiness", "GZEnterprise"];
+
+function getZone(score: number) {
+  if (score >= 90) return { label: "🔥 HOT",     color: "#F87171" };
+  if (score >= 70) return { label: "📈 TRENDING", color: "#FB923C" };
+  if (score >= 40) return { label: "⚡ ACTIVE",   color: "#3B82F6" };
+  return             { label: "❄️ COOL",    color: "#888888" };
+}
+
+function useAdCountdown(expiresAt: string) {
+  const calc = () => Math.max(0, new Date(expiresAt).getTime() - Date.now());
+  const [ms, setMs] = useState(calc);
+  const ref = useRef<ReturnType<typeof setInterval>>();
+  useEffect(() => {
+    ref.current = setInterval(() => setMs(calc()), 1000);
+    return () => clearInterval(ref.current);
+  }, [expiresAt]);
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m ${sec.toString().padStart(2, "0")}s`;
+}
+
+function FlashAdRow({ ad, onEdit, onDelete }: { ad: any; onEdit: () => void; onDelete: () => void }) {
+  const zone = getZone(ad.potencyScore ?? 0);
+  const countdown = useAdCountdown(ad.expiresAt ?? new Date(Date.now() + 60000).toISOString());
+  const remaining = (ad.quantity ?? 0) - (ad.claimedCount ?? 0);
+  const statusColor = ad.status === "active" ? Colors.success : ad.status === "paused" ? Colors.accent : Colors.textMuted;
+
+  return (
+    <View style={fStyles.row}>
+      <View style={[fStyles.zoneDot, { backgroundColor: zone.color }]} />
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={fStyles.title} numberOfLines={1}>{ad.title}</Text>
+        <View style={fStyles.meta}>
+          <Text style={[fStyles.zone, { color: zone.color }]}>{zone.label}</Text>
+          <Text style={fStyles.separator}>·</Text>
+          {ad.displayMode === "slots" ? (
+            <Text style={fStyles.timer}>{remaining} slots left</Text>
+          ) : (
+            <Text style={fStyles.timer}>{countdown}</Text>
+          )}
+          <Text style={fStyles.separator}>·</Text>
+          <Text style={[fStyles.status, { color: statusColor }]}>{ad.status}</Text>
+        </View>
+        {ad.discountPercent ? (
+          <Text style={fStyles.discount}>{ad.discountPercent}% OFF</Text>
+        ) : null}
+      </View>
+      <View style={fStyles.actions}>
+        <Pressable onPress={onEdit} style={fStyles.actionBtn} hitSlop={8}>
+          <Feather name="edit-2" size={14} color={Colors.textMuted} />
+        </Pressable>
+        <Pressable onPress={onDelete} style={[fStyles.actionBtn, { backgroundColor: `${Colors.danger}18` }]} hitSlop={8}>
+          <Feather name="trash-2" size={14} color={Colors.danger} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const fStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  zoneDot: {
+    width: 8, height: 8, borderRadius: 4,
+  },
+  title: {
+    color: Colors.textPrimary,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  meta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  zone: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  separator: { color: Colors.surfaceBorder, fontSize: 11 },
+  timer: { color: Colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular" },
+  status: { fontSize: 11, fontFamily: "Inter_600SemiBold", textTransform: "capitalize" },
+  discount: {
+    color: Colors.success,
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    backgroundColor: `${Colors.success}15`,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  actions: { flexDirection: "row", gap: 6 },
+  actionBtn: {
+    width: 30, height: 30, borderRadius: 8,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
+  },
+});
 
 function StatBox({ label, value }: { label: string; value: number | string }) {
   return (
@@ -127,6 +238,8 @@ export default function ProfileScreen() {
   const { data: myListings } = useMyListings();
   const { data: myGeemotions } = useMyGeemotions();
   const { data: inbox } = useGeeZeeInbox();
+  const { data: myFlash } = useMyFlash();
+  const { mutateAsync: deleteFlash } = useDeleteFlash();
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -144,6 +257,15 @@ export default function ProfileScreen() {
       { text: "Sign Out", style: "destructive", onPress: () => { logout(); router.replace("/auth/login"); } },
     ]);
   };
+
+  const handleDeleteFlash = (id: number, title: string) => {
+    Alert.alert("Delete Flash Ad", `Delete "${title}"? This cannot be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteFlash(id) },
+    ]);
+  };
+
+  const flashUnlocked = GZ_FLASH_TIERS.includes(tier);
 
   const tierColor = tier === "GZLurker" ? Colors.textMuted
     : tier === "GZMarketer" ? Colors.teal
@@ -221,6 +343,102 @@ export default function ProfileScreen() {
           <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} />
           <MenuItem icon="star" label="GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
         </View>
+      </View>
+
+      {/* ── GZFlash Module ── */}
+      <View style={styles.menuSection}>
+        <View style={styles.gzFlashHeader}>
+          <Feather name="zap" size={13} color="#3B82F6" />
+          <Text style={styles.gzFlashHeaderText}>GZFlash Ad Center</Text>
+          {flashUnlocked ? (
+            <View style={styles.unlockedBadge}>
+              <Text style={styles.unlockedBadgeText}>UNLOCKED</Text>
+            </View>
+          ) : (
+            <View style={styles.lockedBadge}>
+              <Feather name="lock" size={10} color={Colors.textMuted} />
+              <Text style={styles.lockedBadgeText}>PRO+</Text>
+            </View>
+          )}
+        </View>
+
+        {flashUnlocked ? (
+          <View style={styles.menuCard}>
+            {/* Create button */}
+            <Pressable
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/profile/gzflash-create"); }}
+              style={({ pressed }) => [styles.gzFlashCreateBtn, pressed && { opacity: 0.85 }]}
+            >
+              <View style={styles.gzFlashCreateLeft}>
+                <View style={styles.gzFlashCreateIcon}>
+                  <Feather name="plus" size={16} color="#3B82F6" />
+                </View>
+                <Text style={styles.gzFlashCreateText}>Create Flash Ad</Text>
+              </View>
+              <Feather name="chevron-right" size={16} color="#3B82F6" />
+            </Pressable>
+
+            {/* My ads */}
+            {myFlash && myFlash.length > 0 ? (
+              myFlash.map((ad: any) => (
+                <FlashAdRow
+                  key={ad.id}
+                  ad={ad}
+                  onEdit={() => router.push({
+                    pathname: "/profile/gzflash-create",
+                    params: {
+                      editId:       String(ad.id),
+                      editTitle:    ad.title,
+                      editArtwork:  ad.artworkUrl ?? "",
+                      editPrice:    String(ad.retailPriceCents),
+                      editDiscount: String(ad.discountPercent),
+                      editQuantity: String(ad.quantity),
+                      editDuration: String(ad.durationMinutes),
+                      editMode:     ad.displayMode ?? "countdown",
+                    },
+                  })}
+                  onDelete={() => handleDeleteFlash(ad.id, ad.title)}
+                />
+              ))
+            ) : (
+              <View style={styles.gzFlashEmpty}>
+                <Feather name="zap" size={22} color="#3B82F6" style={{ opacity: 0.5 }} />
+                <Text style={styles.gzFlashEmptyText}>No active flash ads.</Text>
+                <Text style={styles.gzFlashEmptySub}>Tap "Create Flash Ad" to launch your first deal.</Text>
+              </View>
+            )}
+
+            {/* Open full GZFlash module */}
+            <Pressable
+              onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/gzflash"); }}
+              style={({ pressed }) => [styles.gzFlashViewAll, pressed && { opacity: 0.8 }]}
+            >
+              <Feather name="external-link" size={14} color="#3B82F6" />
+              <Text style={styles.gzFlashViewAllText}>Open GZFlash Ad Center</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={[styles.menuCard, styles.lockedCard]}>
+            <View style={styles.lockedRow}>
+              <View style={styles.lockedIconWrap}>
+                <Feather name="lock" size={20} color={Colors.textMuted} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.lockedTitle}>Flash Ads unlock at GZMarketerPro</Text>
+                <Text style={styles.lockedSub}>
+                  Launch time-limited flash deals ranked by potency in the live GZFlash feed.
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={() => Haptics.selectionAsync()}
+              style={({ pressed }) => [styles.upgradeBtn, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.upgradeBtnText}>Upgrade Plan</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {(user?.role === "ADMIN" || user?.role === "SUPERADMIN") ? (
@@ -377,6 +595,142 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.surfaceBorder,
     overflow: "hidden",
+  },
+  gzFlashHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  gzFlashHeaderText: {
+    color: "#3B82F6",
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    flex: 1,
+  },
+  unlockedBadge: {
+    backgroundColor: "rgba(0,217,165,0.15)",
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  unlockedBadgeText: {
+    color: Colors.success,
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.6,
+  },
+  lockedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  lockedBadgeText: {
+    color: Colors.textMuted,
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.6,
+  },
+  gzFlashCreateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  gzFlashCreateLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  gzFlashCreateIcon: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: "rgba(59,130,246,0.15)",
+    alignItems: "center", justifyContent: "center",
+  },
+  gzFlashCreateText: {
+    color: "#3B82F6",
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
+  },
+  gzFlashEmpty: {
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  gzFlashEmptyText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  gzFlashEmptySub: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+  },
+  gzFlashViewAll: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.surfaceBorder,
+  },
+  gzFlashViewAllText: {
+    color: "#3B82F6",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  lockedCard: {
+    padding: 16,
+    gap: 14,
+  },
+  lockedRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  lockedIconWrap: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: Colors.surfaceElevated,
+    alignItems: "center", justifyContent: "center",
+  },
+  lockedTitle: {
+    color: Colors.textPrimary,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  lockedSub: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+  },
+  upgradeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#3B82F6",
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  upgradeBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
   },
   adminHeaderRow: {
     flexDirection: "row",
