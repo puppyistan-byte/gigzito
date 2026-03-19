@@ -331,8 +331,8 @@ export default function ProfileScreen() {
         <View style={styles.menuCard}>
           <MenuItem icon="edit-2" label="Edit Profile" onPress={() => router.push("/profile/edit")} />
           <MenuItem icon="credit-card" label="Subscription" value={tier} />
-          <MenuItem icon="users" label="My Audience" />
-          <MenuItem icon="message-square" label="Inbox" value={inbox?.length ? String(inbox.length) : undefined} onPress={() => {}} />
+          <MenuItem icon="users" label="My Audience" onPress={() => router.push("/profile/audience")} />
+          <MenuItem icon="message-square" label="Inbox" value={inbox?.length ? String(inbox.length) : undefined} onPress={() => router.push("/profile/inbox")} />
         </View>
       </View>
 

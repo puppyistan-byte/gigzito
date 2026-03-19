@@ -228,10 +228,44 @@ export function useMyAudience() {
 }
 
 export function useGeeZeeInbox() {
-  const { apiRequest } = useAuth();
+  const { apiRequest, token } = useAuth();
   return useQuery({
     queryKey: ["geezee-inbox"],
     queryFn: () => apiRequest<any[]>("/api/gigness-cards/inbox"),
+    enabled: !!token,
+  });
+}
+
+export function useMarkMessageRead() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiRequest(`/api/gigness-cards/messages/${id}/read`, { method: "PATCH" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["geezee-inbox"] }),
+  });
+}
+
+export function useDeleteMessage() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiRequest(`/api/gigness-cards/messages/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["geezee-inbox"] }),
+  });
+}
+
+export function useReplyMessage() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, replyText }: { id: number; replyText: string }) =>
+      apiRequest(`/api/gigness-cards/messages/${id}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ replyText }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["geezee-inbox"] }),
   });
 }
 
