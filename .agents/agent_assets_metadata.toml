@@ -18,3 +18,9 @@ id = "7G4m9kKcEh-J7rMX_WJC8"
 uri = "file://docs/geemotion-technical-standard.md"
 type = "text"
 title = "Geemotions Technical Standard v1.0"
+
+[[outputs]]
+id = "SyAGEeKeyfkCv2NSwIwvA"
+uri = "file://GIGZITO_MOBILE_API.md"
+type = "text"
+title = "Gigzito Mobile API Reference"
