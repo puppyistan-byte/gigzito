@@ -125,6 +125,67 @@ export function useLiveState() {
   });
 }
 
+export function useZitoLiveStreams() {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["zito-live-streams"],
+    queryFn: () => apiRequest<any[]>("/api/zito-live/streams"),
+    refetchInterval: 30000,
+    staleTime: 20000,
+  });
+}
+
+export function useStartLive() {
+  const { apiRequest } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      title: string;
+      category: string;
+      mode: string;
+      streamUrl: string;
+      thumbnailUrl?: string;
+      platform?: string;
+    }) => apiRequest<any>("/api/live/start", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["zito-live-streams"] }),
+  });
+}
+
+export function useLiveHeartbeat() {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: ({ id, viewerCount }: { id: number; viewerCount?: number }) =>
+      apiRequest<any>(`/api/live/${id}/heartbeat`, {
+        method: "POST",
+        body: JSON.stringify({ viewerCount: viewerCount ?? 0 }),
+      }),
+  });
+}
+
+export function useEndLive() {
+  const { apiRequest } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiRequest<any>(`/api/live/${id}/end`, { method: "PATCH" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["zito-live-streams"] }),
+  });
+}
+
+export function useRegisterZitoTV() {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: (body: { category: string; tags?: string[] }) =>
+      apiRequest<any>("/api/zito-live/register", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
 export function useActiveStreams() {
   const { apiRequest } = useAuth();
   return useQuery({
