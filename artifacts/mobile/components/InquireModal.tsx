@@ -23,9 +23,11 @@ type Props = {
 
 export function InquireModal({ item, open, onClose }: Props) {
   const { apiRequest, user } = useAuth();
-  const [name, setName] = useState(user?.displayName ?? "");
+
+  const [firstName, setFirstName] = useState(
+    user?.displayName?.split(" ")[0] ?? user?.username ?? ""
+  );
   const [email, setEmail] = useState(user?.email ?? "");
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +35,6 @@ export function InquireModal({ item, open, onClose }: Props) {
   const reset = () => {
     setSuccess(false);
     setError("");
-    setMessage("");
   };
 
   const handleClose = () => {
@@ -42,26 +43,43 @@ export function InquireModal({ item, open, onClose }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !email.trim()) {
-      setError("Name and email are required.");
+    if (!firstName.trim()) {
+      setError("Please enter your first name.");
       return;
     }
     setError("");
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const rawId = item.listingId ?? item.listing_id ?? item.id;
-    const numericId = Number(rawId);
+    // Resolve IDs from the item — handle multiple possible shapes
+    const videoId =
+      item.videoId ??
+      item.listingId ??
+      item.listing_id ??
+      item.id ??
+      null;
+
+    const creatorUserId =
+      item.provider?.userId ??
+      item.provider?.id ??
+      item.userId ??
+      item.creatorUserId ??
+      item.providerId ??
+      null;
+
+    const category = item.vertical ?? item.category ?? item.niche ?? undefined;
 
     try {
       await apiRequest("/api/leads", {
         method: "POST",
         body: JSON.stringify({
-          ...(Number.isFinite(numericId) ? { listingId: numericId } : {}),
-          listingTitle: item.title ?? "",
-          name: name.trim(),
-          email: email.trim(),
-          message: message.trim(),
+          videoId:       videoId ? Number(videoId) : undefined,
+          creatorUserId: creatorUserId ? Number(creatorUserId) : undefined,
+          firstName:     firstName.trim(),
+          email:         email.trim() || null,
+          videoTitle:    item.title ?? undefined,
+          category,
+          viewerUsername: user?.username ?? undefined,
         }),
       });
       setSuccess(true);
@@ -77,19 +95,27 @@ export function InquireModal({ item, open, onClose }: Props) {
     <Modal visible={open} transparent animationType="slide" onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={handleClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.sheet}>
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.sheet}
+        >
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.handle} />
 
             <View style={styles.header}>
               <View>
                 <Text style={styles.title}>
-                  {item.ctaType === "Join Event" ? "Join Event" :
-                   item.ctaType === "Book Service" ? "Book Now" :
-                   item.ctaType === "Join Guild" ? "Join Guild" :
+                  {item.ctaType === "Join Event"   ? "Join Event"  :
+                   item.ctaType === "Book Service" ? "Book Now"    :
+                   item.ctaType === "Join Guild"   ? "Join Guild"  :
                    "Inquire"}
                 </Text>
-                <Text style={styles.subtitle} numberOfLines={2}>{item.title}</Text>
+                <Text style={styles.subtitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
               </View>
               <Pressable onPress={handleClose} style={styles.closeBtn}>
                 <Feather name="x" size={22} color={Colors.textSecondary} />
@@ -101,7 +127,8 @@ export function InquireModal({ item, open, onClose }: Props) {
                 <Feather name="check-circle" size={40} color={Colors.success} />
                 <Text style={styles.successTitle}>Request Sent!</Text>
                 <Text style={styles.successText}>
-                  The creator will get back to you at {email}.
+                  The creator will be in touch shortly.
+                  {email.trim() ? `\n\nWe'll reach you at ${email.trim()}.` : ""}
                 </Text>
                 <Pressable onPress={handleClose} style={styles.doneBtn}>
                   <Text style={styles.doneBtnText}>Done</Text>
@@ -110,18 +137,20 @@ export function InquireModal({ item, open, onClose }: Props) {
             ) : (
               <View style={styles.form}>
                 <View style={styles.field}>
-                  <Text style={styles.label}>Your Name *</Text>
+                  <Text style={styles.label}>First Name *</Text>
                   <TextInput
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="John Doe"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="Your first name"
                     placeholderTextColor={Colors.textMuted}
                     style={styles.input}
                     autoCapitalize="words"
+                    returnKeyType="next"
                   />
                 </View>
+
                 <View style={styles.field}>
-                  <Text style={styles.label}>Email *</Text>
+                  <Text style={styles.label}>Email (optional)</Text>
                   <TextInput
                     value={email}
                     onChangeText={setEmail}
@@ -130,19 +159,7 @@ export function InquireModal({ item, open, onClose }: Props) {
                     style={styles.input}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                  />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>Message (optional)</Text>
-                  <TextInput
-                    value={message}
-                    onChangeText={setMessage}
-                    placeholder="I'm interested in..."
-                    placeholderTextColor={Colors.textMuted}
-                    style={[styles.input, styles.textarea]}
-                    multiline
-                    numberOfLines={3}
-                    maxLength={500}
+                    returnKeyType="done"
                   />
                 </View>
 
@@ -182,7 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "85%",
+    maxHeight: "80%",
   },
   content: { padding: 20, gap: 16 },
   handle: {
@@ -230,10 +247,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_400Regular",
   },
-  textarea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -278,6 +291,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
+    lineHeight: 20,
   },
   doneBtn: {
     marginTop: 8,
