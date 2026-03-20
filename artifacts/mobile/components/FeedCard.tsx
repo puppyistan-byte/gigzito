@@ -143,24 +143,27 @@ export function FeedCard({ item, isActive }: Props) {
   const shareUrl = videoUrl || `https://gigzito.com/listing/${item.id}`;
 
   return (
-    <View
-      style={styles.card}
-      onTouchStart={() => setCardPressed(true)}
-      onTouchEnd={() => setCardPressed(false)}
-      onTouchCancel={() => setCardPressed(false)}
-    >
-      {/* Background poster — transparent by default, full when pressed */}
+    <View style={styles.card}>
+      {/* Background poster */}
       {poster ? (
         <Image
           source={{ uri: poster }}
-          style={[styles.bg, { opacity: cardPressed ? 1 : 0.45 }]}
+          style={[styles.bg, { opacity: cardPressed ? 1 : 0.5 }]}
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.bg, styles.bgFallback, { opacity: cardPressed ? 1 : 0.45 }]}>
+        <View style={[styles.bg, styles.bgFallback, { opacity: cardPressed ? 1 : 0.5 }]}>
           <Feather name="video" size={48} color={Colors.textMuted} />
         </View>
       )}
+
+      {/* Invisible pressable layer — sits between image and gradient so FlatList scroll still works */}
+      <Pressable
+        accessible={false}
+        onPressIn={() => setCardPressed(true)}
+        onPressOut={() => setCardPressed(false)}
+        style={StyleSheet.absoluteFillObject}
+      />
 
       {/* Gradient overlay */}
       <LinearGradient
@@ -172,26 +175,25 @@ export function FeedCard({ item, isActive }: Props) {
       {/* Hamburger — top left */}
       <HamburgerButton onPress={() => setMenuOpen(true)} />
 
-      {/* Add Video — next to hamburger, only when logged in */}
+      {/* Add Video + Go Live — side-by-side pill row, authenticated only */}
       {token ? (
-        <Pressable
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/listing/create" as any); }}
-          style={styles.addVideoBtn}
-        >
-          <Feather name="plus" size={14} color="#fff" />
-          <Text style={styles.addVideoText}>Add Video</Text>
-        </Pressable>
-      ) : null}
+        <View style={styles.topPillRow}>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/listing/create" as any); }}
+            style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
+          >
+            <Feather name="plus" size={13} color="#fff" />
+            <Text style={styles.pillText}>Add Video</Text>
+          </Pressable>
 
-      {/* Go Live — next to Add Video, only when logged in */}
-      {token ? (
-        <Pressable
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); router.push("/live/go-live" as any); }}
-          style={styles.goLiveBtn}
-        >
-          <View style={styles.goLiveDot} />
-          <Text style={styles.goLiveText}>Go Live</Text>
-        </Pressable>
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); router.push("/live/go-live" as any); }}
+            style={({ pressed }) => [styles.pill, styles.pillLive, pressed && styles.pillPressed]}
+          >
+            <View style={styles.liveDot} />
+            <Text style={styles.pillText}>Go Live</Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {/* Duration timer — top right */}
@@ -375,49 +377,43 @@ const styles = StyleSheet.create({
   gradient: {
     ...StyleSheet.absoluteFillObject,
   },
-  addVideoBtn: {
+  topPillRow: {
     position: "absolute",
     top: 56,
     left: 68,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: Colors.danger,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    gap: 8,
     zIndex: 10,
   },
-  addVideoText: {
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  pillLive: {
+    borderColor: Colors.live,
+  },
+  pillPressed: {
+    opacity: 0.75,
+    backgroundColor: "rgba(0,0,0,0.65)",
+  },
+  pillText: {
     color: "#fff",
     fontSize: 13,
     fontFamily: "Inter_600SemiBold",
   },
-  goLiveBtn: {
-    position: "absolute",
-    top: 99,
-    left: 68,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.live,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    zIndex: 10,
-  },
-  goLiveDot: {
+  liveDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
     backgroundColor: Colors.live,
-  },
-  goLiveText: {
-    color: "#fff",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
   },
   timerWrap: {
     position: "absolute",
