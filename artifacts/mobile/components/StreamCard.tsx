@@ -64,7 +64,7 @@ export function StreamCard({ item, compact = false }: Props) {
     ? item.streamUrl
     : item.username
     ? `https://zito.tv/watch/${item.username}`
-    : "https://zito.com";
+    : "https://zito.tv";
 
   const platform = item.streamUrl ? detectPlatform(item.streamUrl) : "ZitoTV";
   const platformIcon: keyof typeof Feather.glyphMap =

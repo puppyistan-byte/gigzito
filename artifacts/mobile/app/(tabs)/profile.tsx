@@ -50,7 +50,7 @@ function ZitoTVBanner() {
     <Pressable
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        Linking.openURL("https://zito.com");
+        Linking.openURL("https://zito.tv");
       }}
       style={({ pressed }) => [zitoStyles.banner, pressed && { opacity: 0.88 }]}
     >

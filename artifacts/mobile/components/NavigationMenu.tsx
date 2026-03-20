@@ -36,7 +36,7 @@ const NAV_ITEMS: {
   { label: "Home",     icon: "home",        route: "/(tabs)" },
   { label: "GeeZee",   image: gzLogo,       route: "/(tabs)/geezee" },
   { label: "GZ Flash", image: gzFlashLogo,  route: "/(tabs)/gzflash", accentColor: "#3B82F6" },
-  { label: "ZitoTV",   image: zitoTvLogo,   externalUrl: "https://zito.com", accentColor: "#EF4444", isLive: true },
+  { label: "ZitoTV",   image: zitoTvLogo,   externalUrl: "https://zito.tv", accentColor: "#EF4444", isLive: true },
   { label: "Events",   icon: "zap",         route: "/(tabs)/events" },
   { label: "Live",     icon: "radio",       route: "/(tabs)/live" },
   { label: "Profile",  icon: "user",        route: "/(tabs)/profile" },
