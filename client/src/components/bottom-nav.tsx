@@ -70,8 +70,8 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
       </button>
 
       <button
-        onClick={() => window.location.href = "/zito-tv"}
-        className={`nav-item transition-colors ${location === "/zito-tv" ? "active" : ""}`}
+        onClick={() => window.open("https://zito.tv/", "_blank", "noopener,noreferrer")}
+        className="nav-item transition-colors"
         data-testid="nav-zito-tv"
       >
         <Tv size={20} />
