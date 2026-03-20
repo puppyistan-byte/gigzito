@@ -16,7 +16,14 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import { useStartLive, useEndLive, useLiveHeartbeat } from "@/hooks/useApi";
+import { useAuth } from "@/contexts/AuthContext";
 import Colors from "@/constants/colors";
+
+const GATED_ROLES = ["INFLUENCER", "ADMIN", "SUPERADMIN", "SUPER_ADMIN", "SUPERUSER"];
+
+function hasGoLiveAccess(role?: string) {
+  return GATED_ROLES.includes(role ?? "");
+}
 
 const LIVE_CATEGORIES = [
   "INFLUENCER",
@@ -53,6 +60,7 @@ function formatDuration(secs: number): string {
 export default function GoLiveScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const { user } = useAuth();
 
   const [streamMode, setStreamMode] = useState<StreamMode>("url");
   const [title, setTitle] = useState("");
@@ -179,6 +187,108 @@ export default function GoLiveScreen() {
   };
 
   const hasCameraAccess = !!(cameraPermission?.granted && micPermission?.granted);
+
+  // ── Coming Soon gate ──────────────────────────────────────────────────────
+  if (!hasGoLiveAccess(user?.role)) {
+    return (
+      <View style={[s.container, { paddingTop: topPad }]}>
+        {/* Top bar */}
+        <View style={s.topBar}>
+          <Pressable onPress={() => router.back()} style={s.backBtn}>
+            <Feather name="arrow-left" size={20} color={Colors.textPrimary} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={s.title}>ZitoTV</Text>
+            <Text style={s.subtitle}>Live Streaming</Text>
+          </View>
+          <View style={s.soonBadge}>
+            <Text style={s.soonBadgeText}>SOON</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={s.csWrap}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero */}
+          <View style={s.csHero}>
+            <View style={s.csIconRing}>
+              <Feather name="radio" size={36} color={Colors.live} />
+            </View>
+            <Text style={s.csHeadline}>ZitoTV Live is Coming</Text>
+            <Text style={s.csSub}>
+              We're building the most powerful live-streaming experience on Gigzito —
+              and it's almost ready.
+            </Text>
+          </View>
+
+          {/* What to expect */}
+          <View style={s.csCard}>
+            <Text style={s.csCardTitle}>What to expect</Text>
+
+            <View style={s.csFeature}>
+              <View style={[s.csDot, { backgroundColor: Colors.live }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.csFeatureTitle}>Broadcast from your phone</Text>
+                <Text style={s.csFeatureDesc}>
+                  Go live directly from your camera — no external equipment needed.
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.csFeature}>
+              <View style={[s.csDot, { backgroundColor: Colors.purple }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.csFeatureTitle}>Open-format stream support</Text>
+                <Text style={s.csFeatureDesc}>
+                  Stream from YouTube, Twitch, TikTok, or any platform you already use.
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.csFeature}>
+              <View style={[s.csDot, { backgroundColor: "#fbbf24" }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.csFeatureTitle}>ZitoTV reach</Text>
+                <Text style={s.csFeatureDesc}>
+                  Your live stream surfaces to the entire Gigzito audience — creators
+                  and fans in one place.
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.csFeature}>
+              <View style={[s.csDot, { backgroundColor: "#34d399" }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.csFeatureTitle}>Multi-camera events</Text>
+                <Text style={s.csFeatureDesc}>
+                  Concerts, shows, and live events with multiple camera operators —
+                  all in one stream.
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Early access note */}
+          <View style={s.csAccessBox}>
+            <Feather name="star" size={14} color={Colors.live} />
+            <Text style={s.csAccessText}>
+              Early access is available for select creators. If you're interested in
+              joining the ZitoTV Live beta, reach out through your profile.
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => [s.csBackBtn, pressed && { opacity: 0.8 }]}
+          >
+            <Text style={s.csBackBtnText}>Back to Gigzito</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    );
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <View style={[s.container, { paddingTop: topPad }]}>
@@ -937,5 +1047,129 @@ const s = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontFamily: "Inter_700Bold",
+  },
+
+  /* ── Coming Soon screen ── */
+  soonBadge: {
+    backgroundColor: `${Colors.live}22`,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: `${Colors.live}66`,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  soonBadgeText: {
+    color: Colors.live,
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1.5,
+  },
+  csWrap: {
+    padding: 24,
+    gap: 24,
+    paddingBottom: 60,
+    alignItems: "center",
+  },
+  csHero: {
+    alignItems: "center",
+    gap: 16,
+    paddingVertical: 12,
+  },
+  csIconRing: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: `${Colors.live}18`,
+    borderWidth: 1.5,
+    borderColor: `${Colors.live}55`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  csHeadline: {
+    color: Colors.textPrimary,
+    fontSize: 26,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+    lineHeight: 32,
+  },
+  csSub: {
+    color: Colors.textMuted,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 22,
+    maxWidth: 320,
+  },
+  csCard: {
+    width: "100%",
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    padding: 20,
+    gap: 18,
+  },
+  csCardTitle: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  csFeature: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  csDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 5,
+  },
+  csFeatureTitle: {
+    color: Colors.textPrimary,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    marginBottom: 3,
+  },
+  csFeatureDesc: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  csAccessBox: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: `${Colors.live}12`,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: `${Colors.live}33`,
+    padding: 16,
+  },
+  csAccessText: {
+    flex: 1,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 18,
+  },
+  csBackBtn: {
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    alignItems: "center",
+  },
+  csBackBtnText: {
+    color: Colors.textSecondary,
+    fontSize: 15,
+    fontFamily: "Inter_600SemiBold",
   },
 });

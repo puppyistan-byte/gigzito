@@ -1,0 +1,35 @@
+Got it — I'll implement a Zito Live gating system. Here's the plan:
+
+Add a zitoLiveEnabled flag to user accounts (off by default)
+Regular users → sleek "ZitoTV Coming Soon" landing card inside the Go Live section
+Your designated influencers (flag turned on) → the full Go Live setup form
+Also improve the embed failure messaging to explain clearly why certain streams can't embed
+Let me look at the schema and the relevant auth/admin files:
+
+There's already an INFLUENCER role in the enum — perfect, no DB migration needed. I'll use INFLUENCER + ADMIN/SUPER_ADMIN/SUPERUSER roles to gate the full Go Live experience. Let me also check the live view embed handling:
+
+Now I have everything I need. Let me look at the exact embed failure message in live-view.tsx to update it, then make all the changes:
+
+Two changes to make in parallel — gate the Go Live form in provider-profile.tsx and improve the embed explanation in live-view.tsx:
+
+Now update the Go Live section in provider-profile.tsx to gate by role and show the Coming Soon card for everyone else:
+
+Good. Now let me check if the admin panel has a way to set users to the INFLUENCER role (so you can designate your 10-15 creators):
+
+The admin panel already has a live role switcher — you can flip any user to INFLUENCER right from the Users tab. Let me check logs and run a quick test to verify both states:
+
+Clean HMR — no errors. Let me run a test covering both cases: admin sees full Go Live, a regular provider sees Coming Soon:
+
+All tests pass. Here's what's live:
+
+Go Live gating — how it works:
+
+INFLUENCER, ADMIN, SUPER_ADMIN, SUPERUSER → See the full Go Live setup form with the cyan Zito.TV badge
+Everyone else (PROVIDER, MARKETER, GZLurker, etc.) → See the "Zito.TV Coming Soon" card when they tap Go Live, with:
+A branded radio-icon lockup with a cyan "Soon" badge
+"We're building the best live-streaming experience on Gigzito — and it's almost ready"
+A "What to expect" panel covering: broadcasting via Zito.TV, open-format stream support, an explanation about platform embedding limits, and cross-platform Zito.TV reach
+A note that early access is available for select creators (invite path)
+To grant a creator Go Live access: Go to Admin → Users tab → find the user → change their role to Influencer using the role dropdown. Instant effect, no restart needed.
+
+Embed failure messaging (when a stream can't be embedded) is now updated to say clearly: "In respect of [Platform]'s content licensing, this stream can't be embedded directly inside Gigzito — but you can watch it live on their platform right now." followed by a note that proprietary platform streams stay on their native player to honour terms of service.
