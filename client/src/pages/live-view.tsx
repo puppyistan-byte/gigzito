@@ -1,5 +1,6 @@
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -96,6 +97,18 @@ export default function LiveViewPage() {
   const embed = getLiveEmbed(session.streamUrl, session.id);
   const isOwner = user && session.creatorUserId === ((user as any).user?.id ?? (user as any).id);
   const isEnded = session.status === "ended";
+
+  // Heartbeat: keep Zito.TV session alive while owner is watching their own live
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (!isOwner || isEnded || !session?.id) return;
+    const fire = () => {
+      apiRequest("POST", `/api/live/${session.id}/heartbeat`, { viewerCount: 0 }).catch(() => {});
+    };
+    fire(); // immediate first heartbeat
+    heartbeatRef.current = setInterval(fire, 30000);
+    return () => { if (heartbeatRef.current) clearInterval(heartbeatRef.current); };
+  }, [isOwner, isEnded, session?.id]);
 
   const platformKey = session.platform ?? "native";
   const platformLabel = PLATFORM_LABEL[platformKey] ?? "Stream";

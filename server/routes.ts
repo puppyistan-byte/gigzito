@@ -1762,6 +1762,60 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch { return "native"; }
   }
 
+  // ── Zito.TV API proxy ───────────────────────────────────────────────────────
+  const ZITOTV_BASE = "https://1d2776d5-bf1b-41f5-a23d-4647c201aecb-00-25m6h440wdpa3.kirk.replit.dev";
+  const ZITOTV_TOKEN = process.env.ZITO_API_TOKEN ?? "";
+
+  async function zitoFetch(path: string, options: RequestInit = {}): Promise<Response> {
+    return fetch(`${ZITOTV_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Authorization": `Bearer ${ZITOTV_TOKEN}`,
+        "Content-Type": "application/json",
+        ...(options.headers ?? {}),
+      },
+    });
+  }
+
+  // GET all Zito.TV streamers (live ones first)
+  app.get("/api/zito-live/streams", async (_req, res) => {
+    try {
+      const r = await zitoFetch("/api/streams");
+      if (!r.ok) return res.status(r.status).json({ message: "Zito.TV error" });
+      return res.json(await r.json());
+    } catch (err) {
+      console.error("[zito-live/streams]", err);
+      return res.status(502).json({ message: "Cannot reach Zito.TV" });
+    }
+  });
+
+  // Register a Gigzito user with Zito.TV
+  app.post("/api/zito-live/register", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const profile = await storage.getProfileByUserId(userId);
+    if (!profile) return res.status(400).json({ message: "Profile required" });
+    try {
+      const r = await zitoFetch("/api/streams/register", {
+        method: "POST",
+        body: JSON.stringify({
+          gigzitoUserId: String(userId),
+          username: profile.username ?? `user${userId}`,
+          name: profile.displayName ?? profile.username ?? `User ${userId}`,
+          category: req.body.category ?? profile.primaryCategory ?? "Other",
+          description: profile.bio ?? undefined,
+          avatarUrl: profile.avatarUrl ?? undefined,
+          tags: req.body.tags ?? [],
+        }),
+      });
+      const data = await r.json();
+      return res.status(r.ok ? 200 : r.status).json(data);
+    } catch (err) {
+      console.error("[zito-live/register]", err);
+      return res.status(502).json({ message: "Cannot reach Zito.TV" });
+    }
+  });
+
   app.get("/api/live/active", async (_req, res) => {
     const sessions = await storage.getActiveLiveSessions();
     return res.json(sessions);
@@ -1780,7 +1834,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any).userId;
     const currentUser = await storage.getUserById(userId);
     if (currentUser?.status === "disabled") return res.status(403).json({ message: "Your account has been disabled." });
-    const profile = await storage.getProfileById(userId);
+    const profile = await storage.getProfileByUserId(userId);
     if (!profile) return res.status(400).json({ message: "Creator profile required" });
 
     const schema = z.object({
@@ -1804,12 +1858,62 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         streamUrl: data.streamUrl,
         thumbnailUrl: data.thumbnailUrl ?? undefined,
       });
+
+      // Register + go-live on Zito.TV (fire-and-forget, don't block response)
+      zitoFetch("/api/streams/register", {
+        method: "POST",
+        body: JSON.stringify({
+          gigzitoUserId: String(userId),
+          username: profile.username ?? `user${userId}`,
+          name: profile.displayName ?? `User ${userId}`,
+          category: data.category,
+          description: profile.bio ?? undefined,
+          avatarUrl: profile.avatarUrl ?? undefined,
+        }),
+      }).then(() => zitoFetch("/api/streams/go-live", {
+        method: "POST",
+        body: JSON.stringify({
+          gigzitoUserId: String(userId),
+          streamUrl: data.streamUrl,
+          title: data.title,
+          thumbnailUrl: data.thumbnailUrl ?? undefined,
+          viewerCount: 0,
+        }),
+      })).then(r => r.json()).then(zitoData => {
+        // Store the Zito.TV stream ID in session metadata for heartbeat/end
+        if (zitoData?.id) {
+          storage.updateLiveSessionZitoId?.(session.id, zitoData.id).catch(() => {});
+        }
+      }).catch((err) => console.error("[zito go-live]", err));
+
       return res.status(201).json(session);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
+  });
+
+  // Heartbeat relay to Zito.TV
+  app.post("/api/live/:id/heartbeat", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const session = await storage.getLiveSessionById(id);
+    if (!session) return res.status(404).json({ message: "Not found" });
+    if (session.creatorUserId !== userId) return res.status(403).json({ message: "Forbidden" });
+    const viewerCount = typeof req.body.viewerCount === "number" ? req.body.viewerCount : 0;
+
+    // Relay to Zito.TV using session's zitoStreamId if available
+    const zitoId = (session as any).zitoStreamId;
+    if (zitoId) {
+      zitoFetch(`/api/streams/${zitoId}/heartbeat`, {
+        method: "POST",
+        body: JSON.stringify({ viewerCount }),
+      }).catch(() => {});
+    }
+    return res.json({ ok: true });
   });
 
   app.patch("/api/live/:id/end", async (req, res) => {
@@ -1821,6 +1925,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!session) return res.status(404).json({ message: "Not found" });
     if (session.creatorUserId !== userId) return res.status(403).json({ message: "Forbidden" });
     await storage.endLiveSession(id);
+
+    // End stream on Zito.TV (fire-and-forget)
+    zitoFetch("/api/streams/end-stream", {
+      method: "POST",
+      body: JSON.stringify({ gigzitoUserId: String(userId) }),
+    }).catch(() => {});
+
     return res.json({ success: true });
   });
 

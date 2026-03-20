@@ -119,6 +119,22 @@ export default function GoLivePage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-xl font-bold text-white">Go Live</h1>
+          <span className="ml-auto text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-400">
+            Zito.TV Powered
+          </span>
+        </div>
+
+        {/* Zito.TV info card */}
+        <div className="rounded-xl bg-[#060e12] border border-cyan-500/20 p-4 flex gap-3 items-start">
+          <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center shrink-0">
+            <Globe className="w-4 h-4 text-cyan-400" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-cyan-300">Streams through Zito.TV</p>
+            <p className="text-xs text-[#555] leading-relaxed">
+              When you go live, Gigzito registers you on Zito.TV and keeps your session alive with automatic 30-second heartbeats. Viewers watch from the Live Now page — no multiple streams play at once.
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
