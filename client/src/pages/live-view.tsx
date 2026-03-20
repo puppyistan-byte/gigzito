@@ -180,12 +180,17 @@ export default function LiveViewPage() {
                   <img src={session.thumbnailUrl} className="w-full h-full object-cover" alt="" />
                 </div>
               )}
-              <div className="relative z-10 text-center">
+              <div className="relative z-10 text-center max-w-xs mx-auto">
                 <div className="w-12 h-12 rounded-full bg-[#ff2b2b]/20 border border-[#ff2b2b]/30 flex items-center justify-center mx-auto mb-3">
                   {PLATFORM_ICON[platformKey] ?? <Globe className="w-5 h-5 text-[#ff2b2b]" />}
                 </div>
-                <p className="text-[#aaa] text-sm mb-1">{platformLabel} Live doesn't support in-app embedding.</p>
-                <p className="text-[#555] text-xs mb-4">Click below to watch on {platformLabel}.</p>
+                <p className="text-white font-bold text-sm mb-1">Live on {platformLabel}</p>
+                <p className="text-[#777] text-xs leading-relaxed mb-2">
+                  In respect of {platformLabel}'s content licensing, this stream can't be embedded directly inside Gigzito — but you can watch it live on their platform right now.
+                </p>
+                <p className="text-[#444] text-[10px] leading-relaxed mb-4">
+                  Gigzito supports direct embedding for open-format streams. Proprietary platform streams remain on their native player to honour their terms of service.
+                </p>
                 <a href={session.streamUrl} target="_blank" rel="noopener noreferrer">
                   <Button className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white rounded-xl font-bold" data-testid="button-watch-external">
                     <ExternalLink className="w-4 h-4 mr-2" />
