@@ -3,6 +3,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,17 +22,21 @@ const DRAWER_W = Math.min(SW * 0.72, 300);
 const logo = require("@/assets/images/gigzito-logo.png");
 const gzFlashLogo = require("@/assets/images/gz-flash-logo.png");
 const gzLogo = require("@/assets/images/gz-logo.png");
+const zitoTvLogo = require("@/assets/images/zitotv.png");
 
 const NAV_ITEMS: {
   label: string;
   icon?: string;
   image?: any;
-  route: string;
+  route?: string;
+  externalUrl?: string;
   accentColor?: string;
+  isLive?: boolean;
 }[] = [
   { label: "Home",     icon: "home",        route: "/(tabs)" },
   { label: "GeeZee",   image: gzLogo,       route: "/(tabs)/geezee" },
   { label: "GZ Flash", image: gzFlashLogo,  route: "/(tabs)/gzflash", accentColor: "#3B82F6" },
+  { label: "ZitoTV",   image: zitoTvLogo,   externalUrl: "https://zito.com", accentColor: "#EF4444", isLive: true },
   { label: "Events",   icon: "zap",         route: "/(tabs)/events" },
   { label: "Live",     icon: "radio",       route: "/(tabs)/live" },
   { label: "Profile",  icon: "user",        route: "/(tabs)/profile" },
@@ -51,6 +56,27 @@ const CATEGORIES = [
   "Flash Sale",
   "Flash Coupons",
 ];
+
+function LiveDot() {
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.4, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1,   duration: 600, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View
+      style={{
+        width: 7, height: 7, borderRadius: 4,
+        backgroundColor: "#EF4444",
+        transform: [{ scale: pulse }],
+      }}
+    />
+  );
+}
 
 type Props = {
   open: boolean;
@@ -86,10 +112,15 @@ export function NavigationMenu({ open, onClose }: Props) {
     }).start();
   }, [catsOpen]);
 
-  const handleNav = (route: string) => {
+  const handleNav = (item: typeof NAV_ITEMS[0]) => {
     Haptics.selectionAsync();
-    onClose();
-    setTimeout(() => router.push(route as any), 50);
+    if (item.externalUrl) {
+      Linking.openURL(item.externalUrl);
+      onClose();
+    } else if (item.route) {
+      onClose();
+      setTimeout(() => router.push(item.route as any), 50);
+    }
   };
 
   const handleCategory = (cat: string) => {
@@ -128,22 +159,27 @@ export function NavigationMenu({ open, onClose }: Props) {
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
           <View style={styles.navList}>
             {NAV_ITEMS.map((item) => {
-              const active = isActive(item.route);
+              const active = item.route ? isActive(item.route) : false;
               const accent = item.accentColor ?? Colors.accent;
               return (
                 <Pressable
                   key={item.label}
-                  onPress={() => handleNav(item.route)}
-                  style={[styles.navItem, active && { backgroundColor: `${accent}12` }]}
+                  onPress={() => handleNav(item)}
+                  style={[
+                    styles.navItem,
+                    active && { backgroundColor: `${accent}12` },
+                    item.isLive && styles.navItemLive,
+                  ]}
                 >
                   <View style={[
                     styles.navIconWrap,
                     active && { backgroundColor: `${accent}20` },
+                    item.isLive && styles.navIconWrapLive,
                   ]}>
                     {item.image ? (
                       <Image
                         source={item.image}
-                        style={styles.navIconImg}
+                        style={item.isLive ? styles.navIconImgWide : styles.navIconImg}
                         resizeMode="contain"
                       />
                     ) : (
@@ -154,10 +190,24 @@ export function NavigationMenu({ open, onClose }: Props) {
                       />
                     )}
                   </View>
-                  <Text style={[styles.navLabel, active && { color: Colors.textPrimary, fontFamily: "Inter_600SemiBold" }]}>
+                  <Text style={[
+                    styles.navLabel,
+                    active && { color: Colors.textPrimary, fontFamily: "Inter_600SemiBold" },
+                    item.isLive && { color: "#fff", fontFamily: "Inter_700Bold" },
+                  ]}>
                     {item.label}
                   </Text>
-                  {active && <View style={[styles.activeDot, { backgroundColor: accent }]} />}
+                  {item.isLive ? (
+                    <View style={styles.liveChip}>
+                      <LiveDot />
+                      <Text style={styles.liveChipText}>LIVE</Text>
+                    </View>
+                  ) : active ? (
+                    <View style={[styles.activeDot, { backgroundColor: accent }]} />
+                  ) : null}
+                  {item.externalUrl ? (
+                    <Feather name="external-link" size={12} color="rgba(255,80,80,0.6)" />
+                  ) : null}
                 </Pressable>
               );
             })}
@@ -295,6 +345,38 @@ const styles = StyleSheet.create({
   navIconImg: {
     width: 24,
     height: 24,
+  },
+  navIconImgWide: {
+    width: 52,
+    height: 22,
+  },
+  navItemLive: {
+    backgroundColor: "rgba(220,38,38,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.3)",
+    borderRadius: 14,
+  },
+  navIconWrapLive: {
+    backgroundColor: "rgba(220,38,38,0.15)",
+    width: 48,
+    paddingHorizontal: 4,
+  },
+  liveChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(220,38,38,0.2)",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.5)",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  liveChipText: {
+    color: "#EF4444",
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.6,
   },
   navLabel: {
     flex: 1,

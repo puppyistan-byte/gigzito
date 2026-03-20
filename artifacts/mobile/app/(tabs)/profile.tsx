@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -23,6 +25,55 @@ import { NavigationMenu } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
 const GZ_FLASH_TIERS = ["GZMarketerPro", "GZBusiness", "GZEnterprise"];
+const zitoTvLogo = require("@/assets/images/zitotv.png");
+
+function ZitoTVBanner() {
+  const pulse = useRef(new Animated.Value(1)).current;
+  const glow  = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(pulse, { toValue: 1.25, duration: 700, useNativeDriver: true }),
+          Animated.timing(glow,  { toValue: 1,    duration: 700, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(pulse, { toValue: 1,    duration: 700, useNativeDriver: true }),
+          Animated.timing(glow,  { toValue: 0.5,  duration: 700, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Linking.openURL("https://zito.com");
+      }}
+      style={({ pressed }) => [zitoStyles.banner, pressed && { opacity: 0.88 }]}
+    >
+      {/* Red glow behind logo */}
+      <Animated.View style={[zitoStyles.glowRing, { opacity: glow }]} />
+
+      <Image source={zitoTvLogo} style={zitoStyles.logo} resizeMode="contain" />
+
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={zitoStyles.heading}>Watch Live on ZitoTV</Text>
+        <Text style={zitoStyles.sub}>Streams, shows & live events</Text>
+      </View>
+
+      {/* Pulsing LIVE badge */}
+      <View style={zitoStyles.livePill}>
+        <Animated.View style={[zitoStyles.liveDot, { transform: [{ scale: pulse }] }]} />
+        <Text style={zitoStyles.liveText}>LIVE</Text>
+      </View>
+
+      <Feather name="external-link" size={14} color="rgba(255,80,80,0.7)" />
+    </Pressable>
+  );
+}
 
 function getZone(score: number) {
   if (score >= 90) return { label: "🔥 HOT",     color: "#F87171" };
@@ -344,6 +395,11 @@ export default function ProfileScreen() {
           <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} />
           <MenuItem icon="star" label="GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
         </View>
+      </View>
+
+      {/* ── ZitoTV Banner ── */}
+      <View style={styles.menuSection}>
+        <ZitoTVBanner />
       </View>
 
       {/* ── GZFlash Module ── */}
@@ -753,5 +809,68 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.6,
+  },
+});
+
+const zitoStyles = StyleSheet.create({
+  banner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#0D0D0D",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "rgba(220,38,38,0.45)",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    overflow: "hidden",
+    position: "relative",
+  },
+  glowRing: {
+    position: "absolute",
+    left: -10,
+    top: "50%",
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(220,38,38,0.22)",
+    marginTop: -35,
+  },
+  logo: {
+    width: 64,
+    height: 36,
+  },
+  heading: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
+  sub: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(220,38,38,0.2)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.5)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+  },
+  liveText: {
+    color: "#EF4444",
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
   },
 });
