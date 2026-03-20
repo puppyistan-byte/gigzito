@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video, Zap, Lock } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video, Zap, Lock, Radio, Play, Square } from "lucide-react";
 import { InviteCard } from "@/components/invite-card";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
@@ -190,6 +190,14 @@ export default function ProviderProfilePage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(EMPTY);
 
+  // ── Go Live state ─────────────────────────────────────────────────────────
+  const [liveTitle, setLiveTitle]           = useState("");
+  const [liveCategory, setLiveCategory]     = useState("");
+  const [liveStreamUrl, setLiveStreamUrl]   = useState("");
+  const [liveThumbnail, setLiveThumbnail]   = useState("");
+  const [liveOpen, setLiveOpen]             = useState(false);
+  const [liveSession, setLiveSession]       = useState<{ id: number } | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading]);
@@ -274,6 +282,59 @@ export default function ProviderProfilePage() {
       toast({ title: "Profile saved", description: "Your creator profile has been updated." });
     },
     onError: () => toast({ title: "Error saving profile", variant: "destructive" }),
+  });
+
+  // ── Go Live mutation ───────────────────────────────────────────────────────
+  function detectPlatform(url: string): { mode: "external" | "native"; platform: string } {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be")) return { mode: "external", platform: "youtube" };
+      if (u.hostname.includes("twitch.tv"))   return { mode: "external", platform: "twitch" };
+      if (u.hostname.includes("facebook.com")) return { mode: "external", platform: "facebook" };
+      if (u.hostname.includes("instagram.com")) return { mode: "external", platform: "instagram" };
+      if (u.hostname.includes("tiktok.com"))   return { mode: "external", platform: "tiktok" };
+      return { mode: "native", platform: "native" };
+    } catch { return { mode: "native", platform: "native" }; }
+  }
+
+  const goLiveMutation = useMutation({
+    mutationFn: async () => {
+      const { mode, platform } = detectPlatform(liveStreamUrl);
+      const res = await fetch("/api/live/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: liveTitle.trim(),
+          category: liveCategory || form.primaryCategory || "MARKETING",
+          mode,
+          platform,
+          streamUrl: liveStreamUrl.trim(),
+          thumbnailUrl: liveThumbnail.trim() || undefined,
+        }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message ?? "Failed to go live"); }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setLiveSession(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/live/active"] });
+      toast({ title: "You're live! 🔴", description: "Your stream is now broadcasting on Gigzito." });
+    },
+    onError: (err: any) => toast({ title: "Go live failed", description: err.message, variant: "destructive" }),
+  });
+
+  const endLiveMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/live/${id}/end`, { method: "PATCH", headers: { "Content-Type": "application/json" } });
+      if (!res.ok) throw new Error("Failed to end session");
+      return res.json();
+    },
+    onSuccess: () => {
+      setLiveSession(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/live/active"] });
+      toast({ title: "Stream ended", description: "Your live session has been closed." });
+    },
+    onError: () => toast({ title: "Error ending stream", variant: "destructive" }),
   });
 
   const set = (field: keyof FormState, value: string | boolean) =>
@@ -704,6 +765,218 @@ export default function ProviderProfilePage() {
               </div>
             );
           })()}
+
+          {/* ── Go Live Section ─────────────────────────────────────────── */}
+          <div
+            className={`rounded-xl border overflow-hidden transition-all ${
+              liveSession
+                ? "border-[#ff2b2b]/60 ring-1 ring-[#ff2b2b]/20"
+                : "border-[#1e1e1e]"
+            }`}
+            data-testid="section-go-live"
+          >
+            {/* Header / toggle */}
+            <button
+              type="button"
+              onClick={() => { if (!liveSession) setLiveOpen((o) => !o); }}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-[#0b0b0b] hover:bg-[#111] transition-colors text-left"
+              data-testid="btn-toggle-go-live"
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${liveSession ? "bg-[#ff2b2b]" : "bg-[#ff2b2b]/10 border border-[#ff2b2b]/30"}`}>
+                <Radio className={`w-4 h-4 ${liveSession ? "text-white" : "text-[#ff2b2b]"}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white">
+                  {liveSession ? "You're Live 🔴" : "Go Live"}
+                </p>
+                <p className="text-[11px] text-[#555] truncate">
+                  {liveSession
+                    ? "Your stream is broadcasting on Gigzito + Zito.TV"
+                    : "Set your topic, cover photo, and stream source — then tap Go LIVE"}
+                </p>
+              </div>
+              {liveSession ? (
+                <span className="shrink-0 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-[#ff2b2b] text-white animate-pulse">
+                  LIVE
+                </span>
+              ) : (
+                <span className="shrink-0 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-400">
+                  Zito.TV
+                </span>
+              )}
+            </button>
+
+            {/* ── Active stream dashboard ── */}
+            {liveSession && (
+              <div className="px-4 pb-4 pt-3 bg-[#070a0c] space-y-4">
+                <div className="rounded-xl bg-[#ff2b2b]/5 border border-[#ff2b2b]/20 p-4 flex flex-col items-center gap-3 text-center">
+                  <div className="relative flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff2b2b] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-[#ff2b2b]" />
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-base">{liveTitle || "Live Stream"}</p>
+                    <p className="text-[#555] text-xs mt-0.5">Broadcasting via Zito.TV</p>
+                  </div>
+                  <div className="flex gap-2 w-full">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/live/${liveSession.id}`)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold transition-colors"
+                      data-testid="btn-view-live-session"
+                    >
+                      <Play className="w-3.5 h-3.5" /> View Stream
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (liveSession) endLiveMutation.mutate(liveSession.id); }}
+                      disabled={endLiveMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#ff2b2b]/10 hover:bg-[#ff2b2b]/20 border border-[#ff2b2b]/30 text-[#ff2b2b] text-xs font-bold transition-colors disabled:opacity-50"
+                      data-testid="btn-end-live-profile"
+                    >
+                      {endLiveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5 fill-current" />}
+                      End Stream
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Setup form (collapsed/expanded) ── */}
+            {!liveSession && liveOpen && (
+              <div className="px-4 pb-5 pt-3 bg-[#070a0c] space-y-4">
+
+                {/* Cover photo */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-[#555] uppercase tracking-widest">Cover Photo</p>
+                  <div className="relative rounded-xl overflow-hidden bg-[#0a0a0a] border border-[#1e1e1e] aspect-video flex items-center justify-center">
+                    {liveThumbnail ? (
+                      <>
+                        <img src={liveThumbnail} alt="Cover" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setLiveThumbnail("")}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 border border-white/10 flex items-center justify-center text-white hover:bg-black/90 transition-colors"
+                          data-testid="btn-clear-live-thumbnail"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center space-y-2 py-6">
+                        <Camera className="w-8 h-8 text-[#333] mx-auto" />
+                        <p className="text-[#444] text-xs">Cover photo</p>
+                      </div>
+                    )}
+                  </div>
+                  <Input
+                    type="url"
+                    placeholder="https://... (cover photo URL)"
+                    value={liveThumbnail}
+                    onChange={(e) => setLiveThumbnail(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm focus:border-[#ff2b2b] h-9"
+                    data-testid="input-live-thumbnail-url"
+                  />
+                </div>
+
+                {/* Topic */}
+                <div className="space-y-1.5">
+                  <Label className="text-[#aaa] text-xs font-semibold uppercase tracking-widest">Topic *</Label>
+                  <Input
+                    placeholder="What are you broadcasting today?"
+                    value={liveTitle}
+                    onChange={(e) => setLiveTitle(e.target.value)}
+                    maxLength={100}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff2b2b]"
+                    data-testid="input-live-topic"
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="space-y-1.5">
+                  <Label className="text-[#aaa] text-xs font-semibold uppercase tracking-widest">Category</Label>
+                  <Select value={liveCategory || form.primaryCategory} onValueChange={setLiveCategory}>
+                    <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff2b2b]" data-testid="select-live-category-profile">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                      {[
+                        { v: "MUSIC_GIGS",      l: "Music Gigs" },
+                        { v: "EVENTS",          l: "Events" },
+                        { v: "INFLUENCER",      l: "Influencer" },
+                        { v: "COACHING",        l: "Coaching" },
+                        { v: "COURSES",         l: "Courses" },
+                        { v: "MARKETING",       l: "Marketing" },
+                        { v: "CORPORATE_DEALS", l: "Corporate Deals" },
+                        { v: "PRODUCTS",        l: "Products" },
+                        { v: "CRYPTO",          l: "Crypto" },
+                      ].map((c) => (
+                        <SelectItem key={c.v} value={c.v} className="text-white focus:bg-[#222]">{c.l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Stream source URL */}
+                <div className="space-y-1.5">
+                  <Label className="text-[#aaa] text-xs font-semibold uppercase tracking-widest">Stream Source *</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://youtube.com/live/... or twitch.tv/channel or your HLS URL"
+                    value={liveStreamUrl}
+                    onChange={(e) => setLiveStreamUrl(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff2b2b]"
+                    data-testid="input-live-stream-url"
+                  />
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {[
+                      { label: "YouTube", color: "text-[#FF0000] border-[#FF0000]/20 bg-[#FF0000]/5" },
+                      { label: "TikTok",  color: "text-white border-white/20 bg-white/5" },
+                      { label: "Twitch",  color: "text-[#9147FF] border-[#9147FF]/20 bg-[#9147FF]/5" },
+                      { label: "Direct",  color: "text-[#888] border-[#888]/20 bg-[#888]/5" },
+                    ].map((p) => (
+                      <span key={p.label} className={`text-[9px] font-semibold px-2 py-0.5 rounded border ${p.color}`}>{p.label}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tips */}
+                <div className="rounded-lg bg-[#0a0a0a] border border-[#1a1a1a] p-3 space-y-1.5">
+                  <p className="text-[10px] font-bold text-[#444] uppercase tracking-widest">Quick Tips</p>
+                  {[
+                    "Start your stream on YouTube/TikTok/Twitch first, then paste the live URL here",
+                    "YouTube Live and Twitch embed directly inside Gigzito",
+                    "TikTok, Instagram & Facebook redirect viewers to your live",
+                    "Your stream registers on Zito.TV automatically — heartbeats keep it live",
+                  ].map((tip) => (
+                    <p key={tip} className="text-[11px] text-[#333] flex gap-1.5 items-start">
+                      <span className="text-[#ff2b2b] mt-0.5 shrink-0">·</span> {tip}
+                    </p>
+                  ))}
+                </div>
+
+                {/* GO LIVE button */}
+                <button
+                  type="button"
+                  disabled={!liveTitle.trim() || !liveStreamUrl.trim() || goLiveMutation.isPending}
+                  onClick={() => goLiveMutation.mutate()}
+                  className="w-full h-14 rounded-xl font-black text-lg tracking-wide flex items-center justify-center gap-3 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    background: goLiveMutation.isPending ? "#333" : "linear-gradient(135deg, #ff1a00, #ff2b2b, #cc0000)",
+                    color: "#fff",
+                    boxShadow: goLiveMutation.isPending ? "none" : "0 0 30px rgba(255,43,43,0.4), 0 4px 16px rgba(255,0,0,0.3)",
+                  }}
+                  data-testid="btn-go-live-now"
+                >
+                  {goLiveMutation.isPending ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Starting...</>
+                  ) : (
+                    <><Radio className="w-5 h-5" /> GO LIVE</>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
 
           <Button
             type="submit"
