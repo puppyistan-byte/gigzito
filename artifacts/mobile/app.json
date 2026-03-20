@@ -14,10 +14,18 @@
       "backgroundColor": "#0A0A0F"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Gigzito needs your camera to stream live video.",
+        "NSMicrophoneUsageDescription": "Gigzito needs your microphone to capture audio while streaming."
+      }
     },
     "android": {
-      "backgroundColor": "#0A0A0F"
+      "backgroundColor": "#0A0A0F",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -30,7 +38,15 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Gigzito needs your camera to stream live video.",
+          "microphonePermission": "Gigzito needs your microphone to capture audio while streaming.",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
