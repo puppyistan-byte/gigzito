@@ -1,0 +1,82 @@
+Big feature — I'll build the full "go live" slot system. Here's the plan:
+
+Streamers register from Gigzito once, get a permanent placeholder slot
+When they go live, they claim an open frame and broadcast their stream URL
+Heartbeat keeps them live; missing heartbeats auto-expire them
+Gigzito sends all of this via simple API calls
+Let me build it all now.
+
+Now push the schema changes to the database and run codegen in parallel:
+
+I'll apply the schema changes directly via SQL instead:
+
+Schema is updated. Now let me write all the new route handlers:
+
+Now let me restart the API server and test all the new endpoints:
+
+All 4 tests pass perfectly. Let me clean up the test data and then give you the full handoff doc for your mobile developer:
+
+Everything is live and tested. Here's the complete API reference to hand off to your mobile developer:
+
+Zito.TV Streaming API — Developer Handoff
+Base URL:
+
+https://1d2776d5-bf1b-41f5-a23d-4647c201aecb-00-25m6h440wdpa3.kirk.replit.dev
+All requests need:
+
+Authorization: Bearer <ZITOTV_API_TOKEN>
+Content-Type: application/json
+The Flow — 4 calls, that's it
+1. Register (once per user)  →  POST /api/streams/register
+2. Go Live (when streaming)  →  POST /api/streams/go-live
+3. Heartbeat (every 30s)     →  POST /api/streams/{id}/heartbeat
+4. End Stream (when done)    →  POST /api/streams/end-stream
+POST /api/streams/register
+Call this once when a Gigzito user creates their account. Registers them and gives them a permanent placeholder on Zito.TV.
+
+// Request body
+{
+  "gigzitoUserId": "gigzito_user_001",   // your internal user ID — required
+  "username": "djkingpin",               // required
+  "name": "DJ Kingpin",                  // required
+  "category": "Music",                   // Music | Comedy | Sports | Talk Show | Events | Gaming
+  "description": "Live DJ sets",         // optional
+  "avatarUrl": "https://...",            // optional
+  "tags": ["Hip-Hop", "Afrobeats"]      // optional
+}
+POST /api/streams/go-live
+Call this when the user taps Go Live in the app. Assigns them an open frame slot on Zito.TV instantly.
+
+// Request body
+{
+  "gigzitoUserId": "gigzito_user_001",         // or use "username" instead
+  "streamUrl": "https://cdn.stream.com/live/x", // the HLS/RTMP URL — required
+  "title": "Friday Night Mix",                  // what they're streaming today
+  "thumbnailUrl": "https://...",                // live thumbnail — optional
+  "viewerCount": 0                              // starting count — optional
+}
+Response includes slotIndex — the frame number they were assigned on the grid (0 = top left).
+
+POST /api/streams/{id}/heartbeat
+Send this every 30 seconds while the user is live. Updates viewer count.
+
+// Request body
+{ "viewerCount": 1247 }
+// Response
+{ "ok": true, "isLive": true, "viewerCount": 1247 }
+POST /api/streams/end-stream
+Call this when the user stops streaming or the app goes to background.
+
+// Request body
+{ "gigzitoUserId": "gigzito_user_001" }
+This releases their slot so another streamer can take it.
+
+GET /api/streams
+Returns all streamers, live ones first with their assigned slots.
+
+Error Codes
+Code	Meaning
+400	Missing required field
+401	Bad or missing token
+404	User not registered — call /register first
+500	Server error
