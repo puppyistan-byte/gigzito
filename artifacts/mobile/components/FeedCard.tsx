@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useToggleLike } from "@/hooks/useApi";
+import { useToggleLike, useVideoLikes } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommentsDrawer } from "@/components/CommentsDrawer";
 import { InquireModal } from "@/components/InquireModal";
@@ -58,6 +58,10 @@ export function FeedCard({ item, isActive }: Props) {
   const { token } = useAuth();
   const { mutate: toggleLike } = useToggleLike(item.id);
 
+  // Fetch real like status from the API — resolves whether this user has already liked
+  const { data: videoLikesData } = useVideoLikes(item.id);
+  const [likeInitialized, setLikeInitialized] = useState(false);
+
   const totalSecs = item.durationSeconds || 60;
   const [timeLeft, setTimeLeft] = useState(totalSecs);
   const [muted, setMuted] = useState(false);
@@ -68,6 +72,16 @@ export function FeedCard({ item, isActive }: Props) {
     typeof item.likeCount === "number" ? item.likeCount : 0
   );
   const [cardPressed, setCardPressed] = useState(false);
+
+  // Once the per-video likes data arrives, sync liked + count (only on first load)
+  useEffect(() => {
+    if (videoLikesData && !likeInitialized) {
+      if (typeof videoLikesData.liked === "boolean") setLiked(videoLikesData.liked);
+      if (typeof videoLikesData.userLiked === "boolean") setLiked(videoLikesData.userLiked);
+      if (typeof videoLikesData.likeCount === "number") setLikeCount(videoLikesData.likeCount);
+      setLikeInitialized(true);
+    }
+  }, [videoLikesData, likeInitialized]);
 
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
