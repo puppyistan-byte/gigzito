@@ -37,12 +37,13 @@ import {
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
   Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
+  Music, Headphones, Upload as UploadIcon,
 } from "lucide-react";
 import { InviteCard } from "@/components/invite-card";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion, GZMusicTrack } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -389,6 +390,13 @@ function ProviderDashboardInner() {
   const { data: audienceBroadcasts = [] } = useQuery<AudienceBroadcast[]>({
     queryKey: ["/api/my-audience/broadcasts"],
     enabled: !!user,
+  });
+
+  const myUserId = (user as any)?.user?.id;
+  const { data: myMusicTracks = [], isLoading: musicLoading } = useQuery<GZMusicTrack[]>({
+    queryKey: ["/api/gz-music/tracks/by-user", myUserId],
+    queryFn: () => fetch(`/api/gz-music/tracks/by-user/${myUserId}`).then((r) => r.json()),
+    enabled: !!myUserId,
   });
 
   const { data: presenterContacts = [] } = useQuery<{ id: number; memberUserId: number; displayName: string | null; username: string | null; email: string; optedInAt: string }[]>({
@@ -956,6 +964,84 @@ function ProviderDashboardInner() {
 
         {/* ─── Gig Cards ─── */}
         {profile && <GigCardSection profile={profile} />}
+
+        {/* ─── GZMusic ─── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Music className="h-4 w-4" style={{ color: "#ff7a00" }} />
+              <h2 className="text-sm font-semibold text-white">GZMusic</h2>
+              {myMusicTracks.length > 0 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#ff7a0018", color: "#ff7a00", border: "1px solid #ff7a0035" }}>
+                  {myMusicTracks.length}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {myMusicTracks.length > 0 && (
+                <button onClick={() => navigate("/gz-music")} className="text-xs transition-colors" style={{ color: "#ff7a00" }} data-testid="link-gz100-chart">
+                  GZ100 Chart
+                </button>
+              )}
+              <button onClick={() => navigate("/gz-music/upload")} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all" style={{ background: "linear-gradient(135deg, #ff7a00, #cc5200)", color: "#fff" }} data-testid="button-upload-track">
+                <UploadIcon className="h-3 w-3" /> Upload Track
+              </button>
+            </div>
+          </div>
+
+          {musicLoading ? (
+            <div className="space-y-2">
+              <div className="h-16 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />
+              <div className="h-16 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />
+            </div>
+          ) : myMusicTracks.length === 0 ? (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-music">
+              <Music className="h-7 w-7 mx-auto mb-3" style={{ color: "#333" }} />
+              <p className="text-[#555] text-sm font-semibold">No tracks yet</p>
+              <p className="text-[#444] text-xs mt-1 mb-4">Upload your music to the GZ100 chart and announce it to your audience.</p>
+              <button onClick={() => navigate("/gz-music/upload")} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-black text-sm transition-all" style={{ background: "linear-gradient(135deg, #ff7a00, #cc5200)", color: "#fff", boxShadow: "0 4px 18px rgba(255,122,0,0.35)" }} data-testid="button-upload-first-track">
+                <UploadIcon className="h-3.5 w-3.5" /> Upload Your First Track
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {myMusicTracks.map((track) => (
+                <div key={track.id} className="flex items-center gap-3 p-3 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e]" data-testid={`card-music-track-${track.id}`}>
+                  {(track as any).coverUrl ? (
+                    <img src={(track as any).coverUrl} alt={track.title} className="w-10 h-10 rounded-lg object-cover border border-[#2a2a2a] shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#ff7a0015", border: "1px solid #ff7a0030" }}>
+                      <Music className="h-4 w-4" style={{ color: "#ff7a00" }} />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{track.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-[#888]">{track.artist}</span>
+                      <span className="text-[10px] text-[#444]">·</span>
+                      <span className="text-[11px] text-[#666]">{track.genre}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(track as any).downloadEnabled && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#ff7a0015", color: "#ff7a00", border: "1px solid #ff7a0030" }}>DL</span>
+                    )}
+                    {(track as any).licenseFileUrl && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#3b82f615", color: "#60a5fa", border: "1px solid #3b82f630" }}>LIC</span>
+                    )}
+                    <span className="flex items-center gap-1 text-[11px] text-[#555]">
+                      <Headphones className="h-3 w-3" />
+                      {track.likeCount ?? 0}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => navigate("/gz-music")} className="w-full text-center text-xs py-2 rounded-xl border transition-colors" style={{ border: "1px solid #1e1e1e", background: "#080808", color: "#555" }} data-testid="button-view-full-chart">
+                View full GZ100 Chart →
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* ─── ZeeMotion Feed ─── */}
         <div>
