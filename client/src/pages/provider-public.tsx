@@ -815,7 +815,7 @@ export default function ProviderPublicPage() {
                             {isExpanded && (hasFile || track.audioUrl) && (
                               <div className="px-3 pb-3">
                                 {hasFile ? (
-                                  <audio controls src={(track as any).fileUrl} className="w-full rounded-lg" style={{ height: "40px" }} />
+                                  <audio controls autoPlay src={(track as any).fileUrl} className="w-full rounded-lg" style={{ height: "40px" }} />
                                 ) : track.audioUrl ? (
                                   <iframe src={track.audioUrl} width="100%" height="80" allow="autoplay" className="rounded-lg border border-[#2a2a2a]" style={{ background: "#0a0a0a" }} />
                                 ) : null}

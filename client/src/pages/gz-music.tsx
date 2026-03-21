@@ -430,6 +430,7 @@ function TrackCard({
           {hasFile ? (
             <audio
               controls
+              autoPlay
               src={(track as any).fileUrl}
               className="w-full rounded-lg"
               style={{ height: "40px" }}
