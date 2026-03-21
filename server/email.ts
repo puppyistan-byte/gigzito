@@ -318,6 +318,59 @@ export async function sendAudienceBroadcast(opts: {
   return { devMode: false };
 }
 
+export async function sendGZMusicAnnouncement(opts: {
+  toEmail: string;
+  senderName: string;
+  trackTitle: string;
+  trackArtist: string;
+  trackGenre: string;
+  coverUrl?: string | null;
+  message?: string | null;
+  fileUrl?: string | null;
+  downloadEnabled?: boolean;
+  listenUrl?: string;
+}): Promise<{ devMode: boolean }> {
+  const listenUrl = opts.listenUrl ?? "https://gigzito.com/gz-music";
+  const coverBlock = opts.coverUrl
+    ? `<img src="${opts.coverUrl}" alt="Cover Art" style="width:100%;max-width:220px;border-radius:10px;margin:0 auto 20px;display:block;border:1px solid #222;" />`
+    : `<div style="width:100%;max-width:220px;height:100px;background:#111;border-radius:10px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:#ff7a00;font-size:28px;border:1px solid #2a2a2a;">🎵</div>`;
+  const downloadLine = opts.downloadEnabled && opts.fileUrl
+    ? `<a href="https://gigzito.com${opts.fileUrl}" style="display:inline-block;margin-top:8px;padding:8px 16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#aaa;font-size:12px;text-decoration:none;">⬇ Download Track</a>`
+    : "";
+  const msgBlock = opts.message
+    ? `<div style="background:#111;border:1px solid #222;border-radius:10px;padding:16px;margin:16px 0;color:#ccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${opts.message}</div>`
+    : "";
+  const html = `
+    <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:30px;margin-bottom:24px;" />
+      <p style="color:#ff7a00;font-size:11px;font-weight:700;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;">🎵 New Track on GZMusic</p>
+      <h2 style="color:#fff;font-size:22px;margin:0 0 4px;">${opts.trackTitle}</h2>
+      <p style="color:#888;font-size:14px;margin:0 0 24px;">by ${opts.trackArtist}${opts.trackGenre ? ` · ${opts.trackGenre}` : ""}</p>
+      ${coverBlock}
+      ${msgBlock}
+      <a href="${listenUrl}" style="display:block;text-align:center;padding:14px 24px;background:linear-gradient(135deg,#ff7a00,#cc5200);color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;margin-top:4px;">🎧 Listen on GZ100</a>
+      ${downloadLine}
+      <hr style="border:none;border-top:1px solid #1e1e1e;margin:28px 0;" />
+      <p style="color:#333;font-size:11px;margin:0;">Announced by ${opts.senderName} via Gigzito GZMusic. To unsubscribe, reply "unsubscribe".</p>
+    </div>
+  `;
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] GZMusic announcement to:", opts.toEmail);
+    console.log("  Track:", opts.trackTitle, "by", opts.trackArtist);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: opts.toEmail,
+    subject: `New Track: "${opts.trackTitle}" by ${opts.trackArtist} — via Gigzito GZMusic`,
+    html,
+    text: `${opts.senderName} just dropped a new track on GZMusic!\n\n${opts.trackTitle} by ${opts.trackArtist}\nGenre: ${opts.trackGenre}\n\nListen: ${listenUrl}`,
+  });
+  return { devMode: false };
+}
+
 export async function sendEmail(opts: { toEmail: string; subject: string; html: string; text?: string }): Promise<{ devMode: boolean }> {
   if (DEV_MODE) {
     console.log("\n" + "=".repeat(60));

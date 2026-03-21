@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -3646,6 +3646,93 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }
     }
   );
+
+  // GZMusic — announce track to a single email (repeatable)
+  app.post("/api/gz-music/announce/single", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const { trackId, toEmail, message } = req.body as { trackId: number; toEmail: string; message?: string };
+    if (!trackId || !toEmail?.trim()) return res.status(400).json({ message: "trackId and toEmail are required." });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(toEmail.trim())) return res.status(400).json({ message: "Invalid email address." });
+    try {
+      const [profile, tracks] = await Promise.all([
+        storage.getProfileByUserId(userId),
+        storage.getGZMusicTracksByUser(userId),
+      ]);
+      const track = tracks.find((t) => t.id === Number(trackId));
+      if (!track) return res.status(404).json({ message: "Track not found or not owned by you." });
+      const senderName = profile?.displayName ?? "A GZMusic Artist";
+      await sendGZMusicAnnouncement({
+        toEmail: toEmail.trim(),
+        senderName,
+        trackTitle: track.title,
+        trackArtist: track.artist,
+        trackGenre: track.genre,
+        coverUrl: track.coverUrl,
+        fileUrl: (track as any).fileUrl,
+        downloadEnabled: !!(track as any).downloadEnabled,
+        message: message?.trim() || null,
+      });
+      return res.json({ ok: true, sent: 1 });
+    } catch (err) {
+      console.error("[gz-music/announce/single]", err);
+      return res.status(500).json({ message: "Failed to send announcement." });
+    }
+  });
+
+  // GZMusic — announce track to full mailing list
+  app.post("/api/gz-music/announce/mailing-list", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const { trackId, message } = req.body as { trackId: number; message?: string };
+    if (!trackId) return res.status(400).json({ message: "trackId is required." });
+    try {
+      const [profile, tracks, audience] = await Promise.all([
+        storage.getProfileByUserId(userId),
+        storage.getGZMusicTracksByUser(userId),
+        storage.getMarketerAudience(userId),
+      ]);
+      const track = tracks.find((t) => t.id === Number(trackId));
+      if (!track) return res.status(404).json({ message: "Track not found or not owned by you." });
+      const senderName = profile?.displayName ?? "A GZMusic Artist";
+      const withEmail = audience.filter((m) => m.leadEmail?.includes("@"));
+      if (withEmail.length === 0) return res.json({ ok: true, sent: 0, message: "No subscribers with email addresses." });
+      let sent = 0;
+      await Promise.all(withEmail.map(async (m) => {
+        try {
+          await sendGZMusicAnnouncement({
+            toEmail: m.leadEmail,
+            senderName,
+            trackTitle: track.title,
+            trackArtist: track.artist,
+            trackGenre: track.genre,
+            coverUrl: track.coverUrl,
+            fileUrl: (track as any).fileUrl,
+            downloadEnabled: !!(track as any).downloadEnabled,
+            message: message?.trim() || null,
+          });
+          sent++;
+        } catch { /* silent */ }
+      }));
+      return res.json({ ok: true, sent, total: withEmail.length });
+    } catch (err) {
+      console.error("[gz-music/announce/mailing-list]", err);
+      return res.status(500).json({ message: "Failed to send to mailing list." });
+    }
+  });
+
+  // GZMusic — subscriber count for current user
+  app.get("/api/gz-music/announce/subscriber-count", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    try {
+      const count = await storage.getMarketerAudienceCount(userId);
+      return res.json({ count });
+    } catch (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 
   app.get("/api/gz-music/tracks/by-user/:userId", async (req, res) => {
     const uid = parseInt(req.params.userId);
