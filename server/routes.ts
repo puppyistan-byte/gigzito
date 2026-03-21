@@ -998,9 +998,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.get(api.profiles.getProvider.path, async (req, res) => {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(404).json({ message: "Not found" });
-    const profile = await storage.getProfileById(id);
+    const rawId = req.params.id;
+    const numId = parseInt(rawId);
+    const profile = !isNaN(numId)
+      ? await storage.getProfileById(numId)
+      : await storage.getProfileByUsername(rawId);
     if (!profile) return res.status(404).json({ message: "Provider not found" });
     const user = await storage.getUserById(profile.userId);
     // Track profile view — only when a different logged-in user views this profile
@@ -1011,10 +1013,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ ...profile, user: { ...user, password: undefined } });
   });
 
-  // Public: listings for a given provider profile ID
+  // Public: listings for a given provider profile ID or username
   app.get("/api/profile/:id/listings", async (req, res) => {
-    const profileId = parseInt(req.params.id);
-    if (isNaN(profileId)) return res.status(400).json({ message: "Invalid id" });
+    const rawId = req.params.id;
+    const numId = parseInt(rawId);
+    let profileId: number;
+    if (!isNaN(numId)) {
+      profileId = numId;
+    } else {
+      const p = await storage.getProfileByUsername(rawId);
+      if (!p) return res.json([]);
+      profileId = p.id;
+    }
     const listings = await storage.getListingsByProvider(profileId);
     return res.json(listings ?? []);
   });
@@ -2525,8 +2535,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── Profile Wall Posts ──────────────────────────────────────────────────────
   app.get("/api/profile/:id/wall", async (req, res) => {
-    const profileId = parseInt(req.params.id);
-    if (isNaN(profileId)) return res.status(400).json({ message: "Invalid profile id" });
+    const rawId = req.params.id;
+    const numId = parseInt(rawId);
+    let profileId: number;
+    if (!isNaN(numId)) {
+      profileId = numId;
+    } else {
+      const p = await storage.getProfileByUsername(rawId);
+      if (!p) return res.json([]);
+      profileId = p.id;
+    }
     try {
       const posts = await storage.getProfileWallPosts(profileId);
       return res.json(posts);
@@ -2537,8 +2555,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/profile/:id/wall", async (req, res) => {
-    const profileId = parseInt(req.params.id);
-    if (isNaN(profileId)) return res.status(400).json({ message: "Invalid profile id" });
+    const rawId = req.params.id;
+    const numId = parseInt(rawId);
+    let profileId: number;
+    if (!isNaN(numId)) {
+      profileId = numId;
+    } else {
+      const p = await storage.getProfileByUsername(rawId);
+      if (!p) return res.status(404).json({ message: "Profile not found" });
+      profileId = p.id;
+    }
     const { message } = req.body;
     if (!message?.trim()) return res.status(400).json({ message: "Message is required" });
     if (message.trim().length > 500) return res.status(400).json({ message: "Message too long (max 500 chars)" });

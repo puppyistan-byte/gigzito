@@ -186,7 +186,7 @@ export default function ProviderPublicPage() {
               <Skeleton className="h-48 w-full bg-[#111] rounded-2xl" />
               <Skeleton className="h-10 w-full bg-[#111] rounded-xl" />
             </div>
-          ) : !profile || (profile as any).message === "Not found" ? (
+          ) : !profile || (profile as any).message || !(profile as any).id ? (
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-12 text-center">
               <p className="text-[#555]">Creator not found.</p>
             </div>
