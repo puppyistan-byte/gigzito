@@ -1003,6 +1003,16 @@ export const gzMusicRatings = pgTable("gz_music_ratings", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.trackId, t.userId)]);
 
+export const gzMusicComments = pgTable("gz_music_comments", {
+  id: serial("id").primaryKey(),
+  trackId: integer("track_id").notNull().references(() => gzMusicTracks.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type GZMusicTrack = typeof gzMusicTracks.$inferSelect;
 export type InsertGZMusicTrack = typeof gzMusicTracks.$inferInsert;
 export type GZMusicRating = typeof gzMusicRatings.$inferSelect;
+export type GZMusicComment = typeof gzMusicComments.$inferSelect;
+export type InsertGZMusicComment = typeof gzMusicComments.$inferInsert;

@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
   ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
-  Star, StarHalf, Share2, Copy, Mail, Check,
+  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2,
 } from "lucide-react";
 import { SiX, SiWhatsapp, SiFacebook, SiTelegram } from "react-icons/si";
 import type { GZMusicTrack } from "@shared/schema";
@@ -232,6 +232,197 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
+// ── Comment section ───────────────────────────────────────────────────────────
+
+type TrackComment = {
+  id: number;
+  trackId: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  username: string | null;
+};
+
+function CommentSection({
+  trackId,
+  expanded,
+  userId,
+  navigate,
+  isAdmin,
+}: {
+  trackId: number;
+  expanded: boolean;
+  userId: number | undefined;
+  navigate: (to: string) => void;
+  isAdmin: boolean;
+}) {
+  const [text, setText] = useState("");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: comments = [], isLoading } = useQuery<TrackComment[]>({
+    queryKey: ["/api/gz-music/tracks", trackId, "comments"],
+    queryFn: () => fetch(`/api/gz-music/tracks/${trackId}/comments`).then((r) => r.json()),
+    enabled: expanded,
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (content: string) =>
+      apiRequest("POST", `/api/gz-music/tracks/${trackId}/comments`, { content }),
+    onSuccess: () => {
+      setText("");
+      queryClient.invalidateQueries({ queryKey: ["/api/gz-music/tracks", trackId, "comments"] });
+    },
+    onError: () => toast({ title: "Could not post comment", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (commentId: number) =>
+      apiRequest("DELETE", `/api/gz-music/comments/${commentId}`),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["/api/gz-music/tracks", trackId, "comments"] }),
+    onError: () => toast({ title: "Could not delete comment", variant: "destructive" }),
+  });
+
+  if (!expanded) return null;
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  return (
+    <div className="px-3 pb-4 mt-1 border-t" style={{ borderColor: "#1e1e1e" }}>
+      <div className="flex items-center gap-1.5 py-2 mb-2">
+        <MessageCircle className="h-3.5 w-3.5" style={{ color: ORANGE }} />
+        <span className="text-xs font-bold" style={{ color: ORANGE }}>
+          {comments.length} {comments.length === 1 ? "Comment" : "Comments"}
+        </span>
+      </div>
+
+      {/* Input area */}
+      {userId ? (
+        <div className="flex gap-2 mb-3">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Share your thoughts on this track..."
+            maxLength={500}
+            rows={2}
+            className="flex-1 text-xs rounded-lg px-3 py-2 resize-none outline-none"
+            style={{
+              background: "#111",
+              border: `1px solid #2a2a2a`,
+              color: "#ddd",
+              fontFamily: "inherit",
+            }}
+            data-testid={`textarea-comment-${trackId}`}
+            onFocus={(e) => (e.target.style.borderColor = ORANGE)}
+            onBlur={(e) => (e.target.style.borderColor = "#2a2a2a")}
+          />
+          <button
+            onClick={() => { if (text.trim()) submitMutation.mutate(text.trim()); }}
+            disabled={!text.trim() || submitMutation.isPending}
+            className="flex items-center justify-center rounded-lg px-3 transition-all"
+            style={{
+              background: text.trim() ? ORANGE : "#1a1a1a",
+              color: text.trim() ? "#fff" : "#555",
+              border: `1px solid ${text.trim() ? ORANGE : "#2a2a2a"}`,
+              minWidth: "40px",
+            }}
+            data-testid={`button-submit-comment-${trackId}`}
+          >
+            <Send className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => navigate("/auth")}
+          className="w-full text-xs py-2 rounded-lg mb-3 font-semibold transition-all"
+          style={{ background: ORANGE_DIM, border: `1px solid ${ORANGE_BORDER}`, color: ORANGE }}
+          data-testid={`button-login-to-comment-${trackId}`}
+        >
+          Register or login to comment
+        </button>
+      )}
+
+      {/* Comments list */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="flex gap-2 animate-pulse">
+              <div className="h-7 w-7 rounded-full bg-[#1a1a1a] shrink-0" />
+              <div className="flex-1 space-y-1">
+                <div className="h-2 w-24 rounded bg-[#1a1a1a]" />
+                <div className="h-2 w-full rounded bg-[#1a1a1a]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : comments.length === 0 ? (
+        <p className="text-xs text-center py-2" style={{ color: "#444" }}>
+          No comments yet. Be first!
+        </p>
+      ) : (
+        <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+          {comments.map((c) => (
+            <div key={c.id} className="flex gap-2 group">
+              {/* Avatar */}
+              <div className="shrink-0">
+                {c.avatarUrl ? (
+                  <img
+                    src={c.avatarUrl}
+                    alt={c.displayName ?? ""}
+                    className="h-7 w-7 rounded-full object-cover"
+                    style={{ border: `1px solid #2a2a2a` }}
+                  />
+                ) : (
+                  <div
+                    className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black"
+                    style={{ background: ORANGE_DIM, color: ORANGE, border: `1px solid ${ORANGE_BORDER}` }}
+                  >
+                    {(c.displayName ?? "?")[0].toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-bold" style={{ color: "#ccc" }}>
+                    {c.displayName ?? c.username ?? "User"}
+                  </span>
+                  <span className="text-[10px]" style={{ color: "#444" }}>
+                    {timeAgo(c.createdAt)}
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: "#aaa" }}>
+                  {c.content}
+                </p>
+              </div>
+              {(c.userId === userId || isAdmin) && (
+                <button
+                  onClick={() => deleteMutation.mutate(c.id)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5"
+                  style={{ color: "#555" }}
+                  data-testid={`button-delete-comment-${c.id}`}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Track card ────────────────────────────────────────────────────────────────
 
 function TrackCard({
@@ -245,6 +436,9 @@ function TrackCard({
   expanded,
   onToggleExpand,
   highlighted,
+  userId,
+  navigate,
+  isAdmin,
 }: {
   track: TrackWithRating;
   rank: number;
@@ -256,6 +450,9 @@ function TrackCard({
   expanded: boolean;
   onToggleExpand: () => void;
   highlighted: boolean;
+  userId: number | undefined;
+  navigate: (to: string) => void;
+  isAdmin: boolean;
 }) {
   const [shareOpen, setShareOpen] = useState(false);
   const hasFile = !!(track as any).fileUrl;
@@ -482,6 +679,14 @@ function TrackCard({
           ) : null}
         </div>
       )}
+
+      <CommentSection
+        trackId={track.id}
+        expanded={expanded}
+        userId={userId}
+        navigate={navigate}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }
@@ -524,6 +729,8 @@ export default function GZMusicPage() {
   }, [isLoading, tracks.length]);
 
   const userId = (user as any)?.user?.id as number | undefined;
+  const userRole = (user as any)?.user?.role as string | undefined;
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(userRole ?? "");
 
   const { data: likedMap = {} } = useQuery<Record<number, boolean>>({
     queryKey: ["/api/gz-music/likes/batch", tracks.map((t) => t.id).join(",")],
@@ -772,6 +979,9 @@ export default function GZMusicPage() {
                   setExpandedTrackId((prev) => (prev === track.id ? null : track.id))
                 }
                 highlighted={highlightedTrackId === track.id}
+                userId={userId}
+                navigate={navigate}
+                isAdmin={isAdmin}
               />
             ))}
           </div>

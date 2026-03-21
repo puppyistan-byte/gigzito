@@ -3856,5 +3856,51 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ message: "Deleted" });
   });
 
+  // GZMusic — comments
+  app.get("/api/gz-music/tracks/:id/comments", async (req, res) => {
+    const trackId = parseInt(req.params.id);
+    if (isNaN(trackId)) return res.status(400).json({ message: "Invalid id" });
+    try {
+      const comments = await storage.getGZMusicComments(trackId);
+      return res.json(comments);
+    } catch (err) {
+      console.error("[gz-music/comments/get]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/gz-music/tracks/:id/comments", async (req, res) => {
+    const userId = (req.session as any).userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Login required to comment" });
+    const trackId = parseInt(req.params.id);
+    if (isNaN(trackId)) return res.status(400).json({ message: "Invalid id" });
+    const content = (req.body.content ?? "").trim();
+    if (!content) return res.status(400).json({ message: "Comment cannot be empty" });
+    if (content.length > 500) return res.status(400).json({ message: "Comment too long (max 500 chars)" });
+    try {
+      const comment = await storage.createGZMusicComment(trackId, userId, content);
+      return res.status(201).json(comment);
+    } catch (err) {
+      console.error("[gz-music/comments/post]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/gz-music/comments/:id", async (req, res) => {
+    const userId = (req.session as any).userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const role = (req.session as any).role as string | undefined;
+    const isAdmin = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role ?? "");
+    try {
+      await storage.deleteGZMusicComment(id, userId, isAdmin);
+      return res.json({ message: "Deleted" });
+    } catch (err) {
+      console.error("[gz-music/comments/delete]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   return httpServer;
 }
