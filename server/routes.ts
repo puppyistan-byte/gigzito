@@ -3647,6 +3647,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   );
 
+  app.get("/api/gz-music/tracks/by-user/:userId", async (req, res) => {
+    const uid = parseInt(req.params.userId);
+    if (isNaN(uid)) return res.status(400).json({ message: "Invalid user id" });
+    try {
+      const tracks = await storage.getGZMusicTracksByUser(uid);
+      return res.json(tracks);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.get("/api/gz-music/tracks", async (req, res) => {
     try {
       const tracks = await storage.getGZ100();

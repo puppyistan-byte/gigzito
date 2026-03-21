@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
@@ -13,16 +13,17 @@ import {
   ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle,
   Megaphone, CreditCard, LayoutGrid, User, Image, ShoppingBag, MessageSquare,
   Clock, Store, ExternalLink, Play, Tag, Loader2, Trash2, Send,
+  Music, Upload, Headphones, Download, FileBadge2, Shield,
 } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { ProviderProfile, ListingWithProvider, GignessCard } from "@shared/schema";
+import type { ProviderProfile, ListingWithProvider, GignessCard, GZMusicTrack } from "@shared/schema";
 
 type LoveStatus = { voteCount: number; hasVoted: boolean };
 type WallPost = { id: number; profileId: number; authorUserId: number | null; authorName: string; authorAvatar: string | null; message: string; createdAt: string };
 
-type Tab = "about" | "photos" | "store" | "wall" | "geezee";
+type Tab = "about" | "photos" | "store" | "wall" | "geezee" | "music";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "about",   label: "About",      icon: User },
@@ -30,6 +31,7 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "store",   label: "Store Front",icon: Store },
   { key: "wall",    label: "Wall",       icon: MessageSquare },
   { key: "geezee",  label: "GeeZee",     icon: CreditCard },
+  { key: "music",   label: "GZMusic",    icon: Music },
 ];
 
 function timeAgo(iso: string) {
@@ -47,11 +49,13 @@ function timeAgo(iso: string) {
 export default function ProviderPublicPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("about");
   const [wallMessage, setWallMessage] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [expandedTrackId, setExpandedTrackId] = useState<number | null>(null);
 
   const { data: profile, isLoading: profileLoading } = useQuery<ProviderProfile & { user?: { subscriptionTier?: string; role?: string } }>({
     queryKey: ["/api/profile", id],
@@ -87,6 +91,13 @@ export default function ProviderPublicPage() {
     queryKey: ["/api/profile", id, "wall"],
     queryFn: () => fetch(`/api/profile/${id}/wall`).then((r) => r.json()),
     enabled: !!id && activeTab === "wall",
+  });
+
+  const { data: gzTracks = [], isLoading: gzTracksLoading } = useQuery<GZMusicTrack[]>({
+    queryKey: ["/api/gz-music/tracks/by-user", profileUserId],
+    queryFn: () => fetch(`/api/gz-music/tracks/by-user/${profileUserId}`).then((r) => r.json()),
+    enabled: !!profileUserId && activeTab === "music",
+    staleTime: 30_000,
   });
 
   const loveMutation = useMutation({
@@ -633,6 +644,199 @@ export default function ProviderPublicPage() {
                       </div>
                     ))
                   )}
+                </div>
+              )}
+
+              {/* GZMUSIC TAB */}
+              {activeTab === "music" && (
+                <div className="space-y-4">
+                  {/* Upload button — visible only to profile owner */}
+                  {myUserId === profileUserId && (
+                    <button
+                      onClick={() => navigate("/gz-music/upload")}
+                      className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98]"
+                      style={{
+                        background: "linear-gradient(135deg, #ff7a00, #cc5200)",
+                        color: "#fff",
+                        boxShadow: "0 4px 20px rgba(255,122,0,0.4)",
+                      }}
+                      data-testid="button-profile-upload-gz-music"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload Track to GZMusic
+                    </button>
+                  )}
+
+                  {/* Header */}
+                  <div className="flex items-center gap-2 px-1">
+                    <Music className="h-4 w-4" style={{ color: "#ff7a00" }} />
+                    <p className="text-sm font-black text-white">
+                      {myUserId === profileUserId ? "My GZMusic Tracks" : `${profile.displayName}'s Tracks`}
+                    </p>
+                    {gzTracks.length > 0 && (
+                      <span className="ml-auto text-[10px] font-bold text-[#555]">{gzTracks.length} track{gzTracks.length !== 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+
+                  {gzTracksLoading ? (
+                    <div className="space-y-2">
+                      {[1,2,3].map((i) => <Skeleton key={i} className="h-20 w-full bg-[#111] rounded-xl" />)}
+                    </div>
+                  ) : gzTracks.length === 0 ? (
+                    <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-10 flex flex-col items-center gap-3 text-center">
+                      <Music className="w-8 h-8" style={{ color: "#2a2a2a" }} />
+                      <p className="text-[#555] text-sm font-semibold">No tracks yet</p>
+                      {myUserId === profileUserId ? (
+                        <button
+                          onClick={() => navigate("/gz-music/upload")}
+                          className="mt-1 px-4 py-2 rounded-xl text-xs font-black text-white"
+                          style={{ background: "linear-gradient(135deg, #ff7a00, #cc5200)" }}
+                          data-testid="button-empty-upload-gz-music"
+                        >
+                          Upload your first track
+                        </button>
+                      ) : (
+                        <p className="text-[#333] text-xs">{profile.displayName} hasn't uploaded any music yet.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {gzTracks.map((track) => {
+                        const hasFile = !!(track as any).fileUrl;
+                        const hasLicense = !!(track as any).licenseFileUrl;
+                        const downloadOk = !!(track as any).downloadEnabled;
+                        const isExpanded = expandedTrackId === track.id;
+                        return (
+                          <div
+                            key={track.id}
+                            className="rounded-xl border overflow-hidden"
+                            style={{ background: "#0b0b0b", border: "1px solid #1e1e1e" }}
+                            data-testid={`profile-track-${track.id}`}
+                          >
+                            <div className="flex items-center gap-3 p-3">
+                              {/* Cover */}
+                              <div
+                                className="w-12 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
+                                style={{ background: "#111", border: "1px solid #2a2a2a" }}
+                              >
+                                {track.coverUrl ? (
+                                  <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Headphones className="h-5 w-5" style={{ color: "#ff7a00" }} />
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-white truncate">{track.title}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                  <p className="text-xs text-[#888]">{track.artist}</p>
+                                  {track.genre && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#ff7a0018", color: "#ff7a00" }}>
+                                      {track.genre}
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Badges */}
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  {hasLicense && (
+                                    <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#3b82f610", borderColor: "#3b82f630", color: "#3b82f6" }}>
+                                      <FileBadge2 className="h-2.5 w-2.5" /> Licensed
+                                    </span>
+                                  )}
+                                  {(track as any).authenticityConfirmed && (
+                                    <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#22c55e10", borderColor: "#22c55e30", color: "#22c55e" }}>
+                                      <Shield className="h-2.5 w-2.5" /> Certified
+                                    </span>
+                                  )}
+                                  {downloadOk ? (
+                                    <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#ff7a0018", borderColor: "#ff7a0035", color: "#ff7a00" }}>
+                                      <Download className="h-2.5 w-2.5" /> Download OK
+                                    </span>
+                                  ) : hasFile ? (
+                                    <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#1a1a1a", borderColor: "#2a2a2a", color: "#555" }}>
+                                      <Shield className="h-2.5 w-2.5" /> Stream Only
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {/* Controls */}
+                                <div className="flex items-center gap-3 mt-1">
+                                  {(hasFile || track.audioUrl) && (
+                                    <button
+                                      onClick={() => setExpandedTrackId(isExpanded ? null : track.id)}
+                                      className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
+                                      style={{ color: isExpanded ? "#ff7a00" : "#555" }}
+                                      data-testid={`btn-play-profile-track-${track.id}`}
+                                    >
+                                      <Play className="h-2.5 w-2.5" /> {isExpanded ? "Hide" : "Play"}
+                                    </button>
+                                  )}
+                                  {downloadOk && hasFile && (
+                                    <a
+                                      href={(track as any).fileUrl}
+                                      download
+                                      className="flex items-center gap-1 text-[10px] font-semibold text-[#888]"
+                                      data-testid={`link-download-profile-track-${track.id}`}
+                                    >
+                                      <Download className="h-2.5 w-2.5" /> Download
+                                    </a>
+                                  )}
+                                  {hasLicense && (
+                                    <a
+                                      href={(track as any).licenseFileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-[10px] font-semibold"
+                                      style={{ color: "#3b82f6" }}
+                                      data-testid={`link-license-profile-track-${track.id}`}
+                                    >
+                                      <FileBadge2 className="h-2.5 w-2.5" /> License
+                                    </a>
+                                  )}
+                                  <Link href="/gz-music">
+                                    <a className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#ff7a00" }}>
+                                      <Music className="h-2.5 w-2.5" /> GZ100
+                                    </a>
+                                  </Link>
+                                </div>
+                              </div>
+
+                              {/* Like count */}
+                              <div
+                                className="flex flex-col items-center gap-0.5 shrink-0 px-2 py-1.5 rounded-xl"
+                                style={{ background: "#111", border: "1px solid #2a2a2a" }}
+                              >
+                                <Music className="h-4 w-4" style={{ color: "#ff7a00" }} />
+                                <span className="text-[10px] font-bold" style={{ color: "#ff7a00" }}>{track.likeCount}</span>
+                              </div>
+                            </div>
+
+                            {/* Inline player */}
+                            {isExpanded && (hasFile || track.audioUrl) && (
+                              <div className="px-3 pb-3">
+                                {hasFile ? (
+                                  <audio controls src={(track as any).fileUrl} className="w-full rounded-lg" style={{ height: "40px" }} />
+                                ) : track.audioUrl ? (
+                                  <iframe src={track.audioUrl} width="100%" height="80" allow="autoplay" className="rounded-lg border border-[#2a2a2a]" style={{ background: "#0a0a0a" }} />
+                                ) : null}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Link to full GZ100 chart */}
+                  <Link href="/gz-music">
+                    <a
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-bold transition-all"
+                      style={{ borderColor: "#ff7a0035", background: "#ff7a0010", color: "#ff7a00" }}
+                      data-testid="link-view-gz100"
+                    >
+                      <Music className="h-4 w-4" /> View Full GZ100 Chart
+                    </a>
+                  </Link>
                 </div>
               )}
 

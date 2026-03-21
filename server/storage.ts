@@ -193,6 +193,7 @@ export interface IStorage {
   // GZMusic
   getGZ100(): Promise<import("@shared/schema").GZMusicTrack[]>;
   getGZTracksByIds(ids: number[]): Promise<import("@shared/schema").GZMusicTrack[]>;
+  getGZMusicTracksByUser(userId: number): Promise<import("@shared/schema").GZMusicTrack[]>;
   createGZMusicTrack(data: import("@shared/schema").InsertGZMusicTrack): Promise<import("@shared/schema").GZMusicTrack>;
   toggleGZMusicLike(trackId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
   getGZMusicLikesBatch(trackIds: number[], userId: number): Promise<Record<number, boolean>>;
@@ -2410,6 +2411,14 @@ export class DatabaseStorage implements IStorage {
     for (const id of trackIds) result[id] = false;
     for (const row of rows) result[row.trackId] = true;
     return result;
+  }
+
+  async getGZMusicTracksByUser(userId: number) {
+    return db.select().from(gzMusicTracks)
+      .where(
+        sql`(${gzMusicTracks.uploaderUserId} = ${userId} OR ${gzMusicTracks.submittedBy} = ${userId}) AND ${gzMusicTracks.status} = 'active'`
+      )
+      .orderBy(desc(gzMusicTracks.createdAt));
   }
 
   async deleteGZMusicTrack(id: number) {

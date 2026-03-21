@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -199,6 +200,7 @@ function TrackCard({ track, rank, liked, onLike }: {
 
 export default function GZMusicPage() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -292,7 +294,7 @@ export default function GZMusicPage() {
 
             {/* Upload Track CTA */}
             <button
-              onClick={() => { window.location.href = user ? "/gz-music/upload" : "/auth"; }}
+              onClick={() => navigate(user ? "/gz-music/upload" : "/auth")}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98]"
               style={{
                 background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
