@@ -37,6 +37,8 @@ function RootLayoutNav() {
       <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="geezee/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="profile/edit" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+      <Stack.Screen name="gzmusic/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="gzmusic/upload" options={{ headerShown: false, animation: "slide_from_bottom" }} />
     </Stack>
   );
 }

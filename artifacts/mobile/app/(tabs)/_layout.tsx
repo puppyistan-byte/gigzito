@@ -16,6 +16,7 @@ export default function TabLayout() {
       <Tabs.Screen name="gzflash" />
       <Tabs.Screen name="events" />
       <Tabs.Screen name="live" />
+      <Tabs.Screen name="gzmusic" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

@@ -544,3 +544,137 @@ export function useDeleteFlash() {
     },
   });
 }
+
+// ─── GZMusic ────────────────────────────────────────────────────────────────
+
+export function useGZ100() {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-chart"],
+    queryFn: () => apiRequest<any[]>("/api/gz-music/tracks"),
+    staleTime: 60000,
+  });
+}
+
+export function useGZLibrary(q?: string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-library", q],
+    queryFn: () => apiRequest<any[]>(`/api/gz-music/library${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+    staleTime: 30000,
+  });
+}
+
+export function useGZTracksByUser(userId: number) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-user", userId],
+    queryFn: () => apiRequest<any[]>(`/api/gz-music/tracks/by-user/${userId}`),
+    enabled: !!userId,
+  });
+}
+
+export function useGZTrackComments(id: number) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-comments", id],
+    queryFn: () => apiRequest<any[]>(`/api/gz-music/tracks/${id}/comments`),
+    enabled: !!id,
+  });
+}
+
+export function useGZToggleLike() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => apiRequest<any>(`/api/gz-music/tracks/${id}/like`, { method: "POST" }),
+    onSuccess: (_d, id) => qc.invalidateQueries({ queryKey: ["gz-music-chart"] }),
+  });
+}
+
+export function useGZRateTrack() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, stars }: { id: number; stars: number }) =>
+      apiRequest<any>(`/api/gz-music/tracks/${id}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stars }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gz-music-chart"] }),
+  });
+}
+
+export function useGZPostComment() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, content }: { id: number; content: string }) =>
+      apiRequest<any>(`/api/gz-music/tracks/${id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      }),
+    onSuccess: (_d, { id }) => qc.invalidateQueries({ queryKey: ["gz-music-comments", id] }),
+  });
+}
+
+export function useGZDeleteComment() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: number) =>
+      apiRequest<any>(`/api/gz-music/comments/${commentId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gz-music-comments"] }),
+  });
+}
+
+export function useGZRecordPlay() {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: (id: number) => apiRequest<any>(`/api/gz-music/tracks/${id}/play`, { method: "POST" }),
+  });
+}
+
+export function useGZBatchLikes(ids: number[]) {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-likes-batch", ids.join(",")],
+    queryFn: () => apiRequest<Record<string, boolean>>(`/api/gz-music/likes/batch?ids=${ids.join(",")}`),
+    enabled: !!token && ids.length > 0,
+  });
+}
+
+export function useGZAnnounceSingle() {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: (body: { trackId: number; toEmail: string; message?: string }) =>
+      apiRequest<any>("/api/gz-music/announce/single", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
+export function useGZAnnounceMailing() {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: (body: { trackId: number; message?: string }) =>
+      apiRequest<any>("/api/gz-music/announce/mailing-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+  });
+}
+
+export function useGZSubscriberCount() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-subscribers"],
+    queryFn: () => apiRequest<{ count: number }>("/api/gz-music/announce/subscriber-count"),
+    enabled: !!token,
+  });
+}

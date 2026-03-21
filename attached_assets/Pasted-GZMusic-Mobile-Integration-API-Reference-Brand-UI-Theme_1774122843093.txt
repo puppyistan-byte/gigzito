@@ -1,0 +1,302 @@
+GZMusic — Mobile Integration API Reference
+Brand & UI Theme
+Token	Value	Usage
+Primary accent	#ff7a00	Buttons, progress bars, active states, borders
+Accent dim	#ff7a0015	Card backgrounds, selection tints
+Accent border	#ff7a0035	Card/section borders
+Page background	#000000	Screen background
+Card background	#0b0b0b	Track cards, list items
+Surface	#111111	Inputs, secondary surfaces
+Text primary	#ffffff	Track titles, headings
+Text secondary	#888888	Artist, genre, timestamps
+Text muted	#555555	Labels, placeholders
+Destructive	#ff2b2b	Errors, delete actions
+All interactive buttons — play, like, comment, submit, volume — should use #ff7a00 as their active/filled state.
+
+Base URL
+https://<your-domain>
+All endpoints are prefixed with /api/gz-music.
+
+Authentication
+GZMusic uses session-based authentication via a cookie (connect.sid).
+
+Most read endpoints (GZ100 chart, library search, comments) are public — no login required.
+Like, rate, comment, upload, and announce endpoints require a valid session.
+Include cookies with every request: credentials: "include" (fetch) or equivalent on mobile.
+Auth error response:
+
+{ "message": "Authentication required" }   // 401
+Track Model
+All track objects share this shape:
+
+{
+  "id": 12,
+  "title": "Midnight Drive",
+  "artist": "DJ Nova",
+  "genre": "Lo-Fi Hip-Hop",
+  "coverUrl": "/uploads/gz-music/cover-abc123.jpg",   // null if none
+  "fileUrl": "/uploads/gz-music/audio-abc123.mp3",    // primary stream URL
+  "audioUrl": null,                                   // legacy field, prefer fileUrl
+  "licenseFileUrl": "/uploads/gz-music/lic-abc123.pdf", // null if none
+  "downloadEnabled": true,
+  "sharedToLibrary": true,
+  "likeCount": 42,
+  "playCount": 1280,
+  "status": "active",
+  "submittedBy": 7,
+  "uploaderUserId": 7,
+  "createdAt": "2026-03-15T18:00:00.000Z"
+}
+Audio playback: Stream from fileUrl. If fileUrl is null, fall back to audioUrl.
+Cover art: Prepend the base URL — https://<domain>/uploads/gz-music/cover-abc123.jpg
+
+Endpoints
+1. GZ100 Chart — Top Tracks
+Returns all public library tracks sorted by composite score (rating × 10 + likes).
+
+GET /api/gz-music/tracks
+Auth: Not required
+Response: Array of track objects, each augmented with:
+
+{
+  ...track,
+  "avgRating": 4.5,    // float, 0.5–6.0
+  "ratingCount": 38
+}
+2. GZLibrary Search
+Returns public library tracks with optional keyword search.
+
+GET /api/gz-music/library?q=lofi
+Auth: Not required
+Query params:
+
+Param	Type	Description
+q	string (optional)	Search term — matches title, artist, or genre
+Response: Array of track objects (without avgRating/ratingCount).
+
+3. Tracks by User
+Returns all tracks uploaded by a specific user.
+
+GET /api/gz-music/tracks/by-user/:userId
+Auth: Not required
+Path params: userId — integer user ID
+Response: Array of track objects.
+
+4. Submit / Upload a Track
+Uploads an MP3 track with optional cover art and license file. Uses multipart/form-data.
+
+POST /api/gz-music/submit
+Content-Type: multipart/form-data
+Auth: Required (any tier)
+
+Form fields:
+
+Field	Type	Required	Notes
+audio	File (MP3)	Yes	The audio file
+cover	File (JPG/PNG)	No	Square cover art recommended
+license	File (PDF)	No	License document
+title	string	Yes	Max display length ~100 chars
+artist	string	Yes	Artist / stage name
+genre	string	Yes	Must be a valid genre string
+downloadEnabled	"true" / "false"	Yes	Allow listeners to download
+sharedToLibrary	"true" / "false"	Yes	Show in GZ100 chart and library picker
+authenticityConfirmed	"true"	Yes	Must be "true" to pass validation
+Response 201:
+
+{
+  "id": 55,
+  "title": "Midnight Drive",
+  "artist": "DJ Nova",
+  "genre": "Lo-Fi Hip-Hop",
+  "fileUrl": "/uploads/gz-music/audio-xyz.mp3",
+  "coverUrl": "/uploads/gz-music/cover-xyz.jpg",
+  "downloadEnabled": false,
+  "sharedToLibrary": true,
+  ...
+}
+Error responses:
+
+{ "message": "MP3 audio file is required." }           // 400
+{ "message": "Track title is required." }              // 400
+{ "message": "Certificate of authenticity must be confirmed." }  // 400
+5. Record a Play
+Increments the play counter. Call once per listening session per track. No auth required — fire-and-forget.
+
+POST /api/gz-music/tracks/:id/play
+Auth: Not required
+Response:
+
+{ "message": "ok" }
+6. Like / Unlike a Track (Toggle)
+Toggles the current user's like on a track.
+
+POST /api/gz-music/tracks/:id/like
+Auth: Required
+Response:
+
+{
+  "liked": true,      // new state
+  "likeCount": 43     // updated total
+}
+7. Rate a Track
+POST /api/gz-music/tracks/:id/rate
+Content-Type: application/json
+Auth: Required
+
+Body:
+
+{ "stars": 4.5 }   // 0.5 to 6.0 in 0.5 increments
+Response:
+
+{
+  "avgRating": 4.3,
+  "ratingCount": 39,
+  "userRating": 4.5
+}
+8. Batch Fetch Likes (for feed rendering)
+Returns a map of trackId → boolean for the current user.
+
+GET /api/gz-music/likes/batch?ids=1,2,3,4,5
+Auth: Required (returns {} if not logged in)
+Query params: ids — comma-separated track IDs
+Response:
+
+{ "1": true, "2": false, "3": false, "4": true, "5": false }
+9. Batch Fetch Ratings
+Returns a map of trackId → userStars for the current user.
+
+GET /api/gz-music/ratings/batch?ids=1,2,3,4,5
+Auth: Required (returns {} if not logged in)
+Response:
+
+{ "1": 4.5, "3": 3.0 }   // only tracks the user has rated
+10. Get Comments for a Track
+GET /api/gz-music/tracks/:id/comments
+Auth: Not required
+Response: Array of comment objects:
+
+[
+  {
+    "id": 9,
+    "trackId": 12,
+    "userId": 7,
+    "content": "This track hits different at 2am.",
+    "createdAt": "2026-03-20T22:14:00.000Z",
+    "user": {
+      "displayName": "DJ Nova",
+      "avatarUrl": "https://..."
+    }
+  }
+]
+11. Post a Comment
+POST /api/gz-music/tracks/:id/comments
+Content-Type: application/json
+Auth: Required
+
+Body:
+
+{ "content": "This is fire!" }   // max 500 chars
+Response 201: The created comment object.
+
+12. Delete a Comment
+Owners can delete their own comment. Admins can delete any comment.
+
+DELETE /api/gz-music/comments/:id
+Auth: Required
+Response:
+
+{ "message": "Deleted" }
+13. Announce Track to a Single Email
+Sends an email announcement for one of the authenticated user's tracks to a specific address.
+
+POST /api/gz-music/announce/single
+Content-Type: application/json
+Auth: Required
+
+Body:
+
+{
+  "trackId": 12,
+  "toEmail": "fan@example.com",
+  "message": "New drop — check it out!"  // optional
+}
+Response:
+
+{ "ok": true, "sent": 1 }
+14. Announce Track to Mailing List
+Sends an email announcement to all subscribers in the user's GZMarketer audience.
+
+POST /api/gz-music/announce/mailing-list
+Content-Type: application/json
+Auth: Required
+
+Body:
+
+{
+  "trackId": 12,
+  "message": "Album out now!"   // optional
+}
+Response:
+
+{ "ok": true, "sent": 124, "total": 130 }
+15. Subscriber Count
+Returns how many subscribers are in the user's mailing list audience.
+
+GET /api/gz-music/announce/subscriber-count
+Auth: Required
+Response:
+
+{ "count": 130 }
+Error Format
+All error responses follow:
+
+{
+  "message": "Human-readable error description"
+}
+Status	Meaning
+400	Bad request / validation failure
+401	Not authenticated
+403	Authenticated but not authorized
+404	Resource not found
+500	Server error
+Genre List (valid values for genre field)
+Hip-Hop, Trap / Drill, Phonk, Rapcore, Lo-Fi Hip-Hop,
+R&B / Soul, Neo-Soul, Soul / Motown, Funk / Groove,
+Pop, Synth-Pop, Bedroom Pop, K-Pop / J-Pop, Dance-Pop,
+Rock, Alternative / Indie, Indie Rock, Indie Folk,
+Classic Rock, Hard Rock, Grunge, Post-Rock, Psychedelic Rock,
+Metal, Heavy Metal, Nu-Metal, Death Metal, Black Metal,
+Doom Metal, Thrash Metal, Power Metal, Progressive Metal,
+Metalcore, Deathcore, Sludge Metal, Stoner Metal,
+Punk, Pop Punk, Ska Punk, Post-Punk, Hardcore,
+Post-Hardcore, Screamo, Mathcore,
+Emo / Emo Rock, Midwest Emo, Emo-Pop,
+Electronic / EDM, House, Deep House, Techno, Trance,
+Dubstep / Riddim, Drum & Bass / Jungle, Junglist, Garage / UK Funky,
+Ambient / Chillout, Synthwave / Retrowave, Lo-Fi, Experimental,
+Afrobeats, Afro-House, Amapiano, Dancehall, Reggae,
+Reggaeton, Latin, Soca / Calypso, World Music,
+Jazz / Fusion, Jazz, Blues / Blues Rock, Bossa Nova,
+Gospel / Worship, Christian / CCM, Gospel Rap,
+Country & Folk, Bluegrass, Singer-Songwriter, Acoustic,
+Classical, Orchestral, Film Score / Cinematic,
+Spoken Word / Poetry, Comedy / Novelty, Kids / Family,
+Gaming / Chiptune, Meditation / Binaural, ASMR,
+Drum Patterns / Loops, Acapella / Vocals Only, Other
+Suggested Mobile Screen Flow
+GZMusic Home
+  └── GZ100 Chart         GET /api/gz-music/tracks
+       └── Track Card
+            ├── Play       POST /api/gz-music/tracks/:id/play
+            ├── Like       POST /api/gz-music/tracks/:id/like
+            ├── Rate       POST /api/gz-music/tracks/:id/rate
+            └── Comments
+                 ├── List  GET  /api/gz-music/tracks/:id/comments
+                 └── Post  POST /api/gz-music/tracks/:id/comments
+GZLibrary Search           GET /api/gz-music/library?q=...
+Upload Track               POST /api/gz-music/submit  (multipart)
+  └── After upload → Announce
+       ├── Single email    POST /api/gz-music/announce/single
+       └── Mailing list    POST /api/gz-music/announce/mailing-list
+Artist Profile
+  └── Tracks by user       GET /api/gz-music/tracks/by-user/:userId

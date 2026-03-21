@@ -91,6 +91,26 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/mobile` — GZMusic Module
+
+Fully integrated music module. Base URL: `https://www.gigzito.com/api/gz-music`.
+
+**Screens:**
+- `app/(tabs)/gzmusic.tsx` — Main tab: GZ100 Chart (ranked by likes × ratings) + GZLibrary search toggle + mini audio player bar + Upload FAB
+- `app/gzmusic/[id].tsx` — Track detail: full cover, play/pause, like toggle, 1–6 star rating, comments (post/delete), owner Announce panel (single email or mailing list)
+- `app/gzmusic/upload.tsx` — Upload form: MP3 picker, cover art picker (square), license PDF, genre dropdown (50+ genres), download/library toggles, authenticity checkbox
+
+**Hooks added to `hooks/useApi.ts`:**
+`useGZ100`, `useGZLibrary`, `useGZTracksByUser`, `useGZTrackComments`, `useGZToggleLike`, `useGZRateTrack`, `useGZPostComment`, `useGZDeleteComment`, `useGZRecordPlay`, `useGZBatchLikes`, `useGZAnnounceSingle`, `useGZAnnounceMailing`, `useGZSubscriberCount`
+
+**Audio:** `expo-audio@~1.1.1` (Expo 54's replacement for expo-av); `useAudioPlayer` hook with `player.replace()` for dynamic track switching.
+
+**File upload:** `expo-document-picker@~14.0.8` for MP3 + PDF; `expo-image-picker` for cover art; multipart FormData to `/api/gz-music/submit`.
+
+**Theme:** `#ff7a00` orange accent, `#000000` background, `#0b0b0b` cards, dark throughout.
+
+**Navigation:** "GZMusic" entry added to hamburger drawer with orange accent; `gzmusic` registered in `app/(tabs)/_layout.tsx` and stack routes in `app/_layout.tsx`.
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
