@@ -12,7 +12,7 @@ import {
   ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
   Star, StarHalf, Share2, Copy, Mail, Check,
 } from "lucide-react";
-import { SiX, SiWhatsapp, SiFacebook } from "react-icons/si";
+import { SiX, SiWhatsapp, SiFacebook, SiTelegram } from "react-icons/si";
 import type { GZMusicTrack } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
@@ -146,6 +146,13 @@ function ShareMenu({ track, onClose }: { track: TrackWithRating; onClose: () => 
       color: "#25d366",
       action: () => window.open(`https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`, "_blank"),
       testId: "share-whatsapp",
+    },
+    {
+      label: "Telegram",
+      icon: SiTelegram,
+      color: "#26a5e4",
+      action: () => window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank"),
+      testId: "share-telegram",
     },
     {
       label: "Facebook",
