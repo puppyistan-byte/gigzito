@@ -393,11 +393,12 @@ function ProviderDashboardInner() {
   });
 
   const myUserId = (user as any)?.user?.id;
-  const { data: myMusicTracks = [], isLoading: musicLoading } = useQuery<GZMusicTrack[]>({
+  const { data: myMusicTracksRaw, isLoading: musicLoading } = useQuery<GZMusicTrack[]>({
     queryKey: ["/api/gz-music/tracks/by-user", myUserId],
-    queryFn: () => fetch(`/api/gz-music/tracks/by-user/${myUserId}`).then((r) => r.json()),
+    queryFn: () => fetch(`/api/gz-music/tracks/by-user/${myUserId}`).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
     enabled: !!myUserId,
   });
+  const myMusicTracks: GZMusicTrack[] = Array.isArray(myMusicTracksRaw) ? myMusicTracksRaw : [];
 
   const { data: presenterContacts = [] } = useQuery<{ id: number; memberUserId: number; displayName: string | null; username: string | null; email: string; optedInAt: string }[]>({
     queryKey: ["/api/presenter-contacts/my-contacts"],
