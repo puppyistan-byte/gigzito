@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -60,8 +61,12 @@ export function FeedCard({ item, isActive }: Props) {
   const totalSecs = item.durationSeconds || 60;
   const [timeLeft, setTimeLeft] = useState(totalSecs);
   const [muted, setMuted] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(item.likeCount ?? 0);
+  const [liked, setLiked] = useState<boolean>(
+    item.isLiked ?? item.userLiked ?? item.liked ?? false
+  );
+  const [likeCount, setLikeCount] = useState<number>(
+    typeof item.likeCount === "number" ? item.likeCount : 0
+  );
   const [cardPressed, setCardPressed] = useState(false);
 
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -99,19 +104,26 @@ export function FeedCard({ item, isActive }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!token) return;
     const wasLiked = liked;
+    const prevCount = likeCount;
+    // Optimistic update — immediate UI response
     setLiked(!wasLiked);
-    setLikeCount((c: number) => wasLiked ? c - 1 : c + 1);
+    setLikeCount((c) => wasLiked ? Math.max(0, c - 1) : c + 1);
     toggleLike(undefined, {
       onError: () => {
+        // Revert to exact pre-click values on failure
         setLiked(wasLiked);
-        setLikeCount((c: number) => wasLiked ? c + 1 : c - 1);
+        setLikeCount(prevCount);
       },
       onSuccess: (data: any) => {
-        setLiked(data.liked ?? !wasLiked);
-        setLikeCount(data.likeCount ?? likeCount);
+        // Only override if the API explicitly returns typed values
+        // Never let an API 0 or undefined wipe out a valid optimistic count
+        if (typeof data?.liked === "boolean") setLiked(data.liked);
+        if (typeof data?.likeCount === "number" && data.likeCount > 0) {
+          setLikeCount(data.likeCount);
+        }
       },
     });
-  }, [liked, token, toggleLike, likeCount]);
+  }, [liked, likeCount, token, toggleLike]);
 
   const handleCta = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -246,11 +258,10 @@ export function FeedCard({ item, isActive }: Props) {
             style={styles.railBtn}
             testID={`button-like-${item.id}`}
           >
-            <Feather
-              name="heart"
-              size={22}
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={24}
               color={liked ? Colors.accent : "#fff"}
-              fill={liked ? Colors.accent : "none"}
             />
           </Pressable>
           <Text style={styles.railCount} testID={`text-like-count-${item.id}`}>
