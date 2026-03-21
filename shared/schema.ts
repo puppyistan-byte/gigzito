@@ -984,6 +984,7 @@ export const gzMusicTracks = pgTable("gz_music_tracks", {
   uploaderUserId: integer("uploader_user_id").references(() => users.id, { onDelete: "set null" }),
   submittedBy: integer("submitted_by").references(() => users.id, { onDelete: "set null" }),
   likeCount: integer("like_count").notNull().default(0),
+  playCount: integer("play_count").notNull().default(0),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -3856,6 +3856,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ message: "Deleted" });
   });
 
+  // GZMusic — play count (fire-and-forget, no auth needed)
+  app.post("/api/gz-music/tracks/:id/play", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    try {
+      await storage.incrementGZMusicPlayCount(id);
+      return res.json({ message: "ok" });
+    } catch (err) {
+      console.error("[gz-music/play]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // GZMusic — comments
   app.get("/api/gz-music/tracks/:id/comments", async (req, res) => {
     const trackId = parseInt(req.params.id);

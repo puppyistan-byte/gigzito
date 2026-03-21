@@ -455,7 +455,18 @@ function TrackCard({
   isAdmin: boolean;
 }) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [localPlayCount, setLocalPlayCount] = useState<number>((track as any).playCount ?? 0);
+  const hasCountedRef = useRef(false);
   const hasFile = !!(track as any).fileUrl;
+
+  // Fire-and-forget play count increment on first expand
+  useEffect(() => {
+    if (expanded && !hasCountedRef.current) {
+      hasCountedRef.current = true;
+      setLocalPlayCount((c) => c + 1);
+      fetch(`/api/gz-music/tracks/${track.id}/play`, { method: "POST" }).catch(() => {});
+    }
+  }, [expanded]);
   const hasLicense = !!(track as any).licenseFileUrl;
   const downloadOk = (track as any).downloadEnabled;
 
@@ -608,6 +619,20 @@ function TrackCard({
             {shareOpen && (
               <ShareMenu track={track} onClose={() => setShareOpen(false)} />
             )}
+          </div>
+
+          {/* Play count */}
+          <div
+            className="flex flex-col items-center gap-0.5 px-1"
+            data-testid={`play-count-${track.id}`}
+            title="Total plays"
+          >
+            <Play className="h-3 w-3" style={{ color: "#444", fill: "#444" }} />
+            <span className="text-[9px] font-bold tabular-nums" style={{ color: "#444" }}>
+              {localPlayCount >= 1000
+                ? `${(localPlayCount / 1000).toFixed(localPlayCount >= 10000 ? 0 : 1)}k`
+                : localPlayCount}
+            </span>
           </div>
         </div>
       </div>

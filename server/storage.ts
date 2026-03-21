@@ -200,6 +200,7 @@ export interface IStorage {
   deleteGZMusicTrack(id: number): Promise<void>;
   rateGZMusicTrack(userId: number, trackId: number, stars: number): Promise<{ avgRating: number; ratingCount: number; myRating: number }>;
   getGZMusicRatingsBatch(userId: number, trackIds: number[]): Promise<Record<number, number>>;
+  incrementGZMusicPlayCount(id: number): Promise<void>;
   getGZMusicComments(trackId: number): Promise<Array<import("@shared/schema").GZMusicComment & { displayName: string | null; avatarUrl: string | null; username: string | null }>>;
   createGZMusicComment(trackId: number, userId: number, content: string): Promise<import("@shared/schema").GZMusicComment>;
   deleteGZMusicComment(id: number, userId: number, isAdmin: boolean): Promise<void>;
@@ -2472,6 +2473,12 @@ export class DatabaseStorage implements IStorage {
     const result: Record<number, number> = {};
     for (const row of rows) result[row.trackId] = row.stars;
     return result;
+  }
+
+  async incrementGZMusicPlayCount(id: number) {
+    await db.update(gzMusicTracks)
+      .set({ playCount: sql`${gzMusicTracks.playCount} + 1` })
+      .where(eq(gzMusicTracks.id, id));
   }
 
   async getGZMusicComments(trackId: number) {
