@@ -235,6 +235,8 @@ function TrackCard({
   myRating,
   onRate,
   ratingPending,
+  expanded,
+  onToggleExpand,
 }: {
   track: TrackWithRating;
   rank: number;
@@ -243,8 +245,9 @@ function TrackCard({
   myRating: number;
   onRate: (stars: number) => void;
   ratingPending: boolean;
+  expanded: boolean;
+  onToggleExpand: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const hasFile = !!(track as any).fileUrl;
   const hasLicense = !!(track as any).licenseFileUrl;
@@ -253,7 +256,7 @@ function TrackCard({
   return (
     <div
       id={`track-${track.id}`}
-      className="rounded-xl transition-all border overflow-hidden"
+      className="rounded-xl transition-all border"
       style={{
         background: liked ? ORANGE_DIM : "#0b0b0b",
         borderColor: liked ? ORANGE_BORDER : "#1e1e1e",
@@ -324,7 +327,7 @@ function TrackCard({
           <div className="flex items-center gap-3 mt-1">
             {(track.audioUrl || hasFile) && (
               <button
-                onClick={() => setExpanded((x) => !x)}
+                onClick={onToggleExpand}
                 className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
                 style={{ color: expanded ? ORANGE : "#555" }}
               >
@@ -483,6 +486,7 @@ export default function GZMusicPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [expandedTrackId, setExpandedTrackId] = useState<number | null>(null);
 
   const { data: tracks = [], isLoading } = useQuery<TrackWithRating[]>({
     queryKey: ["/api/gz-music/tracks"],
@@ -732,6 +736,10 @@ export default function GZMusicPage() {
                 myRating={ratingsMap[track.id] ?? 0}
                 onRate={(stars) => handleRate(track.id, stars)}
                 ratingPending={ratingPending === track.id}
+                expanded={expandedTrackId === track.id}
+                onToggleExpand={() =>
+                  setExpandedTrackId((prev) => (prev === track.id ? null : track.id))
+                }
               />
             ))}
           </div>
