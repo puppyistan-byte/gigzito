@@ -3630,21 +3630,43 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const coverUrl = coverFile ? `/uploads/gz-music/${coverFile.filename}` : null;
 
       try {
-        const track = await storage.createGZMusicTrack({
-          title: title.trim(),
-          artist: artist.trim(),
-          genre: genre.trim(),
-          coverUrl,
-          audioUrl: null,
-          fileUrl,
-          licenseFileUrl,
-          downloadEnabled: downloadEnabled === "true",
-          authenticityConfirmed: true,
-          uploaderUserId: userId,
-          submittedBy: userId,
-          likeCount: 0,
-          status: "active",
-        });
+        let track: any;
+        try {
+          // Full insert (requires new DB columns)
+          track = await storage.createGZMusicTrack({
+            title: title.trim(),
+            artist: artist.trim(),
+            genre: genre.trim(),
+            coverUrl,
+            audioUrl: null,
+            fileUrl,
+            licenseFileUrl,
+            downloadEnabled: downloadEnabled === "true",
+            authenticityConfirmed: true,
+            uploaderUserId: userId,
+            submittedBy: userId,
+            likeCount: 0,
+            status: "active",
+          });
+        } catch (innerErr: any) {
+          // If the error is a missing column (VPS not yet migrated), fall back to legacy insert
+          const msg = String(innerErr?.message ?? "");
+          if (msg.includes("column") || msg.includes("42703") || msg.includes("does not exist")) {
+            console.warn("[gz-music/submit] falling back to legacy insert — run ALTER TABLE on the DB to add new columns");
+            track = await storage.createGZMusicTrack({
+              title: title.trim(),
+              artist: artist.trim(),
+              genre: genre.trim(),
+              coverUrl,
+              audioUrl: fileUrl ?? null,
+              submittedBy: userId,
+              likeCount: 0,
+              status: "active",
+            } as any);
+          } else {
+            throw innerErr;
+          }
+        }
         return res.status(201).json(track);
       } catch (err) {
         console.error("[gz-music/submit]", err);
