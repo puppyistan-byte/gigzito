@@ -10,13 +10,93 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
   ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
+  Star, StarHalf,
 } from "lucide-react";
 import type { GZMusicTrack } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
 const ORANGE_DIM = "#ff7a0018";
 const ORANGE_BORDER = "#ff7a0035";
-const ORANGE_MED = "#ff7a0060";
+
+type TrackWithRating = GZMusicTrack & { avgRating: number; ratingCount: number };
+
+// ── Star helpers ──────────────────────────────────────────────────────────────
+
+function renderStarIcon(position: number, value: number, color: string, sizeClass: string) {
+  if (value >= position) {
+    return <Star key={position} className={`${sizeClass} shrink-0`} style={{ fill: color, color }} />;
+  }
+  if (value >= position - 0.5) {
+    return <StarHalf key={position} className={`${sizeClass} shrink-0`} style={{ fill: color, color }} />;
+  }
+  return <Star key={position} className={`${sizeClass} shrink-0`} style={{ fill: "none", color: "#2a2a2a" }} />;
+}
+
+function StarDisplay({ value, count }: { value: number; count: number }) {
+  const displayVal = count === 0 ? 3.0 : value;
+  return (
+    <div className="flex items-center gap-0.5 flex-wrap">
+      {[1, 2, 3, 4, 5, 6].map((pos) => renderStarIcon(pos, displayVal, ORANGE, "h-3 w-3"))}
+      <span className="text-[10px] font-black ml-1" style={{ color: ORANGE }}>
+        {displayVal.toFixed(1)}
+      </span>
+      {count > 0 ? (
+        <span className="text-[9px] text-[#444] ml-0.5">({count} rating{count !== 1 ? "s" : ""})</span>
+      ) : (
+        <span className="text-[9px] text-[#444] ml-0.5">(gifted starter)</span>
+      )}
+    </div>
+  );
+}
+
+function HalfStarRating({
+  value,
+  onRate,
+  disabled,
+}: {
+  value: number;
+  onRate: (v: number) => void;
+  disabled?: boolean;
+}) {
+  const [hovered, setHovered] = useState<number>(0);
+  const display = hovered || value;
+
+  return (
+    <div
+      className="flex items-center gap-0.5"
+      onMouseLeave={() => setHovered(0)}
+      data-testid="half-star-rating"
+    >
+      {[1, 2, 3, 4, 5, 6].map((pos) => (
+        <div
+          key={pos}
+          className="relative"
+          style={{ width: 18, height: 18, cursor: disabled ? "default" : "pointer" }}
+        >
+          {renderStarIcon(pos, display, ORANGE, "h-[18px] w-[18px]")}
+          {!disabled && (
+            <>
+              <div
+                className="absolute inset-y-0 left-0"
+                style={{ width: "50%" }}
+                onMouseEnter={() => setHovered(pos - 0.5)}
+                onClick={() => onRate(pos - 0.5)}
+              />
+              <div
+                className="absolute inset-y-0 right-0"
+                style={{ width: "50%" }}
+                onMouseEnter={() => setHovered(pos)}
+                onClick={() => onRate(pos)}
+              />
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Rank badge ────────────────────────────────────────────────────────────────
 
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return (
@@ -45,11 +125,24 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-function TrackCard({ track, rank, liked, onLike }: {
-  track: GZMusicTrack;
+// ── Track card ────────────────────────────────────────────────────────────────
+
+function TrackCard({
+  track,
+  rank,
+  liked,
+  onLike,
+  myRating,
+  onRate,
+  ratingPending,
+}: {
+  track: TrackWithRating;
   rank: number;
   liked: boolean;
   onLike: () => void;
+  myRating: number;
+  onRate: (stars: number) => void;
+  ratingPending: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const hasFile = !!(track as any).fileUrl;
@@ -74,7 +167,12 @@ function TrackCard({ track, rank, liked, onLike }: {
           style={{ background: "#111", border: "1px solid #2a2a2a" }}
         >
           {track.coverUrl ? (
-            <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <img
+              src={track.coverUrl}
+              alt={track.title}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
           ) : (
             <Headphones className="h-5 w-5" style={{ color: ORANGE }} />
           )}
@@ -91,6 +189,12 @@ function TrackCard({ track, rank, liked, onLike }: {
               </Badge>
             )}
           </div>
+
+          {/* Avg community rating */}
+          <div className="mt-1">
+            <StarDisplay value={track.avgRating} count={track.ratingCount} />
+          </div>
+
           {/* Badges row */}
           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
             {hasLicense && (
@@ -113,6 +217,7 @@ function TrackCard({ track, rank, liked, onLike }: {
               </span>
             ) : null}
           </div>
+
           {/* Play controls */}
           <div className="flex items-center gap-3 mt-1">
             {(track.audioUrl || hasFile) && (
@@ -172,7 +277,27 @@ function TrackCard({ track, rank, liked, onLike }: {
         </button>
       </div>
 
-      {/* Embedded player (SoundCloud/YouTube embed or native audio for uploaded files) */}
+      {/* Rating row */}
+      <div
+        className="px-3 pb-2.5 flex items-center gap-2"
+        style={{ borderTop: "1px solid #111" }}
+      >
+        <span className="text-[9px] font-bold uppercase tracking-wider text-[#444] shrink-0">
+          {myRating ? "Your rating:" : "Rate:"}
+        </span>
+        <HalfStarRating
+          value={myRating}
+          onRate={ratingPending ? () => {} : onRate}
+          disabled={ratingPending}
+        />
+        {myRating > 0 && (
+          <span className="text-[10px] font-black ml-1" style={{ color: ORANGE }}>
+            {myRating.toFixed(1)} ★
+          </span>
+        )}
+      </div>
+
+      {/* Embedded player */}
       {expanded && (track.audioUrl || hasFile) && (
         <div className="px-3 pb-3">
           {hasFile ? (
@@ -183,14 +308,38 @@ function TrackCard({ track, rank, liked, onLike }: {
               style={{ height: "40px" }}
             />
           ) : track.audioUrl ? (
-            <iframe
-              src={track.audioUrl}
-              width="100%"
-              height="80"
-              allow="autoplay"
-              className="rounded-lg border border-[#2a2a2a]"
-              style={{ background: "#0a0a0a" }}
-            />
+            <>
+              {track.audioUrl.includes("soundcloud.com") ? (
+                <iframe
+                  width="100%"
+                  height="80"
+                  allow="autoplay"
+                  src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(track.audioUrl)}&color=%23ff7a00&auto_play=false&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false`}
+                  className="rounded-lg"
+                  style={{ border: "none" }}
+                />
+              ) : track.audioUrl.includes("youtube.com") || track.audioUrl.includes("youtu.be") ? (
+                <iframe
+                  width="100%"
+                  height="120"
+                  src={`https://www.youtube.com/embed/${extractYouTubeId(track.audioUrl)}?autoplay=0`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="rounded-lg"
+                  style={{ border: "none" }}
+                />
+              ) : (
+                <a
+                  href={track.audioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs font-semibold"
+                  style={{ color: ORANGE }}
+                >
+                  <ExternalLink className="h-3 w-3" /> Open in new tab
+                </a>
+              )}
+            </>
           ) : null}
         </div>
       )}
@@ -198,13 +347,20 @@ function TrackCard({ track, rank, liked, onLike }: {
   );
 }
 
+function extractYouTubeId(url: string): string {
+  const m = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : "";
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function GZMusicPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: tracks = [], isLoading } = useQuery<GZMusicTrack[]>({
+  const { data: tracks = [], isLoading } = useQuery<TrackWithRating[]>({
     queryKey: ["/api/gz-music/tracks"],
   });
 
@@ -220,13 +376,23 @@ export default function GZMusicPage() {
     staleTime: 30_000,
   });
 
+  const { data: ratingsMap = {} } = useQuery<Record<number, number>>({
+    queryKey: ["/api/gz-music/ratings/batch", tracks.map((t) => t.id).join(",")],
+    queryFn: () => {
+      const ids = tracks.map((t) => t.id).join(",");
+      return fetch(`/api/gz-music/ratings/batch?ids=${ids}`).then((r) => r.json());
+    },
+    enabled: !!userId && tracks.length > 0,
+    staleTime: 30_000,
+  });
+
   const likeMutation = useMutation({
     mutationFn: (trackId: number) => apiRequest("POST", `/api/gz-music/tracks/${trackId}/like`),
     onMutate: async (trackId) => {
       await queryClient.cancelQueries({ queryKey: ["/api/gz-music/tracks"] });
-      const prevTracks = queryClient.getQueryData<GZMusicTrack[]>(["/api/gz-music/tracks"]);
+      const prevTracks = queryClient.getQueryData<TrackWithRating[]>(["/api/gz-music/tracks"]);
       const wasLiked = likedMap[trackId] ?? false;
-      queryClient.setQueryData<GZMusicTrack[]>(["/api/gz-music/tracks"], (old) =>
+      queryClient.setQueryData<TrackWithRating[]>(["/api/gz-music/tracks"], (old) =>
         old?.map((t) => t.id === trackId ? { ...t, likeCount: t.likeCount + (wasLiked ? -1 : 1) } : t)
       );
       return { prevTracks };
@@ -245,12 +411,51 @@ export default function GZMusicPage() {
     },
   });
 
+  const [ratingPending, setRatingPending] = useState<number | null>(null);
+
+  const rateMutation = useMutation({
+    mutationFn: ({ trackId, stars }: { trackId: number; stars: number }) =>
+      apiRequest("POST", `/api/gz-music/tracks/${trackId}/rate`, { stars }),
+    onMutate: ({ trackId }) => setRatingPending(trackId),
+    onSuccess: (data: any, { trackId, stars }) => {
+      setRatingPending(null);
+      // Optimistically update avg in track list
+      queryClient.setQueryData<TrackWithRating[]>(["/api/gz-music/tracks"], (old) =>
+        old?.map((t) => t.id === trackId
+          ? { ...t, avgRating: data?.avgRating ?? t.avgRating, ratingCount: data?.ratingCount ?? t.ratingCount }
+          : t)
+      );
+      // Update ratings batch cache
+      queryClient.setQueryData<Record<number, number>>(
+        ["/api/gz-music/ratings/batch", tracks.map((t) => t.id).join(",")],
+        (old) => ({ ...(old ?? {}), [trackId]: stars })
+      );
+      toast({ title: "Rated!", description: `You gave this track ${stars} star${stars !== 1 ? "s" : ""}.` });
+    },
+    onError: (err: any) => {
+      setRatingPending(null);
+      if (err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+        toast({ title: "Sign in to rate", description: "Create a free Gigzito account to rate tracks.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Couldn't save your rating.", variant: "destructive" });
+      }
+    },
+  });
+
   const handleLike = (trackId: number) => {
     if (!user) {
       toast({ title: "Sign in to vote", description: "Create a free Gigzito account to vote for your favorites.", variant: "destructive" });
       return;
     }
     likeMutation.mutate(trackId);
+  };
+
+  const handleRate = (trackId: number, stars: number) => {
+    if (!user) {
+      toast({ title: "Sign in to rate", description: "Create a free Gigzito account to rate tracks.", variant: "destructive" });
+      return;
+    }
+    rateMutation.mutate({ trackId, stars });
   };
 
   return (
@@ -266,11 +471,9 @@ export default function GZMusicPage() {
             border: `1px solid ${ORANGE_BORDER}`,
           }}
         >
-          {/* Glow */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(255,122,0,0.12) 0%, transparent 70%)" }} />
 
           <div className="relative p-6 space-y-4">
-            {/* Wordmark */}
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center w-12 h-12 rounded-2xl shrink-0"
@@ -292,7 +495,6 @@ export default function GZMusicPage() {
               </div>
             </div>
 
-            {/* Upload Track CTA */}
             <button
               onClick={() => navigate(user ? "/gz-music/upload" : "/auth")}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98]"
@@ -315,7 +517,6 @@ export default function GZMusicPage() {
               </p>
             </div>
 
-            {/* Pillars */}
             <div className="grid grid-cols-3 gap-2">
               {[
                 { icon: Mic2, label: "Our Artist", sub: "Our Way" },
@@ -345,7 +546,7 @@ export default function GZMusicPage() {
           </div>
           <div>
             <h2 className="text-lg font-black text-white">The GZ100</h2>
-            <p className="text-xs text-[#555]">The People's Pulse — ranked by your votes</p>
+            <p className="text-xs text-[#555]">Ranked by star ratings + community likes</p>
           </div>
           <div className="ml-auto text-right">
             <p className="text-lg font-black" style={{ color: ORANGE }}>{tracks.length}</p>
@@ -353,14 +554,14 @@ export default function GZMusicPage() {
           </div>
         </div>
 
-        {/* What is the GZ100? */}
+        {/* How it works */}
         <div className="rounded-xl p-4 space-y-3" style={{ background: "#0b0b0b", border: "1px solid #1e1e1e" }}>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#444]">How the GZ100 works</p>
           <div className="grid grid-cols-3 gap-3 text-center">
             {[
-              { label: "Democratic", desc: "100% community-driven. No paid placement." },
-              { label: "Transparent", desc: "Real likes, real artists, real movement." },
-              { label: "Living", desc: "Rankings shift daily as votes pour in." },
+              { label: "6-Star Rating", desc: "Each track starts at 3★ gifted. Your rating shifts the rank." },
+              { label: "Transparent", desc: "Real ratings, real artists, real movement." },
+              { label: "Living", desc: "Rankings shift live as votes and ratings pour in." },
             ].map((item) => (
               <div key={item.label}>
                 <p className="text-xs font-bold" style={{ color: ORANGE }}>{item.label}</p>
@@ -404,12 +605,15 @@ export default function GZMusicPage() {
                 rank={index + 1}
                 liked={likedMap[track.id] ?? false}
                 onLike={() => handleLike(track.id)}
+                myRating={ratingsMap[track.id] ?? 0}
+                onRate={(stars) => handleRate(track.id, stars)}
+                ratingPending={ratingPending === track.id}
               />
             ))}
           </div>
         )}
 
-        {/* ── Footer call-to-action ─────────────────────────────────────────── */}
+        {/* ── Footer ───────────────────────────────────────────────────────── */}
         <div
           className="rounded-2xl p-6 text-center space-y-3"
           style={{

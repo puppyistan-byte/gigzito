@@ -995,5 +995,14 @@ export const gzMusicLikes = pgTable("gz_music_likes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [unique().on(t.trackId, t.userId)]);
 
+export const gzMusicRatings = pgTable("gz_music_ratings", {
+  id: serial("id").primaryKey(),
+  trackId: integer("track_id").notNull().references(() => gzMusicTracks.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  stars: real("stars").notNull(), // 0.5 – 6.0 in 0.5 increments
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.trackId, t.userId)]);
+
 export type GZMusicTrack = typeof gzMusicTracks.$inferSelect;
 export type InsertGZMusicTrack = typeof gzMusicTracks.$inferInsert;
+export type GZMusicRating = typeof gzMusicRatings.$inferSelect;

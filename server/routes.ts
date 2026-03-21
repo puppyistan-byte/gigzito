@@ -3792,6 +3792,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(result);
   });
 
+  // GZMusic — batch fetch user's ratings
+  app.get("/api/gz-music/ratings/batch", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    const ids = String(req.query.ids ?? "").split(",").map(Number).filter((n) => !isNaN(n) && n > 0);
+    if (!userId || !ids.length) return res.json({});
+    const result = await storage.getGZMusicRatingsBatch(userId, ids);
+    return res.json(result);
+  });
+
+  // GZMusic — rate a track
+  app.post("/api/gz-music/tracks/:id/rate", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const trackId = parseInt(req.params.id);
+    if (isNaN(trackId)) return res.status(400).json({ message: "Invalid track id" });
+    const stars = Number(req.body?.stars);
+    if (!stars || stars < 0.5 || stars > 6.0 || (stars * 2) % 1 !== 0) {
+      return res.status(400).json({ message: "stars must be 0.5–6.0 in 0.5 increments" });
+    }
+    const userId = (req.session as any).userId;
+    try {
+      const result = await storage.rateGZMusicTrack(userId, trackId, stars);
+      return res.json(result);
+    } catch (err) {
+      console.error("[gz-music/rate]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.post("/api/gz-music/tracks/:id/like", async (req, res) => {
     if (!requireAuth(req, res)) return;
     const trackId = parseInt(req.params.id);
