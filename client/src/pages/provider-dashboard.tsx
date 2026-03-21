@@ -1142,7 +1142,7 @@ function ProviderDashboardInner() {
 
           {!audienceData ? (
             <Skeleton className="h-20 w-full bg-[#111] rounded-xl" />
-          ) : audienceData.count === 0 ? (
+          ) : (audienceData.count ?? 0) === 0 || !Array.isArray(audienceData.members) ? (
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-audience">
               <Users className="h-6 w-6 text-[#333] mx-auto mb-2" />
               <p className="text-[#555] text-sm">No subscribers yet. Every CTA lead with an email is automatically added to your broadcast list.</p>
@@ -1166,10 +1166,10 @@ function ProviderDashboardInner() {
                   <div key={m.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-[#161616] last:border-0" data-testid={`row-audience-${m.id}`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6 h-6 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0">
-                        <span className="text-[10px] text-[#666] font-bold">{m.leadName.charAt(0).toUpperCase()}</span>
+                        <span className="text-[10px] text-[#666] font-bold">{(m.leadName ?? "?").charAt(0).toUpperCase()}</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-white font-medium truncate">{m.leadName}</p>
+                        <p className="text-xs text-white font-medium truncate">{m.leadName ?? "—"}</p>
                         <p className="text-[10px] text-[#555] truncate">{m.leadEmail}</p>
                       </div>
                     </div>
