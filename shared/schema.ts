@@ -938,6 +938,21 @@ export const profileViews = pgTable("profile_views", {
 
 export type ProfileView = typeof profileViews.$inferSelect;
 
+// ─── Profile Wall Posts ───────────────────────────────────────────────────────
+export const profileWallPosts = pgTable("profile_wall_posts", {
+  id: serial("id").primaryKey(),
+  profileId: integer("profile_id").notNull().references(() => providerProfiles.id, { onDelete: "cascade" }),
+  authorUserId: integer("author_user_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull().default("Anonymous"),
+  authorAvatar: text("author_avatar"),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ProfileWallPost = typeof profileWallPosts.$inferSelect;
+export const insertProfileWallPostSchema = createInsertSchema(profileWallPosts).omit({ id: true, createdAt: true });
+export type InsertProfileWallPost = z.infer<typeof insertProfileWallPostSchema>;
+
 // ─── Comment Likes ────────────────────────────────────────────────────────────
 export const commentLikes = pgTable("comment_likes", {
   id: serial("id").primaryKey(),

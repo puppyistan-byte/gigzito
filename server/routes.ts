@@ -976,6 +976,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ ...profile, user: { ...user, password: undefined } });
   });
 
+  // Public: listings for a given provider profile ID
+  app.get("/api/profile/:id/listings", async (req, res) => {
+    const profileId = parseInt(req.params.id);
+    if (isNaN(profileId)) return res.status(400).json({ message: "Invalid id" });
+    const listings = await storage.getListingsByProvider(profileId);
+    return res.json(listings ?? []);
+  });
+
   // === LISTINGS ===
   app.get(api.listings.myListings.path, async (req, res) => {
     if (!requireAuth(req, res)) return;
@@ -2472,6 +2480,63 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.json(feed.filter(e => e.type === "love"));
     } catch (err) {
       console.error("[who-loved-me]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ── Profile Wall Posts ──────────────────────────────────────────────────────
+  app.get("/api/profile/:id/wall", async (req, res) => {
+    const profileId = parseInt(req.params.id);
+    if (isNaN(profileId)) return res.status(400).json({ message: "Invalid profile id" });
+    try {
+      const posts = await storage.getProfileWallPosts(profileId);
+      return res.json(posts);
+    } catch (err) {
+      console.error("[profile/wall/get]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/profile/:id/wall", async (req, res) => {
+    const profileId = parseInt(req.params.id);
+    if (isNaN(profileId)) return res.status(400).json({ message: "Invalid profile id" });
+    const { message } = req.body;
+    if (!message?.trim()) return res.status(400).json({ message: "Message is required" });
+    if (message.trim().length > 500) return res.status(400).json({ message: "Message too long (max 500 chars)" });
+    try {
+      const userId = (req.session as any)?.userId;
+      let authorName = "Anonymous";
+      let authorAvatar: string | null = null;
+      if (userId) {
+        const profile = await storage.getProfileByUserId(userId);
+        if (profile) {
+          authorName = profile.displayName || profile.username || authorName;
+          authorAvatar = profile.avatarUrl || null;
+        }
+      }
+      const post = await storage.createProfileWallPost({
+        profileId,
+        authorUserId: userId ?? null,
+        authorName,
+        authorAvatar,
+        message: message.trim(),
+      });
+      return res.json(post);
+    } catch (err) {
+      console.error("[profile/wall/post]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/profile/wall/:postId", async (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ message: "Login required" });
+    const postId = parseInt(req.params.postId);
+    if (isNaN(postId)) return res.status(400).json({ message: "Invalid post id" });
+    try {
+      await storage.deleteProfileWallPost(postId);
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("[profile/wall/delete]", err);
       return res.status(500).json({ message: "Server error" });
     }
   });

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -178,6 +178,11 @@ export interface IStorage {
   // Profile Views
   trackProfileView(viewerUserId: number, profileId: number): Promise<void>;
   getProfileViewers(profileId: number, limit?: number): Promise<Array<{ viewerUserId: number; viewedAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>>;
+
+  // Profile Wall Posts
+  getProfileWallPosts(profileId: number): Promise<import("@shared/schema").ProfileWallPost[]>;
+  createProfileWallPost(data: { profileId: number; authorUserId?: number | null; authorName: string; authorAvatar?: string | null; message: string }): Promise<import("@shared/schema").ProfileWallPost>;
+  deleteProfileWallPost(id: number): Promise<void>;
 
   // Comment Likes
   toggleCommentLike(commentId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
@@ -2174,6 +2179,29 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(profileViews.viewedAt))
       .limit(limit);
     return rows.map(r => ({ ...r, viewedAt: r.viewedAt.toISOString() }));
+  }
+
+  // ── Profile Wall Posts ───────────────────────────────────────────────────────
+  async getProfileWallPosts(profileId: number): Promise<ProfileWallPost[]> {
+    return db.select().from(profileWallPosts)
+      .where(eq(profileWallPosts.profileId, profileId))
+      .orderBy(desc(profileWallPosts.createdAt))
+      .limit(100);
+  }
+
+  async createProfileWallPost(data: { profileId: number; authorUserId?: number | null; authorName: string; authorAvatar?: string | null; message: string }): Promise<ProfileWallPost> {
+    const [row] = await db.insert(profileWallPosts).values({
+      profileId: data.profileId,
+      authorUserId: data.authorUserId ?? null,
+      authorName: data.authorName,
+      authorAvatar: data.authorAvatar ?? null,
+      message: data.message,
+    }).returning();
+    return row;
+  }
+
+  async deleteProfileWallPost(id: number): Promise<void> {
+    await db.delete(profileWallPosts).where(eq(profileWallPosts.id, id));
   }
 
   // ── Comment Likes ───────────────────────────────────────────────────────────
