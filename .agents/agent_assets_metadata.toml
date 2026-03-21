@@ -24,3 +24,9 @@ id = "SyAGEeKeyfkCv2NSwIwvA"
 uri = "file://GIGZITO_MOBILE_API.md"
 type = "text"
 title = "Gigzito Mobile API Reference"
+
+[[outputs]]
+id = "mP9nP1hFK4tb01aOS0OSM"
+uri = "file://GZMusic_Mobile_API.md"
+type = "text"
+title = "GZMusic Mobile API Reference"
