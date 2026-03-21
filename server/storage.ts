@@ -2384,7 +2384,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(gzMusicTracks)
       .leftJoin(gzMusicRatings, eq(gzMusicRatings.trackId, gzMusicTracks.id))
-      .where(eq(gzMusicTracks.status, "active"))
+      .where(and(eq(gzMusicTracks.status, "active"), eq(gzMusicTracks.sharedToLibrary, true)))
       .groupBy(gzMusicTracks.id)
       .orderBy(
         sql`(COALESCE(AVG(${gzMusicRatings.stars}), 3.0) * 10 + ${gzMusicTracks.likeCount}) DESC`,
@@ -2392,6 +2392,19 @@ export class DatabaseStorage implements IStorage {
       )
       .limit(100);
     return rows.map((r) => ({ ...r.track, avgRating: Number(r.avgRating), ratingCount: Number(r.ratingCount) }));
+  }
+
+  async getGZLibraryTracks(q?: string) {
+    const rows = await db.select().from(gzMusicTracks)
+      .where(and(eq(gzMusicTracks.status, "active"), eq(gzMusicTracks.sharedToLibrary, true)))
+      .orderBy(desc(gzMusicTracks.likeCount), desc(gzMusicTracks.createdAt))
+      .limit(200);
+    if (!q) return rows;
+    return rows.filter(r =>
+      r.title.toLowerCase().includes(q) ||
+      r.artist.toLowerCase().includes(q) ||
+      r.genre.toLowerCase().includes(q)
+    );
   }
 
   async getGZTracksByIds(ids: number[]) {

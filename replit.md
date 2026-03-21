@@ -1,5 +1,15 @@
 # Gigzito
 
+## VPS Migration SQL (run in `psql gigzito` before next deploy)
+```sql
+ALTER TABLE video_listings ADD COLUMN IF NOT EXISTS bg_music_track_id INTEGER REFERENCES gz_music_tracks(id) ON DELETE SET NULL;
+ALTER TABLE video_listings ADD COLUMN IF NOT EXISTS bg_music_volume INTEGER NOT NULL DEFAULT 70;
+ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS shared_to_library BOOLEAN NOT NULL DEFAULT true;
+-- Previously pending (include if not yet run):
+CREATE TABLE IF NOT EXISTS gz_music_comments (id SERIAL PRIMARY KEY, track_id INTEGER NOT NULL REFERENCES gz_music_tracks(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, content TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS play_count INTEGER NOT NULL DEFAULT 0;
+```
+
 ## Overview
 Gigzito is a TikTok-style vertical scrolling video directory designed for providers to showcase their services. It enables providers to list short promotional videos (up to 20 seconds) across 11 distinct categories for a $3 fee. The platform aims to be a comprehensive ecosystem for service providers, offering features such as live streaming, a guest access control system, a public Zito TV page, and a dynamic GigJack flash event system. It includes robust administrative tools like an admin console with user management, MFA email verification, and a Super Admin Override Control System for enhanced platform governance.
 

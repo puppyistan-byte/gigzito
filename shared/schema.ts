@@ -92,6 +92,8 @@ export const videoListings = pgTable("video_listings", {
   triagedBy: integer("triaged_by").references(() => users.id, { onDelete: "set null" }),
   triagedReason: text("triaged_reason"),
   likeCount: integer("like_count").notNull().default(0),
+  bgMusicTrackId: integer("bg_music_track_id"),
+  bgMusicVolume: integer("bg_music_volume").notNull().default(70),
   revealUrl: boolean("reveal_url").notNull().default(true),
   revealEmail: boolean("reveal_email").notNull().default(false),
   revealName: boolean("reveal_name").notNull().default(false),
@@ -985,6 +987,7 @@ export const gzMusicTracks = pgTable("gz_music_tracks", {
   submittedBy: integer("submitted_by").references(() => users.id, { onDelete: "set null" }),
   likeCount: integer("like_count").notNull().default(0),
   playCount: integer("play_count").notNull().default(0),
+  sharedToLibrary: boolean("shared_to_library").notNull().default(true),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

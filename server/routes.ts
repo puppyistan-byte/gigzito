@@ -1089,6 +1089,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       productPrice: z.string().max(30).optional().nullable(),
       productPurchaseUrl: z.string().url().optional().or(z.literal("")).nullable(),
       productStock: z.string().max(50).optional().nullable(),
+      bgMusicTrackId: z.coerce.number().int().positive().optional().nullable(),
+      bgMusicVolume: z.coerce.number().int().min(0).max(100).optional(),
     });
 
     try {
@@ -1106,6 +1108,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         ctaLabel: data.ctaLabel || null,
         ctaUrl: data.ctaUrl || null,
         ctaType: data.ctaType ?? null,
+        bgMusicTrackId: data.bgMusicTrackId ?? null,
+        bgMusicVolume: data.bgMusicVolume ?? 70,
         providerId: profile.id,
         dropDate: getTodayDate(),
         pricePaidCents: 300,
@@ -3617,7 +3621,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const files = req.files as Record<string, Express.Multer.File[]> | undefined;
       const audioFile = files?.["audio"]?.[0];
       if (!audioFile) return res.status(400).json({ message: "MP3 audio file is required." });
-      const { title, artist, genre, downloadEnabled, authenticityConfirmed } = req.body;
+      const { title, artist, genre, downloadEnabled, authenticityConfirmed, sharedToLibrary } = req.body;
       if (!title?.trim()) return res.status(400).json({ message: "Track title is required." });
       if (!artist?.trim()) return res.status(400).json({ message: "Artist name is required." });
       if (!genre?.trim()) return res.status(400).json({ message: "Genre is required." });
@@ -3643,6 +3647,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
             licenseFileUrl,
             downloadEnabled: downloadEnabled === "true",
             authenticityConfirmed: true,
+            sharedToLibrary: sharedToLibrary !== "false",
             uploaderUserId: userId,
             submittedBy: userId,
             likeCount: 0,
@@ -3758,6 +3763,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const count = await storage.getMarketerAudienceCount(userId);
       return res.json({ count });
     } catch (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // GZLibrary search — returns tracks shared to library for the music picker
+  app.get("/api/gz-music/library", async (req, res) => {
+    const q = String(req.query.q ?? "").trim().toLowerCase();
+    try {
+      const tracks = await storage.getGZLibraryTracks(q);
+      return res.json(tracks);
+    } catch (err) {
+      console.error(err);
       return res.status(500).json({ message: "Server error" });
     }
   });

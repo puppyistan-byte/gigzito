@@ -78,6 +78,7 @@ export default function GZMusicUploadPage() {
   const [artist, setArtist] = useState(displayName);
   const [genre, setGenre] = useState("");
   const [downloadEnabled, setDownloadEnabled] = useState(false);
+  const [sharedToLibrary, setSharedToLibrary] = useState(true);
   const [certChecked, setCertChecked] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
@@ -120,6 +121,7 @@ export default function GZMusicUploadPage() {
       formData.append("artist", artist.trim());
       formData.append("genre", genre);
       formData.append("downloadEnabled", String(downloadEnabled));
+      formData.append("sharedToLibrary", String(sharedToLibrary));
       formData.append("authenticityConfirmed", "true");
       formData.append("audio", audioFile);
       if (licenseFile) formData.append("license", licenseFile);
@@ -504,6 +506,53 @@ export default function GZMusicUploadPage() {
             <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}30` }}>
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: ORANGE }} />
               <p className="text-[11px] text-[#aaa] leading-relaxed">Personal, non-commercial license to save offline. Commercial use and redistribution remain prohibited.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Share to GZLibrary */}
+        <div className="rounded-2xl p-5 space-y-3" style={{ background: "#0b0b0b", border: `1px solid ${sharedToLibrary ? ORANGE_BORDER : "#1e1e1e"}` }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Music className="h-4 w-4" style={{ color: sharedToLibrary ? ORANGE : "#555" }} />
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: sharedToLibrary ? ORANGE : "#555" }}>Share to GZLibrary</p>
+            </div>
+            <button
+              onClick={() => setSharedToLibrary((v) => !v)}
+              data-testid="toggle-share-to-library"
+              style={{
+                width: 40, height: 22,
+                borderRadius: 999,
+                background: sharedToLibrary ? ORANGE : "#333",
+                border: "none",
+                cursor: "pointer",
+                position: "relative",
+                flexShrink: 0,
+                transition: "background 0.2s",
+              }}
+            >
+              <span style={{
+                position: "absolute",
+                top: 3,
+                left: sharedToLibrary ? 21 : 3,
+                width: 16, height: 16,
+                borderRadius: "50%",
+                background: "#fff",
+                transition: "left 0.2s",
+              }} />
+            </button>
+          </div>
+          <p className="text-[11px] leading-relaxed" style={{ color: sharedToLibrary ? "#aaa" : "#555" }}>
+            {sharedToLibrary
+              ? "Your track will appear in the GZ100 chart and be discoverable by the Gigzito community. Other creators can select it as background music for their videos."
+              : "Your track will be uploaded privately. It will not appear in the GZ100 chart or be available to other creators."}
+          </p>
+          {sharedToLibrary && downloadEnabled && (
+            <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: `${ORANGE}08`, border: `1px solid ${ORANGE}25` }}>
+              <Headphones className="h-4 w-4 shrink-0 mt-0.5" style={{ color: ORANGE }} />
+              <p className="text-[11px] text-[#aaa] leading-relaxed">
+                Because downloads are enabled, listeners can also save this track for offline listening on Gigzito.
+              </p>
             </div>
           )}
         </div>

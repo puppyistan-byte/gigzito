@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X, Video, AlignLeft } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Timer, Tag, ShoppingCart, Zap, Smartphone, Link2, Upload, Film, X as XIcon, Video, AlignLeft, Music, Volume2, Search, Play } from "lucide-react";
 import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
@@ -91,6 +91,8 @@ type FormState = {
   revealEmail: boolean;
   revealName: boolean;
   collectEmail: boolean;
+  bgMusicTrackId: number | null;
+  bgMusicVolume: number;
 };
 
 const EMPTY: FormState = {
@@ -99,6 +101,7 @@ const EMPTY: FormState = {
   flashSaleEndsAt: "", couponCode: "",
   productPrice: "", productPurchaseUrl: "", productStock: "",
   revealUrl: true, revealEmail: false, revealName: false, collectEmail: true,
+  bgMusicTrackId: null, bgMusicVolume: 70,
 };
 
 export default function NewListingPage() {
@@ -113,6 +116,9 @@ export default function NewListingPage() {
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [musicSearch, setMusicSearch] = useState("");
+  const [musicPickerOpen, setMusicPickerOpen] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -131,6 +137,17 @@ export default function NewListingPage() {
   const { data: dailyStats } = useQuery<{ count: number; capReached: boolean; maxCap: number }>({
     queryKey: ["/api/stats/daily"],
   });
+
+  type LibraryTrack = { id: number; title: string; artist: string; genre: string; fileUrl: string | null; coverUrl: string | null };
+  const { data: libraryTracks = [] } = useQuery<LibraryTrack[]>({
+    queryKey: ["/api/gz-music/library"],
+    staleTime: 60_000,
+  });
+  const filteredTracks = libraryTracks.filter((t) => {
+    const q = musicSearch.toLowerCase();
+    return !q || t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q) || t.genre.toLowerCase().includes(q);
+  });
+  const selectedTrack = form.bgMusicTrackId !== null ? libraryTracks.find((t) => t.id === form.bgMusicTrackId) : null;
 
   const isTikTokLink       = useMemo(() => form.ctaUrl ? isTikTokShopUrl(form.ctaUrl) : false, [form.ctaUrl]);
   const videoFormatStatus  = useMemo(() => detectVideoFormat(form.videoUrl), [form.videoUrl]);
@@ -165,6 +182,10 @@ export default function NewListingPage() {
         if (form.productPrice) payload.productPrice = form.productPrice;
         if (form.productPurchaseUrl) payload.productPurchaseUrl = form.productPurchaseUrl;
         if (form.productStock) payload.productStock = form.productStock;
+      }
+      if (form.bgMusicTrackId !== null) {
+        payload.bgMusicTrackId = form.bgMusicTrackId;
+        payload.bgMusicVolume = form.bgMusicVolume;
       }
       const res = await fetch("/api/listings/submit", {
         method: "POST",
@@ -486,7 +507,7 @@ export default function NewListingPage() {
                         className="text-[#444] hover:text-white flex-shrink-0"
                         data-testid="button-remove-upload"
                       >
-                        <X className="h-4 w-4" />
+                        <XIcon className="h-4 w-4" />
                       </button>
                     </div>
                   )}
@@ -710,6 +731,125 @@ export default function NewListingPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Background Music from GZLibrary */}
+          <div className="space-y-2">
+            <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
+              <Music className="h-3.5 w-3.5" />
+              Background Music <span className="text-zinc-600 font-normal">(optional)</span>
+            </Label>
+            {selectedTrack ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-orange-500/30 bg-orange-500/5">
+                {selectedTrack.coverUrl ? (
+                  <img src={selectedTrack.coverUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0">
+                    <Music className="h-4 w-4 text-orange-500" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white truncate">{selectedTrack.title}</p>
+                  <p className="text-[10px] text-zinc-400 truncate">{selectedTrack.artist} · {selectedTrack.genre}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Volume2 className="h-3 w-3 text-zinc-500 shrink-0" />
+                    <input
+                      type="range" min={0} max={100} value={form.bgMusicVolume}
+                      onChange={(e) => setForm((p) => ({ ...p, bgMusicVolume: Number(e.target.value) }))}
+                      className="flex-1 h-1 accent-orange-500 cursor-pointer"
+                      data-testid="slider-bg-music-volume"
+                    />
+                    <span className="text-[10px] text-zinc-500 w-6 text-right">{form.bgMusicVolume}%</span>
+                  </div>
+                </div>
+                {selectedTrack.fileUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (previewAudioRef.current) {
+                        previewAudioRef.current.paused ? previewAudioRef.current.play() : previewAudioRef.current.pause();
+                      }
+                    }}
+                    className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors shrink-0"
+                    data-testid="button-preview-selected-track"
+                  >
+                    <Play className="h-3.5 w-3.5 text-orange-500" />
+                    <audio ref={previewAudioRef} src={selectedTrack.fileUrl} preload="none" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewAudioRef.current) previewAudioRef.current.pause();
+                    setForm((p) => ({ ...p, bgMusicTrackId: null, bgMusicVolume: 70 }));
+                  }}
+                  className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors shrink-0"
+                  data-testid="button-remove-bg-music"
+                >
+                  <XIcon className="h-3.5 w-3.5 text-zinc-400" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setMusicPickerOpen((v) => !v)}
+                className="w-full flex items-center gap-2 p-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:border-zinc-700 transition-colors text-left"
+                data-testid="button-open-music-picker"
+              >
+                <Music className="h-4 w-4 text-zinc-600" />
+                <span className="text-xs text-zinc-500">Select from GZLibrary...</span>
+              </button>
+            )}
+            {musicPickerOpen && !selectedTrack && (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden">
+                <div className="flex items-center gap-2 p-3 border-b border-zinc-800">
+                  <Search className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by title, artist or genre..."
+                    value={musicSearch}
+                    onChange={(e) => setMusicSearch(e.target.value)}
+                    className="flex-1 text-xs bg-transparent text-white placeholder-zinc-600 outline-none"
+                    data-testid="input-music-search"
+                  />
+                  {musicSearch && (
+                    <button type="button" onClick={() => setMusicSearch("")} className="text-zinc-500 hover:text-zinc-300">
+                      <XIcon className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-52 overflow-y-auto divide-y divide-zinc-900">
+                  {filteredTracks.length === 0 ? (
+                    <p className="text-xs text-zinc-600 p-4 text-center">No tracks found</p>
+                  ) : filteredTracks.map((track) => (
+                    <button
+                      key={track.id}
+                      type="button"
+                      onClick={() => {
+                        if (previewAudioRef.current) previewAudioRef.current.pause();
+                        setForm((p) => ({ ...p, bgMusicTrackId: track.id, bgMusicVolume: 70 }));
+                        setMusicPickerOpen(false);
+                        setMusicSearch("");
+                      }}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-zinc-900 transition-colors text-left"
+                      data-testid={`button-select-track-${track.id}`}
+                    >
+                      {track.coverUrl ? (
+                        <img src={track.coverUrl} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-md bg-zinc-800 flex items-center justify-center shrink-0">
+                          <Music className="h-3.5 w-3.5 text-orange-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white truncate">{track.title}</p>
+                        <p className="text-[10px] text-zinc-500 truncate">{track.artist} · {track.genre}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <Button
