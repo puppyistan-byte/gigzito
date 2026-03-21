@@ -429,8 +429,8 @@ function TrackCard({
         <div className="px-3 pb-3">
           {hasFile ? (
             <audio
+              ref={(el) => { if (el) el.play().catch(() => {}); }}
               controls
-              autoPlay
               src={(track as any).fileUrl}
               className="w-full rounded-lg"
               style={{ height: "40px" }}
