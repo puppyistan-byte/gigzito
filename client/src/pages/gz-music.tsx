@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -10,8 +10,9 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
   ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
-  Star, StarHalf,
+  Star, StarHalf, Share2, Copy, Mail, Check,
 } from "lucide-react";
+import { SiX, SiWhatsapp, SiFacebook } from "react-icons/si";
 import type { GZMusicTrack } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
@@ -96,6 +97,105 @@ function HalfStarRating({
   );
 }
 
+// ── Share menu ────────────────────────────────────────────────────────────────
+
+function ShareMenu({ track, onClose }: { track: TrackWithRating; onClose: () => void }) {
+  const { toast } = useToast();
+  const ref = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const url = `${window.location.origin}/gz-music#track-${track.id}`;
+  const text = `🎵 "${track.title}" by ${track.artist} — on GZMusic (GZ100)`;
+  const subject = encodeURIComponent(`Check out this track on GZMusic: ${track.title}`);
+  const body = encodeURIComponent(`${text}\n\n${url}`);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => { setCopied(false); onClose(); }, 1200);
+    }).catch(() => toast({ title: "Couldn't copy", variant: "destructive" }));
+  };
+
+  const options = [
+    {
+      label: "Copy link",
+      icon: copied ? Check : Copy,
+      color: copied ? "#22c55e" : "#aaa",
+      action: handleCopy,
+      testId: "share-copy-link",
+    },
+    {
+      label: "Share on X",
+      icon: SiX,
+      color: "#fff",
+      bg: "#000",
+      action: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank"),
+      testId: "share-twitter",
+    },
+    {
+      label: "WhatsApp",
+      icon: SiWhatsapp,
+      color: "#25d366",
+      action: () => window.open(`https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`, "_blank"),
+      testId: "share-whatsapp",
+    },
+    {
+      label: "Facebook",
+      icon: SiFacebook,
+      color: "#1877f2",
+      action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, "_blank"),
+      testId: "share-facebook",
+    },
+    {
+      label: "Email",
+      icon: Mail,
+      color: "#888",
+      action: () => { window.location.href = `mailto:?subject=${subject}&body=${body}`; onClose(); },
+      testId: "share-email",
+    },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-8 z-50 rounded-xl overflow-hidden shadow-2xl"
+      style={{
+        background: "#141414",
+        border: `1px solid ${ORANGE_BORDER}`,
+        minWidth: 160,
+      }}
+    >
+      <div className="px-3 py-2 border-b" style={{ borderColor: "#222" }}>
+        <p className="text-[9px] font-bold uppercase tracking-widest text-[#444]">Share this track</p>
+      </div>
+      {options.map((opt) => {
+        const Icon = opt.icon as any;
+        return (
+          <button
+            key={opt.testId}
+            onClick={opt.action}
+            className="flex items-center gap-2.5 w-full px-3 py-2.5 transition-colors text-left hover:bg-white/5"
+            data-testid={opt.testId}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: opt.color }} />
+            <span className="text-xs font-semibold" style={{ color: copied && opt.testId === "share-copy-link" ? "#22c55e" : "#bbb" }}>
+              {opt.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Rank badge ────────────────────────────────────────────────────────────────
 
 function RankBadge({ rank }: { rank: number }) {
@@ -145,12 +245,14 @@ function TrackCard({
   ratingPending: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const hasFile = !!(track as any).fileUrl;
   const hasLicense = !!(track as any).licenseFileUrl;
   const downloadOk = (track as any).downloadEnabled;
 
   return (
     <div
+      id={`track-${track.id}`}
       className="rounded-xl transition-all border overflow-hidden"
       style={{
         background: liked ? ORANGE_DIM : "#0b0b0b",
@@ -257,24 +359,46 @@ function TrackCard({
           </div>
         </div>
 
-        {/* Like button */}
-        <button
-          onClick={onLike}
-          className="flex flex-col items-center gap-0.5 shrink-0 px-2 py-1.5 rounded-xl transition-all active:scale-90"
-          style={{
-            background: liked ? ORANGE_DIM : "#111",
-            border: `1px solid ${liked ? ORANGE_BORDER : "#2a2a2a"}`,
-          }}
-          data-testid={`button-like-track-${track.id}`}
-        >
-          <Heart
-            className="h-4 w-4"
-            style={{ color: liked ? ORANGE : "#555", fill: liked ? ORANGE : "none" }}
-          />
-          <span className="text-[10px] font-bold" style={{ color: liked ? ORANGE : "#555" }}>
-            {track.likeCount}
-          </span>
-        </button>
+        {/* Right action column: Like + Share */}
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
+          {/* Like button */}
+          <button
+            onClick={onLike}
+            className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-all active:scale-90"
+            style={{
+              background: liked ? ORANGE_DIM : "#111",
+              border: `1px solid ${liked ? ORANGE_BORDER : "#2a2a2a"}`,
+            }}
+            data-testid={`button-like-track-${track.id}`}
+          >
+            <Heart
+              className="h-4 w-4"
+              style={{ color: liked ? ORANGE : "#555", fill: liked ? ORANGE : "none" }}
+            />
+            <span className="text-[10px] font-bold" style={{ color: liked ? ORANGE : "#555" }}>
+              {track.likeCount}
+            </span>
+          </button>
+
+          {/* Share button */}
+          <div className="relative">
+            <button
+              onClick={() => setShareOpen((v) => !v)}
+              className="flex items-center justify-center w-8 h-8 rounded-xl transition-all active:scale-90"
+              style={{
+                background: shareOpen ? ORANGE_DIM : "#111",
+                border: `1px solid ${shareOpen ? ORANGE_BORDER : "#2a2a2a"}`,
+              }}
+              data-testid={`button-share-track-${track.id}`}
+              title="Share this track"
+            >
+              <Share2 className="h-3.5 w-3.5" style={{ color: shareOpen ? ORANGE : "#555" }} />
+            </button>
+            {shareOpen && (
+              <ShareMenu track={track} onClose={() => setShareOpen(false)} />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Rating row */}
