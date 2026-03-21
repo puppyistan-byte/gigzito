@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
-  ExternalLink, Play, ChevronUp,
+  ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
 } from "lucide-react";
 import type { GZMusicTrack } from "@shared/schema";
 
@@ -51,52 +51,137 @@ function TrackCard({ track, rank, liked, onLike }: {
   onLike: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const hasFile = !!(track as any).fileUrl;
+  const hasLicense = !!(track as any).licenseFileUrl;
+  const downloadOk = (track as any).downloadEnabled;
 
   return (
     <div
-      className="flex items-center gap-3 p-3 rounded-xl transition-all border"
+      className="rounded-xl transition-all border overflow-hidden"
       style={{
         background: liked ? ORANGE_DIM : "#0b0b0b",
         borderColor: liked ? ORANGE_BORDER : "#1e1e1e",
       }}
       data-testid={`track-card-${track.id}`}
     >
-      <RankBadge rank={rank} />
+      <div className="flex items-center gap-3 p-3">
+        <RankBadge rank={rank} />
 
-      {/* Cover art */}
-      <div
-        className="w-12 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
-        style={{ background: "#111", border: "1px solid #2a2a2a" }}
-      >
-        {track.coverUrl ? (
-          <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-        ) : (
-          <Headphones className="h-5 w-5" style={{ color: ORANGE }} />
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-sm text-white truncate" data-testid={`track-title-${track.id}`}>{track.title}</p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <p className="text-xs text-[#888]">{track.artist}</p>
-          {track.genre && (
-            <Badge className="text-[9px] font-bold px-1.5 py-0 h-4 border-0" style={{ background: ORANGE_DIM, color: ORANGE }}>
-              {track.genre}
-            </Badge>
+        {/* Cover art */}
+        <div
+          className="w-12 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
+          style={{ background: "#111", border: "1px solid #2a2a2a" }}
+        >
+          {track.coverUrl ? (
+            <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+          ) : (
+            <Headphones className="h-5 w-5" style={{ color: ORANGE }} />
           )}
         </div>
-        {track.audioUrl && (
-          <button
-            onClick={() => setExpanded((x) => !x)}
-            className="flex items-center gap-1 mt-1 text-[10px] font-semibold transition-colors"
-            style={{ color: expanded ? ORANGE : "#555" }}
-          >
-            <Play className="h-2.5 w-2.5" /> {expanded ? "Hide player" : "Play"}
-          </button>
-        )}
-        {expanded && track.audioUrl && (
-          <div className="mt-2">
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm text-white truncate" data-testid={`track-title-${track.id}`}>{track.title}</p>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            <p className="text-xs text-[#888]">{track.artist}</p>
+            {track.genre && (
+              <Badge className="text-[9px] font-bold px-1.5 py-0 h-4 border-0" style={{ background: ORANGE_DIM, color: ORANGE }}>
+                {track.genre}
+              </Badge>
+            )}
+          </div>
+          {/* Badges row */}
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {hasLicense && (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#3b82f610", borderColor: "#3b82f630", color: "#3b82f6" }}>
+                <FileBadge2 className="h-2.5 w-2.5" /> Licensed
+              </span>
+            )}
+            {(track as any).authenticityConfirmed && (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#22c55e10", borderColor: "#22c55e30", color: "#22c55e" }}>
+                <Shield className="h-2.5 w-2.5" /> Certified
+              </span>
+            )}
+            {downloadOk ? (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: ORANGE_DIM, borderColor: ORANGE_BORDER, color: ORANGE }}>
+                <Download className="h-2.5 w-2.5" /> Download OK
+              </span>
+            ) : hasFile ? (
+              <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border" style={{ background: "#1a1a1a", borderColor: "#2a2a2a", color: "#555" }}>
+                <Shield className="h-2.5 w-2.5" /> Stream Only
+              </span>
+            ) : null}
+          </div>
+          {/* Play controls */}
+          <div className="flex items-center gap-3 mt-1">
+            {(track.audioUrl || hasFile) && (
+              <button
+                onClick={() => setExpanded((x) => !x)}
+                className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
+                style={{ color: expanded ? ORANGE : "#555" }}
+              >
+                <Play className="h-2.5 w-2.5" /> {expanded ? "Hide" : "Play"}
+              </button>
+            )}
+            {downloadOk && hasFile && (
+              <a
+                href={(track as any).fileUrl}
+                download
+                className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
+                style={{ color: "#888" }}
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`link-download-track-${track.id}`}
+              >
+                <Download className="h-2.5 w-2.5" /> Download
+              </a>
+            )}
+            {hasLicense && (
+              <a
+                href={(track as any).licenseFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
+                style={{ color: "#3b82f6" }}
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`link-license-track-${track.id}`}
+              >
+                <FileBadge2 className="h-2.5 w-2.5" /> View License
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Like button */}
+        <button
+          onClick={onLike}
+          className="flex flex-col items-center gap-0.5 shrink-0 px-2 py-1.5 rounded-xl transition-all active:scale-90"
+          style={{
+            background: liked ? ORANGE_DIM : "#111",
+            border: `1px solid ${liked ? ORANGE_BORDER : "#2a2a2a"}`,
+          }}
+          data-testid={`button-like-track-${track.id}`}
+        >
+          <Heart
+            className="h-4 w-4"
+            style={{ color: liked ? ORANGE : "#555", fill: liked ? ORANGE : "none" }}
+          />
+          <span className="text-[10px] font-bold" style={{ color: liked ? ORANGE : "#555" }}>
+            {track.likeCount}
+          </span>
+        </button>
+      </div>
+
+      {/* Embedded player (SoundCloud/YouTube embed or native audio for uploaded files) */}
+      {expanded && (track.audioUrl || hasFile) && (
+        <div className="px-3 pb-3">
+          {hasFile ? (
+            <audio
+              controls
+              src={(track as any).fileUrl}
+              className="w-full rounded-lg"
+              style={{ height: "40px" }}
+            />
+          ) : track.audioUrl ? (
             <iframe
               src={track.audioUrl}
               width="100%"
@@ -105,28 +190,9 @@ function TrackCard({ track, rank, liked, onLike }: {
               className="rounded-lg border border-[#2a2a2a]"
               style={{ background: "#0a0a0a" }}
             />
-          </div>
-        )}
-      </div>
-
-      {/* Like button */}
-      <button
-        onClick={onLike}
-        className="flex flex-col items-center gap-0.5 shrink-0 px-2 py-1.5 rounded-xl transition-all active:scale-90"
-        style={{
-          background: liked ? ORANGE_DIM : "#111",
-          border: `1px solid ${liked ? ORANGE_BORDER : "#2a2a2a"}`,
-        }}
-        data-testid={`button-like-track-${track.id}`}
-      >
-        <Heart
-          className="h-4 w-4"
-          style={{ color: liked ? ORANGE : "#555", fill: liked ? ORANGE : "none" }}
-        />
-        <span className="text-[10px] font-bold" style={{ color: liked ? ORANGE : "#555" }}>
-          {track.likeCount}
-        </span>
-      </button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -216,11 +282,28 @@ export default function GZMusicPage() {
                 </h1>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#555]">The Sound of Autonomy</p>
               </div>
-              <div className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: ORANGE_DIM, border: `1px solid ${ORANGE_BORDER}` }}>
-                <Radio className="h-3 w-3" style={{ color: ORANGE }} />
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ORANGE }}>Live Chart</span>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: ORANGE_DIM, border: `1px solid ${ORANGE_BORDER}` }}>
+                  <Radio className="h-3 w-3" style={{ color: ORANGE }} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ORANGE }}>Live Chart</span>
+                </div>
               </div>
             </div>
+
+            {/* Upload Track CTA */}
+            <button
+              onClick={() => { window.location.href = user ? "/gz-music/upload" : "/auth"; }}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98]"
+              style={{
+                background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
+                color: "#fff",
+                boxShadow: `0 4px 20px rgba(255,122,0,0.4)`,
+              }}
+              data-testid="button-upload-track-hero"
+            >
+              <Upload className="h-4 w-4" />
+              Upload Your Track to the GZ100
+            </button>
 
             <div className="space-y-2 text-sm leading-relaxed text-[#999]">
               <p>

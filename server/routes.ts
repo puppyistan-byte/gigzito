@@ -64,6 +64,35 @@ const videoUpload = multer({
   },
 });
 
+// GZMusic audio + license upload
+const gzMusicAudioStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), "uploads", "gz-music");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || ".mp3";
+    cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
+  },
+});
+const gzMusicUpload = multer({
+  storage: gzMusicAudioStorage,
+  limits: { fileSize: 60 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (
+      file.fieldname === "audio" &&
+      (file.mimetype.startsWith("audio/") || file.originalname.toLowerCase().endsWith(".mp3"))
+    ) { cb(null, true); return; }
+    if (
+      file.fieldname === "license" &&
+      (file.mimetype.startsWith("image/") || ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"].includes(file.mimetype))
+    ) { cb(null, true); return; }
+    if (file.fieldname === "cover" && file.mimetype.startsWith("image/")) { cb(null, true); return; }
+    cb(new Error(`Invalid file type for field: ${file.fieldname}`));
+  },
+});
+
 // === BIF REPUTATION SCANNER ===
 const BIF_SCAN_STATUSES = ["SCANNING", "CLEAN", "FLAGGED", "APPEAL_PENDING", "APPEAL_DENIED", "HUMAN_REVIEW"];
 
@@ -3567,6 +3596,56 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ─── GZMusic ─────────────────────────────────────────────────────────────────
+
+  // User track submission (any authenticated user, any tier)
+  app.post(
+    "/api/gz-music/submit",
+    gzMusicUpload.fields([
+      { name: "audio", maxCount: 1 },
+      { name: "license", maxCount: 1 },
+      { name: "cover", maxCount: 1 },
+    ]),
+    async (req, res) => {
+      if (!requireAuth(req, res)) return;
+      const userId = (req.session as any).userId;
+      const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+      const audioFile = files?.["audio"]?.[0];
+      if (!audioFile) return res.status(400).json({ message: "MP3 audio file is required." });
+      const { title, artist, genre, downloadEnabled, authenticityConfirmed } = req.body;
+      if (!title?.trim()) return res.status(400).json({ message: "Track title is required." });
+      if (!artist?.trim()) return res.status(400).json({ message: "Artist name is required." });
+      if (!genre?.trim()) return res.status(400).json({ message: "Genre is required." });
+      if (authenticityConfirmed !== "true") return res.status(400).json({ message: "Certificate of authenticity must be confirmed." });
+
+      const fileUrl = `/uploads/gz-music/${audioFile.filename}`;
+      const licenseFile = files?.["license"]?.[0];
+      const coverFile = files?.["cover"]?.[0];
+      const licenseFileUrl = licenseFile ? `/uploads/gz-music/${licenseFile.filename}` : null;
+      const coverUrl = coverFile ? `/uploads/gz-music/${coverFile.filename}` : null;
+
+      try {
+        const track = await storage.createGZMusicTrack({
+          title: title.trim(),
+          artist: artist.trim(),
+          genre: genre.trim(),
+          coverUrl,
+          audioUrl: null,
+          fileUrl,
+          licenseFileUrl,
+          downloadEnabled: downloadEnabled === "true",
+          authenticityConfirmed: true,
+          uploaderUserId: userId,
+          submittedBy: userId,
+          likeCount: 0,
+          status: "active",
+        });
+        return res.status(201).json(track);
+      } catch (err) {
+        console.error("[gz-music/submit]", err);
+        return res.status(500).json({ message: "Failed to save track." });
+      }
+    }
+  );
 
   app.get("/api/gz-music/tracks", async (req, res) => {
     try {
