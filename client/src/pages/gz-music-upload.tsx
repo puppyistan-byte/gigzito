@@ -18,9 +18,42 @@ const ORANGE_DIM = "#ff7a0015";
 const ORANGE_BORDER = "#ff7a0035";
 
 const GENRES = [
-  "Hip-Hop", "R&B / Soul", "Pop", "Electronic / EDM", "Afrobeats", "Reggae / Dancehall",
-  "Jazz / Fusion", "Gospel / Worship", "Alternative / Indie", "Trap / Drill", "Lo-Fi",
-  "Neo-Soul", "Country / Americana", "Latin", "Classical", "Spoken Word / Poetry", "Other",
+  // Hip-Hop & Urban
+  "Hip-Hop", "Trap / Drill", "Phonk", "Rapcore", "Lo-Fi Hip-Hop",
+  // R&B & Soul
+  "R&B / Soul", "Neo-Soul", "Soul / Motown", "Funk / Groove",
+  // Pop
+  "Pop", "Synth-Pop", "Bedroom Pop", "K-Pop / J-Pop", "Dance-Pop",
+  // Rock & Indie
+  "Rock", "Alternative / Indie", "Indie Rock", "Indie Folk",
+  "Classic Rock", "Hard Rock", "Grunge", "Post-Rock", "Psychedelic Rock",
+  // Metal
+  "Metal", "Heavy Metal", "Nu-Metal", "Death Metal", "Black Metal",
+  "Doom Metal", "Thrash Metal", "Power Metal", "Progressive Metal",
+  "Metalcore", "Deathcore", "Sludge Metal", "Stoner Metal",
+  // Punk & Hardcore
+  "Punk", "Pop Punk", "Ska Punk", "Post-Punk", "Hardcore",
+  "Post-Hardcore", "Screamo", "Mathcore",
+  // Emo
+  "Emo / Emo Rock", "Midwest Emo", "Emo-Pop",
+  // Electronic
+  "Electronic / EDM", "House", "Deep House", "Techno", "Trance",
+  "Dubstep / Riddim", "Drum & Bass / Jungle", "Junglist", "Garage / UK Funky",
+  "Ambient / Chillout", "Synthwave / Retrowave", "Lo-Fi", "Experimental",
+  // Afrobeats & World
+  "Afrobeats", "Afro-House", "Amapiano", "Dancehall", "Reggae",
+  "Reggaeton", "Latin", "Soca / Calypso", "World Music",
+  // Jazz & Blues
+  "Jazz / Fusion", "Jazz", "Blues / Blues Rock", "Bossa Nova",
+  // Gospel & Christian
+  "Gospel / Worship", "Christian / CCM", "Gospel Rap",
+  // Country & Folk
+  "Country / Americana", "Folk / Singer-Songwriter", "Bluegrass",
+  // Classical & Instrumental
+  "Classical", "Orchestral / Cinematic", "Instrumental",
+  "Avant-Garde / Noise",
+  // Other
+  "Spoken Word / Poetry", "Comedy / Parody", "Other",
 ];
 
 const CERTIFICATE_TEXT = (displayName: string) =>
