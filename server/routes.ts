@@ -14,6 +14,12 @@ import path from "path";
 import multer from "multer";
 import jwt from "jsonwebtoken";
 
+// Pre-create all upload directories at startup
+["uploads", "uploads/videos", "uploads/gz-music"].forEach((d) => {
+  const dir = path.join(process.cwd(), d);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
 const uploadStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     const dir = path.join(process.cwd(), "uploads");
