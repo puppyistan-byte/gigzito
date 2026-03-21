@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { Home, PlusSquare, User, Radio, Tv } from "lucide-react";
+import { Home, PlusSquare, User, Radio, Music } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export function BottomNav({ activeVertical, onVerticalChange }: {
@@ -25,6 +25,7 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
 
   const feedActive = location === "/";
   const liveActive = location.startsWith("/live");
+  const musicActive = location === "/gz-music";
 
   const { data: liveSessions = [] } = useQuery<any[]>({
     queryKey: ["/api/live/active"],
@@ -70,12 +71,13 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
       </button>
 
       <button
-        onClick={() => window.open("https://zito.tv/", "_blank", "noopener,noreferrer")}
-        className="nav-item transition-colors"
-        data-testid="nav-zito-tv"
+        onClick={() => window.location.href = "/gz-music"}
+        className={`nav-item transition-colors ${musicActive ? "active" : ""}`}
+        style={musicActive ? { color: "#ff7a00" } : {}}
+        data-testid="nav-gz-music"
       >
-        <Tv size={20} />
-        <span className="nav-label">Zito TV</span>
+        <Music size={20} style={musicActive ? { color: "#ff7a00" } : {}} />
+        <span className="nav-label" style={musicActive ? { color: "#ff7a00" } : {}}>GZMusic</span>
       </button>
 
       <button

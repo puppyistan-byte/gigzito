@@ -968,3 +968,27 @@ export type ActivityEvent =
   | { type: "comment_like"; at: string; actorId: number | null; actorName: string; actorAvatar: string | null; actorUsername: string | null; commentId: number; commentText: string; listingId: number }
   | { type: "love"; at: string; actorId: number | null; actorName: string; actorAvatar: string | null; actorUsername: string | null; monthKey: string }
   | { type: "profile_view"; at: string; actorId: number | null; actorName: string; actorAvatar: string | null; actorUsername: string | null };
+
+// ─── GZMusic ─────────────────────────────────────────────────────────────────
+export const gzMusicTracks = pgTable("gz_music_tracks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  genre: text("genre").notNull().default(""),
+  coverUrl: text("cover_url"),
+  audioUrl: text("audio_url"),
+  submittedBy: integer("submitted_by").references(() => users.id, { onDelete: "set null" }),
+  likeCount: integer("like_count").notNull().default(0),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gzMusicLikes = pgTable("gz_music_likes", {
+  id: serial("id").primaryKey(),
+  trackId: integer("track_id").notNull().references(() => gzMusicTracks.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.trackId, t.userId)]);
+
+export type GZMusicTrack = typeof gzMusicTracks.$inferSelect;
+export type InsertGZMusicTrack = typeof gzMusicTracks.$inferInsert;

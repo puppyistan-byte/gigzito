@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -189,6 +189,14 @@ export interface IStorage {
   getCommentLikeCount(commentId: number): Promise<number>;
   isCommentLikedByUser(commentId: number, userId: number): Promise<boolean>;
   getCommentLikers(commentId: number, limit?: number): Promise<Array<{ userId: number; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>>;
+
+  // GZMusic
+  getGZ100(): Promise<import("@shared/schema").GZMusicTrack[]>;
+  getGZTracksByIds(ids: number[]): Promise<import("@shared/schema").GZMusicTrack[]>;
+  createGZMusicTrack(data: import("@shared/schema").InsertGZMusicTrack): Promise<import("@shared/schema").GZMusicTrack>;
+  toggleGZMusicLike(trackId: number, userId: number): Promise<{ liked: boolean; likeCount: number }>;
+  getGZMusicLikesBatch(trackIds: number[], userId: number): Promise<Record<number, boolean>>;
+  deleteGZMusicTrack(id: number): Promise<void>;
 
   // Activity Feed
   getMyActivityFeed(providerProfileId: number, limit?: number): Promise<ActivityEvent[]>;
@@ -2355,6 +2363,57 @@ export class DatabaseStorage implements IStorage {
     // Sort unified feed by date desc, cap at limit
     events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
     return events.slice(0, limit);
+  }
+
+  // ─── GZMusic ───────────────────────────────────────────────────────────────
+
+  async getGZ100() {
+    return db.select().from(gzMusicTracks)
+      .where(eq(gzMusicTracks.status, "active"))
+      .orderBy(desc(gzMusicTracks.likeCount), desc(gzMusicTracks.createdAt))
+      .limit(100);
+  }
+
+  async getGZTracksByIds(ids: number[]) {
+    if (!ids.length) return [];
+    return db.select().from(gzMusicTracks).where(inArray(gzMusicTracks.id, ids));
+  }
+
+  async createGZMusicTrack(data: import("@shared/schema").InsertGZMusicTrack) {
+    const [track] = await db.insert(gzMusicTracks).values(data).returning();
+    return track;
+  }
+
+  async toggleGZMusicLike(trackId: number, userId: number): Promise<{ liked: boolean; likeCount: number }> {
+    const existing = await db.select().from(gzMusicLikes)
+      .where(and(eq(gzMusicLikes.trackId, trackId), eq(gzMusicLikes.userId, userId)))
+      .limit(1);
+    let liked: boolean;
+    if (existing.length > 0) {
+      await db.delete(gzMusicLikes).where(and(eq(gzMusicLikes.trackId, trackId), eq(gzMusicLikes.userId, userId)));
+      await db.update(gzMusicTracks).set({ likeCount: sql`${gzMusicTracks.likeCount} - 1` }).where(eq(gzMusicTracks.id, trackId));
+      liked = false;
+    } else {
+      await db.insert(gzMusicLikes).values({ trackId, userId });
+      await db.update(gzMusicTracks).set({ likeCount: sql`${gzMusicTracks.likeCount} + 1` }).where(eq(gzMusicTracks.id, trackId));
+      liked = true;
+    }
+    const [updated] = await db.select({ likeCount: gzMusicTracks.likeCount }).from(gzMusicTracks).where(eq(gzMusicTracks.id, trackId));
+    return { liked, likeCount: updated?.likeCount ?? 0 };
+  }
+
+  async getGZMusicLikesBatch(trackIds: number[], userId: number): Promise<Record<number, boolean>> {
+    if (!trackIds.length) return {};
+    const rows = await db.select({ trackId: gzMusicLikes.trackId }).from(gzMusicLikes)
+      .where(and(eq(gzMusicLikes.userId, userId), inArray(gzMusicLikes.trackId, trackIds)));
+    const result: Record<number, boolean> = {};
+    for (const id of trackIds) result[id] = false;
+    for (const row of rows) result[row.trackId] = true;
+    return result;
+  }
+
+  async deleteGZMusicTrack(id: number) {
+    await db.delete(gzMusicTracks).where(eq(gzMusicTracks.id, id));
   }
 }
 

@@ -9,7 +9,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, PlusCircle } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, PlusCircle, Music } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 
@@ -363,6 +363,28 @@ export default function HomePage() {
             <Zap style={{ width: 12, height: 12, color: "#fff" }} />
             GZFlash Sales
           </button>
+
+          <button
+            onClick={() => navigate("/gz-music")}
+            data-testid="button-topbar-gz-music"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              background: "linear-gradient(135deg, #ff7a00, #cc5200)",
+              border: "none",
+              borderRadius: "999px",
+              padding: "7px 13px",
+              cursor: "pointer",
+              color: "#fff",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.03em",
+              whiteSpace: "nowrap",
+              boxShadow: "0 2px 10px rgba(255,122,0,0.5)",
+            }}
+          >
+            <Music style={{ width: 12, height: 12, color: "#fff" }} />
+            GZMusic
+          </button>
         </div>
 
         {/* Dropdown panel */}
@@ -474,6 +496,19 @@ export default function HomePage() {
             <Flame style={{ width: 13, height: 13, color: "#f59e0b", flexShrink: 0 }} />
             <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>
               Keeping it Geezee
+            </span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/gz-music"); }}
+            data-testid="button-menu-gz-music"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,122,0,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Music style={{ width: 13, height: 13, color: "#ff7a00", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff7a00", letterSpacing: "0.01em" }}>
+              GZMusic · GZ100
             </span>
           </button>
         </div>

@@ -3566,5 +3566,61 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ─── GZMusic ─────────────────────────────────────────────────────────────────
+
+  app.get("/api/gz-music/tracks", async (req, res) => {
+    try {
+      const tracks = await storage.getGZ100();
+      return res.json(tracks);
+    } catch (err) {
+      console.error("[gz-music/tracks]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.get("/api/gz-music/likes/batch", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    const ids = String(req.query.ids ?? "").split(",").map(Number).filter((n) => !isNaN(n) && n > 0);
+    if (!userId || !ids.length) return res.json({});
+    const result = await storage.getGZMusicLikesBatch(ids, userId);
+    return res.json(result);
+  });
+
+  app.post("/api/gz-music/tracks/:id/like", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const trackId = parseInt(req.params.id);
+    if (isNaN(trackId)) return res.status(400).json({ message: "Invalid track id" });
+    const userId = (req.session as any).userId;
+    try {
+      const result = await storage.toggleGZMusicLike(trackId, userId);
+      return res.json(result);
+    } catch (err) {
+      console.error("[gz-music/like]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.post("/api/gz-music/tracks", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const { title, artist, genre, coverUrl, audioUrl } = req.body;
+    if (!title?.trim() || !artist?.trim()) return res.status(400).json({ message: "title and artist are required" });
+    const userId = (req.session as any).userId;
+    try {
+      const track = await storage.createGZMusicTrack({ title: title.trim(), artist: artist.trim(), genre: genre?.trim() ?? "", coverUrl: coverUrl ?? null, audioUrl: audioUrl ?? null, submittedBy: userId, likeCount: 0, status: "active" });
+      return res.status(201).json(track);
+    } catch (err) {
+      console.error("[gz-music/create]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  app.delete("/api/gz-music/tracks/:id", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deleteGZMusicTrack(id);
+    return res.json({ message: "Deleted" });
+  });
+
   return httpServer;
 }
