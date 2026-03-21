@@ -244,6 +244,7 @@ function TrackCard({
   ratingPending,
   expanded,
   onToggleExpand,
+  highlighted,
 }: {
   track: TrackWithRating;
   rank: number;
@@ -254,6 +255,7 @@ function TrackCard({
   ratingPending: boolean;
   expanded: boolean;
   onToggleExpand: () => void;
+  highlighted: boolean;
 }) {
   const [shareOpen, setShareOpen] = useState(false);
   const hasFile = !!(track as any).fileUrl;
@@ -266,7 +268,9 @@ function TrackCard({
       className="rounded-xl transition-all border"
       style={{
         background: liked ? ORANGE_DIM : "#0b0b0b",
-        borderColor: liked ? ORANGE_BORDER : "#1e1e1e",
+        borderColor: highlighted ? ORANGE : liked ? ORANGE_BORDER : "#1e1e1e",
+        boxShadow: highlighted ? `0 0 0 2px ${ORANGE}, 0 0 20px rgba(255,122,0,0.35)` : undefined,
+        transition: "box-shadow 0.6s ease, border-color 0.6s ease",
       }}
       data-testid={`track-card-${track.id}`}
     >
@@ -495,10 +499,29 @@ export default function GZMusicPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedTrackId, setExpandedTrackId] = useState<number | null>(null);
+  const [highlightedTrackId, setHighlightedTrackId] = useState<number | null>(null);
 
   const { data: tracks = [], isLoading } = useQuery<TrackWithRating[]>({
     queryKey: ["/api/gz-music/tracks"],
   });
+
+  // Deep-link: scroll to + highlight the track from the URL hash once tracks load
+  useEffect(() => {
+    if (isLoading || tracks.length === 0) return;
+    const hash = window.location.hash; // e.g. "#track-7"
+    const match = hash.match(/^#track-(\d+)$/);
+    if (!match) return;
+    const trackId = parseInt(match[1]);
+    const el = document.getElementById(`track-${trackId}`);
+    if (!el) return;
+    // Small delay to let the DOM fully settle
+    const t = setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedTrackId(trackId);
+      setTimeout(() => setHighlightedTrackId(null), 3000);
+    }, 150);
+    return () => clearTimeout(t);
+  }, [isLoading, tracks.length]);
 
   const userId = (user as any)?.user?.id as number | undefined;
 
@@ -748,6 +771,7 @@ export default function GZMusicPage() {
                 onToggleExpand={() =>
                   setExpandedTrackId((prev) => (prev === track.id ? null : track.id))
                 }
+                highlighted={highlightedTrackId === track.id}
               />
             ))}
           </div>
