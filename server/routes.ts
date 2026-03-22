@@ -2222,7 +2222,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const { role } = req.body;
-    const validRoles = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "ADMIN", "COORDINATOR"];
+    const validRoles = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "SUPERUSER", "ADMIN", "COORDINATOR"];
     const actorRole = (req.session as any).role;
     if (actorRole === "SUPER_ADMIN") validRoles.push("SUPER_ADMIN");
     if (!validRoles.includes(role)) return res.status(400).json({ message: "Invalid role" });
