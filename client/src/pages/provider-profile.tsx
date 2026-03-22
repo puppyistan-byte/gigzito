@@ -738,7 +738,8 @@ export default function ProviderProfilePage() {
           {(() => {
             const tier = (user as any)?.user?.subscriptionTier ?? "";
             const role = (user as any)?.user?.role ?? "";
-            const hasGroups = ["GZGroups", "GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(tier) ||
+            const groupsEnabled = (user as any)?.user?.groupsEnabled === true;
+            const hasGroups = groupsEnabled || ["GZGroups", "GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(tier) ||
               ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role);
             return hasGroups ? (
               <div className="rounded-xl border border-green-700/40 bg-green-950/10 p-4 space-y-3" data-testid="section-gzgroups-profile">

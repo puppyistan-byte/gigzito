@@ -585,13 +585,21 @@ export default function AdminPage() {
     onError: () => toast({ title: "Error updating tier", variant: "destructive" }),
   });
 
-  const GZ_TIERS = ["GZLurker", "GZMarketer", "GZMarketerPro", "GZBusiness"] as const;
+  const GZ_TIERS = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"] as const;
   const GZ_TIER_COLORS: Record<string, string> = {
     GZLurker:     "bg-zinc-500/20 text-zinc-400",
+    GZGroups:     "bg-green-500/20 text-green-400",
     GZMarketer:   "bg-blue-500/20 text-blue-400",
     GZMarketerPro:"bg-purple-500/20 text-purple-400",
     GZBusiness:   "bg-amber-500/20 text-amber-400",
   };
+
+  const groupsEnabledMutation = useMutation({
+    mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
+      apiRequest("PATCH", `/api/admin/users/${id}/groups-enabled`, { enabled }).then(r => r.json()),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] }); toast({ title: "Groups access updated" }); },
+    onError: () => toast({ title: "Error updating groups access", variant: "destructive" }),
+  });
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -1224,6 +1232,22 @@ export default function AdminPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                  )}
+
+                  {/* Groups toggle */}
+                  {!isDeleted && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={`h-7 px-2 text-xs border ${u.groupsEnabled ? "border-green-500/40 text-green-400 bg-green-500/10 hover:bg-green-500/20" : "border-[#2a2a2a] text-[#555] hover:text-green-400 hover:border-green-500/30"}`}
+                      onClick={() => groupsEnabledMutation.mutate({ id: u.id, enabled: !u.groupsEnabled })}
+                      disabled={groupsEnabledMutation.isPending}
+                      data-testid={`button-groups-toggle-${u.id}`}
+                      title={u.groupsEnabled ? "Groups: ON — click to revoke" : "Groups: OFF — click to enable"}
+                    >
+                      <Users className="h-3.5 w-3.5 mr-1" />
+                      {u.groupsEnabled ? "Groups ✓" : "Groups"}
+                    </Button>
                   )}
 
                   {/* Action buttons */}

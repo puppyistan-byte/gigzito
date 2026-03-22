@@ -2425,6 +2425,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ success: true, userId: id, tier });
   });
 
+  app.patch("/api/admin/users/:id/groups-enabled", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { enabled } = req.body;
+    if (typeof enabled !== "boolean") return res.status(400).json({ message: "enabled must be boolean" });
+    await storage.updateGroupsEnabled(id, enabled);
+    const actorUserId = (req.session as any).userId;
+    await storage.createAuditLog({ actorUserId, actionType: "GROUPS_ENABLED_CHANGE", targetType: "USER", targetId: id, usedOverride: false });
+    return res.json({ success: true, userId: id, groupsEnabled: enabled });
+  });
+
   // Admin: all geo campaigns
   app.get("/api/admin/geo-campaigns", async (req, res) => {
     if (!requireAdmin(req, res)) return;

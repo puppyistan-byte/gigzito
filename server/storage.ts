@@ -85,6 +85,7 @@ export interface IStorage {
   getOptInStatus(presenterUserId: number, memberUserId: number): Promise<boolean>;
   getPresenterByUsername(username: string): Promise<{ userId: number; displayName: string | null; username: string; avatarUrl: string | null; subscriptionTier: string } | null>;
   updateSubscriptionTier(userId: number, tier: string): Promise<void>;
+  updateGroupsEnabled(userId: number, enabled: boolean): Promise<void>;
 
   // Card Messages
   createCardMessage(data: { fromUserId: number; toUserId: number; gignessCardId: number; messageText?: string | null; emojiReaction?: string | null; isClean: boolean }): Promise<CardMessage>;
@@ -867,6 +868,13 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(users)
       .set({ subscriptionTier: tier as any })
+      .where(eq(users.id, userId));
+  }
+
+  async updateGroupsEnabled(userId: number, enabled: boolean): Promise<void> {
+    await db
+      .update(users)
+      .set({ groupsEnabled: enabled })
       .where(eq(users.id, userId));
   }
 
