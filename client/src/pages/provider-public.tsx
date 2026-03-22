@@ -13,7 +13,7 @@ import {
   ArrowLeft, MapPin, Globe, Instagram, Youtube, Mail, Phone, MessageCircle,
   Megaphone, CreditCard, LayoutGrid, User, Image, ShoppingBag, MessageSquare,
   Clock, Store, ExternalLink, Play, Tag, Loader2, Trash2, Send,
-  Music, Upload, Headphones, Download, FileBadge2, Shield,
+  Music, Upload, Headphones, Download, FileBadge2, Shield, UserPlus, UserCheck,
 } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
@@ -76,6 +76,37 @@ export default function ProviderPublicPage() {
   });
 
   const profileUserId = (profile as any)?.userId as number | undefined;
+
+  const { data: followCounts, refetch: refetchCounts } = useQuery<{ followerCount: number; followingCount: number }>({
+    queryKey: ["/api/geezee-follows/counts", profileUserId],
+    queryFn: () => fetch(`/api/geezee-follows/counts/${profileUserId}`).then((r) => r.json()),
+    enabled: !!profileUserId,
+    staleTime: 30_000,
+  });
+
+  const { data: followStatus, refetch: refetchStatus } = useQuery<{ following: boolean; followerCount: number; followingCount: number }>({
+    queryKey: ["/api/geezee-follows/status", profileUserId],
+    queryFn: () => fetch(`/api/geezee-follows/status/${profileUserId}`).then((r) => r.json()),
+    enabled: !!profileUserId && !!(user as any)?.user?.id && (user as any)?.user?.id !== profileUserId,
+    staleTime: 30_000,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async (isNowFollowing: boolean) => {
+      const method = isNowFollowing ? "DELETE" : "POST";
+      const res = await apiRequest(method, `/api/geezee-follows/${profileUserId}`);
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchStatus();
+      refetchCounts();
+      queryClient.invalidateQueries({ queryKey: ["/api/geezee-follows/counts", profileUserId] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message ?? "Could not update follow status", variant: "destructive" });
+    },
+  });
 
   const { data: geezeeCard } = useQuery<GignessCard | null>({
     queryKey: ["/api/gigness-cards/user", profileUserId],
@@ -237,6 +268,16 @@ export default function ProviderPublicPage() {
                     <div className="flex-1 min-w-0 pb-1">
                       <h1 className="text-lg font-bold text-white truncate" data-testid="text-provider-name">{profile.displayName}</h1>
                       {profile.username && <p className="text-xs text-[#555]">@{profile.username}</p>}
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-[#666]" data-testid="text-follower-count">
+                          <span className="text-white font-semibold">{(followStatus?.followerCount ?? followCounts?.followerCount ?? 0).toLocaleString()}</span>
+                          {" "}<span className="text-[#555]">followers</span>
+                        </span>
+                        <span className="text-xs text-[#666]" data-testid="text-following-count">
+                          <span className="text-white font-semibold">{(followStatus?.followingCount ?? followCounts?.followingCount ?? 0).toLocaleString()}</span>
+                          {" "}<span className="text-[#555]">following</span>
+                        </span>
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 pb-1">
                       {profile.primaryCategory && (
@@ -259,6 +300,29 @@ export default function ProviderPublicPage() {
 
                   {/* Action row */}
                   <div className="mt-4 flex items-start gap-3 flex-wrap">
+                    {/* Follow button — only show when logged in and viewing someone else */}
+                    {myUserId && myUserId !== profileUserId && (
+                      <button
+                        onClick={() => followMutation.mutate(followStatus?.following ?? false)}
+                        disabled={followMutation.isPending}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all border active:scale-95 ${
+                          followStatus?.following
+                            ? "bg-[#ff2b2b]/10 border-[#ff2b2b]/30 text-[#ff2b2b] hover:bg-red-900/20 hover:border-red-500/50"
+                            : "bg-[#ff2b2b] border-[#ff2b2b] text-white hover:bg-[#cc2222] hover:border-[#cc2222]"
+                        }`}
+                        data-testid="button-follow-user"
+                      >
+                        {followMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : followStatus?.following ? (
+                          <UserCheck className="h-3.5 w-3.5" />
+                        ) : (
+                          <UserPlus className="h-3.5 w-3.5" />
+                        )}
+                        {followStatus?.following ? "Following" : "Follow"}
+                      </button>
+                    )}
+
                     <button
                       onClick={() => loveMutation.mutate()}
                       disabled={loveMutation.isPending || hasVoted}

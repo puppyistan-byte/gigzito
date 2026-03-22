@@ -111,6 +111,7 @@ export interface IStorage {
   isFollowing(followerId: number, followingUserId: number): Promise<boolean>;
   getFollowingIds(followerId: number): Promise<number[]>;
   getFollowerCount(userId: number): Promise<number>;
+  getFollowingCount(userId: number): Promise<number>;
 
   // GZFlash Ads
   createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd>;
@@ -2055,6 +2056,11 @@ export class DatabaseStorage implements IStorage {
 
   async getFollowerCount(userId: number): Promise<number> {
     const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(geezeeFollows).where(eq(geezeeFollows.followingUserId, userId));
+    return row?.count ?? 0;
+  }
+
+  async getFollowingCount(userId: number): Promise<number> {
+    const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(geezeeFollows).where(eq(geezeeFollows.followerId, userId));
     return row?.count ?? 0;
   }
 

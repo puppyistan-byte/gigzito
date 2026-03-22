@@ -3229,9 +3229,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const followerId = (req.session as any).userId;
     const followingUserId = parseInt(req.params.userId);
     if (isNaN(followingUserId)) return res.status(400).json({ message: "Invalid userId" });
-    const following = await storage.isFollowing(followerId, followingUserId);
-    const followerCount = await storage.getFollowerCount(followingUserId);
-    return res.json({ following, followerCount });
+    const [following, followerCount, followingCount] = await Promise.all([
+      storage.isFollowing(followerId, followingUserId),
+      storage.getFollowerCount(followingUserId),
+      storage.getFollowingCount(followingUserId),
+    ]);
+    return res.json({ following, followerCount, followingCount });
+  });
+
+  app.get("/api/geezee-follows/counts/:userId", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    if (isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
+    const [followerCount, followingCount] = await Promise.all([
+      storage.getFollowerCount(userId),
+      storage.getFollowingCount(userId),
+    ]);
+    return res.json({ followerCount, followingCount });
   });
 
   // === PRESENTER CONTACTS (Engage Opt-In) ===
