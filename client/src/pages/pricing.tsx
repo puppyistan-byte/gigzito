@@ -14,10 +14,18 @@ const TIERS = [
     color: "#6b7280",
   },
   {
+    id: "GZGroups",
+    name: "GZGroups",
+    price: "$8",
+    priceNote: "/ month",
+    type: "Community Builder",
+    highlight: false,
+    color: "#22c55e",
+  },
+  {
     id: "GZMarketer",
     name: "GZMarketer",
     price: "$12",
-
     priceNote: "/ month",
     type: "Creator",
     highlight: false,
@@ -65,93 +73,118 @@ const FEATURES: Feature[] = [
   {
     label: "Registration Required",
     tooltip: "A Gigzito account is required to access all features on the platform.",
-    values: [true, true, true, true],
+    values: [true, true, true, true, true],
   },
   {
     label: "Access to Zito TV",
     tooltip: "Watch and interact with all live and recorded content in the Zito TV feed.",
-    values: [true, true, true, true],
+    values: [true, true, true, true, true],
   },
   {
     label: "Like / Comment / Engage",
     tooltip: "React to, comment on, and engage with videos and creator profiles across the platform.",
-    values: [true, true, true, true],
+    values: [true, true, true, true, true],
   },
   {
     label: "Post Videos",
     tooltip: "Post promotional videos or text ads that appear in the Zito TV vertical feed for viewers to discover.",
-    values: ["1/day", "Unlimited", "Unlimited", "Unlimited"],
+    values: ["1/day", "1/day", "Unlimited", "Unlimited", "Unlimited"],
   },
   {
     label: "Text Ad Posts",
     tooltip: "Publish a text-based ad — headline, body, and CTA — without needing a video. Visible in the feed.",
-    values: [true, true, true, true],
+    values: [true, true, true, true, true],
   },
   {
     label: "GeeZee Cards",
     tooltip: "Create and publish your digital Gigness Card — your scannable networking identity on Gigzito.",
-    values: ["Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish"],
+    values: ["Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish"],
   },
   {
     label: "GeeZee Rolodex Listing",
     tooltip: "Appear in the GeeZee public directory so other users can discover and connect with your card.",
-    values: [true, true, true, true],
+    values: [true, true, true, true, true],
+  },
+  {
+    label: "Create GZGroups",
+    tooltip: "Create your own private or open group — your community clubhouse with a Wall, Calendar, Kanban, Endeavors, and Members tab.",
+    values: [false, true, true, true, true],
+  },
+  {
+    label: "Unlimited Group Members",
+    tooltip: "No cap on how many members can join your GZGroup. Scale your community without paying more.",
+    values: [false, true, true, true, true],
+  },
+  {
+    label: "Private / Invite-Only Groups",
+    tooltip: "Lock your group so only people you invite can see the content and join the conversation.",
+    values: [false, true, true, true, true],
+  },
+  {
+    label: "Group Kanban Board",
+    tooltip: "Built-in project board inside every group. Move tasks from To Do → In Progress → Done as a team.",
+    values: [false, true, true, true, true],
+  },
+  {
+    label: "Group Calendar & Events",
+    tooltip: "Schedule meetups, sync RSVPs, and keep every member on the same page with a shared group calendar.",
+    values: [false, true, true, true, true],
   },
   {
     label: "Campaign Creation",
     tooltip: "Build structured marketing campaigns to organize your video drops, CTAs, and lead capture goals.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "Campaign Tagging",
     tooltip: "Tag individual videos and leads to specific campaigns for segmented tracking and reporting.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "Mailing List Management",
     tooltip: "Organize captured leads into mailing lists you can manage, segment, and export directly from your dashboard.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "CSV Export of Leads",
     tooltip: "Download all collected leads as a CSV file to use in your own CRM, email tool, or spreadsheet.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "Push Notifications",
     tooltip: "Send push alerts directly to followers and subscribers when you drop new content or launch a campaign.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "SMTP Campaigns",
     tooltip: "Send email campaigns to your mailing list directly from your Gigzito dashboard using your own SMTP credentials.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "GZMetrics Analytics",
     tooltip:
       "Advanced creator analytics suite. Captures average watch time, total views, repeat visitors, viewer city, age range, CTA click rate, engagement rate, campaign engagement, video completion rate, and returning viewer %. Leads captured via CTA are automatically stored and can be exported or tagged to campaigns.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "GZFlash Ad Center",
     tooltip: "Deploy time-limited flash deals that compete in real-time for Pole Position on the platform. Set discount %, quantity, and duration. Potency score determines ranking. Available to GZMarketerPro, GZBusiness, and GZEnterprise.",
-    values: [false, false, true, true],
+    values: [false, false, false, true, true],
   },
   {
     label: "GigJack Location Marketing",
     tooltip: "Pin your business or campaign to a GigJack — a geo-targeted marketing slot that surfaces your content to viewers in a specific area.",
-    values: [false, false, false, true],
+    values: [false, false, false, false, true],
   },
   {
     label: "Geo-Based Campaigns",
     tooltip: "Target your campaigns to viewers within a defined geographic radius — city, zip code, or region.",
-    values: [false, false, false, true],
+    values: [false, false, false, false, true],
   },
   {
     label: "Automatic Coupon Trigger",
     tooltip: "Automatically send a coupon or discount code to a viewer when they complete a specific action — like finishing a video or clicking a CTA.",
-    values: [false, false, false, true],
+    values: [false, false, false, false, true],
   },
 ];
 
@@ -355,7 +388,7 @@ export default function PricingPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr repeat(4, minmax(80px, 1fr))",
+              gridTemplateColumns: "1fr repeat(5, minmax(70px, 1fr))",
               background: "rgba(255,255,255,0.04)",
               borderBottom: "1px solid rgba(255,255,255,0.08)",
               padding: "14px 20px",
@@ -379,7 +412,7 @@ export default function PricingPage() {
               data-testid={`feature-row-${i}`}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr repeat(4, minmax(80px, 1fr))",
+                gridTemplateColumns: "1fr repeat(5, minmax(70px, 1fr))",
                 padding: "13px 20px",
                 gap: 8,
                 borderBottom: i < FEATURES.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",

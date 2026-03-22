@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // === ENUMS ===
-export const subscriptionTierEnum = pgEnum("subscription_tier", ["GZLurker", "GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"]);
+export const subscriptionTierEnum = pgEnum("subscription_tier", ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"]);
 export const roleEnum = pgEnum("role", ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "CORPORATE", "SUPERUSER", "ADMIN", "SUPER_ADMIN", "COORDINATOR"]);
 export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
