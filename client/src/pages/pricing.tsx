@@ -172,8 +172,8 @@ const FEATURES: Feature[] = [
     values: [false, false, false, true, true],
   },
   {
-    label: "GigJack Location Marketing",
-    tooltip: "Pin your business or campaign to a GigJack — a geo-targeted marketing slot that surfaces your content to viewers in a specific area.",
+    label: "GZFlash Location Marketing",
+    tooltip: "Pin your business or campaign to a GZFlash location slot — a geo-targeted marketing slot that surfaces your content to viewers in a specific area.",
     values: [false, false, false, false, true],
   },
   {
