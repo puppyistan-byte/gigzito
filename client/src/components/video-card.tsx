@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle, UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
@@ -277,6 +277,33 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const [linkCopied, setLinkCopied] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
+
+  const myUserId = (user as any)?.user?.id as number | undefined;
+  const providerUserId = provider.userId as number | undefined;
+  const canFollow = !!myUserId && !!providerUserId && myUserId !== providerUserId;
+
+  const { data: followStatus, refetch: refetchFollow } = useQuery<{ following: boolean }>({
+    queryKey: ["/api/geezee-follows/status", providerUserId],
+    queryFn: () => fetch(`/api/geezee-follows/status/${providerUserId}`).then((r) => r.json()),
+    enabled: canFollow,
+    staleTime: 60_000,
+  });
+
+  const isFollowing = followStatus?.following ?? false;
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      const method = isFollowing ? "DELETE" : "POST";
+      const res = await apiRequest(method, `/api/geezee-follows/${providerUserId}`);
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message ?? "Error"); }
+      return res.json().catch(() => ({}));
+    },
+    onSuccess: () => {
+      refetchFollow();
+      queryClient.invalidateQueries({ queryKey: ["/api/geezee-follows/counts", providerUserId] });
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message ?? "Could not update follow", variant: "destructive" }),
+  });
   const [nativeVideoFailed, setNativeVideoFailed] = useState(false);
 
   const unsupportedPlatform = getUnsupportedPlatform(listing.videoUrl ?? "");
@@ -788,6 +815,34 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
                 : ((listing.commentCount ?? 0) > 0 ? (listing.commentCount ?? 0).toLocaleString() : "0")}
             </span>
           </div>
+
+          {/* FOLLOW BUTTON */}
+          {canFollow && (
+            <button
+              onClick={() => followMutation.mutate()}
+              disabled={followMutation.isPending}
+              style={{
+                position: "absolute", bottom: 150, right: 12, zIndex: 30,
+                width: 44, height: 44, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: isFollowing ? "rgba(255,43,43,0.18)" : "rgba(255,43,43,0.85)",
+                backdropFilter: "blur(6px)",
+                border: isFollowing ? "1.5px solid rgba(255,43,43,0.5)" : "1.5px solid rgba(255,43,43,0.9)",
+                cursor: followMutation.isPending ? "default" : "pointer",
+                transition: "background 0.2s, border 0.2s, transform 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!followMutation.isPending) (e.currentTarget as HTMLElement).style.transform = "scale(1.1)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
+              title={isFollowing ? "Unfollow" : "Follow"}
+              data-testid={`button-follow-${listing.id}`}
+            >
+              {followMutation.isPending
+                ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+                : isFollowing
+                  ? <UserCheck className="w-4 h-4 text-[#ff6060]" />
+                  : <UserPlus className="w-4 h-4 text-white" />}
+            </button>
+          )}
 
           {/* FLOATING CREATOR AVATAR */}
           <Link href={`/provider/${listing.provider.id}`}>
