@@ -4463,5 +4463,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  // Wallet Contributions
+  app.get("/api/groups/:id/wallets/:wid/contributions", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getWalletContributions(parseInt(req.params.wid))); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/wallets/:wid/contributions", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    const { amount, currency, txHash, note } = req.body;
+    if (!amount || isNaN(Number(amount))) return res.status(400).json({ message: "Valid amount required" });
+    const profile = await storage.getProviderProfileByUserId(userId).catch(() => null);
+    const displayName = (profile as any)?.displayName ?? null;
+    try {
+      return res.json(await storage.createWalletContribution(parseInt(req.params.wid), id, userId, displayName, {
+        amount: Number(amount), currency: currency ?? "USD", txHash, note
+      }));
+    }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   return httpServer;
 }

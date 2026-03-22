@@ -781,12 +781,141 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   );
 }
 
+// ─── CONTRIBUTION ROW ─────────────────────────────────────────────────────────
+type Contribution = { id: number; walletId: number; userId: number; amount: number; currency: string; txHash: string | null; note: string | null; displayName: string | null; createdAt: string };
+
+function WalletContributions({ groupId, wallet, explorerBase }: { groupId: number; wallet: GroupWallet; explorerBase: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [fundOpen, setFundOpen] = useState(false);
+  const [fundForm, setFundForm] = useState({ amount: "", currency: wallet.network === "BTC" ? "BTC" : wallet.network.startsWith("ETH") || wallet.network === "USDT" || wallet.network === "USDC" ? wallet.network : "USD", txHash: "", note: "" });
+
+  const { data: contribs = [], isLoading } = useQuery<Contribution[]>({
+    queryKey: ["/api/groups", groupId, "wallets", wallet.id, "contributions"],
+    queryFn: () => fetch(`/api/groups/${groupId}/wallets/${wallet.id}/contributions`, { credentials: "include" }).then((r) => r.json()),
+    enabled: open,
+  });
+
+  const fundMut = useMutation({
+    mutationFn: (body: object) => apiRequest("POST", `/api/groups/${groupId}/wallets/${wallet.id}/contributions`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets", wallet.id, "contributions"] });
+      setFundOpen(false);
+      setFundForm((f) => ({ ...f, amount: "", txHash: "", note: "" }));
+      toast({ title: "Contribution logged!" });
+    },
+    onError: () => toast({ title: "Failed to log contribution", variant: "destructive" }),
+  });
+
+  const total = contribs.reduce((s, c) => s + c.amount, 0);
+
+  return (
+    <div className="mt-2 border-t pt-2">
+      <div className="flex items-center justify-between">
+        <button onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <Users className="w-3.5 h-3.5" />
+          <span>{contribs.length > 0 ? `${contribs.length} contributor${contribs.length !== 1 ? "s" : ""} · ${total.toLocaleString()} ${fundForm.currency}` : "Track contributions"}</span>
+          <span className="text-[10px] opacity-60">{open ? "▲" : "▼"}</span>
+        </button>
+        <Button data-testid={`button-fund-wallet-${wallet.id}`} size="sm" variant="outline"
+          className="h-6 text-xs px-2 gap-1 text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+          onClick={() => setFundOpen(true)}>
+          <Plus className="w-3 h-3" /> Fund
+        </Button>
+      </div>
+
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {isLoading ? <div className="h-8 bg-muted animate-pulse rounded" /> :
+           contribs.length === 0 ? <p className="text-xs text-muted-foreground italic">No contributions logged yet.</p> :
+           contribs.map((c) => (
+            <div key={c.id} className="flex items-start justify-between gap-2 text-xs py-1 border-b border-dashed last:border-0">
+              <div>
+                <span className="font-medium">{c.displayName ?? "Member"}</span>
+                {c.note && <span className="text-muted-foreground ml-1">— {c.note}</span>}
+                {c.txHash && (
+                  <a href={`${explorerBase}${c.txHash}`} target="_blank" rel="noopener noreferrer"
+                    className="ml-1 text-indigo-500 hover:underline inline-flex items-center gap-0.5">
+                    <ExternalLink className="w-2.5 h-2.5" /> tx
+                  </a>
+                )}
+              </div>
+              <span className="font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">+{c.amount} {c.currency}</span>
+            </div>
+           ))
+          }
+          {contribs.length > 0 && (
+            <div className="flex justify-between text-xs font-semibold pt-0.5">
+              <span>Total</span>
+              <span className="text-green-600 dark:text-green-400">{total.toLocaleString()} {fundForm.currency}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fund dialog */}
+      <Dialog open={fundOpen} onOpenChange={setFundOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-indigo-500" /> Log Contribution to {wallet.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-3 text-xs text-indigo-700 dark:text-indigo-300">
+              Funds are sent directly on-chain to the wallet address. This form records your contribution for group tracking only.
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</label>
+                <Input data-testid="input-contrib-amount" type="number" min="0" step="any" placeholder="0.00" className="mt-1"
+                  value={fundForm.amount} onChange={(e) => setFundForm((f) => ({ ...f, amount: e.target.value }))} />
+              </div>
+              <div className="w-28">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Currency</label>
+                <Input data-testid="input-contrib-currency" placeholder="ETH" className="mt-1 uppercase"
+                  value={fundForm.currency} onChange={(e) => setFundForm((f) => ({ ...f, currency: e.target.value.toUpperCase() }))} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction Hash <span className="font-normal normal-case">(optional)</span></label>
+              <Input data-testid="input-contrib-txhash" placeholder="0x… proof of payment" className="mt-1 font-mono text-xs"
+                value={fundForm.txHash} onChange={(e) => setFundForm((f) => ({ ...f, txHash: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note <span className="font-normal normal-case">(optional)</span></label>
+              <Input data-testid="input-contrib-note" placeholder="e.g. Monthly pledge" className="mt-1"
+                value={fundForm.note} onChange={(e) => setFundForm((f) => ({ ...f, note: e.target.value }))} />
+            </div>
+            <div className="flex gap-2">
+              <a href={networkInfo(wallet.network).explorer(wallet.address)} target="_blank" rel="noopener noreferrer"
+                className="flex-1">
+                <Button variant="outline" className="w-full gap-1.5 text-indigo-600 border-indigo-300">
+                  <ExternalLink className="w-3.5 h-3.5" /> Open Wallet to Send
+                </Button>
+              </a>
+              <Button data-testid="button-log-contribution" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!fundForm.amount || isNaN(Number(fundForm.amount)) || Number(fundForm.amount) <= 0 || fundMut.isPending}
+                onClick={() => fundMut.mutate({ amount: Number(fundForm.amount), currency: fundForm.currency, txHash: fundForm.txHash || undefined, note: fundForm.note || undefined })}>
+                {fundMut.isPending ? "Logging…" : "Log It"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── WALLET TAB ───────────────────────────────────────────────────────────────
 function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ label: "", network: "ETH", address: "", link: "" });
+  const [mmConnecting, setMmConnecting] = useState(false);
 
   const { data: wallets = [], isLoading } = useQuery<GroupWallet[]>({
     queryKey: ["/api/groups", groupId, "wallets"],
@@ -814,6 +943,27 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
     onError: () => toast({ title: "Failed to remove wallet", variant: "destructive" }),
   });
 
+  async function connectMetaMask() {
+    const eth = (window as any).ethereum;
+    if (!eth) {
+      toast({ title: "MetaMask not detected", description: "Install the MetaMask browser extension first.", variant: "destructive" });
+      window.open("https://metamask.io/download/", "_blank");
+      return;
+    }
+    setMmConnecting(true);
+    try {
+      const accounts: string[] = await eth.request({ method: "eth_requestAccounts" });
+      if (accounts[0]) {
+        setForm((f) => ({ ...f, address: accounts[0], network: "ETH", label: f.label || "MetaMask Wallet" }));
+        toast({ title: "MetaMask connected!", description: accounts[0].slice(0, 10) + "…" });
+      }
+    } catch {
+      toast({ title: "MetaMask connection cancelled", variant: "destructive" });
+    } finally {
+      setMmConnecting(false);
+    }
+  }
+
   function copyAddress(addr: string) {
     navigator.clipboard.writeText(addr).then(() => toast({ title: "Address copied!" }));
   }
@@ -829,7 +979,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-base flex items-center gap-2"><Wallet className="w-4 h-4 text-indigo-500" /> Group Wallet</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Crypto addresses linked to this group</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Crypto addresses · member contributions tracked here</p>
         </div>
         {isAdmin && (
           <Button data-testid="button-add-wallet" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1" onClick={() => setAddOpen(true)}>
@@ -839,7 +989,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{[0,1].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+        <div className="space-y-2">{[0,1].map((i) => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}</div>
       ) : wallets.length === 0 ? (
         <div className="text-center py-14 text-muted-foreground">
           <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -854,41 +1004,44 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
             const url = explorerUrl(w);
             return (
               <div key={w.id} data-testid={`card-wallet-${w.id}`}
-                className="flex items-start gap-3 border rounded-xl p-4 bg-card shadow-sm hover:shadow-md transition-shadow">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${net.color}`}>
-                  {net.value.slice(0, 3)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{w.label}</span>
-                    <Badge variant="outline" className="text-xs px-1.5 py-0">{net.label}</Badge>
+                className="border rounded-xl p-4 bg-card shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${net.color}`}>
+                    {net.value.slice(0, 3)}
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="text-xs text-muted-foreground break-all">{shortAddr}</code>
-                    <button data-testid={`button-copy-wallet-${w.id}`} onClick={() => copyAddress(w.address)} title="Copy full address"
-                      className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
-                    {url && (
-                      <a href={url} target="_blank" rel="noopener noreferrer" data-testid={`link-explorer-${w.id}`}
-                        title="View on explorer" className="text-muted-foreground hover:text-indigo-500 transition-colors flex-shrink-0">
-                        <ExternalLink className="w-3.5 h-3.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">{w.label}</span>
+                      <Badge variant="outline" className="text-xs px-1.5 py-0">{net.label}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="text-xs text-muted-foreground break-all">{shortAddr}</code>
+                      <button data-testid={`button-copy-wallet-${w.id}`} onClick={() => copyAddress(w.address)} title="Copy full address"
+                        className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                      {url && (
+                        <a href={url} target="_blank" rel="noopener noreferrer" data-testid={`link-explorer-${w.id}`}
+                          title="View on block explorer" className="text-muted-foreground hover:text-indigo-500 transition-colors flex-shrink-0">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    {w.link && (
+                      <a href={w.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-indigo-500 hover:underline mt-1">
+                        <Link2 className="w-3 h-3" /> {w.link.length > 40 ? w.link.slice(0, 40) + "…" : w.link}
                       </a>
                     )}
                   </div>
-                  {w.link && (
-                    <a href={w.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-indigo-500 hover:underline mt-1">
-                      <Link2 className="w-3 h-3" /> {w.link.length > 40 ? w.link.slice(0, 40) + "…" : w.link}
-                    </a>
+                  {isAdmin && (
+                    <button data-testid={`button-delete-wallet-${w.id}`} onClick={() => { if (confirm("Remove this wallet?")) delMut.mutate(w.id); }}
+                      disabled={delMut.isPending}
+                      className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0 mt-0.5">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
-                {isAdmin && (
-                  <button data-testid={`button-delete-wallet-${w.id}`} onClick={() => { if (confirm("Remove this wallet?")) delMut.mutate(w.id); }}
-                    disabled={delMut.isPending}
-                    className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0 mt-0.5">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                <WalletContributions groupId={groupId} wallet={w} explorerBase={net.explorer("").replace(/[^/]*$/, "")} />
               </div>
             );
           })}
@@ -900,6 +1053,16 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="w-4 h-4" /> Add Wallet</DialogTitle></DialogHeader>
           <div className="space-y-3 pt-1">
+            {/* MetaMask quick connect */}
+            <button data-testid="button-connect-metamask"
+              onClick={connectMetaMask} disabled={mmConnecting}
+              className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-orange-300 dark:border-orange-700 rounded-lg py-2.5 text-sm font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors disabled:opacity-60">
+              <span className="text-base">🦊</span>
+              {mmConnecting ? "Connecting…" : "Connect MetaMask to auto-fill"}
+            </button>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex-1 h-px bg-border" /> or fill in manually <div className="flex-1 h-px bg-border" />
+            </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Label</label>
               <Input data-testid="input-wallet-label" placeholder="e.g. Main Treasury" className="mt-1"

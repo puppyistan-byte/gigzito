@@ -1132,3 +1132,21 @@ export const groupWallets = pgTable("group_wallets", {
 export const insertGroupWalletSchema = createInsertSchema(groupWallets).omit({ id: true, groupId: true, createdBy: true, createdAt: true });
 export type GroupWallet = typeof groupWallets.$inferSelect;
 export type InsertGroupWallet = z.infer<typeof insertGroupWalletSchema>;
+
+// Group Wallet Contributions
+export const groupWalletContributions = pgTable("group_wallet_contributions", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull().references(() => groupWallets.id, { onDelete: "cascade" }),
+  groupId: integer("group_id").notNull(),
+  userId: integer("user_id").notNull(),
+  amount: real("amount").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  txHash: text("tx_hash"),
+  note: text("note"),
+  displayName: text("display_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGroupWalletContributionSchema = createInsertSchema(groupWalletContributions).omit({ id: true, walletId: true, groupId: true, userId: true, displayName: true, createdAt: true });
+export type GroupWalletContribution = typeof groupWalletContributions.$inferSelect;
+export type InsertGroupWalletContribution = z.infer<typeof insertGroupWalletContributionSchema>;
