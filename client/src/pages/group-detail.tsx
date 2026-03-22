@@ -12,9 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import {
   Users, MessageSquare, Calendar, Target, ChevronLeft, Plus, Trash2, Lock, Globe,
-  Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search, Copy, Settings, KanbanSquare, ArrowRight, CheckSquare, Clock
+  Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search,
+  Copy, Settings, KanbanSquare, ArrowRight, CheckSquare, Clock, Camera, Mail
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth, addMonths, subMonths, parseISO } from "date-fns";
+import {
+  format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
+  isSameDay, addMonths, subMonths, parseISO
+} from "date-fns";
 
 type Group = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -27,8 +31,8 @@ type Endeavor = { id: number; groupId: number; title: string; description: strin
 type Event = { id: number; groupId: number; title: string; description: string; startAt: string; endAt: string | null; allDay: boolean; createdBy: number };
 type Member = { id: number; groupId: number; userId: number; role: string; status: string; displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
 
-const TABS = ["wall", "calendar", "endeavors", "kanban", "members"] as const;
-type Tab = typeof TABS[number];
+const MAIN_TABS = ["wall", "endeavors", "kanban"] as const;
+type MainTab = typeof MAIN_TABS[number];
 
 function Avatar({ src, name, size = 8 }: { src?: string | null; name?: string | null; size?: number }) {
   const initials = (name ?? "?")[0]?.toUpperCase();
@@ -178,8 +182,8 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
   );
 }
 
-// ─── CALENDAR ────────────────────────────────────────────────────────────────
-function CalendarTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
+// ─── CALENDAR SIDEBAR ─────────────────────────────────────────────────────────
+function CalendarSidebar({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [month, setMonth] = useState(new Date());
@@ -191,7 +195,7 @@ function CalendarTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }
   const { data: events = [] } = useQuery<Event[]>({ queryKey: ["/api/groups", groupId, "events"] });
 
   const createMut = useMutation({
-    mutationFn: (d: typeof eventForm) => apiRequest("POST", `/api/groups/${groupId}/events`, { ...d, startAt: d.startAt, endAt: d.endAt || undefined }),
+    mutationFn: (d: typeof eventForm) => apiRequest("POST", `/api/groups/${groupId}/events`, { ...d, endAt: d.endAt || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "events"] }); setEventOpen(false); setEventForm({ title: "", description: "", startAt: "", endAt: "", allDay: false }); },
     onError: () => toast({ title: "Failed to save event", variant: "destructive" }),
   });
@@ -227,19 +231,36 @@ function CalendarTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-card border rounded-xl p-4">
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setMonth(subMonths(month, 1))} className="p-1 rounded hover:bg-muted transition-colors"><PrevMonth className="w-5 h-5" /></button>
-          <h3 className="font-semibold">{format(month, "MMMM yyyy")}</h3>
-          <button onClick={() => setMonth(addMonths(month, 1))} className="p-1 rounded hover:bg-muted transition-colors"><NextMonth className="w-5 h-5" /></button>
+    <div className="bg-card border rounded-xl overflow-hidden">
+      <div className="px-4 pt-3 pb-1 border-b flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-4 h-4 text-red-500" />
+          <h3 className="font-semibold text-sm">Calendar</h3>
         </div>
-        <div className="grid grid-cols-7 gap-0 mb-1">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-            <div key={d} className="text-center text-xs text-muted-foreground py-1 font-medium">{d}</div>
+        {isAdmin && (
+          <button data-testid="button-add-event-sidebar" onClick={() => openCreate()} className="text-muted-foreground hover:text-foreground transition-colors">
+            <Plus className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="p-3">
+        {/* Month nav */}
+        <div className="flex items-center justify-between mb-2">
+          <button onClick={() => setMonth(subMonths(month, 1))} className="p-1 rounded hover:bg-muted transition-colors"><PrevMonth className="w-3.5 h-3.5" /></button>
+          <span className="text-xs font-semibold">{format(month, "MMMM yyyy")}</span>
+          <button onClick={() => setMonth(addMonths(month, 1))} className="p-1 rounded hover:bg-muted transition-colors"><NextMonth className="w-3.5 h-3.5" /></button>
+        </div>
+
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-0.5">
+          {["S","M","T","W","T","F","S"].map((d, i) => (
+            <div key={i} className="text-center text-[10px] text-muted-foreground py-0.5 font-medium">{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-0.5">
+
+        {/* Days grid */}
+        <div className="grid grid-cols-7 gap-px">
           {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
           {days.map((day) => {
             const hasEvents = eventsOnDay(day).length > 0;
@@ -248,64 +269,80 @@ function CalendarTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }
             return (
               <button
                 key={day.toISOString()}
-                data-testid={`calendar-day-${format(day, "yyyy-MM-dd")}`}
+                data-testid={`cal-day-${format(day, "yyyy-MM-dd")}`}
                 onClick={() => setSelectedDate(isSelected ? null : day)}
-                className={`relative flex flex-col items-center rounded-lg py-1.5 text-sm transition-colors ${
+                className={`relative flex flex-col items-center rounded py-1 text-[11px] transition-colors ${
                   isSelected ? "bg-red-600 text-white" :
                   isToday ? "bg-red-50 dark:bg-red-950/40 text-red-600 font-bold" :
                   "hover:bg-muted"
                 }`}
               >
                 {format(day, "d")}
-                {hasEvents && <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isSelected ? "bg-white" : "bg-red-500"}`} />}
+                {hasEvents && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-red-500"}`} />}
               </button>
             );
           })}
         </div>
-      </div>
 
-      {selectedDate && (
-        <div className="bg-card border rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm">{format(selectedDate, "EEEE, MMMM d")}</h3>
-            {isAdmin && (
-              <Button data-testid="button-add-event" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openCreate(selectedDate)}>
-                <Plus className="w-3 h-3" /> Add Event
-              </Button>
+        {/* Selected day events */}
+        {selectedDate && (
+          <div className="mt-3 pt-3 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold">{format(selectedDate, "EEE, MMM d")}</span>
+              {isAdmin && (
+                <button onClick={() => openCreate(selectedDate)} className="text-xs text-red-600 hover:underline flex items-center gap-0.5">
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              )}
+            </div>
+            {dayEvents.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No events</p>
+            ) : (
+              <div className="space-y-1.5">
+                {dayEvents.map((ev) => (
+                  <div key={ev.id} data-testid={`sidebar-event-${ev.id}`} className="flex items-start gap-2 group">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium leading-snug">{ev.title}</p>
+                      {!ev.allDay && <p className="text-[10px] text-muted-foreground">{format(parseISO(ev.startAt), "h:mm a")}</p>}
+                    </div>
+                    {isAdmin && (
+                      <div className="opacity-0 group-hover:opacity-100 flex gap-0.5 transition-opacity">
+                        <button onClick={() => openEdit(ev)} className="text-muted-foreground hover:text-foreground"><Settings className="w-3 h-3" /></button>
+                        <button onClick={() => deleteMut.mutate(ev.id)} className="text-muted-foreground hover:text-red-500"><X className="w-3 h-3" /></button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-          {dayEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events on this day.</p>
-          ) : (
-            <div className="space-y-2">
-              {dayEvents.map((ev) => (
-                <div key={ev.id} data-testid={`event-card-${ev.id}`} className="flex items-start gap-3 p-2 rounded-lg bg-muted/50">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{ev.title}</p>
-                    {ev.description && <p className="text-xs text-muted-foreground">{ev.description}</p>}
-                    {!ev.allDay && <p className="text-xs text-muted-foreground mt-0.5">{format(parseISO(ev.startAt), "h:mm a")}{ev.endAt ? ` – ${format(parseISO(ev.endAt), "h:mm a")}` : ""}</p>}
-                    {ev.allDay && <Badge variant="secondary" className="text-xs mt-0.5">All day</Badge>}
-                  </div>
-                  {isAdmin && (
-                    <div className="flex gap-1">
-                      <button onClick={() => openEdit(ev)} className="text-muted-foreground hover:text-foreground transition-colors p-1"><Settings className="w-3.5 h-3.5" /></button>
-                      <button data-testid={`button-delete-event-${ev.id}`} onClick={() => deleteMut.mutate(ev.id)} className="text-muted-foreground hover:text-red-500 transition-colors p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+        )}
+
+        {/* Upcoming events (if no date selected) */}
+        {!selectedDate && events.length > 0 && (
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Upcoming</p>
+            <div className="space-y-1.5">
+              {events
+                .filter(e => new Date(e.startAt) >= new Date())
+                .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+                .slice(0, 3)
+                .map((ev) => (
+                  <div key={ev.id} className="flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium leading-snug truncate">{ev.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{format(parseISO(ev.startAt), "MMM d")}</p>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                ))}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
-      {!selectedDate && isAdmin && (
-        <Button data-testid="button-add-event-top" variant="outline" className="w-full gap-2" onClick={() => openCreate()}>
-          <Plus className="w-4 h-4" /> Add Event
-        </Button>
-      )}
-
+      {/* Event dialog */}
       <Dialog open={eventOpen} onOpenChange={(o) => { setEventOpen(o); if (!o) setEditEvent(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{editEvent ? "Edit Event" : "New Event"}</DialogTitle></DialogHeader>
@@ -343,7 +380,191 @@ function CalendarTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }
   );
 }
 
-// ─── ENDEAVORS ───────────────────────────────────────────────────────────────
+// ─── MEMBERS SIDEBAR ──────────────────────────────────────────────────────────
+function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isAdmin: boolean; inviteCode: string }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ userId: number; displayName: string | null; avatarUrl: string | null; username: string | null; email: string }>>([]);
+  const [searching, setSearching] = useState(false);
+  const [msgTarget, setMsgTarget] = useState<Member | null>(null);
+  const [msgText, setMsgText] = useState("");
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: members = [] } = useQuery<Member[]>({ queryKey: ["/api/groups", groupId, "members"] });
+
+  const inviteMut = useMutation({
+    mutationFn: (inviteeUserId: number) => apiRequest("POST", `/api/groups/${groupId}/invite`, { inviteeUserId }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }); toast({ title: "Invite sent!" }); setSearch(""); setSearchResults([]); },
+    onError: (e: any) => toast({ title: "Could not invite", description: e.message, variant: "destructive" }),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (uid: number) => apiRequest("DELETE", `/api/groups/${groupId}/members/${uid}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }),
+  });
+
+  const postMut = useMutation({
+    mutationFn: (content: string) => apiRequest("POST", `/api/groups/${groupId}/wall`, { content }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "wall"] }); setMsgTarget(null); setMsgText(""); toast({ title: "Message posted to wall!" }); },
+    onError: () => toast({ title: "Failed to post message", variant: "destructive" }),
+  });
+
+  const handleSearchChange = (v: string) => {
+    setSearch(v);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (v.length < 2) { setSearchResults([]); return; }
+    searchTimeout.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/groups/search-users?q=${encodeURIComponent(v)}&groupId=${groupId}`, { credentials: "include" });
+        setSearchResults(await res.json());
+      } finally { setSearching(false); }
+    }, 300);
+  };
+
+  const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast({ title: "Invite code copied!" }); };
+
+  const accepted = members.filter((m) => m.status === "accepted");
+  const pending = members.filter((m) => m.status === "pending");
+
+  const sendMsg = () => {
+    if (!msgTarget || !msgText.trim()) return;
+    const name = msgTarget.displayName ?? msgTarget.username ?? "member";
+    postMut.mutate(`@${name}: ${msgText.trim()}`);
+  };
+
+  return (
+    <div className="bg-card border rounded-xl overflow-hidden">
+      <div className="px-4 pt-3 pb-2 border-b">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Users className="w-4 h-4 text-red-500" />
+          <h3 className="font-semibold text-sm">Members ({accepted.length})</h3>
+        </div>
+
+        {/* Invite search (admin only) */}
+        {isAdmin && (
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input data-testid="input-invite-search" placeholder="Invite by name / email…" className="pl-8 h-8 text-xs" value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+            </div>
+            {searching && <p className="text-[10px] text-muted-foreground">Searching…</p>}
+            {searchResults.length > 0 && (
+              <div className="border rounded-lg divide-y max-h-40 overflow-y-auto">
+                {searchResults.map((u) => (
+                  <div key={u.userId} data-testid={`search-result-${u.userId}`} className="flex items-center gap-2 px-2.5 py-1.5">
+                    <Avatar src={u.avatarUrl} name={u.displayName ?? u.email} size={6} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium leading-none">{u.displayName ?? u.username ?? "User"}</p>
+                    </div>
+                    <Button data-testid={`button-invite-${u.userId}`} size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => inviteMut.mutate(u.userId)}>
+                      <UserPlus className="w-3 h-3 mr-0.5" /> Invite
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground font-mono">{inviteCode}</span>
+              <button data-testid="button-copy-code" onClick={copyCode} className="flex items-center gap-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                <Copy className="w-3 h-3" /> Copy
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
+        {/* Pending members */}
+        {pending.length > 0 && (
+          <>
+            <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">Pending ({pending.length})</p>
+            {pending.map((m) => (
+              <div key={m.id} data-testid={`member-pending-${m.userId}`} className="flex items-center gap-2">
+                <Avatar src={m.avatarUrl} name={m.displayName} size={7} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium leading-none truncate">{m.displayName ?? m.username ?? "User"}</p>
+                  <p className="text-[10px] text-amber-500">Pending</p>
+                </div>
+                {isAdmin && (
+                  <button data-testid={`button-remove-pending-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <div className="border-t my-1" />
+          </>
+        )}
+
+        {/* Active members */}
+        {accepted.map((m) => (
+          <div key={m.id} data-testid={`member-card-${m.userId}`} className="flex items-center gap-2 group">
+            <Avatar src={m.avatarUrl} name={m.displayName} size={7} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium leading-none truncate">{m.displayName ?? m.username ?? "User"}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{m.role === "admin" ? "Admin" : "Member"}</p>
+            </div>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                data-testid={`button-message-${m.userId}`}
+                onClick={() => { setMsgTarget(m); setMsgText(""); }}
+                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Send message"
+              >
+                <Mail className="w-3.5 h-3.5" />
+              </button>
+              {isAdmin && m.role !== "admin" && (
+                <button data-testid={`button-remove-member-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-500 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {accepted.length === 0 && <p className="text-xs text-muted-foreground text-center py-2 italic">No members yet</p>}
+      </div>
+
+      {/* Message dialog */}
+      <Dialog open={!!msgTarget} onOpenChange={(o) => { if (!o) setMsgTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Avatar src={msgTarget?.avatarUrl} name={msgTarget?.displayName} size={7} />
+              Message {msgTarget?.displayName ?? msgTarget?.username ?? "member"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <p className="text-xs text-muted-foreground">Your message will be posted to the group wall mentioning this member.</p>
+            <Textarea
+              data-testid="input-member-message"
+              placeholder={`Write a message…`}
+              rows={3}
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              className="resize-none"
+              autoFocus
+            />
+            <Button
+              data-testid="button-send-member-message"
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              disabled={!msgText.trim() || postMut.isPending}
+              onClick={sendMsg}
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {postMut.isPending ? "Sending…" : "Post to Wall"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── ENDEAVORS ────────────────────────────────────────────────────────────────
 function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -445,130 +666,6 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
   );
 }
 
-// ─── MEMBERS ─────────────────────────────────────────────────────────────────
-function MembersTab({ groupId, isAdmin, inviteCode }: { groupId: number; isAdmin: boolean; inviteCode: string }) {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<Array<{ userId: number; displayName: string | null; avatarUrl: string | null; username: string | null; email: string }>>([]);
-  const [searching, setSearching] = useState(false);
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
-
-  const { data: members = [] } = useQuery<Member[]>({ queryKey: ["/api/groups", groupId, "members"] });
-
-  const inviteMut = useMutation({
-    mutationFn: (inviteeUserId: number) => apiRequest("POST", `/api/groups/${groupId}/invite`, { inviteeUserId }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }); toast({ title: "Invite sent!" }); setSearch(""); setSearchResults([]); },
-    onError: (e: any) => toast({ title: "Could not invite", description: e.message, variant: "destructive" }),
-  });
-
-  const removeMut = useMutation({
-    mutationFn: (uid: number) => apiRequest("DELETE", `/api/groups/${groupId}/members/${uid}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }),
-  });
-
-  const handleSearchChange = (v: string) => {
-    setSearch(v);
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (v.length < 2) { setSearchResults([]); return; }
-    searchTimeout.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(`/api/groups/search-users?q=${encodeURIComponent(v)}&groupId=${groupId}`, { credentials: "include" });
-        setSearchResults(await res.json());
-      } finally { setSearching(false); }
-    }, 300);
-  };
-
-  const copyCode = () => { navigator.clipboard.writeText(inviteCode); toast({ title: "Invite code copied!" }); };
-
-  const accepted = members.filter((m) => m.status === "accepted");
-  const pending = members.filter((m) => m.status === "pending");
-
-  return (
-    <div className="space-y-4">
-      {isAdmin && (
-        <div className="bg-card border rounded-xl p-4 space-y-3">
-          <h3 className="font-semibold text-sm">Invite a Member</h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input data-testid="input-invite-search" placeholder="Search by name, username, or email…" className="pl-9" value={search} onChange={(e) => handleSearchChange(e.target.value)} />
-          </div>
-          {searching && <p className="text-xs text-muted-foreground">Searching…</p>}
-          {searchResults.length > 0 && (
-            <div className="border rounded-lg divide-y">
-              {searchResults.map((u) => (
-                <div key={u.userId} data-testid={`search-result-${u.userId}`} className="flex items-center gap-3 px-3 py-2">
-                  <Avatar src={u.avatarUrl} name={u.displayName ?? u.email} size={8} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{u.displayName ?? u.username ?? "User"}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
-                  </div>
-                  <Button data-testid={`button-invite-${u.userId}`} size="sm" variant="outline" className="h-7 text-xs" onClick={() => inviteMut.mutate(u.userId)}>
-                    <UserPlus className="w-3.5 h-3.5 mr-1" /> Invite
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-2 pt-1 border-t">
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Invite code</p>
-              <p data-testid="text-invite-code" className="text-sm font-mono font-bold tracking-widest">{inviteCode}</p>
-            </div>
-            <Button data-testid="button-copy-code" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={copyCode}><Copy className="w-3 h-3" /> Copy</Button>
-          </div>
-        </div>
-      )}
-
-      {pending.length > 0 && (
-        <div>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Pending ({pending.length})</h3>
-          <div className="space-y-2">
-            {pending.map((m) => (
-              <div key={m.id} data-testid={`member-pending-${m.userId}`} className="flex items-center gap-3 bg-card border rounded-lg px-3 py-2">
-                <Avatar src={m.avatarUrl} name={m.displayName} size={8} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{m.displayName ?? m.username ?? "User"}</p>
-                  <p className="text-xs text-amber-500">Invite pending</p>
-                </div>
-                {isAdmin && (
-                  <button data-testid={`button-remove-member-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="text-muted-foreground hover:text-red-500 transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div>
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Members ({accepted.length})</h3>
-        <div className="space-y-2">
-          {accepted.map((m) => (
-            <div key={m.id} data-testid={`member-card-${m.userId}`} className="flex items-center gap-3 bg-card border rounded-lg px-3 py-2">
-              <Avatar src={m.avatarUrl} name={m.displayName} size={9} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{m.displayName ?? m.username ?? "User"}</p>
-                <p className="text-xs text-muted-foreground">{m.username ? `@${m.username}` : m.email}</p>
-              </div>
-              <Badge variant="secondary" className={`text-xs ${m.role === "admin" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400" : ""}`}>
-                {m.role === "admin" ? "Admin" : "Member"}
-              </Badge>
-              {isAdmin && m.role !== "admin" && (
-                <button data-testid={`button-remove-member-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="text-muted-foreground hover:text-red-500 transition-colors ml-1">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── KANBAN TAB ───────────────────────────────────────────────────────────────
 type KanbanCard = { id: number; groupId: number; title: string; description: string | null; status: string; position: number; createdBy: number; createdAt: string };
 
@@ -585,17 +682,12 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
 
-  const { data: cards = [], isLoading } = useQuery<KanbanCard[]>({
-    queryKey: ["/api/groups", groupId, "kanban"],
-  });
+  const { data: cards = [], isLoading } = useQuery<KanbanCard[]>({ queryKey: ["/api/groups", groupId, "kanban"] });
 
   const createMut = useMutation({
     mutationFn: (d: { title: string; description: string; status: string }) =>
       apiRequest("POST", `/api/groups/${groupId}/kanban`, d),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] });
-      setAddingCol(null); setNewTitle(""); setNewDesc("");
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }); setAddingCol(null); setNewTitle(""); setNewDesc(""); },
     onError: () => toast({ title: "Failed to create card", variant: "destructive" }),
   });
 
@@ -611,7 +703,6 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   });
 
   const colKeys = KANBAN_COLS.map((c) => c.key);
-
   if (isLoading) return <div className="h-40 animate-pulse bg-muted rounded-xl" />;
 
   return (
@@ -626,46 +717,18 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
                   {col.icon} {col.label}
                   <span className="ml-1 text-xs text-muted-foreground font-normal">({colCards.length})</span>
                 </div>
-                <button
-                  data-testid={`button-add-card-${col.key}`}
-                  onClick={() => { setAddingCol(col.key); setNewTitle(""); setNewDesc(""); }}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <button data-testid={`button-add-card-${col.key}`} onClick={() => { setAddingCol(col.key); setNewTitle(""); setNewDesc(""); }} className="text-muted-foreground hover:text-foreground transition-colors">
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
 
               {addingCol === col.key && (
                 <div className="bg-card border rounded-lg p-2 flex flex-col gap-2">
-                  <Input
-                    data-testid="input-kanban-title"
-                    autoFocus
-                    placeholder="Card title…"
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                    className="text-sm h-8"
-                  />
-                  <Textarea
-                    data-testid="input-kanban-desc"
-                    placeholder="Description (optional)"
-                    rows={2}
-                    value={newDesc}
-                    onChange={(e) => setNewDesc(e.target.value)}
-                    className="text-xs resize-none"
-                  />
+                  <Input data-testid="input-kanban-title" autoFocus placeholder="Card title…" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="text-sm h-8" />
+                  <Textarea data-testid="input-kanban-desc" placeholder="Description (optional)" rows={2} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="text-xs resize-none" />
                   <div className="flex gap-1.5">
-                    <Button
-                      data-testid="button-save-kanban-card"
-                      size="sm"
-                      className="flex-1 h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
-                      disabled={!newTitle.trim() || createMut.isPending}
-                      onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key })}
-                    >
-                      Add
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingCol(null)}>
-                      Cancel
-                    </Button>
+                    <Button data-testid="button-save-kanban-card" size="sm" className="flex-1 h-7 text-xs bg-red-600 hover:bg-red-700 text-white" disabled={!newTitle.trim() || createMut.isPending} onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key })}>Add</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingCol(null)}>Cancel</Button>
                   </div>
                 </div>
               )}
@@ -676,29 +739,13 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
                   {card.description && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{card.description}</p>}
                   <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     {ci > 0 && (
-                      <button
-                        data-testid={`button-move-card-back-${card.id}`}
-                        onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci - 1] })}
-                        className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors"
-                      >
-                        ← Back
-                      </button>
+                      <button data-testid={`button-move-card-back-${card.id}`} onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci - 1] })} className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors">← Back</button>
                     )}
                     {ci < KANBAN_COLS.length - 1 && (
-                      <button
-                        data-testid={`button-move-card-forward-${card.id}`}
-                        onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci + 1] })}
-                        className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors"
-                      >
-                        Next →
-                      </button>
+                      <button data-testid={`button-move-card-forward-${card.id}`} onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci + 1] })} className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors">Next →</button>
                     )}
                     {(isAdmin || card.createdBy === myUserId) && (
-                      <button
-                        data-testid={`button-delete-card-${card.id}`}
-                        onClick={() => deleteMut.mutate(card.id)}
-                        className="ml-auto text-muted-foreground hover:text-red-500 transition-colors"
-                      >
+                      <button data-testid={`button-delete-card-${card.id}`} onClick={() => deleteMut.mutate(card.id)} className="ml-auto text-muted-foreground hover:text-red-500 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -725,9 +772,11 @@ export default function GroupDetailPage() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const [tab, setTab] = useState<Tab>("wall");
+  const [tab, setTab] = useState<MainTab>("wall");
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", description: "", isPrivate: true });
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const bannerRef = useRef<HTMLInputElement>(null);
 
   const myUserId = user?.user?.id ?? 0;
 
@@ -741,7 +790,7 @@ export default function GroupDetailPage() {
   const isMember = group?.myStatus === "accepted";
 
   const updateMut = useMutation({
-    mutationFn: (d: typeof editForm) => apiRequest("PATCH", `/api/groups/${groupId}`, d),
+    mutationFn: (d: Partial<typeof editForm> & { coverUrl?: string }) => apiRequest("PATCH", `/api/groups/${groupId}`, d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId] }); setEditOpen(false); toast({ title: "Group updated" }); },
     onError: () => toast({ title: "Failed to update", variant: "destructive" }),
   });
@@ -751,19 +800,50 @@ export default function GroupDetailPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups"] }); navigate("/groups"); toast({ title: "Group deleted" }); },
   });
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      updateMut.mutate({ coverUrl: url });
+    } catch {
+      toast({ title: "Failed to upload banner", variant: "destructive" });
+    } finally {
+      setBannerUploading(false);
+      if (bannerRef.current) bannerRef.current.value = "";
+    }
+  };
+
   const openEdit = () => {
     if (!group) return;
     setEditForm({ name: group.name, description: group.description, isPrivate: group.isPrivate });
     setEditOpen(true);
   };
 
+  const tabConfig: Record<MainTab, { label: string; icon: JSX.Element }> = {
+    wall: { label: "Home", icon: <MessageSquare className="w-4 h-4" /> },
+    endeavors: { label: "Endeavors", icon: <Target className="w-4 h-4" /> },
+    kanban: { label: "Kanban", icon: <KanbanSquare className="w-4 h-4" /> },
+  };
+
   if (!user) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Please log in.</p></div>;
 
   if (isLoading) return (
     <div className="min-h-screen pt-16">
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        <div className="h-40 bg-muted animate-pulse rounded-xl" />
-        <div className="h-10 bg-muted animate-pulse rounded-xl" />
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+        <div className="h-48 bg-muted animate-pulse rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
+          <div className="h-64 bg-muted animate-pulse rounded-xl" />
+          <div className="space-y-4">
+            <div className="h-64 bg-muted animate-pulse rounded-xl" />
+            <div className="h-48 bg-muted animate-pulse rounded-xl" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -775,30 +855,46 @@ export default function GroupDetailPage() {
     </div>
   );
 
-  const tabIcons: Record<Tab, JSX.Element> = {
-    wall: <MessageSquare className="w-4 h-4" />,
-    calendar: <Calendar className="w-4 h-4" />,
-    endeavors: <Target className="w-4 h-4" />,
-    kanban: <KanbanSquare className="w-4 h-4" />,
-    members: <Users className="w-4 h-4" />,
-  };
-
   return (
     <div className="min-h-screen bg-background pt-16 pb-12">
-      <div className="max-w-2xl mx-auto px-4">
+      <div className="max-w-5xl mx-auto px-4">
 
-        <div className="relative rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-red-600 to-red-900" style={{ height: 160 }}>
+        {/* ── BANNER ─────────────────────────────────────────── */}
+        <div className="relative rounded-2xl overflow-hidden mb-5 bg-gradient-to-br from-red-600 to-red-900 group/banner" style={{ height: 200 }}>
           {group.coverUrl && <img src={group.coverUrl} alt={group.name} className="absolute inset-0 w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-4">
+
+          {/* Admin: hover overlay to upload banner */}
+          {isAdmin && (
+            <>
+              <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/banner:opacity-100 transition-opacity cursor-pointer z-10"
+                onClick={() => bannerRef.current?.click()}
+              >
+                {bannerUploading ? (
+                  <div className="text-white text-sm font-medium">Uploading…</div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-white">
+                    <Camera className="w-8 h-8" />
+                    <span className="text-sm font-medium">Change Banner Photo</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Bottom bar */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
             <div className="flex items-end justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   {group.isPrivate ? <Lock className="w-3.5 h-3.5 text-white/70" /> : <Globe className="w-3.5 h-3.5 text-white/70" />}
                   {isAdmin && <Badge className="bg-red-500/80 text-white text-xs border-0">Admin</Badge>}
                 </div>
-                <h1 className="text-white text-xl font-bold leading-tight">{group.name}</h1>
-                <p className="text-white/70 text-xs">{group.memberCount} {group.memberCount === 1 ? "member" : "members"}</p>
+                <h1 className="text-white text-2xl font-bold leading-tight">{group.name}</h1>
+                {group.description && <p className="text-white/70 text-sm mt-0.5 line-clamp-1">{group.description}</p>}
+                <p className="text-white/60 text-xs mt-0.5">{group.memberCount} {group.memberCount === 1 ? "member" : "members"}</p>
               </div>
               <div className="flex gap-2">
                 <button data-testid="button-back" onClick={() => navigate("/groups")} className="p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors">
@@ -814,42 +910,48 @@ export default function GroupDetailPage() {
           </div>
         </div>
 
-        {group.description && (
-          <p className="text-sm text-muted-foreground mb-4 px-1">{group.description}</p>
-        )}
-
-        <div className="flex gap-1 border-b mb-4">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              data-testid={`tab-${t}`}
-              onClick={() => setTab(t)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize ${
-                tab === t ? "border-red-500 text-red-600 dark:text-red-400" : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tabIcons[t]}
-              <span className="hidden sm:inline">{t}</span>
-            </button>
-          ))}
-        </div>
-
+        {/* ── MAIN CONTENT GRID ────────────────────────────── */}
         {!isMember ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Lock className="w-8 h-8 mx-auto mb-2 opacity-40" />
+          <div className="text-center py-16 text-muted-foreground">
+            <Lock className="w-10 h-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">You need to accept your invite to view group content.</p>
           </div>
         ) : (
-          <>
-            {tab === "wall" && <WallTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
-            {tab === "calendar" && <CalendarTab groupId={groupId} isAdmin={isAdmin} />}
-            {tab === "endeavors" && <EndeavorsTab groupId={groupId} isAdmin={isAdmin} />}
-            {tab === "kanban" && <KanbanTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
-            {tab === "members" && <MembersTab groupId={groupId} isAdmin={isAdmin} inviteCode={group.inviteCode} />}
-          </>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 items-start">
+
+            {/* Left: tabs + content */}
+            <div>
+              <div className="flex gap-0.5 border-b mb-4">
+                {MAIN_TABS.map((t) => (
+                  <button
+                    key={t}
+                    data-testid={`tab-${t}`}
+                    onClick={() => setTab(t)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                      tab === t ? "border-red-500 text-red-600 dark:text-red-400" : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tabConfig[t].icon}
+                    {tabConfig[t].label}
+                  </button>
+                ))}
+              </div>
+
+              {tab === "wall" && <WallTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
+              {tab === "endeavors" && <EndeavorsTab groupId={groupId} isAdmin={isAdmin} />}
+              {tab === "kanban" && <KanbanTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
+            </div>
+
+            {/* Right: sidebar */}
+            <div className="space-y-4 lg:sticky lg:top-20">
+              <CalendarSidebar groupId={groupId} isAdmin={isAdmin} />
+              <MembersSidebar groupId={groupId} isAdmin={isAdmin} inviteCode={group.inviteCode} />
+            </div>
+          </div>
         )}
       </div>
 
+      {/* Edit group dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Edit Group</DialogTitle></DialogHeader>
@@ -861,6 +963,10 @@ export default function GroupDetailPage() {
             <div>
               <label className="text-sm font-medium">Description</label>
               <Textarea data-testid="input-edit-group-description" className="mt-1" rows={3} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="private-toggle" checked={editForm.isPrivate} onChange={(e) => setEditForm((f) => ({ ...f, isPrivate: e.target.checked }))} className="rounded" />
+              <label htmlFor="private-toggle" className="text-sm">Private group</label>
             </div>
             <div className="flex gap-2 pt-2">
               <Button data-testid="button-save-group" className="flex-1 bg-red-600 hover:bg-red-700 text-white" disabled={!editForm.name.trim() || updateMut.isPending} onClick={() => updateMut.mutate(editForm)}>
