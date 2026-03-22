@@ -116,6 +116,7 @@ export default function NewListingPage() {
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [ctaFunnelMode, setCtaFunnelMode] = useState<"url" | "profile">("url");
   const [musicSearch, setMusicSearch] = useState("");
   const [musicPickerOpen, setMusicPickerOpen] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -225,16 +226,18 @@ export default function NewListingPage() {
       toast({ title: "File too large", description: "Maximum file size is 200MB.", variant: "destructive" });
       return;
     }
-    // Client-side duration check
+    // Client-side duration check (with 6s timeout for mobile browsers that stall on metadata)
     const objectUrl = URL.createObjectURL(file);
     const duration = await new Promise<number>((resolve) => {
       const v = document.createElement("video");
       v.preload = "metadata";
-      v.onloadedmetadata = () => { URL.revokeObjectURL(objectUrl); resolve(v.duration); };
-      v.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(0); };
+      const cleanup = (d: number) => { URL.revokeObjectURL(objectUrl); resolve(d); };
+      const timer = setTimeout(() => cleanup(0), 6000); // give up after 6s — server will enforce limit
+      v.onloadedmetadata = () => { clearTimeout(timer); cleanup(v.duration || 0); };
+      v.onerror = () => { clearTimeout(timer); cleanup(0); };
       v.src = objectUrl;
     });
-    if (duration > 61) {
+    if (duration > 0 && duration > 61) {
       toast({ title: "Video too long", description: `Your video is ${Math.ceil(duration)}s. Maximum is 60 seconds.`, variant: "destructive" });
       return;
     }
@@ -659,28 +662,70 @@ export default function NewListingPage() {
               </div>
 
               {form.ctaType && (
-                <div className="space-y-1.5">
-                  <Label className="text-[#aaa] text-sm">CTA URL {form.ctaType ? "*" : ""}</Label>
-                  <Input
-                    type="url"
-                    placeholder="https://yoursite.com/offer"
-                    value={form.ctaUrl}
-                    onChange={(e) => set("ctaUrl", e.target.value)}
-                    className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
-                    data-testid="input-cta-url"
-                  />
-                  {isTikTokLink && (
-                    <div
-                      className="flex items-center gap-2 mt-1.5 px-3 py-2 rounded-lg bg-black border border-[#2a2a2a] text-xs"
-                      data-testid="alert-tiktok-shop-detected"
+                <div className="space-y-2">
+                  {/* Profile vs URL funnel toggle */}
+                  <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="cta-funnel-toggle">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCtaFunnelMode("profile");
+                        const profileUrl = profile?.username
+                          ? `${window.location.origin}/provider/${profile.username}`
+                          : profile?.id
+                          ? `${window.location.origin}/provider/${profile.id}`
+                          : "";
+                        set("ctaUrl", profileUrl);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold transition-colors"
+                      style={{ background: ctaFunnelMode === "profile" ? "rgba(255,43,43,0.15)" : "transparent", color: ctaFunnelMode === "profile" ? "#ff4444" : "#555", borderRight: "1px solid #2a2a2a" }}
+                      data-testid="cta-mode-profile"
                     >
-                      <Zap className="h-3.5 w-3.5 text-[#ff2b2b] shrink-0" />
-                      <span className="text-[#ff2b2b] font-semibold">TikTok Shop Link Detected</span>
-                      <span className="text-[#555]">– affiliate tracking handled by TikTok.</span>
+                      <Smartphone className="h-3.5 w-3.5" />
+                      My Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCtaFunnelMode("url");
+                        set("ctaUrl", "");
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold transition-colors"
+                      style={{ background: ctaFunnelMode === "url" ? "rgba(255,43,43,0.15)" : "transparent", color: ctaFunnelMode === "url" ? "#ff4444" : "#555" }}
+                      data-testid="cta-mode-url"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      URL Funnel
+                    </button>
+                  </div>
+
+                  {ctaFunnelMode === "profile" ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#0d0d0d] border border-[#1e1e1e] text-xs">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                      <span className="text-[#888]">Button links to your Gigzito profile —</span>
+                      <span className="text-white font-semibold truncate">{profile?.username ? `@${profile.username}` : "your profile"}</span>
                     </div>
-                  )}
-                  {form.ctaType === "Shop Product" && !isTikTokLink && (
-                    <p className="text-xs text-[#555]">Viewers will go directly to this URL — no email required.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Input
+                        type="url"
+                        placeholder="https://yoursite.com/offer"
+                        value={form.ctaUrl}
+                        onChange={(e) => set("ctaUrl", e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                        className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] focus:border-[#ff1a1a]"
+                        data-testid="input-cta-url"
+                      />
+                      {isTikTokLink && (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black border border-[#2a2a2a] text-xs" data-testid="alert-tiktok-shop-detected">
+                          <Zap className="h-3.5 w-3.5 text-[#ff2b2b] shrink-0" />
+                          <span className="text-[#ff2b2b] font-semibold">TikTok Shop Link Detected</span>
+                          <span className="text-[#555]">– affiliate tracking handled by TikTok.</span>
+                        </div>
+                      )}
+                      {form.ctaType === "Shop Product" && !isTikTokLink && (
+                        <p className="text-xs text-[#555]">Viewers will go directly to this URL — no email required.</p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
