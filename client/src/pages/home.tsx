@@ -4,7 +4,6 @@ import { BottomNav } from "@/components/bottom-nav";
 import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
 import { AllEyesBanner } from "@/components/all-eyes-banner";
-import { LoveLeaderboardPanel } from "@/components/love-leaderboard-panel";
 import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -728,9 +727,9 @@ export default function HomePage() {
       )}
 
 
-      <LoveLeaderboardPanel />
 
       <RightRailHeroAd />
     </div>
   );
 }
+

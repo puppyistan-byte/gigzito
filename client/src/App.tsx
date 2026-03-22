@@ -39,6 +39,7 @@ import InviteLandingPage from "@/pages/invite-landing";
 import ActivityPage from "@/pages/activity";
 import GZMusicPage from "@/pages/gz-music";
 import GZMusicUploadPage from "@/pages/gz-music-upload";
+import MostLovedPage from "@/pages/most-loved";
 
 function Router() {
   return (
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/activity" component={ActivityPage} />
       <Route path="/gz-music" component={GZMusicPage} />
       <Route path="/gz-music/upload" component={GZMusicUploadPage} />
+      <Route path="/most-loved" component={MostLovedPage} />
       <Route component={NotFound} />
     </Switch>
   );
