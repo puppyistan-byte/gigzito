@@ -15,6 +15,9 @@ import { useAuth } from "@/lib/auth";
 
 const CATEGORIES = [
   { key: "ALL",           label: "All Videos" },
+  { key: "LAIH",         label: "LAIH" },
+  { key: "RANDOMNESS",   label: "Randomness" },
+  { key: "MUSIC",        label: "Music" },
   { key: "MUSIC_GIGS",   label: "Music Gigs" },
   { key: "EVENTS",       label: "Events" },
   { key: "INFLUENCERS",  label: "Influencers" },
@@ -168,8 +171,8 @@ export default function HomePage() {
 
       const cur  = currentIdxRef.current;
       const len  = listingsLenRef.current;
-      const next = e.deltaY > 0 ? Math.min(cur + 1, len - 1) : Math.max(cur - 1, 0);
-      if (next !== cur) scrollToIndex(next);
+      const next = e.deltaY > 0 ? (cur >= len - 1 ? 0 : cur + 1) : Math.max(cur - 1, 0);
+      if (next !== cur || cur >= len - 1) scrollToIndex(next);
     };
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => window.removeEventListener("wheel", onWheel);
@@ -189,8 +192,8 @@ export default function HomePage() {
       setTimeout(() => { wheelCooldown.current = false; }, 700);
       const cur  = currentIdxRef.current;
       const len  = listingsLenRef.current;
-      const next = diff > 0 ? Math.min(cur + 1, len - 1) : Math.max(cur - 1, 0);
-      if (next !== cur) scrollToIndex(next);
+      const next = diff > 0 ? (cur >= len - 1 ? 0 : cur + 1) : Math.max(cur - 1, 0);
+      if (next !== cur || cur >= len - 1) scrollToIndex(next);
     };
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
@@ -230,6 +233,8 @@ export default function HomePage() {
     FLASH_COUPONS:   "cat-bg-flash",
     FLASH_COUPON:    "cat-bg-flash",
     PRODUCTS:        "cat-bg-marketing",
+    LAIH:            "cat-bg-influencers",
+    RANDOMNESS:      "cat-bg-events",
   };
   const activeBgClass = categoryBgClass[activeVertical] ?? "cat-bg-all";
 
@@ -572,7 +577,7 @@ export default function HomePage() {
                 initialIsLiked={batchFetched ? (batchLikes[listing.id] ?? false) : undefined}
                 suppressLikeQuery={listingIds.length > 0}
                 onEnd={() => {
-                  if (idx < listings.length - 1) scrollToIndex(idx + 1);
+                  scrollToIndex(idx < listings.length - 1 ? idx + 1 : 0);
                 }}
               />
               {feedPaused && idx === currentIndex && (
@@ -618,8 +623,8 @@ export default function HomePage() {
           </button>
           <button
             data-testid="button-scroll-down"
-            onClick={() => scrollToIndex(Math.min(listings.length - 1, currentIndex + 1))}
-            disabled={currentIndex === listings.length - 1}
+            onClick={() => scrollToIndex(currentIndex >= listings.length - 1 ? 0 : currentIndex + 1)}
+            disabled={false}
             className="h-9 w-9 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/20 transition-all"
           >
             <ChevronDown className="h-5 w-5" />

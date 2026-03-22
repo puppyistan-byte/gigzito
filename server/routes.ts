@@ -1084,6 +1084,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
         "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
         "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "FOR_SALE",
+        "LAIH", "RANDOMNESS",
       ]),
       title: z.string().min(1).max(200),
       postType: z.enum(["VIDEO", "TEXT"]).optional().default("VIDEO"),

@@ -14,18 +14,21 @@ import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Timer, Tag, ShoppingCart
 import type { ProfileCompletionStatus, ProviderProfile, CtaType } from "@shared/schema";
 
 const VERTICALS = [
-  { value: "INFLUENCER",      label: "Influencer",      icon: "⭐" },
-  { value: "MARKETING",       label: "Marketing",       icon: "📈" },
-  { value: "COURSES",         label: "Courses",         icon: "🎓" },
-  { value: "COACHING",        label: "Coaching",        icon: "🧠" },
-  { value: "PRODUCTS",        label: "Products",        icon: "📦" },
-  { value: "FLASH_SALE",      label: "Flash Sale",      icon: "⚡" },
-  { value: "FLASH_COUPON",    label: "Flash Coupon",    icon: "💰" },
-  { value: "MUSIC_GIGS",      label: "Music Gigs",      icon: "🎵" },
-  { value: "EVENTS",          label: "Events",          icon: "🎪" },
-  { value: "CRYPTO",          label: "Crypto",          icon: "₿" },
-  { value: "CORPORATE_DEALS", label: "Corporate Deals", icon: "🏢" },
-  { value: "FOR_SALE",        label: "For Sale",        icon: "🏷️" },
+  { value: "INFLUENCER",      label: "Influencer",        icon: "⭐" },
+  { value: "MARKETING",       label: "Marketing",         icon: "📈" },
+  { value: "COURSES",         label: "Courses",           icon: "🎓" },
+  { value: "COACHING",        label: "Coaching",          icon: "🧠" },
+  { value: "PRODUCTS",        label: "Products",          icon: "📦" },
+  { value: "FLASH_SALE",      label: "Flash Sale",        icon: "⚡" },
+  { value: "FLASH_COUPON",    label: "Flash Coupon",      icon: "💰" },
+  { value: "MUSIC",           label: "Music",             icon: "🎶" },
+  { value: "MUSIC_GIGS",      label: "Music Gigs",        icon: "🎵" },
+  { value: "EVENTS",          label: "Events",            icon: "🎪" },
+  { value: "CRYPTO",          label: "Crypto",            icon: "₿" },
+  { value: "CORPORATE_DEALS", label: "Corporate Deals",   icon: "🏢" },
+  { value: "FOR_SALE",        label: "For Sale",          icon: "🏷️" },
+  { value: "LAIH",            label: "Life As It Happens",icon: "📱" },
+  { value: "RANDOMNESS",      label: "Randomness",        icon: "🎲" },
 ];
 
 const CTA_TYPES: { value: CtaType; label: string; description: string }[] = [

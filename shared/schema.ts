@@ -10,7 +10,7 @@ export const verticalEnum = pgEnum("vertical", [
   "MARKETING", "COACHING", "COURSES", "MUSIC", "CRYPTO",
   "INFLUENCER", "PRODUCTS", "FLASH_SALE", "FLASH_COUPON",
   "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "ARTISTS", "BUSINESS",
-  "FOR_SALE",
+  "FOR_SALE", "LAIH", "RANDOMNESS",
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED", "TRIAGED"]);
 export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT", "DENIED"]);
@@ -250,7 +250,8 @@ export type ProfileCompletionStatus = {
 export type VerticalKey =
   | "MARKETING" | "COACHING" | "COURSES" | "MUSIC" | "CRYPTO"
   | "INFLUENCER" | "PRODUCTS" | "FLASH_SALE" | "FLASH_COUPON"
-  | "MUSIC_GIGS" | "EVENTS" | "CORPORATE_DEALS" | "FOR_SALE";
+  | "MUSIC_GIGS" | "EVENTS" | "CORPORATE_DEALS" | "FOR_SALE"
+  | "LAIH" | "RANDOMNESS";
 
 export type CtaType = "Visit Offer" | "Shop Product" | "Join Event" | "Book Service" | "Join Guild";
 
