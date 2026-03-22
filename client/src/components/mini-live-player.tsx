@@ -194,12 +194,16 @@ export function MiniLivePlayer() {
   const handleFocus = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Pause the feed while ZitoTV is focused so both don't play simultaneously
+    window.dispatchEvent(new CustomEvent("zitotv-focused"));
     setViewState("focused");
   };
 
   const handleReturnToFeed = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Resume the feed when returning to it
+    window.dispatchEvent(new CustomEvent("zitotv-closed"));
     setViewState("normal");
   };
 

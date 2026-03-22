@@ -86,14 +86,30 @@ export default function HomePage() {
   const [feedPaused, setFeedPaused] = useState(false);
   const feedPausedRef = useRef(false);
   useEffect(() => {
-    const handler = () => {
+    const handleUnmuted = () => {
       feedPausedRef.current = true;
       setFeedPaused(true);
       // Also mute the feed so both sources can't play audio simultaneously
       handleMuteChange(true);
     };
-    window.addEventListener("zitotv-unmuted", handler);
-    return () => window.removeEventListener("zitotv-unmuted", handler);
+    const handleFocused = () => {
+      // ZitoTV popped out — pause the feed video (audio unchanged, ZitoTV starts muted)
+      feedPausedRef.current = true;
+      setFeedPaused(true);
+    };
+    const handleClosed = () => {
+      // ZitoTV returned to normal — resume the feed
+      feedPausedRef.current = false;
+      setFeedPaused(false);
+    };
+    window.addEventListener("zitotv-unmuted", handleUnmuted);
+    window.addEventListener("zitotv-focused", handleFocused);
+    window.addEventListener("zitotv-closed", handleClosed);
+    return () => {
+      window.removeEventListener("zitotv-unmuted", handleUnmuted);
+      window.removeEventListener("zitotv-focused", handleFocused);
+      window.removeEventListener("zitotv-closed", handleClosed);
+    };
   }, [handleMuteChange]);
 
   const feedRef = useRef<HTMLDivElement>(null);
