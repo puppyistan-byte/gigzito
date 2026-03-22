@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -212,6 +212,35 @@ export interface IStorage {
   getGZMobileChart(opts: { page: number; limit: number; userId?: number; q?: string; genre?: string; sort?: string }): Promise<{ tracks: Array<import("@shared/schema").GZMusicTrack & { avgRating: number; ratingCount: number; liked: boolean; myRating: number | null; commentCount: number }>; total: number; page: number; totalPages: number }>;
   getGZMusicTrending(limit: number, userId?: number): Promise<Array<import("@shared/schema").GZMusicTrack & { avgRating: number; ratingCount: number; liked: boolean; myRating: number | null }>>;
   getGZMusicGenres(): Promise<string[]>;
+
+  // ─── Groups ───────────────────────────────────────────────────────────────
+  createGroup(data: { name: string; description?: string; coverUrl?: string; isPrivate?: boolean }, userId: number): Promise<Group>;
+  getMyGroups(userId: number): Promise<Array<Group & { memberCount: number; myRole: string }>>;
+  getGroupById(id: number, userId?: number): Promise<(Group & { memberCount: number; myRole: string | null; myStatus: string | null }) | null>;
+  updateGroup(id: number, data: Partial<{ name: string; description: string; coverUrl: string; isPrivate: boolean }>): Promise<Group>;
+  deleteGroup(id: number): Promise<void>;
+  getGroupMembers(groupId: number): Promise<Array<GroupMember & { displayName: string | null; avatarUrl: string | null; username: string | null; email: string }>>;
+  inviteToGroup(groupId: number, inviteeUserId: number, adminUserId: number): Promise<GroupMember>;
+  respondToGroupInvite(groupId: number, userId: number, accept: boolean): Promise<void>;
+  removeGroupMember(groupId: number, userId: number): Promise<void>;
+  getUserGroupRole(groupId: number, userId: number): Promise<{ role: string; status: string } | null>;
+  getPendingGroupInvites(userId: number): Promise<Array<GroupMember & { groupName: string; groupCoverUrl: string | null; inviterName: string | null }>>;
+  searchUsersForInvite(q: string, groupId: number): Promise<Array<{ userId: number; displayName: string | null; avatarUrl: string | null; username: string | null; email: string }>>;
+  getGroupEndeavors(groupId: number): Promise<GroupEndeavor[]>;
+  createGroupEndeavor(groupId: number, data: { title: string; description?: string }): Promise<GroupEndeavor>;
+  updateGroupEndeavorProgress(id: number, progress: number): Promise<GroupEndeavor>;
+  updateGroupEndeavor(id: number, data: Partial<{ title: string; description: string }>): Promise<GroupEndeavor>;
+  deleteGroupEndeavor(id: number): Promise<void>;
+  getGroupWallPosts(groupId: number): Promise<Array<GroupWallPost & { displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number }>>;
+  createGroupWallPost(groupId: number, userId: number, content: string): Promise<GroupWallPost>;
+  deleteGroupWallPost(id: number, userId: number, isAdmin: boolean): Promise<void>;
+  getGroupWallComments(postId: number): Promise<Array<GroupWallComment & { displayName: string | null; avatarUrl: string | null; username: string | null }>>;
+  createGroupWallComment(postId: number, userId: number, content: string): Promise<GroupWallComment>;
+  deleteGroupWallComment(id: number, userId: number, isAdmin: boolean): Promise<void>;
+  getGroupEvents(groupId: number): Promise<GroupEvent[]>;
+  createGroupEvent(groupId: number, userId: number, data: { title: string; description?: string; startAt: Date; endAt?: Date; allDay?: boolean }): Promise<GroupEvent>;
+  updateGroupEvent(id: number, data: Partial<{ title: string; description: string; startAt: Date; endAt: Date; allDay: boolean }>): Promise<GroupEvent>;
+  deleteGroupEvent(id: number): Promise<void>;
 
   // Activity Feed
   getMyActivityFeed(providerProfileId: number, limit?: number): Promise<ActivityEvent[]>;
@@ -2657,6 +2686,228 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(gzMusicTracks.status, "active"), sql`${gzMusicTracks.genre} != ''`))
       .orderBy(gzMusicTracks.genre);
     return rows.map((r) => r.genre).filter(Boolean);
+  }
+
+  // ─── Groups ───────────────────────────────────────────────────────────────
+
+  private genInviteCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  }
+
+  async createGroup(data: { name: string; description?: string; coverUrl?: string; isPrivate?: boolean }, userId: number) {
+    let inviteCode = this.genInviteCode();
+    const [group] = await db.insert(groups).values({
+      name: data.name,
+      description: data.description ?? "",
+      coverUrl: data.coverUrl ?? null,
+      isPrivate: data.isPrivate ?? true,
+      inviteCode,
+      createdBy: userId,
+    }).returning();
+    await db.insert(groupMembers).values({ groupId: group.id, userId, role: "admin", status: "accepted" });
+    return group;
+  }
+
+  async getMyGroups(userId: number) {
+    const rows = await db
+      .select({
+        group: groups,
+        memberCount: sql<number>`(SELECT COUNT(*)::int FROM group_members gm2 WHERE gm2.group_id = ${groups.id} AND gm2.status = 'accepted')`,
+        myRole: groupMembers.role,
+      })
+      .from(groups)
+      .innerJoin(groupMembers, and(eq(groupMembers.groupId, groups.id), eq(groupMembers.userId, userId), eq(groupMembers.status, "accepted")))
+      .orderBy(desc(groups.createdAt));
+    return rows.map((r) => ({ ...r.group, memberCount: r.memberCount, myRole: r.myRole ?? "member" }));
+  }
+
+  async getGroupById(id: number, userId?: number) {
+    const [row] = await db.select().from(groups).where(eq(groups.id, id));
+    if (!row) return null;
+    const [countRow] = await db.select({ count: sql<number>`COUNT(*)::int` }).from(groupMembers).where(and(eq(groupMembers.groupId, id), eq(groupMembers.status, "accepted")));
+    let myRole: string | null = null;
+    let myStatus: string | null = null;
+    if (userId) {
+      const [mem] = await db.select().from(groupMembers).where(and(eq(groupMembers.groupId, id), eq(groupMembers.userId, userId)));
+      myRole = mem?.role ?? null;
+      myStatus = mem?.status ?? null;
+    }
+    return { ...row, memberCount: countRow?.count ?? 0, myRole, myStatus };
+  }
+
+  async updateGroup(id: number, data: Partial<{ name: string; description: string; coverUrl: string; isPrivate: boolean }>) {
+    const [row] = await db.update(groups).set(data).where(eq(groups.id, id)).returning();
+    return row;
+  }
+
+  async deleteGroup(id: number) {
+    await db.delete(groups).where(eq(groups.id, id));
+  }
+
+  async getGroupMembers(groupId: number) {
+    const rows = await db
+      .select({
+        member: groupMembers,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+        email: users.email,
+      })
+      .from(groupMembers)
+      .innerJoin(users, eq(users.id, groupMembers.userId))
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, groupMembers.userId))
+      .where(eq(groupMembers.groupId, groupId))
+      .orderBy(groupMembers.role, groupMembers.createdAt);
+    return rows.map((r) => ({ ...r.member, displayName: r.displayName, avatarUrl: r.avatarUrl, username: r.username, email: r.email }));
+  }
+
+  async inviteToGroup(groupId: number, inviteeUserId: number, adminUserId: number) {
+    const existing = await db.select().from(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, inviteeUserId)));
+    if (existing.length) throw new Error("User already invited or a member");
+    const [row] = await db.insert(groupMembers).values({ groupId, userId: inviteeUserId, role: "member", status: "pending", invitedBy: adminUserId }).returning();
+    return row;
+  }
+
+  async respondToGroupInvite(groupId: number, userId: number, accept: boolean) {
+    if (accept) {
+      await db.update(groupMembers).set({ status: "accepted" }).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+    } else {
+      await db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+    }
+  }
+
+  async removeGroupMember(groupId: number, userId: number) {
+    await db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+  }
+
+  async getUserGroupRole(groupId: number, userId: number) {
+    const [row] = await db.select({ role: groupMembers.role, status: groupMembers.status }).from(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+    return row ?? null;
+  }
+
+  async getPendingGroupInvites(userId: number) {
+    const rows = await db
+      .select({
+        member: groupMembers,
+        groupName: groups.name,
+        groupCoverUrl: groups.coverUrl,
+        inviterName: providerProfiles.displayName,
+      })
+      .from(groupMembers)
+      .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, groupMembers.invitedBy))
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "pending")))
+      .orderBy(desc(groupMembers.createdAt));
+    return rows.map((r) => ({ ...r.member, groupName: r.groupName, groupCoverUrl: r.groupCoverUrl, inviterName: r.inviterName }));
+  }
+
+  async searchUsersForInvite(q: string, groupId: number) {
+    const existingMembers = await db.select({ userId: groupMembers.userId }).from(groupMembers).where(eq(groupMembers.groupId, groupId));
+    const excludeIds = existingMembers.map((m) => m.userId);
+    const rows = await db
+      .select({ userId: users.id, email: users.email, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl, username: providerProfiles.username })
+      .from(users)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, users.id))
+      .where(and(
+        sql`(LOWER(${users.email}) LIKE ${"%" + q.toLowerCase() + "%"} OR LOWER(${providerProfiles.displayName}) LIKE ${"%" + q.toLowerCase() + "%"} OR LOWER(${providerProfiles.username}) LIKE ${"%" + q.toLowerCase() + "%"})`,
+        excludeIds.length ? sql`${users.id} NOT IN (${sql.join(excludeIds.map((id) => sql`${id}`), sql`, `)})` : sql`true`
+      ))
+      .limit(10);
+    return rows;
+  }
+
+  async getGroupEndeavors(groupId: number) {
+    return db.select().from(groupEndeavors).where(eq(groupEndeavors.groupId, groupId)).orderBy(groupEndeavors.createdAt);
+  }
+
+  async createGroupEndeavor(groupId: number, data: { title: string; description?: string }) {
+    const [row] = await db.insert(groupEndeavors).values({ groupId, title: data.title, description: data.description ?? "" }).returning();
+    return row;
+  }
+
+  async updateGroupEndeavorProgress(id: number, progress: number) {
+    const [row] = await db.update(groupEndeavors).set({ goalProgress: Math.min(100, Math.max(0, progress)) }).where(eq(groupEndeavors.id, id)).returning();
+    return row;
+  }
+
+  async updateGroupEndeavor(id: number, data: Partial<{ title: string; description: string }>) {
+    const [row] = await db.update(groupEndeavors).set(data).where(eq(groupEndeavors.id, id)).returning();
+    return row;
+  }
+
+  async deleteGroupEndeavor(id: number) {
+    await db.delete(groupEndeavors).where(eq(groupEndeavors.id, id));
+  }
+
+  async getGroupWallPosts(groupId: number) {
+    const rows = await db
+      .select({
+        post: groupWallPosts,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+        commentCount: sql<number>`COUNT(DISTINCT ${groupWallComments.id})::int`,
+      })
+      .from(groupWallPosts)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, groupWallPosts.userId))
+      .leftJoin(groupWallComments, eq(groupWallComments.postId, groupWallPosts.id))
+      .where(eq(groupWallPosts.groupId, groupId))
+      .groupBy(groupWallPosts.id, providerProfiles.displayName, providerProfiles.avatarUrl, providerProfiles.username)
+      .orderBy(desc(groupWallPosts.createdAt));
+    return rows.map((r) => ({ ...r.post, displayName: r.displayName, avatarUrl: r.avatarUrl, username: r.username, commentCount: r.commentCount }));
+  }
+
+  async createGroupWallPost(groupId: number, userId: number, content: string) {
+    const [row] = await db.insert(groupWallPosts).values({ groupId, userId, content }).returning();
+    return row;
+  }
+
+  async deleteGroupWallPost(id: number, userId: number, isAdmin: boolean) {
+    if (isAdmin) await db.delete(groupWallPosts).where(eq(groupWallPosts.id, id));
+    else await db.delete(groupWallPosts).where(and(eq(groupWallPosts.id, id), eq(groupWallPosts.userId, userId)));
+  }
+
+  async getGroupWallComments(postId: number) {
+    const rows = await db
+      .select({
+        comment: groupWallComments,
+        displayName: providerProfiles.displayName,
+        avatarUrl: providerProfiles.avatarUrl,
+        username: providerProfiles.username,
+      })
+      .from(groupWallComments)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, groupWallComments.userId))
+      .where(eq(groupWallComments.postId, postId))
+      .orderBy(groupWallComments.createdAt);
+    return rows.map((r) => ({ ...r.comment, displayName: r.displayName, avatarUrl: r.avatarUrl, username: r.username }));
+  }
+
+  async createGroupWallComment(postId: number, userId: number, content: string) {
+    const [row] = await db.insert(groupWallComments).values({ postId, userId, content }).returning();
+    return row;
+  }
+
+  async deleteGroupWallComment(id: number, userId: number, isAdmin: boolean) {
+    if (isAdmin) await db.delete(groupWallComments).where(eq(groupWallComments.id, id));
+    else await db.delete(groupWallComments).where(and(eq(groupWallComments.id, id), eq(groupWallComments.userId, userId)));
+  }
+
+  async getGroupEvents(groupId: number) {
+    return db.select().from(groupEvents).where(eq(groupEvents.groupId, groupId)).orderBy(groupEvents.startAt);
+  }
+
+  async createGroupEvent(groupId: number, userId: number, data: { title: string; description?: string; startAt: Date; endAt?: Date; allDay?: boolean }) {
+    const [row] = await db.insert(groupEvents).values({ groupId, createdBy: userId, title: data.title, description: data.description ?? "", startAt: data.startAt, endAt: data.endAt ?? null, allDay: data.allDay ?? false }).returning();
+    return row;
+  }
+
+  async updateGroupEvent(id: number, data: Partial<{ title: string; description: string; startAt: Date; endAt: Date; allDay: boolean }>) {
+    const [row] = await db.update(groupEvents).set(data).where(eq(groupEvents.id, id)).returning();
+    return row;
+  }
+
+  async deleteGroupEvent(id: number) {
+    await db.delete(groupEvents).where(eq(groupEvents.id, id));
   }
 }
 

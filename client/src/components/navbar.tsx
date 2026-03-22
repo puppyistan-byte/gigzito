@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell, Trophy } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell, Trophy, Users } from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -152,6 +152,15 @@ export function Navbar() {
           >
             <Trophy className="h-4 w-4" />
             Most Loved
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer hover:bg-blue-500/10 focus:bg-blue-500/10 text-blue-400"
+            onClick={() => navigate("/groups")}
+            data-testid="menu-item-groups"
+          >
+            <Users className="h-4 w-4" />
+            My Groups
           </DropdownMenuItem>
 
           <DropdownMenuItem

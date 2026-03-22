@@ -40,6 +40,8 @@ import ActivityPage from "@/pages/activity";
 import GZMusicPage from "@/pages/gz-music";
 import GZMusicUploadPage from "@/pages/gz-music-upload";
 import MostLovedPage from "@/pages/most-loved";
+import GroupsPage from "@/pages/groups";
+import GroupDetailPage from "@/pages/group-detail";
 
 function Router() {
   return (
@@ -78,6 +80,8 @@ function Router() {
       <Route path="/gz-music" component={GZMusicPage} />
       <Route path="/gz-music/upload" component={GZMusicUploadPage} />
       <Route path="/most-loved" component={MostLovedPage} />
+      <Route path="/groups" component={GroupsPage} />
+      <Route path="/groups/:id" component={GroupDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );

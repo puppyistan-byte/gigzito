@@ -1022,4 +1022,79 @@ export type GZMusicTrack = typeof gzMusicTracks.$inferSelect;
 export type InsertGZMusicTrack = typeof gzMusicTracks.$inferInsert;
 export type GZMusicRating = typeof gzMusicRatings.$inferSelect;
 export type GZMusicComment = typeof gzMusicComments.$inferSelect;
+
+// ─── GIGZITO GROUPS ──────────────────────────────────────────────────────────
+
+export const groups = pgTable("groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  coverUrl: text("cover_url"),
+  inviteCode: text("invite_code").notNull().unique(),
+  isPrivate: boolean("is_private").notNull().default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupMembers = pgTable("group_members", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"), // "admin" | "member"
+  status: text("status").notNull().default("pending"), // "pending" | "accepted" | "declined"
+  invitedBy: integer("invited_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.groupId, t.userId)]);
+
+export const groupEndeavors = pgTable("group_endeavors", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  goalProgress: integer("goal_progress").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupWallPosts = pgTable("group_wall_posts", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupWallComments = pgTable("group_wall_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => groupWallPosts.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const groupEvents = pgTable("group_events", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at"),
+  allDay: boolean("all_day").notNull().default(false),
+  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGroupSchema = createInsertSchema(groups).omit({ id: true, inviteCode: true, createdBy: true, createdAt: true });
+export const insertGroupEndeavorSchema = createInsertSchema(groupEndeavors).omit({ id: true, groupId: true, createdAt: true });
+export const insertGroupEventSchema = createInsertSchema(groupEvents).omit({ id: true, groupId: true, createdBy: true, createdAt: true });
+export const insertGroupWallPostSchema = createInsertSchema(groupWallPosts).omit({ id: true, groupId: true, userId: true, createdAt: true });
+
+export type Group = typeof groups.$inferSelect;
+export type InsertGroup = z.infer<typeof insertGroupSchema>;
+export type GroupMember = typeof groupMembers.$inferSelect;
+export type GroupEndeavor = typeof groupEndeavors.$inferSelect;
+export type InsertGroupEndeavor = z.infer<typeof insertGroupEndeavorSchema>;
+export type GroupWallPost = typeof groupWallPosts.$inferSelect;
+export type GroupWallComment = typeof groupWallComments.$inferSelect;
+export type GroupEvent = typeof groupEvents.$inferSelect;
+export type InsertGroupEvent = z.infer<typeof insertGroupEventSchema>;
 export type InsertGZMusicComment = typeof gzMusicComments.$inferInsert;

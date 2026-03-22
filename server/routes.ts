@@ -4106,5 +4106,272 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ─── Gigzito Groups ──────────────────────────────────────────────────────────
+
+  app.get("/api/groups/invites", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    try { return res.json(await storage.getPendingGroupInvites(userId)); } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/search-users", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const q = String(req.query.q ?? "").trim();
+    const groupId = parseInt(String(req.query.groupId ?? "0"));
+    if (!q || q.length < 2) return res.json([]);
+    try { return res.json(await storage.searchUsersForInvite(q, groupId)); } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    try { return res.json(await storage.getMyGroups(userId)); } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const { name, description, coverUrl, isPrivate } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
+    try { return res.status(201).json(await storage.createGroup({ name: name.trim(), description, coverUrl, isPrivate }, userId)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/:id", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    try {
+      const group = await storage.getGroupById(id, userId);
+      if (!group) return res.status(404).json({ message: "Group not found" });
+      if (group.isPrivate && !group.myRole) return res.status(403).json({ message: "Private group" });
+      return res.json(group);
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.patch("/api/groups/:id", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { return res.json(await storage.updateGroup(id, req.body)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { await storage.deleteGroup(id); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/:id/members", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupMembers(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/invite", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const { inviteeUserId } = req.body;
+    if (!inviteeUserId) return res.status(400).json({ message: "inviteeUserId required" });
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { return res.status(201).json(await storage.inviteToGroup(id, inviteeUserId, userId)); }
+    catch (e: any) { return res.status(400).json({ message: e.message }); }
+  });
+
+  app.post("/api/groups/:id/invite/respond", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const { accept } = req.body;
+    try { await storage.respondToGroupInvite(id, userId, !!accept); return res.json({ message: "Done" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/members/:uid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const uid = parseInt(req.params.uid);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { await storage.removeGroupMember(id, uid); return res.json({ message: "Removed" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/:id/wall", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupWallPosts(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/wall", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.status(201).json(await storage.createGroupWallPost(id, userId, content.trim())); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/wall/:postId", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const postId = parseInt(req.params.postId);
+    const mem = await storage.getUserGroupRole(id, userId);
+    const isAdmin = mem?.role === "admin";
+    try { await storage.deleteGroupWallPost(postId, userId, isAdmin); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/:id/wall/:postId/comments", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const postId = parseInt(req.params.postId);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupWallComments(postId)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/wall/:postId/comments", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const postId = parseInt(req.params.postId);
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.status(201).json(await storage.createGroupWallComment(postId, userId, content.trim())); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/wall/:postId/comments/:commentId", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const commentId = parseInt(req.params.commentId);
+    const mem = await storage.getUserGroupRole(id, userId);
+    const isAdmin = mem?.role === "admin";
+    try { await storage.deleteGroupWallComment(commentId, userId, isAdmin); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/:id/endeavors", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupEndeavors(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/endeavors", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const { title, description } = req.body;
+    if (!title?.trim()) return res.status(400).json({ message: "Title required" });
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { return res.status(201).json(await storage.createGroupEndeavor(id, { title: title.trim(), description })); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.patch("/api/groups/:id/endeavors/:eid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const eid = parseInt(req.params.eid);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try {
+      if (req.body.goalProgress !== undefined) return res.json(await storage.updateGroupEndeavorProgress(eid, req.body.goalProgress));
+      return res.json(await storage.updateGroupEndeavor(eid, req.body));
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/endeavors/:eid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { await storage.deleteGroupEndeavor(parseInt(req.params.eid)); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.get("/api/groups/:id/events", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupEvents(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/events", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const { title, description, startAt, endAt, allDay } = req.body;
+    if (!title?.trim() || !startAt) return res.status(400).json({ message: "Title and startAt required" });
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try {
+      return res.status(201).json(await storage.createGroupEvent(id, userId, { title: title.trim(), description, startAt: new Date(startAt), endAt: endAt ? new Date(endAt) : undefined, allDay }));
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.patch("/api/groups/:id/events/:eid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const eid = parseInt(req.params.eid);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try {
+      const data: any = { ...req.body };
+      if (data.startAt) data.startAt = new Date(data.startAt);
+      if (data.endAt) data.endAt = new Date(data.endAt);
+      return res.json(await storage.updateGroupEvent(eid, data));
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/events/:eid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { await storage.deleteGroupEvent(parseInt(req.params.eid)); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   return httpServer;
 }
