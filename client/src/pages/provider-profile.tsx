@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video, Zap, Lock, Radio, Play, Square } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, Instagram, Youtube, Webhook, Globe, Images, Camera, X, Upload, LogOut, Film, FileText, Bot, Info, AlertTriangle, Video, Zap, Lock, Radio, Play, Square, Users, Plus, KanbanSquare } from "lucide-react";
 import { InviteCard } from "@/components/invite-card";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import type { ProviderProfile } from "@shared/schema";
@@ -733,6 +733,69 @@ export default function ProviderProfilePage() {
               <p className="text-xs text-[#444]">When set, new lead inquiries will be POSTed as JSON to this URL in real time.</p>
             </div>
           </div>
+
+          {/* ── GZGroups ─────────────────────────────────────────────────────────── */}
+          {(() => {
+            const tier = (user as any)?.user?.subscriptionTier ?? "";
+            const role = (user as any)?.user?.role ?? "";
+            const hasGroups = ["GZGroups", "GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(tier) ||
+              ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role);
+            return hasGroups ? (
+              <div className="rounded-xl border border-green-700/40 bg-green-950/10 p-4 space-y-3" data-testid="section-gzgroups-profile">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-green-900/40 border border-green-700/40 flex items-center justify-center shrink-0">
+                    <Users className="h-3.5 w-3.5 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">GZGroups</p>
+                    <p className="text-[11px] text-[#666]">Your private community clubhouse — Wall, Calendar, Kanban & more</p>
+                  </div>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded border border-green-700/50 text-green-300 bg-green-900/30 uppercase tracking-widest">
+                    {tier}
+                  </span>
+                </div>
+                <p className="text-xs text-[#555] leading-relaxed">
+                  Create invite-only or open groups with a shared <span className="text-green-400 font-semibold">Wall</span>, <span className="text-blue-400 font-semibold">Calendar</span>, <span className="text-amber-400 font-semibold">Kanban board</span>, Endeavors, and Member roster. Meetup charges $39/mo — yours is included.
+                </p>
+                <div className="flex gap-2">
+                  <a href="/groups" data-testid="btn-go-to-my-groups" className="flex-1">
+                    <Button
+                      type="button"
+                      className="w-full bg-green-700 hover:bg-green-600 text-white font-bold rounded-xl h-10 text-sm flex items-center justify-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      My Groups
+                    </Button>
+                  </a>
+                  <a href="/groups?create=1" data-testid="btn-create-group-profile" className="flex-1">
+                    <Button
+                      type="button"
+                      className="w-full bg-green-900/60 hover:bg-green-800/60 border border-green-700/40 text-green-300 font-bold rounded-xl h-10 text-sm flex items-center justify-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Group
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[#1e1e1e] bg-[#0a0a0a] p-4 space-y-2" data-testid="section-gzgroups-locked">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-[#444]" />
+                  <p className="text-sm font-semibold text-[#555]">GZGroups</p>
+                  <span className="ml-auto text-[9px] font-semibold text-[#444] uppercase tracking-wider">Locked</span>
+                </div>
+                <p className="text-xs text-[#444] leading-relaxed">
+                  Community groups are available to <span className="text-green-500">GZGroups</span> ($8/mo) and above. Create your tribe — unlimited members, no extra cost.
+                </p>
+                <a href="/pricing" data-testid="btn-upgrade-for-groups">
+                  <Button type="button" variant="ghost" className="w-full border border-[#2a2a2a] text-[#555] hover:text-white hover:border-green-700/50 text-xs rounded-xl h-9">
+                    View Upgrade Plans
+                  </Button>
+                </a>
+              </div>
+            );
+          })()}
 
           {/* ── GZFlash Ad Center ───────────────────────────────────────────────── */}
           {(() => {

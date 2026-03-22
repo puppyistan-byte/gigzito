@@ -108,27 +108,27 @@ const FEATURES: Feature[] = [
   {
     label: "Create GZGroups",
     tooltip: "Create your own private or open group — your community clubhouse with a Wall, Calendar, Kanban, Endeavors, and Members tab.",
-    values: [false, true, true, true, true],
+    values: [false, true, false, true, true],
   },
   {
     label: "Unlimited Group Members",
     tooltip: "No cap on how many members can join your GZGroup. Scale your community without paying more.",
-    values: [false, true, true, true, true],
+    values: [false, true, false, true, true],
   },
   {
     label: "Private / Invite-Only Groups",
     tooltip: "Lock your group so only people you invite can see the content and join the conversation.",
-    values: [false, true, true, true, true],
+    values: [false, true, false, true, true],
   },
   {
     label: "Group Kanban Board",
     tooltip: "Built-in project board inside every group. Move tasks from To Do → In Progress → Done as a team.",
-    values: [false, true, true, true, true],
+    values: [false, true, false, true, true],
   },
   {
     label: "Group Calendar & Events",
     tooltip: "Schedule meetups, sync RSVPs, and keep every member on the same page with a shared group calendar.",
-    values: [false, true, true, true, true],
+    values: [false, true, false, true, true],
   },
   {
     label: "Campaign Creation",

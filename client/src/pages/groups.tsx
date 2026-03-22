@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -27,6 +27,12 @@ export default function GroupsPage() {
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", isPrivate: true });
+
+  useEffect(() => {
+    if (user && new URLSearchParams(window.location.search).get("create") === "1") {
+      setCreateOpen(true);
+    }
+  }, [user]);
 
   const { data: myGroups = [], isLoading } = useQuery<GroupCard[]>({
     queryKey: ["/api/groups"],
