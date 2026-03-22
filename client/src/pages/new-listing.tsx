@@ -117,6 +117,7 @@ export default function NewListingPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ctaFunnelMode, setCtaFunnelMode] = useState<"url" | "profile">("url");
+  const ctaFunnelRef = useRef<HTMLDivElement | null>(null);
   const [musicSearch, setMusicSearch] = useState("");
   const [musicPickerOpen, setMusicPickerOpen] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -651,6 +652,7 @@ export default function NewListingPage() {
                       onClick={() => {
                         set("ctaType", c.value);
                         if (!c.value) { set("ctaUrl", ""); setCtaFunnelMode("url"); }
+                        else { setTimeout(() => ctaFunnelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80); }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
                       style={{
@@ -672,7 +674,7 @@ export default function NewListingPage() {
               </div>
 
               {form.ctaType && (
-                <div className="space-y-2">
+                <div className="space-y-2" ref={ctaFunnelRef}>
                   {/* Profile vs URL funnel toggle */}
                   <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="cta-funnel-toggle">
                     <button
