@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import type { SponsorAd } from "@shared/schema";
  
 const ROTATION_MS = 5_000;
-const AD_VISIBLE = true; // desktop-only — hidden on mobile/tablet via className
+const AD_VISIBLE = false; // desktop-only — hidden on mobile/tablet via className
 
 const FALLBACK_GRADIENTS = [
   "linear-gradient(135deg, #1a0a0a 0%, #3d0000 50%, #1a0a0a 100%)",
