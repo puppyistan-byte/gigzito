@@ -1098,3 +1098,20 @@ export type GroupWallComment = typeof groupWallComments.$inferSelect;
 export type GroupEvent = typeof groupEvents.$inferSelect;
 export type InsertGroupEvent = z.infer<typeof insertGroupEventSchema>;
 export type InsertGZMusicComment = typeof gzMusicComments.$inferInsert;
+
+// ─── GZGROUPS KANBAN ──────────────────────────────────────────────────────────
+
+export const groupKanbanCards = pgTable("group_kanban_cards", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("todo"),
+  position: integer("position").notNull().default(0),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertGroupKanbanCardSchema = createInsertSchema(groupKanbanCards).omit({ id: true, groupId: true, createdBy: true, createdAt: true, position: true });
+export type GroupKanbanCard = typeof groupKanbanCards.$inferSelect;
+export type InsertGroupKanbanCard = z.infer<typeof insertGroupKanbanCardSchema>;

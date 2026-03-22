@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare } from "lucide-react";
 
 type GroupCard = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -112,6 +112,33 @@ export default function GroupsPage() {
               </div>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* ── Marketing Hero ── */}
+        <div className="mb-8 rounded-2xl overflow-hidden border bg-gradient-to-br from-zinc-900 to-black">
+          <div className="px-5 pt-6 pb-4">
+            <h2 className="text-lg font-bold text-white leading-tight">Build Your Tribe. Not Your Monthly Bill.</h2>
+            <p className="text-sm text-zinc-400 mt-1.5 leading-relaxed">
+              Most group platforms treat your community like a product, charging you more as you grow. At Gigzito, we believe your focus should be on the connection, not the cost — a high-performance, all-in-one dashboard for groups who want to lead, not just subscribe.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-white/10 border-t border-white/10">
+            {[
+              { icon: <Calendar className="w-4 h-4 text-blue-400" />, label: "Group Calendar", desc: "Schedule events, sync RSVPs, one source of truth." },
+              { icon: <Image className="w-4 h-4 text-pink-400" />, label: "Media Vault", desc: "Share hi-res photos & videos from every meetup." },
+              { icon: <Users className="w-4 h-4 text-green-400" />, label: "Member Dashboard", desc: "Live pulse for updates, docs, and group goals." },
+              { icon: <KanbanSquare className="w-4 h-4 text-amber-400" />, label: "Kanban Board", desc: "Move tasks from To Do → In Progress → Done." },
+            ].map((f) => (
+              <div key={f.label} className="px-4 py-3 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5">{f.icon}<span className="text-xs font-semibold text-white">{f.label}</span></div>
+                <p className="text-xs text-zinc-500 leading-snug">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="px-5 py-3 border-t border-white/10 flex items-center gap-2">
+            <Bell className="w-3.5 h-3.5 text-zinc-500" />
+            <p className="text-xs text-zinc-500">Intelligent Email & SMS notifications keep every member aligned — no app-checking required.</p>
+          </div>
         </div>
 
         {invites.length > 0 && (

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -241,6 +241,10 @@ export interface IStorage {
   createGroupEvent(groupId: number, userId: number, data: { title: string; description?: string; startAt: Date; endAt?: Date; allDay?: boolean }): Promise<GroupEvent>;
   updateGroupEvent(id: number, data: Partial<{ title: string; description: string; startAt: Date; endAt: Date; allDay: boolean }>): Promise<GroupEvent>;
   deleteGroupEvent(id: number): Promise<void>;
+  getGroupKanbanCards(groupId: number): Promise<GroupKanbanCard[]>;
+  createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string }): Promise<GroupKanbanCard>;
+  updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string }>): Promise<GroupKanbanCard>;
+  deleteGroupKanbanCard(id: number): Promise<void>;
 
   // Activity Feed
   getMyActivityFeed(providerProfileId: number, limit?: number): Promise<ActivityEvent[]>;
@@ -2908,6 +2912,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGroupEvent(id: number) {
     await db.delete(groupEvents).where(eq(groupEvents.id, id));
+  }
+
+  async getGroupKanbanCards(groupId: number) {
+    return db.select().from(groupKanbanCards).where(eq(groupKanbanCards.groupId, groupId)).orderBy(groupKanbanCards.position, groupKanbanCards.createdAt);
+  }
+
+  async createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string }) {
+    const existing = await db.select({ id: groupKanbanCards.id }).from(groupKanbanCards).where(eq(groupKanbanCards.groupId, groupId));
+    const position = existing.length;
+    const [row] = await db.insert(groupKanbanCards).values({ groupId, createdBy: userId, title: data.title, description: data.description ?? null, status: data.status ?? "todo", position }).returning();
+    return row;
+  }
+
+  async updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string }>) {
+    const [row] = await db.update(groupKanbanCards).set(data).where(eq(groupKanbanCards.id, id)).returning();
+    return row;
+  }
+
+  async deleteGroupKanbanCard(id: number) {
+    await db.delete(groupKanbanCards).where(eq(groupKanbanCards.id, id));
   }
 }
 

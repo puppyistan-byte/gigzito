@@ -4373,5 +4373,50 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  // ─── GZGroups Kanban ───────────────────────────────────────────────────────
+
+  app.get("/api/groups/:id/kanban", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupKanbanCards(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/kanban", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    const { title, description, status } = req.body;
+    if (!title?.trim()) return res.status(400).json({ message: "Title required" });
+    try { return res.status(201).json(await storage.createGroupKanbanCard(id, userId, { title: title.trim(), description, status })); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.patch("/api/groups/:id/kanban/:cid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    const { title, description, status } = req.body;
+    try { return res.json(await storage.updateGroupKanbanCard(parseInt(req.params.cid), { title, description, status })); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/kanban/:cid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { await storage.deleteGroupKanbanCard(parseInt(req.params.cid)); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   return httpServer;
 }

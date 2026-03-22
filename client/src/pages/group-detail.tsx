@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import {
   Users, MessageSquare, Calendar, Target, ChevronLeft, Plus, Trash2, Lock, Globe,
-  Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search, Copy, Settings
+  Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search, Copy, Settings, KanbanSquare, ArrowRight, CheckSquare, Clock
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth, addMonths, subMonths, parseISO } from "date-fns";
 
@@ -27,7 +27,7 @@ type Endeavor = { id: number; groupId: number; title: string; description: strin
 type Event = { id: number; groupId: number; title: string; description: string; startAt: string; endAt: string | null; allDay: boolean; createdBy: number };
 type Member = { id: number; groupId: number; userId: number; role: string; status: string; displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
 
-const TABS = ["wall", "calendar", "endeavors", "members"] as const;
+const TABS = ["wall", "calendar", "endeavors", "kanban", "members"] as const;
 type Tab = typeof TABS[number];
 
 function Avatar({ src, name, size = 8 }: { src?: string | null; name?: string | null; size?: number }) {
@@ -569,6 +569,154 @@ function MembersTab({ groupId, isAdmin, inviteCode }: { groupId: number; isAdmin
   );
 }
 
+// ─── KANBAN TAB ───────────────────────────────────────────────────────────────
+type KanbanCard = { id: number; groupId: number; title: string; description: string | null; status: string; position: number; createdBy: number; createdAt: string };
+
+const KANBAN_COLS: { key: string; label: string; color: string; icon: JSX.Element }[] = [
+  { key: "todo",        label: "To Do",      color: "border-zinc-400",  icon: <Clock className="w-3.5 h-3.5 text-zinc-400" /> },
+  { key: "in_progress", label: "In Progress", color: "border-amber-400", icon: <ArrowRight className="w-3.5 h-3.5 text-amber-400" /> },
+  { key: "done",        label: "Done",       color: "border-green-500", icon: <CheckSquare className="w-3.5 h-3.5 text-green-500" /> },
+];
+
+function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: boolean; myUserId: number }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [addingCol, setAddingCol] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+
+  const { data: cards = [], isLoading } = useQuery<KanbanCard[]>({
+    queryKey: ["/api/groups", groupId, "kanban"],
+  });
+
+  const createMut = useMutation({
+    mutationFn: (d: { title: string; description: string; status: string }) =>
+      apiRequest("POST", `/api/groups/${groupId}/kanban`, d),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] });
+      setAddingCol(null); setNewTitle(""); setNewDesc("");
+    },
+    onError: () => toast({ title: "Failed to create card", variant: "destructive" }),
+  });
+
+  const moveMut = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      apiRequest("PATCH", `/api/groups/${groupId}/kanban/${id}`, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/groups/${groupId}/kanban/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }),
+  });
+
+  const colKeys = KANBAN_COLS.map((c) => c.key);
+
+  if (isLoading) return <div className="h-40 animate-pulse bg-muted rounded-xl" />;
+
+  return (
+    <div className="pb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {KANBAN_COLS.map((col, ci) => {
+          const colCards = cards.filter((c) => c.status === col.key);
+          return (
+            <div key={col.key} className={`rounded-xl border-t-2 ${col.color} bg-muted/30 p-3 flex flex-col gap-2`}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5 font-semibold text-sm">
+                  {col.icon} {col.label}
+                  <span className="ml-1 text-xs text-muted-foreground font-normal">({colCards.length})</span>
+                </div>
+                <button
+                  data-testid={`button-add-card-${col.key}`}
+                  onClick={() => { setAddingCol(col.key); setNewTitle(""); setNewDesc(""); }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+              {addingCol === col.key && (
+                <div className="bg-card border rounded-lg p-2 flex flex-col gap-2">
+                  <Input
+                    data-testid="input-kanban-title"
+                    autoFocus
+                    placeholder="Card title…"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="text-sm h-8"
+                  />
+                  <Textarea
+                    data-testid="input-kanban-desc"
+                    placeholder="Description (optional)"
+                    rows={2}
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    className="text-xs resize-none"
+                  />
+                  <div className="flex gap-1.5">
+                    <Button
+                      data-testid="button-save-kanban-card"
+                      size="sm"
+                      className="flex-1 h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                      disabled={!newTitle.trim() || createMut.isPending}
+                      onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key })}
+                    >
+                      Add
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingCol(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {colCards.map((card) => (
+                <div key={card.id} data-testid={`kanban-card-${card.id}`} className="bg-card border rounded-lg p-2.5 shadow-sm group">
+                  <p className="text-sm font-medium leading-snug">{card.title}</p>
+                  {card.description && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{card.description}</p>}
+                  <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {ci > 0 && (
+                      <button
+                        data-testid={`button-move-card-back-${card.id}`}
+                        onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci - 1] })}
+                        className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors"
+                      >
+                        ← Back
+                      </button>
+                    )}
+                    {ci < KANBAN_COLS.length - 1 && (
+                      <button
+                        data-testid={`button-move-card-forward-${card.id}`}
+                        onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci + 1] })}
+                        className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors"
+                      >
+                        Next →
+                      </button>
+                    )}
+                    {(isAdmin || card.createdBy === myUserId) && (
+                      <button
+                        data-testid={`button-delete-card-${card.id}`}
+                        onClick={() => deleteMut.mutate(card.id)}
+                        className="ml-auto text-muted-foreground hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {colCards.length === 0 && addingCol !== col.key && (
+                <p className="text-xs text-muted-foreground text-center py-4 italic">No cards yet</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -631,6 +779,7 @@ export default function GroupDetailPage() {
     wall: <MessageSquare className="w-4 h-4" />,
     calendar: <Calendar className="w-4 h-4" />,
     endeavors: <Target className="w-4 h-4" />,
+    kanban: <KanbanSquare className="w-4 h-4" />,
     members: <Users className="w-4 h-4" />,
   };
 
@@ -695,6 +844,7 @@ export default function GroupDetailPage() {
             {tab === "wall" && <WallTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
             {tab === "calendar" && <CalendarTab groupId={groupId} isAdmin={isAdmin} />}
             {tab === "endeavors" && <EndeavorsTab groupId={groupId} isAdmin={isAdmin} />}
+            {tab === "kanban" && <KanbanTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
             {tab === "members" && <MembersTab groupId={groupId} isAdmin={isAdmin} inviteCode={group.inviteCode} />}
           </>
         )}
