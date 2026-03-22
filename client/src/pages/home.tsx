@@ -12,6 +12,7 @@ import type { ListingWithProvider } from "@shared/schema";
 import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import gzLogo from "@assets/gz_logo_1774147866824.png";
 
 const CATEGORIES = [
   { key: "ALL",           label: "All Videos" },
@@ -75,6 +76,11 @@ export default function HomePage() {
       window.dispatchEvent(new CustomEvent("feed-unmuted"));
     }
   }, []);
+
+  // User-controlled pause/play via the GZ logo button
+  const [userPaused, setUserPaused] = useState(false);
+  // Reset user-pause when they scroll to a new video
+  useEffect(() => { setUserPaused(false); }, [currentIndex]);
 
   // Pauses + mutes the main feed when ZitoTV live audio turns on
   const [feedPaused, setFeedPaused] = useState(false);
@@ -574,7 +580,7 @@ export default function HomePage() {
               <VideoCard
                 listing={listing}
                 className="w-full h-full"
-                isActive={idx === currentIndex && !feedPaused}
+                isActive={idx === currentIndex && !feedPaused && !userPaused}
                 isMuted={globalMuted}
                 onMuteChange={handleMuteChange}
                 initialIsLiked={batchFetched ? (batchLikes[listing.id] ?? false) : undefined}
@@ -583,6 +589,70 @@ export default function HomePage() {
                   scrollToIndex(idx < listings.length - 1 ? idx + 1 : 0, { instant: true });
                 }}
               />
+
+              {/* GZ Logo — transparent pause/play button, only on the active card */}
+              {idx === currentIndex && !feedPaused && (
+                <button
+                  onClick={() => setUserPaused((p) => !p)}
+                  data-testid="button-feed-pause-play"
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    zIndex: 25,
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    transition: "opacity 0.25s ease, transform 0.2s ease",
+                    opacity: userPaused ? 0.85 : 0.18,
+                  }}
+                  onMouseEnter={(e) => { if (!userPaused) (e.currentTarget as HTMLButtonElement).style.opacity = "0.38"; }}
+                  onMouseLeave={(e) => { if (!userPaused) (e.currentTarget as HTMLButtonElement).style.opacity = "0.18"; }}
+                  aria-label={userPaused ? "Play" : "Pause"}
+                >
+                  <div style={{ position: "relative", width: 100, height: 100 }}>
+                    <img
+                      src={gzLogo}
+                      alt="GZ"
+                      style={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        filter: userPaused
+                          ? "drop-shadow(0 0 18px rgba(255,43,43,0.75))"
+                          : "drop-shadow(0 0 6px rgba(255,43,43,0.3))",
+                        transition: "filter 0.25s ease",
+                      }}
+                    />
+                    {/* Pause bars overlay when playing, play triangle when paused */}
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: userPaused ? "rgba(0,0,0,0.45)" : "transparent",
+                      borderRadius: "50%",
+                      border: userPaused ? "2.5px solid rgba(255,43,43,0.8)" : "none",
+                      transition: "all 0.25s ease",
+                    }}>
+                      {userPaused ? (
+                        /* Play triangle */
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="white" style={{ marginLeft: 3 }}>
+                          <polygon points="5,3 19,12 5,21" />
+                        </svg>
+                      ) : (
+                        /* Pause bars — subtle */
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="rgba(255,255,255,0.6)">
+                          <rect x="5" y="4" width="4" height="16" rx="1" />
+                          <rect x="15" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              )}
+
               {feedPaused && idx === currentIndex && (
                 <div
                   className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 pointer-events-none"
