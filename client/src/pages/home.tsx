@@ -9,7 +9,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, PlusCircle, Music } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 
@@ -627,17 +627,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Floating Post Video button — TikTok-style FAB */}
-      <button
-        data-testid="button-fab-post-video"
-        onClick={() => navigate(user ? "/provider/new" : "/auth")}
-        title="Post a Video"
-        className="fixed z-50 flex items-center gap-2 bg-[#ff1a1a] hover:bg-[#ff3333] active:scale-95 text-white font-bold text-sm px-4 py-2.5 rounded-full shadow-lg shadow-red-900/40 transition-all"
-        style={{ bottom: "88px", left: "50%", transform: "translateX(-50%)" }}
-      >
-        <PlusCircle className="h-4 w-4 shrink-0" />
-        Post Video
-      </button>
 
       <LoveLeaderboardPanel />
 
