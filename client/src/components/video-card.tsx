@@ -703,7 +703,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <button
               onClick={toggleMute}
               style={{
-                position: "absolute", bottom: 188, right: 12, zIndex: 30,
+                position: "absolute", bottom: 350, right: 12, zIndex: 30,
                 width: 44, height: 44, borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)",
@@ -721,7 +721,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
           {/* HEART LIKE BUTTON */}
           <div
-            style={{ position: "absolute", bottom: 132, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+            style={{ position: "absolute", bottom: 290, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
             data-testid={`like-container-${listing.id}`}
           >
             <button
@@ -758,7 +758,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
           {/* COMMENTS BUTTON */}
           <div
-            style={{ position: "absolute", bottom: 76, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+            style={{ position: "absolute", bottom: 228, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
             data-testid={`comments-container-${listing.id}`}
           >
             <button
