@@ -1163,7 +1163,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (isNaN(id)) return res.status(404).json({ message: "Not found" });
 
     // Resolve provider profile for this user
-    const profile = await storage.getProviderProfileByUserId(userId);
+    const profile = await storage.getProfileByUserId(userId);
     if (!profile) return res.status(403).json({ message: "Provider profile not found" });
 
     const { title, description, tags, ctaLabel, ctaUrl, ctaType } = req.body;
