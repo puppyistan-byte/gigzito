@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Users, MessageSquare, Calendar, Target, ChevronLeft, Plus, Trash2, Lock, Globe,
   Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search,
-  Copy, Settings, KanbanSquare, ArrowRight, CheckSquare, Clock, Camera, Mail
+  Copy, Settings, KanbanSquare, ArrowRight, CheckSquare, Clock, Camera, Mail, Wallet, ExternalLink, Link2
 } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -30,9 +30,26 @@ type Comment = { id: number; postId: number; userId: number; content: string; cr
 type Endeavor = { id: number; groupId: number; title: string; description: string; goalProgress: number; createdAt: string };
 type Event = { id: number; groupId: number; title: string; description: string; startAt: string; endAt: string | null; allDay: boolean; createdBy: number };
 type Member = { id: number; groupId: number; userId: number; role: string; status: string; displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
+type GroupWallet = { id: number; groupId: number; label: string; network: string; address: string; link: string | null; createdBy: number; createdAt: string };
 
-const MAIN_TABS = ["wall", "endeavors", "kanban"] as const;
+const MAIN_TABS = ["wall", "endeavors", "kanban", "wallet"] as const;
 type MainTab = typeof MAIN_TABS[number];
+
+const NETWORKS: { value: string; label: string; color: string; explorer: (addr: string) => string }[] = [
+  { value: "ETH",   label: "Ethereum",  color: "bg-indigo-500",  explorer: (a) => `https://etherscan.io/address/${a}` },
+  { value: "BTC",   label: "Bitcoin",   color: "bg-orange-500",  explorer: (a) => `https://blockchair.com/bitcoin/address/${a}` },
+  { value: "SOL",   label: "Solana",    color: "bg-purple-500",  explorer: (a) => `https://solscan.io/account/${a}` },
+  { value: "MATIC", label: "Polygon",   color: "bg-violet-500",  explorer: (a) => `https://polygonscan.com/address/${a}` },
+  { value: "BNB",   label: "BNB Chain", color: "bg-yellow-500",  explorer: (a) => `https://bscscan.com/address/${a}` },
+  { value: "USDT",  label: "USDT",      color: "bg-green-500",   explorer: (a) => `https://etherscan.io/address/${a}` },
+  { value: "USDC",  label: "USDC",      color: "bg-blue-500",    explorer: (a) => `https://etherscan.io/address/${a}` },
+  { value: "XRP",   label: "XRP",       color: "bg-cyan-500",    explorer: (a) => `https://xrpscan.com/account/${a}` },
+  { value: "LINK",  label: "Custom Link", color: "bg-gray-500",  explorer: (a) => a },
+];
+
+function networkInfo(value: string) {
+  return NETWORKS.find((n) => n.value === value) ?? { value, label: value, color: "bg-gray-400", explorer: (a: string) => a };
+}
 
 function Avatar({ src, name, size = 8 }: { src?: string | null; name?: string | null; size?: number }) {
   const initials = (name ?? "?")[0]?.toUpperCase();
@@ -764,6 +781,161 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   );
 }
 
+// ─── WALLET TAB ───────────────────────────────────────────────────────────────
+function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({ label: "", network: "ETH", address: "", link: "" });
+
+  const { data: wallets = [], isLoading } = useQuery<GroupWallet[]>({
+    queryKey: ["/api/groups", groupId, "wallets"],
+    queryFn: () => fetch(`/api/groups/${groupId}/wallets`, { credentials: "include" }).then((r) => r.json()),
+  });
+
+  const addMut = useMutation({
+    mutationFn: (body: { label: string; network: string; address: string; link?: string }) =>
+      apiRequest("POST", `/api/groups/${groupId}/wallets`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets"] });
+      setAddOpen(false);
+      setForm({ label: "", network: "ETH", address: "", link: "" });
+      toast({ title: "Wallet added" });
+    },
+    onError: () => toast({ title: "Failed to add wallet", variant: "destructive" }),
+  });
+
+  const delMut = useMutation({
+    mutationFn: (wid: number) => apiRequest("DELETE", `/api/groups/${groupId}/wallets/${wid}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets"] });
+      toast({ title: "Wallet removed" });
+    },
+    onError: () => toast({ title: "Failed to remove wallet", variant: "destructive" }),
+  });
+
+  function copyAddress(addr: string) {
+    navigator.clipboard.writeText(addr).then(() => toast({ title: "Address copied!" }));
+  }
+
+  function explorerUrl(w: GroupWallet) {
+    if (w.link) return w.link;
+    const net = networkInfo(w.network);
+    return net.explorer(w.address);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-base flex items-center gap-2"><Wallet className="w-4 h-4 text-indigo-500" /> Group Wallet</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Crypto addresses linked to this group</p>
+        </div>
+        {isAdmin && (
+          <Button data-testid="button-add-wallet" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1" onClick={() => setAddOpen(true)}>
+            <Plus className="w-3.5 h-3.5" /> Add Wallet
+          </Button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{[0,1].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+      ) : wallets.length === 0 ? (
+        <div className="text-center py-14 text-muted-foreground">
+          <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No wallets linked yet.</p>
+          {isAdmin && <p className="text-xs mt-1">Click "Add Wallet" to attach a crypto address.</p>}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {wallets.map((w) => {
+            const net = networkInfo(w.network);
+            const shortAddr = w.address.length > 16 ? `${w.address.slice(0, 8)}…${w.address.slice(-6)}` : w.address;
+            const url = explorerUrl(w);
+            return (
+              <div key={w.id} data-testid={`card-wallet-${w.id}`}
+                className="flex items-start gap-3 border rounded-xl p-4 bg-card shadow-sm hover:shadow-md transition-shadow">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${net.color}`}>
+                  {net.value.slice(0, 3)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm">{w.label}</span>
+                    <Badge variant="outline" className="text-xs px-1.5 py-0">{net.label}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <code className="text-xs text-muted-foreground break-all">{shortAddr}</code>
+                    <button data-testid={`button-copy-wallet-${w.id}`} onClick={() => copyAddress(w.address)} title="Copy full address"
+                      className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    {url && (
+                      <a href={url} target="_blank" rel="noopener noreferrer" data-testid={`link-explorer-${w.id}`}
+                        title="View on explorer" className="text-muted-foreground hover:text-indigo-500 transition-colors flex-shrink-0">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                  {w.link && (
+                    <a href={w.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-indigo-500 hover:underline mt-1">
+                      <Link2 className="w-3 h-3" /> {w.link.length > 40 ? w.link.slice(0, 40) + "…" : w.link}
+                    </a>
+                  )}
+                </div>
+                {isAdmin && (
+                  <button data-testid={`button-delete-wallet-${w.id}`} onClick={() => { if (confirm("Remove this wallet?")) delMut.mutate(w.id); }}
+                    disabled={delMut.isPending}
+                    className="text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0 mt-0.5">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add wallet dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="w-4 h-4" /> Add Wallet</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-1">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Label</label>
+              <Input data-testid="input-wallet-label" placeholder="e.g. Main Treasury" className="mt-1"
+                value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Network</label>
+              <select data-testid="select-wallet-network" value={form.network}
+                onChange={(e) => setForm((f) => ({ ...f, network: e.target.value }))}
+                className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                {NETWORKS.map((n) => <option key={n.value} value={n.value}>{n.label} ({n.value})</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Wallet Address</label>
+              <Input data-testid="input-wallet-address" placeholder="0x… or bc1… or custom" className="mt-1 font-mono text-sm"
+                value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Custom Link <span className="font-normal normal-case">(optional)</span></label>
+              <Input data-testid="input-wallet-link" placeholder="https://…" className="mt-1"
+                value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} />
+              <p className="text-xs text-muted-foreground mt-0.5">Overrides the auto block-explorer link</p>
+            </div>
+            <Button data-testid="button-save-wallet" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={!form.label.trim() || !form.address.trim() || addMut.isPending}
+              onClick={() => addMut.mutate({ label: form.label.trim(), network: form.network, address: form.address.trim(), link: form.link.trim() || undefined })}>
+              {addMut.isPending ? "Adding…" : "Add Wallet"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -829,6 +1001,7 @@ export default function GroupDetailPage() {
     wall: { label: "Home", icon: <MessageSquare className="w-4 h-4" /> },
     endeavors: { label: "Endeavors", icon: <Target className="w-4 h-4" /> },
     kanban: { label: "Kanban", icon: <KanbanSquare className="w-4 h-4" /> },
+    wallet: { label: "Wallet", icon: <Wallet className="w-4 h-4" /> },
   };
 
   if (!user) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Please log in.</p></div>;
@@ -946,6 +1119,7 @@ export default function GroupDetailPage() {
               {tab === "wall" && <WallTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
               {tab === "endeavors" && <EndeavorsTab groupId={groupId} isAdmin={isAdmin} />}
               {tab === "kanban" && <KanbanTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
+              {tab === "wallet" && <WalletTab groupId={groupId} isAdmin={isAdmin} />}
             </div>
 
             {/* Right: sidebar */}

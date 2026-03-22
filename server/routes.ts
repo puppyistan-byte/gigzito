@@ -4430,5 +4430,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  // Group Wallets
+  app.get("/api/groups/:id/wallets", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupWallets(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/wallets", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted" || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    const { label, network, address, link } = req.body;
+    if (!label || !network || !address) return res.status(400).json({ message: "label, network, address required" });
+    try { return res.json(await storage.createGroupWallet(id, userId, { label, network, address, link })); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.delete("/api/groups/:id/wallets/:wid", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted" || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try { await storage.deleteGroupWallet(parseInt(req.params.wid)); return res.json({ message: "Deleted" }); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   return httpServer;
 }

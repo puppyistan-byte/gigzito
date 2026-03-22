@@ -1116,3 +1116,19 @@ export const groupKanbanCards = pgTable("group_kanban_cards", {
 export const insertGroupKanbanCardSchema = createInsertSchema(groupKanbanCards).omit({ id: true, groupId: true, createdBy: true, createdAt: true, position: true });
 export type GroupKanbanCard = typeof groupKanbanCards.$inferSelect;
 export type InsertGroupKanbanCard = z.infer<typeof insertGroupKanbanCardSchema>;
+
+// Group Wallets
+export const groupWallets = pgTable("group_wallets", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  network: text("network").notNull(),
+  address: text("address").notNull(),
+  link: text("link"),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertGroupWalletSchema = createInsertSchema(groupWallets).omit({ id: true, groupId: true, createdBy: true, createdAt: true });
+export type GroupWallet = typeof groupWallets.$inferSelect;
+export type InsertGroupWallet = z.infer<typeof insertGroupWalletSchema>;
