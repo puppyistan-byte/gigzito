@@ -547,11 +547,19 @@ export function useDeleteFlash() {
 
 // ─── GZMusic ────────────────────────────────────────────────────────────────
 
-export function useGZ100() {
+export function useGZ100(opts?: { sort?: string; genre?: string; q?: string; limit?: number }) {
   const { apiRequest } = useAuth();
   return useQuery({
-    queryKey: ["gz-music-chart"],
-    queryFn: () => apiRequest<any[]>("/api/gz-music/tracks"),
+    queryKey: ["gz-music-chart", opts],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: String(opts?.limit ?? 50), sort: opts?.sort ?? "chart" });
+      if (opts?.genre) params.set("genre", opts.genre);
+      if (opts?.q) params.set("q", opts.q);
+      const res = await apiRequest<{ tracks: any[]; total: number; page: number; totalPages: number }>(
+        `/api/gz-music/chart?${params}`
+      );
+      return res?.tracks ?? [];
+    },
     staleTime: 60000,
   });
 }
@@ -560,7 +568,41 @@ export function useGZLibrary(q?: string) {
   const { apiRequest } = useAuth();
   return useQuery({
     queryKey: ["gz-music-library", q],
-    queryFn: () => apiRequest<any[]>(`/api/gz-music/library${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: "50", sort: "chart" });
+      if (q) params.set("q", q);
+      const res = await apiRequest<{ tracks: any[] }>(`/api/gz-music/chart?${params}`);
+      return res?.tracks ?? [];
+    },
+    enabled: !!q,
+    staleTime: 30000,
+  });
+}
+
+export function useGZTrending(limit = 20) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-trending", limit],
+    queryFn: () => apiRequest<any[]>(`/api/gz-music/trending?limit=${limit}`),
+    staleTime: 60000,
+  });
+}
+
+export function useGZGenres() {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-genres"],
+    queryFn: () => apiRequest<string[]>("/api/gz-music/genres"),
+    staleTime: 300000,
+  });
+}
+
+export function useGZTrackDetail(id: number) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["gz-music-track", id],
+    queryFn: () => apiRequest<any>(`/api/gz-music/tracks/${id}`),
+    enabled: !!id,
     staleTime: 30000,
   });
 }
@@ -588,7 +630,10 @@ export function useGZToggleLike() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => apiRequest<any>(`/api/gz-music/tracks/${id}/like`, { method: "POST" }),
-    onSuccess: (_d, id) => qc.invalidateQueries({ queryKey: ["gz-music-chart"] }),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ["gz-music-chart"] });
+      qc.invalidateQueries({ queryKey: ["gz-music-track", id] });
+    },
   });
 }
 
@@ -602,7 +647,10 @@ export function useGZRateTrack() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stars }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["gz-music-chart"] }),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: ["gz-music-chart"] });
+      qc.invalidateQueries({ queryKey: ["gz-music-track", id] });
+    },
   });
 }
 

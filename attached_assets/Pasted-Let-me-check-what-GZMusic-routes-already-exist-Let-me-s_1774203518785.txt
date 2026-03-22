@@ -1,0 +1,46 @@
+Let me check what GZMusic routes already exist:
+
+Let me see the full track schema and the existing tracks + library endpoints:
+
+Now let me check the storage functions for GZMusic:
+
+Now I have the full picture. I'll add mobile-optimized endpoints: single track detail, a paginated/enriched chart (tracks with liked + rating baked in per request), search, trending, and genres. This eliminates the multiple round-trips that kill mobile performance.
+
+Let me add the storage method first, then the routes:
+
+Now I'll add all the storage methods and routes in one batch:
+
+Now add the implementations to the storage class:
+
+Let me check that aliasedTable is imported in storage.ts:
+
+aliasedTable is not imported — need to add it:
+
+Now add the mobile API routes to routes.ts — I'll place them in the GZMusic block:
+
+Now add the mobile endpoints right after the GZMusic section header:
+
+Clean run — let me restart to compile the storage changes and then do a live test:
+
+Chart endpoint works. Let me test the remaining three:
+
+All 4 new endpoints are live and confirmed from the server logs:
+
+GET /api/gz-music/chart     200 24ms  – paginated GZ100 w/ liked/myRating/commentCount
+GET /api/gz-music/trending  200  6ms  – top by playCount w/ liked/myRating
+GET /api/gz-music/genres    200  3ms  – distinct genre list
+GET /api/gz-music/tracks/2  200  3ms  – single track detail w/ liked/myRating/commentCount
+Here's the full mobile API reference for Jim / the mobile team:
+
+GZMusic Mobile API — all endpoints public, user context optional (session cookie enriches liked / myRating)
+Method	URL	Params	Returns
+GET	/api/gz-music/chart	page, limit (1–50), sort (chart|new|plays|likes), genre, q	{ tracks[], total, page, totalPages }
+GET	/api/gz-music/trending	limit (1–50)	track[]
+GET	/api/gz-music/genres	—	string[]
+GET	/api/gz-music/tracks/:id	—	single track or 404
+POST	/api/gz-music/tracks/:id/play	—	increments play count
+POST	/api/gz-music/tracks/:id/like	auth required	{ liked, likeCount }
+POST	/api/gz-music/tracks/:id/rate	body: { stars }, auth required	{ avgRating, ratingCount, myRating }
+GET	/api/gz-music/tracks/:id/comments	—	comment[] with displayName/avatar
+POST	/api/gz-music/tracks/:id/comments	body: { content }, auth required	new comment
+Every track object in chart/trending/single-track now includes liked: boolean, myRating: number|null, and commentCount: number — no extra round-trips needed on mobil

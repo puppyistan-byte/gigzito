@@ -19,14 +19,13 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 
 import {
-  useGZ100,
+  useGZTrackDetail,
   useGZToggleLike,
   useGZRateTrack,
   useGZTrackComments,
   useGZPostComment,
   useGZDeleteComment,
   useGZRecordPlay,
-  useGZBatchLikes,
   useGZAnnounceSingle,
   useGZAnnounceMailing,
   useGZSubscriberCount,
@@ -96,11 +95,8 @@ export default function TrackDetailScreen() {
   const insets = useSafeAreaInsets();
   const { token, user } = useAuth();
 
-  const { data: chart } = useGZ100();
-  const track = chart?.find((t: any) => t.id === numId);
-
+  const { data: track, isLoading: trackLoading, refetch: refetchTrack } = useGZTrackDetail(numId);
   const { data: comments, isLoading: commentsLoading, refetch: refetchComments } = useGZTrackComments(numId);
-  const { data: likeMap, refetch: refetchLikes } = useGZBatchLikes([numId]);
   const { data: subCount } = useGZSubscriberCount();
 
   const toggleLike = useGZToggleLike();
@@ -119,7 +115,7 @@ export default function TrackDetailScreen() {
   const [announceMsg, setAnnounceMsg] = useState("");
   const [showAnnounce, setShowAnnounce] = useState(false);
 
-  const liked = likeMap?.[String(numId)] ?? false;
+  const liked = track?.liked ?? false;
   const isOwner = user && track?.uploaderUserId === user.id;
 
   function handlePlayPause() {
@@ -145,7 +141,7 @@ export default function TrackDetailScreen() {
 
   function handleLike() {
     if (!token) { router.push("/auth/login"); return; }
-    toggleLike.mutate(numId, { onSuccess: () => refetchLikes() });
+    toggleLike.mutate(numId, { onSuccess: () => refetchTrack() });
   }
 
   function handleRate(stars: number) {
@@ -197,7 +193,11 @@ export default function TrackDetailScreen() {
     );
   }
 
-  if (!track) {
+  React.useEffect(() => {
+    if (track?.myRating && userRating === 0) setUserRating(track.myRating);
+  }, [track?.myRating]);
+
+  if (trackLoading || !track) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <Pressable onPress={() => { stopSound(); router.back(); }} style={styles.backBtn}>

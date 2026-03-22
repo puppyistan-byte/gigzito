@@ -17,7 +17,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAudioPlayer } from "expo-audio";
 
-import { useGZ100, useGZLibrary, useGZToggleLike, useGZRecordPlay, useGZBatchLikes } from "@/hooks/useApi";
+import { useGZ100, useGZLibrary, useGZToggleLike, useGZRecordPlay } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import Colors from "@/constants/colors";
 import NavigationMenu from "@/components/NavigationMenu";
@@ -94,8 +94,6 @@ export default function GZMusicScreen() {
   const listData = searchMode ? (library ?? []) : (chart ?? []);
   const isLoading = searchMode ? libLoading : chartLoading;
 
-  const trackIds = listData.map((t: any) => t.id);
-  const { data: likeMap } = useGZBatchLikes(trackIds);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -136,7 +134,7 @@ export default function GZMusicScreen() {
 
   const renderTrack = useCallback(({ item, index }: { item: any; index: number }) => {
     const cover = coverUri(item.coverUrl);
-    const liked = likeMap?.[String(item.id)] ?? false;
+    const liked = item.liked ?? false;
     const isThisPlaying = playingTrack?.id === item.id && isPlaying;
 
     return (
@@ -189,11 +187,14 @@ export default function GZMusicScreen() {
             onPress={() => router.push(`/gzmusic/${item.id}` as any)}
           >
             <Ionicons name="chatbubble-outline" size={14} color={GZ.muted} />
+            {item.commentCount > 0 && (
+              <Text style={styles.likeCount}>{item.commentCount}</Text>
+            )}
           </Pressable>
         </View>
       </Pressable>
     );
-  }, [playingTrack, isPlaying, likeMap]);
+  }, [playingTrack, isPlaying]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
