@@ -25,6 +25,7 @@ export interface IStorage {
   getListingsByProvider(providerId: number): Promise<ListingWithProvider[]>;
   createListing(data: CreateListingRequest & { providerId: number; dropDate: string; pricePaidCents: number }): Promise<VideoListing>;
   updateListingStatus(id: number, status: "ACTIVE" | "PAUSED" | "REMOVED"): Promise<VideoListing | undefined>;
+  updateListingFields(id: number, providerId: number, data: { title?: string; description?: string | null; tags?: string[]; ctaLabel?: string | null; ctaUrl?: string | null; ctaType?: string | null }): Promise<VideoListing | undefined>;
   updateScanStatus(listingId: number, status: string, scanNote?: string | null): Promise<void>;
   triageListing(id: number, adminUserId: number, reason: string): Promise<VideoListing | undefined>;
   getTriagedListings(): Promise<ListingWithProvider[]>;
@@ -448,6 +449,15 @@ export class DatabaseStorage implements IStorage {
       .update(videoListings)
       .set({ status, updatedAt: new Date() })
       .where(eq(videoListings.id, id))
+      .returning();
+    return listing;
+  }
+
+  async updateListingFields(id: number, providerId: number, data: { title?: string; description?: string | null; tags?: string[]; ctaLabel?: string | null; ctaUrl?: string | null; ctaType?: string | null }): Promise<VideoListing | undefined> {
+    const [listing] = await db
+      .update(videoListings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(videoListings.id, id), eq(videoListings.providerId, providerId)))
       .returning();
     return listing;
   }

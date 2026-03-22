@@ -1155,6 +1155,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(listing);
   });
 
+  // Edit listing text fields (owner only)
+  app.patch("/api/listings/:id/fields", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(404).json({ message: "Not found" });
+
+    // Resolve provider profile for this user
+    const profile = await storage.getProviderProfileByUserId(userId);
+    if (!profile) return res.status(403).json({ message: "Provider profile not found" });
+
+    const { title, description, tags, ctaLabel, ctaUrl, ctaType } = req.body;
+    if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
+      return res.status(400).json({ message: "Title cannot be empty" });
+    }
+
+    const updated = await storage.updateListingFields(id, profile.id, {
+      ...(title !== undefined && { title: title.trim() }),
+      ...(description !== undefined && { description: description || null }),
+      ...(tags !== undefined && { tags: Array.isArray(tags) ? tags : [] }),
+      ...(ctaLabel !== undefined && { ctaLabel: ctaLabel || null }),
+      ...(ctaUrl !== undefined && { ctaUrl: ctaUrl || null }),
+      ...(ctaType !== undefined && { ctaType: ctaType || null }),
+    });
+    if (!updated) return res.status(404).json({ message: "Listing not found or not yours" });
+    return res.json(updated);
+  });
+
   // === BIF SCAN ROUTES ===
   // Bif webhook callback — called by the VPS bot after scanning
   app.post("/api/scan/callback", async (req, res) => {

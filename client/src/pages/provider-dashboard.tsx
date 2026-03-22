@@ -424,6 +424,35 @@ function ProviderDashboardInner() {
     onError: () => toast({ title: "Error", description: "Failed to send broadcast.", variant: "destructive" }),
   });
 
+  // Edit listing modal state
+  const [editingListing, setEditingListing] = useState<ListingWithProvider | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editTags, setEditTags] = useState("");
+  const [editCtaLabel, setEditCtaLabel] = useState("");
+  const [editCtaUrl, setEditCtaUrl] = useState("");
+
+  const openEditListing = (listing: ListingWithProvider) => {
+    setEditingListing(listing);
+    setEditTitle(listing.title);
+    setEditDescription(listing.description ?? "");
+    setEditTags((listing.tags ?? []).join(", "));
+    setEditCtaLabel(listing.ctaLabel ?? "");
+    setEditCtaUrl(listing.ctaUrl ?? "");
+  };
+  const closeEditListing = () => setEditingListing(null);
+
+  const editListingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: object }) =>
+      apiRequest("PATCH", `/api/listings/${id}/fields`, data),
+    onSuccess: () => {
+      toast({ title: "Post updated", description: "Your changes have been saved." });
+      closeEditListing();
+      queryClient.invalidateQueries({ queryKey: ["/api/listings/mine"] });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" }),
+  });
+
   // Geo campaign form state
   const [showGeoForm, setShowGeoForm] = useState(false);
   const [geoTitle, setGeoTitle] = useState("");
@@ -728,6 +757,118 @@ function ProviderDashboardInner() {
         </div>
       )}
 
+      {/* ── Edit Listing Modal ── */}
+      {editingListing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.88)" }}
+          data-testid="modal-edit-listing"
+          onClick={(e) => { if (e.target === e.currentTarget) closeEditListing(); }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-[#0a0a0a] border border-[#222] p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pencil className="h-4 w-4 text-[#ff2b2b]" />
+                <h2 className="text-sm font-bold text-white">Edit Post</h2>
+              </div>
+              <button onClick={closeEditListing} data-testid="button-close-edit-listing">
+                <XIcon className="h-4 w-4 text-[#555] hover:text-white transition-colors" />
+              </button>
+            </div>
+
+            <p className="text-[11px] text-[#555]">
+              Edit the text details of your post. The video itself cannot be changed.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">Title *</label>
+                <Input
+                  placeholder="Post title"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white"
+                  data-testid="input-edit-title"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">Description</label>
+                <Textarea
+                  placeholder="Add a description..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                  className="bg-[#111] border-[#2a2a2a] text-white resize-none"
+                  data-testid="input-edit-description"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">Tags <span className="text-[#444] normal-case">comma-separated</span></label>
+                <Input
+                  placeholder="e.g. coaching, marketing, tips"
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  className="bg-[#111] border-[#2a2a2a] text-white"
+                  data-testid="input-edit-tags"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">CTA Button Label</label>
+                  <Input
+                    placeholder="e.g. Book Now"
+                    value={editCtaLabel}
+                    onChange={(e) => setEditCtaLabel(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white"
+                    data-testid="input-edit-cta-label"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">CTA URL</label>
+                  <Input
+                    placeholder="https://..."
+                    value={editCtaUrl}
+                    onChange={(e) => setEditCtaUrl(e.target.value)}
+                    className="bg-[#111] border-[#2a2a2a] text-white"
+                    data-testid="input-edit-cta-url"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={closeEditListing}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#888] border border-[#2a2a2a] hover:border-[#444] transition-all"
+                data-testid="button-cancel-edit-listing"
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  if (!editTitle.trim()) { toast({ title: "Title is required", variant: "destructive" }); return; }
+                  const tags = editTags.split(",").map((t) => t.trim()).filter(Boolean);
+                  editListingMutation.mutate({
+                    id: editingListing.id,
+                    data: {
+                      title: editTitle.trim(),
+                      description: editDescription.trim() || null,
+                      tags,
+                      ctaLabel: editCtaLabel.trim() || null,
+                      ctaUrl: editCtaUrl.trim() || null,
+                    },
+                  });
+                }}
+                disabled={editListingMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg,#ff2b2b,#cc0000)" }}
+                data-testid="button-save-edit-listing"
+              >
+                {editListingMutation.isPending ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...</> : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
         {/* Return to Main + Admin Console + Sign Out */}
@@ -940,6 +1081,9 @@ function ProviderDashboardInner() {
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-[#555] hover:text-white" data-testid={`button-edit-listing-${listing.id}`} onClick={() => openEditListing(listing)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       {listing.status === "ACTIVE" ? (
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-[#555] hover:text-white" data-testid={`button-pause-${listing.id}`} onClick={() => statusMutation.mutate({ id: listing.id, status: "PAUSED" })} disabled={statusMutation.isPending}>
                           <Pause className="h-3.5 w-3.5" />
