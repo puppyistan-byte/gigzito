@@ -3721,6 +3721,66 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ─── GZMusic ─────────────────────────────────────────────────────────────────
 
+  // ── Mobile-optimised GZMusic endpoints ──────────────────────────────────────
+  // Single track detail — with liked/myRating/commentCount baked in
+  app.get("/api/gz-music/tracks/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid track id" });
+    const userId = (req.session as any)?.userId as number | undefined;
+    try {
+      const track = await storage.getGZMusicTrackById(id, userId);
+      if (!track) return res.status(404).json({ message: "Track not found" });
+      return res.json(track);
+    } catch (err) {
+      console.error("[gz-music/tracks/:id]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Paginated chart — liked/myRating/commentCount baked in, supports sort/genre/search/page
+  // GET /api/gz-music/chart?page=1&limit=20&sort=chart|new|plays|likes&genre=hip-hop&q=search
+  app.get("/api/gz-music/chart", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    const page  = Math.max(1, parseInt(String(req.query.page  ?? "1")));
+    const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit ?? "20"))));
+    const sort  = String(req.query.sort  ?? "chart");
+    const genre = String(req.query.genre ?? "").trim() || undefined;
+    const q     = String(req.query.q     ?? "").trim() || undefined;
+    try {
+      const result = await storage.getGZMobileChart({ page, limit, userId, q, genre, sort });
+      return res.json(result);
+    } catch (err) {
+      console.error("[gz-music/chart]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Trending — top by play count, with user context
+  // GET /api/gz-music/trending?limit=10
+  app.get("/api/gz-music/trending", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    const limit  = Math.min(50, Math.max(1, parseInt(String(req.query.limit ?? "10"))));
+    try {
+      const tracks = await storage.getGZMusicTrending(limit, userId);
+      return res.json(tracks);
+    } catch (err) {
+      console.error("[gz-music/trending]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Genres — distinct list of genre tags for mobile filter UI
+  app.get("/api/gz-music/genres", async (req, res) => {
+    try {
+      const genres = await storage.getGZMusicGenres();
+      return res.json(genres);
+    } catch (err) {
+      console.error("[gz-music/genres]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  // ────────────────────────────────────────────────────────────────────────────
+
   // User track submission (any authenticated user, any tier)
   app.post(
     "/api/gz-music/submit",

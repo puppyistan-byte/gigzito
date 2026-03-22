@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { createHash } from "crypto";
 import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost } from "@shared/schema";
-import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc } from "drizzle-orm";
+import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -208,6 +208,10 @@ export interface IStorage {
   getGZMusicComments(trackId: number): Promise<Array<import("@shared/schema").GZMusicComment & { displayName: string | null; avatarUrl: string | null; username: string | null }>>;
   createGZMusicComment(trackId: number, userId: number, content: string): Promise<import("@shared/schema").GZMusicComment>;
   deleteGZMusicComment(id: number, userId: number, isAdmin: boolean): Promise<void>;
+  getGZMusicTrackById(id: number, userId?: number): Promise<(import("@shared/schema").GZMusicTrack & { avgRating: number; ratingCount: number; liked: boolean; myRating: number | null; commentCount: number }) | null>;
+  getGZMobileChart(opts: { page: number; limit: number; userId?: number; q?: string; genre?: string; sort?: string }): Promise<{ tracks: Array<import("@shared/schema").GZMusicTrack & { avgRating: number; ratingCount: number; liked: boolean; myRating: number | null; commentCount: number }>; total: number; page: number; totalPages: number }>;
+  getGZMusicTrending(limit: number, userId?: number): Promise<Array<import("@shared/schema").GZMusicTrack & { avgRating: number; ratingCount: number; liked: boolean; myRating: number | null }>>;
+  getGZMusicGenres(): Promise<string[]>;
 
   // Activity Feed
   getMyActivityFeed(providerProfileId: number, limit?: number): Promise<ActivityEvent[]>;
@@ -2552,6 +2556,107 @@ export class DatabaseStorage implements IStorage {
     } else {
       await db.delete(gzMusicComments).where(and(eq(gzMusicComments.id, id), eq(gzMusicComments.userId, userId)));
     }
+  }
+
+  async getGZMusicTrackById(id: number, userId?: number) {
+    const likedAlias = aliasedTable(gzMusicLikes, "my_like");
+    const ratingAlias = aliasedTable(gzMusicRatings, "my_rating");
+    const rows = await db
+      .select({
+        track: gzMusicTracks,
+        avgRating: sql<number>`COALESCE(AVG(${gzMusicRatings.stars}), 3.0)`,
+        ratingCount: sql<number>`COUNT(DISTINCT ${gzMusicRatings.id})::int`,
+        commentCount: sql<number>`COUNT(DISTINCT ${gzMusicComments.id})::int`,
+        liked: userId ? sql<boolean>`BOOL_OR(${likedAlias.userId} = ${userId})` : sql<boolean>`false`,
+        myRating: userId ? sql<number | null>`MAX(CASE WHEN ${ratingAlias.userId} = ${userId} THEN ${ratingAlias.stars} END)` : sql<number | null>`null`,
+      })
+      .from(gzMusicTracks)
+      .leftJoin(gzMusicRatings, eq(gzMusicRatings.trackId, gzMusicTracks.id))
+      .leftJoin(gzMusicComments, eq(gzMusicComments.trackId, gzMusicTracks.id))
+      .leftJoin(likedAlias, eq(likedAlias.trackId, gzMusicTracks.id))
+      .leftJoin(ratingAlias, eq(ratingAlias.trackId, gzMusicTracks.id))
+      .where(eq(gzMusicTracks.id, id))
+      .groupBy(gzMusicTracks.id);
+    if (!rows.length) return null;
+    const r = rows[0];
+    return { ...r.track, avgRating: Number(r.avgRating), ratingCount: r.ratingCount, commentCount: r.commentCount, liked: !!r.liked, myRating: r.myRating ?? null };
+  }
+
+  async getGZMobileChart(opts: { page: number; limit: number; userId?: number; q?: string; genre?: string; sort?: string }) {
+    const { page, limit, userId, q, genre, sort = "chart" } = opts;
+    const offset = (page - 1) * limit;
+    const likedAlias = aliasedTable(gzMusicLikes, "my_like_chart");
+    const ratingAlias = aliasedTable(gzMusicRatings, "my_rating_chart");
+
+    const conditions = [eq(gzMusicTracks.status, "active"), eq(gzMusicTracks.sharedToLibrary, true)];
+    if (q) conditions.push(sql`(LOWER(${gzMusicTracks.title}) LIKE ${"%" + q.toLowerCase() + "%"} OR LOWER(${gzMusicTracks.artist}) LIKE ${"%" + q.toLowerCase() + "%"})`);
+    if (genre) conditions.push(sql`LOWER(${gzMusicTracks.genre}) = ${genre.toLowerCase()}`);
+
+    const orderExpr =
+      sort === "new" ? [desc(gzMusicTracks.createdAt)] :
+      sort === "plays" ? [desc(gzMusicTracks.playCount)] :
+      sort === "likes" ? [desc(gzMusicTracks.likeCount)] :
+      [sql`(COALESCE(AVG(${gzMusicRatings.stars}), 3.0) * 10 + ${gzMusicTracks.likeCount}) DESC`, desc(gzMusicTracks.createdAt)];
+
+    const [countRow] = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${gzMusicTracks.id})::int` })
+      .from(gzMusicTracks)
+      .where(and(...conditions));
+    const total = countRow?.count ?? 0;
+
+    const rows = await db
+      .select({
+        track: gzMusicTracks,
+        avgRating: sql<number>`COALESCE(AVG(${gzMusicRatings.stars}), 3.0)`,
+        ratingCount: sql<number>`COUNT(DISTINCT ${gzMusicRatings.id})::int`,
+        commentCount: sql<number>`COUNT(DISTINCT ${gzMusicComments.id})::int`,
+        liked: userId ? sql<boolean>`BOOL_OR(${likedAlias.userId} = ${userId})` : sql<boolean>`false`,
+        myRating: userId ? sql<number | null>`MAX(CASE WHEN ${ratingAlias.userId} = ${userId} THEN ${ratingAlias.stars} END)` : sql<number | null>`null`,
+      })
+      .from(gzMusicTracks)
+      .leftJoin(gzMusicRatings, eq(gzMusicRatings.trackId, gzMusicTracks.id))
+      .leftJoin(gzMusicComments, eq(gzMusicComments.trackId, gzMusicTracks.id))
+      .leftJoin(likedAlias, eq(likedAlias.trackId, gzMusicTracks.id))
+      .leftJoin(ratingAlias, eq(ratingAlias.trackId, gzMusicTracks.id))
+      .where(and(...conditions))
+      .groupBy(gzMusicTracks.id)
+      .orderBy(...orderExpr)
+      .limit(limit)
+      .offset(offset);
+
+    const tracks = rows.map((r) => ({ ...r.track, avgRating: Number(r.avgRating), ratingCount: r.ratingCount, commentCount: r.commentCount, liked: !!r.liked, myRating: r.myRating ?? null }));
+    return { tracks, total, page, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getGZMusicTrending(limit: number, userId?: number) {
+    const likedAlias = aliasedTable(gzMusicLikes, "my_like_trend");
+    const ratingAlias = aliasedTable(gzMusicRatings, "my_rating_trend");
+    const rows = await db
+      .select({
+        track: gzMusicTracks,
+        avgRating: sql<number>`COALESCE(AVG(${gzMusicRatings.stars}), 3.0)`,
+        ratingCount: sql<number>`COUNT(DISTINCT ${gzMusicRatings.id})::int`,
+        liked: userId ? sql<boolean>`BOOL_OR(${likedAlias.userId} = ${userId})` : sql<boolean>`false`,
+        myRating: userId ? sql<number | null>`MAX(CASE WHEN ${ratingAlias.userId} = ${userId} THEN ${ratingAlias.stars} END)` : sql<number | null>`null`,
+      })
+      .from(gzMusicTracks)
+      .leftJoin(gzMusicRatings, eq(gzMusicRatings.trackId, gzMusicTracks.id))
+      .leftJoin(likedAlias, eq(likedAlias.trackId, gzMusicTracks.id))
+      .leftJoin(ratingAlias, eq(ratingAlias.trackId, gzMusicTracks.id))
+      .where(and(eq(gzMusicTracks.status, "active"), eq(gzMusicTracks.sharedToLibrary, true)))
+      .groupBy(gzMusicTracks.id)
+      .orderBy(desc(gzMusicTracks.playCount), desc(gzMusicTracks.likeCount))
+      .limit(limit);
+    return rows.map((r) => ({ ...r.track, avgRating: Number(r.avgRating), ratingCount: r.ratingCount, liked: !!r.liked, myRating: r.myRating ?? null }));
+  }
+
+  async getGZMusicGenres() {
+    const rows = await db
+      .selectDistinct({ genre: gzMusicTracks.genre })
+      .from(gzMusicTracks)
+      .where(and(eq(gzMusicTracks.status, "active"), sql`${gzMusicTracks.genre} != ''`))
+      .orderBy(gzMusicTracks.genre);
+    return rows.map((r) => r.genre).filter(Boolean);
   }
 }
 
