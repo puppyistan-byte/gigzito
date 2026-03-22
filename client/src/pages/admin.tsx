@@ -956,7 +956,7 @@ export default function AdminPage() {
                                   <SelectTrigger className="h-7 w-28 bg-[#111] border-[#2a2a2a] text-[#aaa] text-[11px]" data-testid={`select-role-lookup-${u.id}`}>
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                                  <SelectContent className="bg-[#111] border-[#2a2a2a]" position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                                     {availableRoles.map((r) => (
                                       <SelectItem key={r} value={r} className="text-xs text-[#ccc]">{ROLE_LABELS[r] ?? r}</SelectItem>
                                     ))}
@@ -1384,7 +1384,7 @@ export default function AdminPage() {
                   <SelectTrigger className="h-8 w-32 bg-[#0b0b0b] border-[#2a2a2a] text-[#aaa] text-xs" data-testid="select-content-status">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                  <SelectContent className="bg-[#111] border-[#2a2a2a]" position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                     {["ALL","ACTIVE","PAUSED","TRIAGED","REMOVED","PENDING"].map((s) => (
                       <SelectItem key={s} value={s} className="text-xs text-[#ccc]">{s === "ALL" ? "All statuses" : s}</SelectItem>
                     ))}
@@ -1709,7 +1709,7 @@ export default function AdminPage() {
                     <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-inj-platform">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]" position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                       {["YouTube", "TikTok", "Instagram", "Facebook"].map((p) => (
                         <SelectItem key={p} value={p} className="text-white focus:bg-[#222]">{p}</SelectItem>
                       ))}
@@ -1722,7 +1722,7 @@ export default function AdminPage() {
                     <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-inj-mode">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]" position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                       <SelectItem value="immediate" className="text-white focus:bg-[#222]">Immediate — activate now</SelectItem>
                       <SelectItem value="fallback" className="text-white focus:bg-[#222]">Fallback Only — quiet periods</SelectItem>
                     </SelectContent>
@@ -1771,7 +1771,7 @@ export default function AdminPage() {
                     <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white h-9 text-sm" data-testid="select-inj-status">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#111] border-[#2a2a2a]">
+                    <SelectContent className="bg-[#111] border-[#2a2a2a]" position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                       <SelectItem value="active" className="text-green-400 focus:bg-[#222]">Active</SelectItem>
                       <SelectItem value="inactive" className="text-[#666] focus:bg-[#222]">Inactive</SelectItem>
                     </SelectContent>
@@ -2686,7 +2686,7 @@ export default function AdminPage() {
                   <SelectTrigger className="w-full bg-[#111] border-[#2a2a2a] text-white h-9" data-testid="select-edit-status">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                     <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
                     <SelectItem value="APPROVED">Approved</SelectItem>
                     <SelectItem value="DENIED">Denied</SelectItem>
@@ -2701,7 +2701,7 @@ export default function AdminPage() {
                     <SelectTrigger className="w-full bg-[#111] border-[#2a2a2a] text-white h-9" data-testid="select-edit-flash-duration">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                       {[5, 7, 10, 15, 30, 60].map((s) => (
                         <SelectItem key={s} value={String(s)}>{s}s</SelectItem>
                       ))}
@@ -2714,7 +2714,7 @@ export default function AdminPage() {
                     <SelectTrigger className="w-full bg-[#111] border-[#2a2a2a] text-white h-9" data-testid="select-edit-offer-duration">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                       <SelectItem value="10">10 min</SelectItem>
                       <SelectItem value="30">30 min</SelectItem>
                       <SelectItem value="60">1 hour</SelectItem>
