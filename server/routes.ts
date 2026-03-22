@@ -4106,7 +4106,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  // ─── Gigzito Groups ──────────────────────────────────────────────────────────
+  // ─── GZGroups ────────────────────────────────────────────────────────────────
 
   app.get("/api/groups/invites", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;

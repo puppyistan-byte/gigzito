@@ -160,7 +160,7 @@ export function Navbar() {
             data-testid="menu-item-groups"
           >
             <Users className="h-4 w-4" />
-            My Groups
+            GZGroups
           </DropdownMenuItem>
 
           <DropdownMenuItem

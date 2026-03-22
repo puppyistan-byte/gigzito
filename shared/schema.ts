@@ -1023,7 +1023,7 @@ export type InsertGZMusicTrack = typeof gzMusicTracks.$inferInsert;
 export type GZMusicRating = typeof gzMusicRatings.$inferSelect;
 export type GZMusicComment = typeof gzMusicComments.$inferSelect;
 
-// ─── GIGZITO GROUPS ──────────────────────────────────────────────────────────
+// ─── GZGROUPS ────────────────────────────────────────────────────────────────
 
 export const groups = pgTable("groups", {
   id: serial("id").primaryKey(),

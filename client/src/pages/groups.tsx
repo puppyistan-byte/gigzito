@@ -62,7 +62,7 @@ export default function GroupsPage() {
 
   if (!user) return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-muted-foreground">Please log in to access Groups.</p>
+      <p className="text-muted-foreground">Please log in to access GZGroups.</p>
     </div>
   );
 
@@ -73,7 +73,7 @@ export default function GroupsPage() {
         <div className="flex items-center justify-between py-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Users className="w-6 h-6 text-red-500" /> Gigzito Groups
+              <Users className="w-6 h-6 text-red-500" /> GZGroups
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Private clubhouses for your team, crew, or community</p>
           </div>
@@ -84,7 +84,7 @@ export default function GroupsPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>Create a New Group</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create a New GZGroup</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div>
                   <label className="text-sm font-medium">Group Name *</label>
