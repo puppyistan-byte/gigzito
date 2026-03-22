@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare } from "lucide-react";
+import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight } from "lucide-react";
 
 type GroupCard = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -61,8 +61,135 @@ export default function GroupsPage() {
   });
 
   if (!user) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-muted-foreground">Please log in to access GZGroups.</p>
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+
+      {/* ── Hero ── */}
+      <div className="relative flex flex-col items-center justify-center text-center px-6 pt-28 pb-20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-red-950/60 via-black to-black pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-red-700/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+            <Zap className="w-3 h-3" /> Now live on Gigzito
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight mb-4">
+            Build Your Tribe.<br />
+            <span className="text-red-500">Not Your Monthly Bill.</span>
+          </h1>
+          <p className="text-zinc-400 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
+            Most group platforms treat your community like a product — charging you more as you grow. GZGroups gives you a high-performance, all-in-one dashboard so you can focus on connection, not cost.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              data-testid="button-landing-login"
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-base font-semibold rounded-xl gap-2"
+              onClick={() => navigate("/auth")}
+            >
+              Get Started Free <ArrowRight className="w-4 h-4" />
+            </Button>
+            <Button
+              data-testid="button-landing-signin"
+              variant="outline"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-900 px-8 py-3 text-base rounded-xl"
+              onClick={() => navigate("/auth")}
+            >
+              Sign In
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Feature Grid ── */}
+      <div className="max-w-5xl mx-auto px-6 pb-20">
+        <h2 className="text-center text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-10">
+          Everything Your Group Needs — Without the Upsell
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            {
+              icon: <Calendar className="w-5 h-5 text-blue-400" />,
+              bg: "from-blue-950/50 to-black",
+              border: "border-blue-900/40",
+              title: "Group Calendar",
+              body: "A centralized source of truth. Schedule events, manage RSVPs, and keep every member on the same page — in one view.",
+            },
+            {
+              icon: <Image className="w-5 h-5 text-pink-400" />,
+              bg: "from-pink-950/50 to-black",
+              border: "border-pink-900/40",
+              title: "Media Vault",
+              body: "Share high-resolution photos and videos from your latest meetups. No more hunting through fragmented social threads.",
+            },
+            {
+              icon: <Users className="w-5 h-5 text-green-400" />,
+              bg: "from-green-950/50 to-black",
+              border: "border-green-900/40",
+              title: "Member Dashboard",
+              body: "A live pulse for your group. Post updates, share documents, and keep everyone aligned on group goals.",
+            },
+            {
+              icon: <Bell className="w-5 h-5 text-yellow-400" />,
+              bg: "from-yellow-950/50 to-black",
+              border: "border-yellow-900/40",
+              title: "Intelligent Notifications",
+              body: "Fully integrated Email and SMS alerts for every event and enrollment. Members stay informed without checking an app 20 times a day.",
+            },
+            {
+              icon: <KanbanSquare className="w-5 h-5 text-amber-400" />,
+              bg: "from-amber-950/50 to-black",
+              border: "border-amber-900/40",
+              title: "Kanban Board",
+              body: "Keep your group's projects moving. Drag tasks from To Do → In Progress → Done with a visual board built right in.",
+            },
+            {
+              icon: <Shield className="w-5 h-5 text-red-400" />,
+              bg: "from-red-950/50 to-black",
+              border: "border-red-900/40",
+              title: "Private Clubhouses",
+              body: "Invite-only groups with role-based access. Your conversations, your members, your rules. No outside noise.",
+            },
+          ].map((f) => (
+            <div key={f.title} className={`rounded-2xl border ${f.border} bg-gradient-to-br ${f.bg} p-5 flex flex-col gap-3`}>
+              <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
+                {f.icon}
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm mb-1">{f.title}</h3>
+                <p className="text-zinc-500 text-sm leading-relaxed">{f.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Stats Bar ── */}
+      <div className="border-t border-zinc-900 bg-zinc-950">
+        <div className="max-w-4xl mx-auto px-6 py-10 grid grid-cols-3 gap-6 text-center">
+          {[
+            { value: "5", label: "Tools in one dashboard" },
+            { value: "∞", label: "Members per group" },
+            { value: "$0", label: "Extra cost to grow" },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="text-3xl font-extrabold text-red-500 mb-1">{s.value}</p>
+              <p className="text-xs text-zinc-500">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Bottom CTA ── */}
+      <div className="text-center px-6 py-20 bg-gradient-to-b from-zinc-950 to-black">
+        <Target className="w-8 h-8 text-red-500 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold mb-3">Ready to lead your community?</h2>
+        <p className="text-zinc-500 mb-6 text-sm">Create your first GZGroup in under 60 seconds.</p>
+        <Button
+          data-testid="button-landing-cta"
+          className="bg-red-600 hover:bg-red-700 text-white px-10 py-3 text-base font-semibold rounded-xl gap-2"
+          onClick={() => navigate("/auth")}
+        >
+          Start for Free <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 
