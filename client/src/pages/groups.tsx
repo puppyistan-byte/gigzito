@@ -242,29 +242,32 @@ export default function GroupsPage() {
         </div>
 
         {/* ── Marketing Hero ── */}
-        <div className="mb-8 rounded-2xl overflow-hidden border bg-gradient-to-br from-zinc-900 to-black">
-          <div className="px-5 pt-6 pb-4">
-            <h2 className="text-lg font-bold text-white leading-tight">Build Your Tribe. Not Your Monthly Bill.</h2>
-            <p className="text-sm text-zinc-400 mt-1.5 leading-relaxed">
+        <div className="mb-8 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #1a0a0a 0%, #0f0f0f 50%, #0a0a1a 100%)", border: "1px solid rgba(220,38,38,0.35)" }}>
+          <div className="px-5 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <span style={{ background: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.4)", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: "#f87171" }}>GZGroups</span>
+            </div>
+            <h2 className="text-xl font-extrabold leading-tight" style={{ color: "#ffffff" }}>Build Your Tribe. Not Your Monthly Bill.</h2>
+            <p className="text-sm mt-2 leading-relaxed" style={{ color: "#a1a1aa" }}>
               Most group platforms treat your community like a product, charging you more as you grow. At Gigzito, we believe your focus should be on the connection, not the cost — a high-performance, all-in-one dashboard for groups who want to lead, not just subscribe.
             </p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-white/10 border-t border-white/10">
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             {[
-              { icon: <Calendar className="w-4 h-4 text-blue-400" />, label: "Group Calendar", desc: "Schedule events, sync RSVPs, one source of truth." },
-              { icon: <Image className="w-4 h-4 text-pink-400" />, label: "Media Vault", desc: "Share hi-res photos & videos from every meetup." },
-              { icon: <Users className="w-4 h-4 text-green-400" />, label: "Member Dashboard", desc: "Live pulse for updates, docs, and group goals." },
-              { icon: <KanbanSquare className="w-4 h-4 text-amber-400" />, label: "Kanban Board", desc: "Move tasks from To Do → In Progress → Done." },
-            ].map((f) => (
-              <div key={f.label} className="px-4 py-3 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">{f.icon}<span className="text-xs font-semibold text-white">{f.label}</span></div>
-                <p className="text-xs text-zinc-500 leading-snug">{f.desc}</p>
+              { icon: <Calendar className="w-4 h-4" style={{ color: "#60a5fa" }} />, label: "Group Calendar", desc: "Schedule events, sync RSVPs, one source of truth." },
+              { icon: <Image className="w-4 h-4" style={{ color: "#f472b6" }} />, label: "Media Vault", desc: "Share hi-res photos & videos from every meetup." },
+              { icon: <Users className="w-4 h-4" style={{ color: "#4ade80" }} />, label: "Member Dashboard", desc: "Live pulse for updates, docs, and group goals." },
+              { icon: <KanbanSquare className="w-4 h-4" style={{ color: "#fbbf24" }} />, label: "Kanban Board", desc: "Move tasks from To Do → In Progress → Done." },
+            ].map((f, i) => (
+              <div key={f.label} className="px-4 py-3 flex flex-col gap-1" style={{ borderRight: i < 3 ? "1px solid rgba(255,255,255,0.07)" : "none", borderTop: i >= 2 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
+                <div className="flex items-center gap-1.5">{f.icon}<span className="text-xs font-semibold" style={{ color: "#f4f4f5" }}>{f.label}</span></div>
+                <p className="text-xs leading-snug" style={{ color: "#71717a" }}>{f.desc}</p>
               </div>
             ))}
           </div>
-          <div className="px-5 py-3 border-t border-white/10 flex items-center gap-2">
-            <Bell className="w-3.5 h-3.5 text-zinc-500" />
-            <p className="text-xs text-zinc-500">Intelligent Email & SMS notifications keep every member aligned — no app-checking required.</p>
+          <div className="px-5 py-3 flex items-center gap-2">
+            <Bell className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
+            <p className="text-xs" style={{ color: "#71717a" }}>Intelligent Email & SMS notifications keep every member aligned — no app-checking required.</p>
           </div>
         </div>
 
