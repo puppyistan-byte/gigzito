@@ -29,6 +29,9 @@ const VERTICALS = [
   { value: "FOR_SALE",        label: "For Sale",          icon: "🏷️" },
   { value: "LAIH",            label: "Life As It Happens",icon: "📱" },
   { value: "RANDOMNESS",      label: "Randomness",        icon: "🎲" },
+  { value: "HEALTH",          label: "Health",            icon: "💪" },
+  { value: "SCIENCE",         label: "Science",           icon: "🔬" },
+  { value: "RANTS",           label: "Rants",             icon: "🔥" },
 ];
 
 const CTA_TYPES: { value: CtaType; label: string; description: string }[] = [

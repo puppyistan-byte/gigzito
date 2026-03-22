@@ -18,6 +18,9 @@ const CATEGORIES = [
   { key: "ALL",           label: "All Videos" },
   { key: "LAIH",         label: "LAIH" },
   { key: "RANDOMNESS",   label: "Randomness" },
+  { key: "HEALTH",       label: "Health" },
+  { key: "SCIENCE",      label: "Science" },
+  { key: "RANTS",        label: "Rants" },
   { key: "MUSIC",        label: "Music" },
   { key: "MUSIC_GIGS",   label: "Music Gigs" },
   { key: "EVENTS",       label: "Events" },
@@ -260,6 +263,9 @@ export default function HomePage() {
     PRODUCTS:        "cat-bg-marketing",
     LAIH:            "cat-bg-influencers",
     RANDOMNESS:      "cat-bg-events",
+    HEALTH:          "cat-bg-coaching",
+    SCIENCE:         "cat-bg-crypto",
+    RANTS:           "cat-bg-flash",
   };
   const activeBgClass = categoryBgClass[activeVertical] ?? "cat-bg-all";
 
