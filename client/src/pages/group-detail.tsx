@@ -776,7 +776,6 @@ export default function GroupDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", description: "", isPrivate: true });
   const [bannerUploading, setBannerUploading] = useState(false);
-  const bannerRef = useRef<HTMLInputElement>(null);
 
   const myUserId = user?.user?.id ?? 0;
 
@@ -815,7 +814,8 @@ export default function GroupDetailPage() {
       toast({ title: "Failed to upload banner", variant: "destructive" });
     } finally {
       setBannerUploading(false);
-      if (bannerRef.current) bannerRef.current.value = "";
+      const inp = document.getElementById("banner-upload") as HTMLInputElement | null;
+      if (inp) inp.value = "";
     }
   };
 
@@ -867,10 +867,16 @@ export default function GroupDetailPage() {
           {/* Admin: hover overlay to upload banner */}
           {isAdmin && (
             <>
-              <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
-              <div
+              <input
+                id="banner-upload"
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={handleBannerUpload}
+              />
+              <label
+                htmlFor="banner-upload"
                 className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/banner:opacity-100 transition-opacity cursor-pointer z-10"
-                onClick={() => bannerRef.current?.click()}
               >
                 {bannerUploading ? (
                   <div className="text-white text-sm font-medium">Uploading…</div>
@@ -880,7 +886,7 @@ export default function GroupDetailPage() {
                     <span className="text-sm font-medium">Change Banner Photo</span>
                   </div>
                 )}
-              </div>
+              </label>
             </>
           )}
 
