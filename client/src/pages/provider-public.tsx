@@ -590,7 +590,7 @@ export default function ProviderPublicPage() {
                         size="sm"
                         onClick={() => wallMutation.mutate()}
                         disabled={!wallMessage.trim() || wallMutation.isPending}
-                        className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white rounded-xl h-8 px-4 text-xs font-bold"
+                        className="bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] rounded-xl h-8 px-4 text-xs font-bold backdrop-blur-sm transition-colors"
                         data-testid="button-post-wall"
                       >
                         {wallMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}

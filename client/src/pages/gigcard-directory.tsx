@@ -120,7 +120,7 @@ function GigCard({ listing }: { listing: ListingWithProvider }) {
               rel="noopener noreferrer"
               className="flex-1"
             >
-              <Button size="sm" className="w-full bg-[#ff2b2b] hover:bg-[#cc0000] text-white text-xs gap-1.5" data-testid={`button-gigcard-cta-${listing.id}`}>
+              <Button size="sm" className="w-full bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] text-xs gap-1.5 backdrop-blur-sm transition-all" data-testid={`button-gigcard-cta-${listing.id}`}>
                 <ExternalLink className="h-3 w-3" />
                 {listing.ctaLabel ?? "Learn More"}
               </Button>

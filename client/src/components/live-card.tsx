@@ -188,7 +188,7 @@ export function LiveCard({ session, compact = false }: LiveCardProps) {
             </div>
             <Button
               size="sm"
-              className="h-8 px-4 bg-[#ff2b2b] hover:bg-[#e01e1e] text-white rounded-full font-bold text-xs border-0 group-hover:shadow-[0_0_12px_rgba(255,43,43,0.5)] transition-shadow"
+              className="h-8 px-4 bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] rounded-full font-bold text-xs backdrop-blur-sm group-hover:shadow-[0_0_12px_rgba(255,43,43,0.35)] transition-all"
               data-testid={`button-join-live-${session.id}`}
             >
               <ExternalLink className="w-3 h-3 mr-1.5" />

@@ -235,11 +235,11 @@ function ProductBlock({ price, purchaseUrl, stock, onGuestAction }: { price?: st
       )}
       {purchaseUrl && (
         onGuestAction ? (
-          <Button size="sm" onClick={onGuestAction} className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1" data-testid="button-buy-product">
+          <Button size="sm" onClick={onGuestAction} className="bg-orange-500/20 hover:bg-orange-500/35 text-white border border-orange-500/70 hover:border-orange-400 h-7 px-3 rounded-full font-bold text-xs gap-1 backdrop-blur-sm" data-testid="button-buy-product">
             <ShoppingCart className="w-3 h-3" /> Buy Now
           </Button>
         ) : (
-          <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white border-0 h-7 px-3 rounded-full font-bold text-xs gap-1" asChild data-testid="button-buy-product">
+          <Button size="sm" className="bg-orange-500/20 hover:bg-orange-500/35 text-white border border-orange-500/70 hover:border-orange-400 h-7 px-3 rounded-full font-bold text-xs gap-1 backdrop-blur-sm" asChild data-testid="button-buy-product">
             <a href={purchaseUrl} target="_blank" rel="noopener noreferrer">
               <ShoppingCart className="w-3 h-3" /> Buy Now
             </a>
@@ -856,7 +856,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             <div className="flex items-center gap-2" style={{ paddingRight: "64px", position: "relative" }}>
               <button
                 onClick={handleCtaClick}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-[#c41414] hover:bg-[#a51010] text-white h-8 rounded-full font-bold text-xs transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 border border-[#ff2b2b]/70 hover:border-[#ff2b2b] text-white h-8 rounded-full font-bold text-xs transition-colors backdrop-blur-sm"
                 data-testid={`button-inquire-${listing.id}`}
               >
                 {isShopProduct ? <ShoppingCart className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}

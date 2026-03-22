@@ -132,7 +132,7 @@ function EventCard({ event, onDelete, isAdmin, isOwner }: EventCardProps) {
       <div className="flex gap-2 pt-1">
         {event.liveUrl && (
           <a href={event.liveUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="h-7 text-[10px] bg-[#ff2b2b] hover:bg-[#e01e1e] text-white rounded-lg px-3" data-testid={`button-join-event-${event.id}`}>
+            <Button size="sm" className="h-7 text-[10px] bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] rounded-lg px-3 backdrop-blur-sm transition-all" data-testid={`button-join-event-${event.id}`}>
               <ExternalLink className="w-3 h-3 mr-1" /> Join Live
             </Button>
           </a>
@@ -269,7 +269,7 @@ function BookingForm({ selectedDate, onClose, onSuccess, user, profile }: Bookin
       <Button
         onClick={() => createMutation.mutate()}
         disabled={createMutation.isPending || !title.trim() || !hostName.trim()}
-        className="w-full bg-[#ff2b2b] hover:bg-[#e01e1e] text-white font-bold rounded-xl h-10"
+        className="w-full bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] font-bold rounded-xl h-10 backdrop-blur-sm transition-all"
         data-testid="button-submit-event"
       >
         {createMutation.isPending
@@ -422,7 +422,7 @@ function InjectFrameModal({ activeFeed, onClose }: { activeFeed: InjectedFeed | 
           <Button
             onClick={() => injectMutation.mutate()}
             disabled={injectMutation.isPending || !sourceUrl.trim()}
-            className="flex-1 bg-[#ff2b2b] hover:bg-[#e01e1e] text-white font-bold h-9 text-sm"
+            className="flex-1 bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] font-bold h-9 text-sm backdrop-blur-sm transition-all"
             data-testid="button-submit-inject"
           >
             {injectMutation.isPending
@@ -547,7 +547,7 @@ export default function ZitoTVPage() {
           <Button
             onClick={handleBookClick}
             size="sm"
-            className="bg-[#ff2b2b] hover:bg-[#e01e1e] text-white text-xs font-bold rounded-full px-3 h-8"
+            className="bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] text-xs font-bold rounded-full px-3 h-8 backdrop-blur-sm transition-all"
             data-testid="button-book-event"
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Book a Live Event
