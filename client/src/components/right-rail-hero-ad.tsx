@@ -259,7 +259,7 @@ export function RightRailHeroAd() {
   return (
     <>
       <div
-        style={{ position: "fixed", top: "50%", right: "328px", transform: "translateY(-50%)", width: "285px", zIndex: 9999, flexDirection: "column", gap: "0px" }}
+        style={{ position: "fixed", top: "50%", right: "420px", transform: "translateY(-50%)", width: "285px", zIndex: 9999, flexDirection: "column", gap: "0px" }}
         className="gigzito-sponsor-zone hidden xl:flex"
         data-testid="right-rail-ad"
       >
