@@ -40,3 +40,11 @@ waitForPort = 5000
 
 [agent]
 integrations = ["github:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+SMTP_HOST = "smtp-relay.brevo.com"
+SMTP_PORT = "587"
+SMTP_USER = "a48fc0001@smtp-brevo.com"
+SMTP_FROM = "Gigzito <noreply@gigzito.com>"
