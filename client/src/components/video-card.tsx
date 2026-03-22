@@ -396,6 +396,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
   const playSeconds = Math.min(listing.durationSeconds ?? MAX_PLAY_SECONDS, MAX_PLAY_SECONDS);
 
+  // Always-fresh ref so the timer closure never goes stale
+  const onEndRef = useRef(onEnd);
+  useEffect(() => { onEndRef.current = onEnd; }, [onEnd]);
+
   // Reset error states when switching videos
   useEffect(() => {
     setVideoBlocked(false);
@@ -460,7 +464,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
         endCalledRef.current = true;
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = null;
-        onEnd?.();
+        onEndRef.current?.();
       }
     }, 200);
     return () => {

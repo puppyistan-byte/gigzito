@@ -134,7 +134,7 @@ export default function HomePage() {
   useEffect(() => { listingsLenRef.current = listings.length; }, [listings]);
 
   // Programmatic scroll: set scrollTop directly so the snap math is exact
-  const scrollToIndex = useCallback((idx: number) => {
+  const scrollToIndex = useCallback((idx: number, opts: { instant?: boolean } = {}) => {
     const container = feedRef.current;
     if (!container) return;
     const h = container.clientHeight;
@@ -143,16 +143,19 @@ export default function HomePage() {
     currentIdxRef.current = clamped;
     setCurrentIndex(clamped);
     isScrollingRef.current = true;
-    container.scrollTo({ top: clamped * h, behavior: "smooth" });
+    if (opts.instant) {
+      container.scrollTop = clamped * h;
+      setTimeout(() => { isScrollingRef.current = false; }, 100);
+    } else {
+      container.scrollTo({ top: clamped * h, behavior: "smooth" });
+      setTimeout(() => { isScrollingRef.current = false; }, 600);
+    }
     // When user explicitly navigates to a new card, resume the feed
-    // Also unmute feed and mute ZitoTV so only one audio source plays
     if (feedPausedRef.current) {
       feedPausedRef.current = false;
       setFeedPaused(false);
       handleMuteChange(false);
     }
-    // Clear the "scrolling" flag after the animation completes
-    setTimeout(() => { isScrollingRef.current = false; }, 600);
   }, []);
 
   // Wheel handler on window — intercepts before iframes can swallow events
@@ -577,7 +580,7 @@ export default function HomePage() {
                 initialIsLiked={batchFetched ? (batchLikes[listing.id] ?? false) : undefined}
                 suppressLikeQuery={listingIds.length > 0}
                 onEnd={() => {
-                  scrollToIndex(idx < listings.length - 1 ? idx + 1 : 0);
+                  scrollToIndex(idx < listings.length - 1 ? idx + 1 : 0, { instant: true });
                 }}
               />
               {feedPaused && idx === currentIndex && (
