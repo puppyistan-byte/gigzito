@@ -345,6 +345,15 @@ export default function ProviderProfilePage() {
     onError: () => toast({ title: "Error ending stream", variant: "destructive" }),
   });
 
+  const myUserId = (user as any)?.user?.id as number | undefined;
+
+  const { data: followCounts } = useQuery<{ followerCount: number; followingCount: number }>({
+    queryKey: ["/api/geezee-follows/counts", myUserId],
+    queryFn: () => fetch(`/api/geezee-follows/counts/${myUserId}`).then(r => r.json()),
+    enabled: !!myUserId,
+    staleTime: 30_000,
+  });
+
   const set = (field: keyof FormState, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -431,6 +440,31 @@ export default function ProviderProfilePage() {
         </div>
 
         <ProfileCard profile={previewProfile} />
+
+        {/* Follower / Following stats — same data as GeeZee cards & public profile */}
+        <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] px-4 py-3 flex items-center gap-6" data-testid="section-follow-stats">
+          <Link href={`/provider/me`}>
+            <div className="flex flex-col items-center cursor-pointer group" data-testid="stat-followers">
+              <span className="text-white font-bold text-lg group-hover:text-[#ff3333] transition-colors" data-testid="text-follower-count">
+                {(followCounts?.followerCount ?? 0).toLocaleString()}
+              </span>
+              <span className="text-[#555] text-xs uppercase tracking-widest">Followers</span>
+            </div>
+          </Link>
+          <div className="w-px h-8 bg-[#1e1e1e]" />
+          <Link href={`/provider/me`}>
+            <div className="flex flex-col items-center cursor-pointer group" data-testid="stat-following">
+              <span className="text-white font-bold text-lg group-hover:text-[#ff3333] transition-colors" data-testid="text-following-count">
+                {(followCounts?.followingCount ?? 0).toLocaleString()}
+              </span>
+              <span className="text-[#555] text-xs uppercase tracking-widest">Following</span>
+            </div>
+          </Link>
+          <div className="w-px h-8 bg-[#1e1e1e]" />
+          <div className="flex-1 text-right">
+            <span className="text-[#444] text-xs">Followers are shared across your GeeZee cards &amp; video feed</span>
+          </div>
+        </div>
 
         <InviteCard />
 

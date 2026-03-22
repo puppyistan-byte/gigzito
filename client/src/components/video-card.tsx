@@ -280,7 +280,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
   const myUserId = (user as any)?.user?.id as number | undefined;
   const providerUserId = provider.userId as number | undefined;
-  const canFollow = !!myUserId && !!providerUserId && myUserId !== providerUserId;
+  const isOwnVideo = !!myUserId && myUserId === providerUserId;
+  const isLoggedIn = !!myUserId;
+  const canFollow = isLoggedIn && !!providerUserId && !isOwnVideo;
+  const showFollowBtn = !!providerUserId && !isOwnVideo;
 
   const { data: followStatus, refetch: refetchFollow } = useQuery<{ following: boolean }>({
     queryKey: ["/api/geezee-follows/status", providerUserId],
@@ -817,31 +820,38 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
           </div>
 
           {/* FOLLOW BUTTON */}
-          {canFollow && (
-            <button
-              onClick={() => followMutation.mutate()}
-              disabled={followMutation.isPending}
-              style={{
-                position: "absolute", bottom: 150, right: 12, zIndex: 30,
-                width: 44, height: 44, borderRadius: "50%",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: isFollowing ? "rgba(255,43,43,0.18)" : "rgba(255,43,43,0.85)",
-                backdropFilter: "blur(6px)",
-                border: isFollowing ? "1.5px solid rgba(255,43,43,0.5)" : "1.5px solid rgba(255,43,43,0.9)",
-                cursor: followMutation.isPending ? "default" : "pointer",
-                transition: "background 0.2s, border 0.2s, transform 0.15s",
-              }}
-              onMouseEnter={(e) => { if (!followMutation.isPending) (e.currentTarget as HTMLElement).style.transform = "scale(1.1)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
-              title={isFollowing ? "Unfollow" : "Follow"}
-              data-testid={`button-follow-${listing.id}`}
-            >
-              {followMutation.isPending
-                ? <Loader2 className="w-4 h-4 text-white animate-spin" />
-                : isFollowing
-                  ? <UserCheck className="w-4 h-4 text-[#ff6060]" />
-                  : <UserPlus className="w-4 h-4 text-white" />}
-            </button>
+          {showFollowBtn && (
+            <div style={{ position: "absolute", bottom: 150, right: 12, zIndex: 30, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+              <button
+                onClick={() => {
+                  if (!isLoggedIn) { setShowGuestModal(true); return; }
+                  followMutation.mutate();
+                }}
+                disabled={followMutation.isPending}
+                style={{
+                  width: 44, height: 44, borderRadius: "50%",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: isFollowing ? "rgba(255,43,43,0.18)" : "rgba(255,43,43,0.85)",
+                  backdropFilter: "blur(6px)",
+                  border: isFollowing ? "1.5px solid rgba(255,43,43,0.5)" : "1.5px solid rgba(255,43,43,0.9)",
+                  cursor: followMutation.isPending ? "default" : "pointer",
+                  transition: "background 0.2s, border 0.2s, transform 0.15s",
+                }}
+                onMouseEnter={(e) => { if (!followMutation.isPending) (e.currentTarget as HTMLElement).style.transform = "scale(1.1)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}
+                title={!isLoggedIn ? "Sign in to follow" : isFollowing ? "Unfollow" : "Follow"}
+                data-testid={`button-follow-${listing.id}`}
+              >
+                {followMutation.isPending
+                  ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  : isFollowing
+                    ? <UserCheck className="w-4 h-4 text-[#ff6060]" />
+                    : <UserPlus className="w-4 h-4 text-white" />}
+              </button>
+              <span style={{ fontSize: 10, color: isFollowing ? "#ff6060" : "rgba(255,255,255,0.75)", fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.9)", letterSpacing: 0.2 }}>
+                {isFollowing ? "Following" : "Follow"}
+              </span>
+            </div>
           )}
 
           {/* FLOATING CREATOR AVATAR */}
