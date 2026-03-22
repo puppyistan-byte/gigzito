@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import type { SponsorAd } from "@shared/schema";
  
 const ROTATION_MS = 5_000;
-const AD_VISIBLE = false; // set true to re-enable the ad frame
+const AD_VISIBLE = true; // desktop-only — hidden on mobile/tablet via className
 
 const FALLBACK_GRADIENTS = [
   "linear-gradient(135deg, #1a0a0a 0%, #3d0000 50%, #1a0a0a 100%)",
@@ -259,8 +259,8 @@ export function RightRailHeroAd() {
   return (
     <>
       <div
-        style={{ position: "fixed", top: "50%", right: "280px", transform: "translateY(-50%)", width: "285px", zIndex: 9999, display: "flex", flexDirection: "column", gap: "0px" }}
-        className="gigzito-sponsor-zone"
+        style={{ position: "fixed", top: "50%", right: "280px", transform: "translateY(-50%)", width: "285px", zIndex: 9999, flexDirection: "column", gap: "0px" }}
+        className="gigzito-sponsor-zone hidden xl:flex"
         data-testid="right-rail-ad"
       >
         {isProfileMode ? (
