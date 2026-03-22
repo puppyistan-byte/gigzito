@@ -641,7 +641,7 @@ export default function NewListingPage() {
             </div>
 
             {/* CTA section — uses inline chips (no portal/Select overlay) to avoid mobile click-through bug */}
-            <div className="space-y-3">
+            <div className="space-y-3" ref={ctaFunnelRef}>
               <div className="space-y-2">
                 <Label className="text-[#aaa] text-sm">CTA Type <span className="text-[#555] font-normal">(optional)</span></Label>
                 <div className="flex flex-wrap gap-2" data-testid="cta-type-chips">
@@ -652,7 +652,7 @@ export default function NewListingPage() {
                       onClick={() => {
                         set("ctaType", c.value);
                         if (!c.value) { set("ctaUrl", ""); setCtaFunnelMode("url"); }
-                        else { setTimeout(() => ctaFunnelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80); }
+                        else { setTimeout(() => ctaFunnelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
                       style={{
@@ -674,7 +674,7 @@ export default function NewListingPage() {
               </div>
 
               {form.ctaType && (
-                <div className="space-y-2" ref={ctaFunnelRef}>
+                <div className="space-y-2">
                   {/* Profile vs URL funnel toggle */}
                   <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="cta-funnel-toggle">
                     <button
