@@ -45,15 +45,25 @@ export default function GroupsPage() {
   });
 
   const createMut = useMutation({
-    mutationFn: (d: typeof form) => apiRequest("POST", "/api/groups", d),
-    onSuccess: async (res) => {
-      const group = await res.json();
+    mutationFn: async (d: typeof form) => {
+      const res = await apiRequest("POST", "/api/groups", d);
+      return res.json() as Promise<{ id: number; name: string }>;
+    },
+    onSuccess: (group) => {
       qc.invalidateQueries({ queryKey: ["/api/groups"] });
       setCreateOpen(false);
       setForm({ name: "", description: "", isPrivate: true });
       navigate(`/groups/${group.id}`);
     },
-    onError: () => toast({ title: "Failed to create group", variant: "destructive" }),
+    onError: (err: any) => {
+      const msg = err?.message ?? "";
+      if (msg.startsWith("401")) {
+        toast({ title: "Session expired", description: "Please sign in again to create a group.", variant: "destructive" });
+        navigate("/auth");
+      } else {
+        toast({ title: "Failed to create group", description: msg.replace(/^\d+:\s*/, "") || "Please try again.", variant: "destructive" });
+      }
+    },
   });
 
   const respondMut = useMutation({

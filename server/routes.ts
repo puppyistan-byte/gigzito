@@ -4147,7 +4147,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const { name, description, coverUrl, isPrivate } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
     try { return res.status(201).json(await storage.createGroup({ name: name.trim(), description, coverUrl, isPrivate }, userId)); }
-    catch (e) { return res.status(500).json({ message: "Server error" }); }
+    catch (e: any) { console.error("[createGroup error]", e?.message, e?.stack?.split("\n")[1]); return res.status(500).json({ message: e?.message ?? "Server error" }); }
   });
 
   app.get("/api/groups/:id", async (req, res) => {
