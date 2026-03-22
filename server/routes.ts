@@ -2243,6 +2243,42 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ success: true });
   });
 
+  app.post("/api/admin/test-smtp", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    const adminUserId = (req.session as any).userId;
+    const adminUser = await storage.getUserById(adminUserId);
+    if (!adminUser) return res.status(404).json({ message: "User not found" });
+    const toEmail = req.body?.email || adminUser.email;
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPort = process.env.SMTP_PORT ?? "587";
+    if (!smtpHost) {
+      return res.json({
+        ok: false,
+        devMode: true,
+        message: "No SMTP configured — running in dev mode. Set SMTP_HOST, SMTP_USER, SMTP_PASS secrets to enable real email.",
+        config: { host: null, port: smtpPort, user: null },
+      });
+    }
+    try {
+      await sendEmail({
+        toEmail,
+        subject: "Gigzito SMTP Test",
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
+          <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
+          <h2 style="color:#ff2b2b;margin:0 0 12px;">SMTP Test</h2>
+          <p style="color:#aaa;font-size:14px;margin:0 0 8px;">This is a test email sent from the Gigzito admin panel.</p>
+          <p style="color:#555;font-size:12px;margin:0;">Sent at ${new Date().toISOString()} via ${smtpHost}:${smtpPort} (user: ${smtpUser ?? "n/a"})</p>
+        </div>`,
+        text: `Gigzito SMTP test email sent at ${new Date().toISOString()} via ${smtpHost}`,
+      });
+      return res.json({ ok: true, devMode: false, toEmail, config: { host: smtpHost, port: smtpPort, user: smtpUser } });
+    } catch (err: any) {
+      console.error("[test-smtp] Error:", err);
+      return res.status(500).json({ ok: false, message: err.message, config: { host: smtpHost, port: smtpPort, user: smtpUser } });
+    }
+  });
+
   app.delete("/api/admin/listings/:id", async (req, res) => {
     if (!requireContentAdmin(req, res)) return;
     const id = parseInt(req.params.id);

@@ -233,6 +233,9 @@ export default function AdminPage() {
   const [notifMessage, setNotifMessage] = useState("");
   const [notifGigzitoAll, setNotifGigzitoAll] = useState(true);
   const [notifResult, setNotifResult] = useState<{ sent: number; failed: number; total: number; devMode: boolean } | null>(null);
+  const [smtpTestEmail, setSmtpTestEmail] = useState("");
+  const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; devMode?: boolean; message?: string; toEmail?: string; config?: { host: string | null; port: string; user: string | null } } | null>(null);
+  const [smtpTestLoading, setSmtpTestLoading] = useState(false);
 
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
@@ -3022,6 +3025,59 @@ export default function AdminPage() {
                   : <><Send className="h-4 w-4 mr-2" />Send to {notifGigzitoAll && notifRecipients ? `${notifRecipients.count.toLocaleString()} Members` : "Members"}</>}
               </Button>
             </div>
+          </div>
+
+          {/* SMTP Test */}
+          <div className="border border-[#1e1e1e] rounded-xl p-4 mt-2 space-y-3">
+            <p className="text-xs font-semibold text-[#888] uppercase tracking-wider flex items-center gap-2">
+              <span>SMTP Test</span>
+            </p>
+            <div className="flex gap-2">
+              <Input
+                value={smtpTestEmail}
+                onChange={(e) => setSmtpTestEmail(e.target.value)}
+                placeholder="Send test email to… (blank = your admin email)"
+                className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#444] text-sm flex-1"
+                data-testid="input-smtp-test-email"
+              />
+              <Button
+                onClick={async () => {
+                  setSmtpTestLoading(true);
+                  setSmtpTestResult(null);
+                  try {
+                    const res = await fetch("/api/admin/test-smtp", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email: smtpTestEmail || undefined }),
+                    });
+                    const data = await res.json();
+                    setSmtpTestResult(data);
+                  } catch (e: any) {
+                    setSmtpTestResult({ ok: false, message: e.message });
+                  } finally {
+                    setSmtpTestLoading(false);
+                  }
+                }}
+                disabled={smtpTestLoading}
+                className="bg-[#1a1a1a] border border-[#333] text-white hover:border-[#ff2b2b]/50 shrink-0"
+                data-testid="btn-smtp-test"
+              >
+                {smtpTestLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Send Test"}
+              </Button>
+            </div>
+            {smtpTestResult && (
+              <div className={`rounded-lg px-3 py-2.5 text-xs font-mono ${smtpTestResult.ok ? "bg-green-500/10 border border-green-500/20 text-green-400" : "bg-red-500/10 border border-red-500/20 text-red-400"}`}
+                data-testid="text-smtp-test-result"
+              >
+                {smtpTestResult.ok ? (
+                  <>✓ Test email sent to <strong>{smtpTestResult.toEmail}</strong> via {smtpTestResult.config?.host}:{smtpTestResult.config?.port}</>
+                ) : smtpTestResult.devMode ? (
+                  <><span className="text-amber-400">⚠ Dev mode —</span> {smtpTestResult.message}</>
+                ) : (
+                  <>✗ {smtpTestResult.message}</>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Dev mode note */}
