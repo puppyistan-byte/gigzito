@@ -2662,6 +2662,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.get("/api/stats/user-count", async (_req, res) => {
+    try {
+      const count = await storage.getUserCount();
+      return res.json({ count });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   app.get("/api/engagement/leaderboard", async (_req, res) => {
     try {
       const entries = await storage.getTotalEngagementLeaderboard(20);

@@ -37,6 +37,7 @@ export interface IStorage {
   getAllListingsWithProviders(): Promise<ListingWithProvider[]>;
   getTodayRevenue(): Promise<number>;
   getAllUsers(): Promise<UserWithProfile[]>;
+  getUserCount(): Promise<number>;
   updateUserStatus(id: number, status: "active" | "disabled"): Promise<User | undefined>;
   updateUserRole(id: number, role: string): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
@@ -521,6 +522,11 @@ export class DatabaseStorage implements IStorage {
     const profiles = await db.select().from(providerProfiles);
     const profileMap = new Map(profiles.map((p) => [p.userId, p]));
     return rows.map((u) => ({ ...u, profile: profileMap.get(u.id) ?? null }));
+  }
+
+  async getUserCount(): Promise<number> {
+    const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+    return row?.count ?? 0;
   }
 
   async updateUserStatus(id: number, status: "active" | "disabled"): Promise<User | undefined> {

@@ -137,6 +137,12 @@ export default function HomePage() {
   });
 
   const listingIds = listings.map((l) => l.id);
+  const { data: userCountData } = useQuery<{ count: number }>({
+    queryKey: ["/api/stats/user-count"],
+    staleTime: 60_000,
+  });
+  const userCount = userCountData?.count ?? 0;
+
   const { data: batchLikes = {}, isFetched: batchFetched } = useQuery<Record<number, boolean>>({
     queryKey: ["/api/videos/likes/batch", listingIds.join(",")],
     queryFn: async () => {
@@ -759,6 +765,17 @@ export default function HomePage() {
       )}
 
 
+
+      {/* Registered user count badge — bottom-right */}
+      <button
+        data-testid="button-user-count"
+        title={`${userCount.toLocaleString()} registered users`}
+        className="fixed bottom-20 right-4 z-50 h-10 w-10 rounded-full bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 border border-[#ff2b2b]/60 hover:border-[#ff2b2b] backdrop-blur-sm flex items-center justify-center transition-colors cursor-default"
+      >
+        <span className="text-white font-bold leading-none" style={{ fontSize: userCount >= 1000 ? "9px" : "11px" }}>
+          {userCount >= 1000 ? `${(userCount / 1000).toFixed(1)}k` : userCount || "—"}
+        </span>
+      </button>
 
       <RightRailHeroAd />
     </div>
