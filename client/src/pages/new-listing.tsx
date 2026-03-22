@@ -399,29 +399,31 @@ export default function NewListingPage() {
             {postType === "VIDEO" && <div className="space-y-3">
               <Label className="text-[#aaa] text-sm">Video *</Label>
 
-              {/* Mode toggle */}
-              <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="video-mode-toggle">
-                <button
-                  type="button"
-                  onClick={() => { setVideoMode("url"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors"
-                  style={{ background: videoMode === "url" ? "rgba(255,43,43,0.15)" : "transparent", color: videoMode === "url" ? "#ff4444" : "#555", borderRight: "1px solid #2a2a2a" }}
-                  data-testid="toggle-url-mode"
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  URL Mirror
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setVideoMode("upload"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors"
-                  style={{ background: videoMode === "upload" ? "rgba(255,43,43,0.15)" : "transparent", color: videoMode === "upload" ? "#ff4444" : "#555" }}
-                  data-testid="toggle-upload-mode"
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Upload Video
-                </button>
-              </div>
+              {/* Mode toggle — hidden once a file is picked to prevent accidental reset via mis-tap */}
+              {!uploadedFileName && (
+                <div className="flex rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#0d0d0d]" data-testid="video-mode-toggle">
+                  <button
+                    type="button"
+                    onClick={() => { setVideoMode("url"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors"
+                    style={{ background: videoMode === "url" ? "rgba(255,43,43,0.15)" : "transparent", color: videoMode === "url" ? "#ff4444" : "#555", borderRight: "1px solid #2a2a2a" }}
+                    data-testid="toggle-url-mode"
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    URL Mirror
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setVideoMode("upload"); set("videoUrl", ""); setUploadProgress(null); setUploadedFileName(null); }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors"
+                    style={{ background: videoMode === "upload" ? "rgba(255,43,43,0.15)" : "transparent", color: videoMode === "upload" ? "#ff4444" : "#555" }}
+                    data-testid="toggle-upload-mode"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload Video
+                  </button>
+                </div>
+              )}
 
               {/* URL Mirror mode */}
               {videoMode === "url" && (
@@ -637,23 +639,31 @@ export default function NewListingPage() {
               />
             </div>
 
-            {/* CTA section */}
+            {/* CTA section — uses inline chips (no portal/Select overlay) to avoid mobile click-through bug */}
             <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-[#aaa] text-sm">CTA Type</Label>
-                <Select value={form.ctaType || "none"} onValueChange={(val) => set("ctaType", val === "none" ? "" : val)}>
-                  <SelectTrigger className="bg-[#111] border-[#2a2a2a] text-white focus:border-[#ff1a1a]" data-testid="select-cta-type">
-                    <SelectValue placeholder="No CTA (optional)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
-                    <SelectItem value="none" className="text-[#666] focus:bg-[#222]">No CTA</SelectItem>
-                    {CTA_TYPES.map((c) => (
-                      <SelectItem key={c.value} value={c.value} className="text-white focus:bg-[#222]">
-                        {c.value}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+                <Label className="text-[#aaa] text-sm">CTA Type <span className="text-[#555] font-normal">(optional)</span></Label>
+                <div className="flex flex-wrap gap-2" data-testid="cta-type-chips">
+                  {[{ value: "", label: "None" }, ...CTA_TYPES.map(c => ({ value: c.value, label: c.label }))].map((c) => (
+                    <button
+                      key={c.value || "none"}
+                      type="button"
+                      onClick={() => {
+                        set("ctaType", c.value);
+                        if (!c.value) { set("ctaUrl", ""); setCtaFunnelMode("url"); }
+                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
+                      style={{
+                        background: form.ctaType === c.value ? "rgba(255,43,43,0.15)" : "#0d0d0d",
+                        borderColor: form.ctaType === c.value ? "#ff4444" : "#2a2a2a",
+                        color: form.ctaType === c.value ? "#ff4444" : "#555",
+                      }}
+                      data-testid={`chip-cta-${c.value || "none"}`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
                 {selectedCta && (
                   <p className="text-xs text-[#555]">
                     Button will show: <span className="text-white font-semibold">"{selectedCta.label}"</span> — {selectedCta.description}
