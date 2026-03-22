@@ -8,7 +8,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_logo_1774147866824.png";
@@ -277,6 +277,37 @@ export default function HomePage() {
   return (
     <div className="app-shell flex flex-col h-screen overflow-hidden relative">
       <Navbar />
+
+      {/* GZGroups top-right button */}
+      <button
+        onClick={() => navigate("/groups")}
+        data-testid="button-gzgroups-topbar"
+        style={{
+          position: "fixed",
+          top: 10,
+          right: 168,
+          zIndex: 9997,
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          background: "rgba(0,10,30,0.70)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          border: "1px solid rgba(59,130,246,0.45)",
+          borderRadius: "999px",
+          padding: "6px 12px",
+          cursor: "pointer",
+          color: "#60a5fa",
+          fontSize: "11px",
+          fontWeight: 800,
+          letterSpacing: "0.04em",
+          whiteSpace: "nowrap",
+          boxShadow: "0 2px 10px rgba(59,130,246,0.18)",
+        }}
+      >
+        <Users style={{ width: 12, height: 12 }} />
+        GZGroups
+      </button>
 
       {/* Most Loved top-right button */}
       <button
