@@ -136,11 +136,19 @@ const VERTICALS = [
   { value: "PRODUCTS",        label: "Products" },
   { value: "FLASH_SALE",      label: "Flash Sale" },
   { value: "FLASH_COUPON",    label: "Flash Coupon" },
+  { value: "MUSIC",           label: "Music" },
   { value: "MUSIC_GIGS",      label: "Music Gigs" },
   { value: "EVENTS",          label: "Events" },
   { value: "CRYPTO",          label: "Crypto" },
   { value: "CORPORATE_DEALS", label: "Corporate Deals" },
   { value: "FOR_SALE",        label: "For Sale" },
+  { value: "LAIH",            label: "Life As It Happens" },
+  { value: "RANDOMNESS",      label: "Randomness" },
+  { value: "HEALTH",          label: "Health" },
+  { value: "SCIENCE",         label: "Science" },
+  { value: "RANTS",           label: "Rants" },
+  { value: "ARTISTS",         label: "Artists" },
+  { value: "BUSINESS",        label: "Business" },
 ];
 
 type FormState = {
@@ -455,16 +463,30 @@ export default function ProviderProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="primaryCategory" className="text-[#aaa] text-sm">Primary Category *</Label>
-                <Select value={form.primaryCategory} onValueChange={(v) => set("primaryCategory", v)}>
-                  <SelectTrigger className={`${inputCls}`} data-testid="select-primary-category">
-                    <SelectValue placeholder="Choose your niche" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-[#2a2a2a]">
-                    {VERTICALS.map((v) => (
-                      <SelectItem key={v.value} value={v.value} className="text-white focus:bg-[#222]">{v.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={form.primaryCategory}
+                  onChange={(e) => set("primaryCategory", e.target.value)}
+                  data-testid="select-primary-category"
+                  style={{
+                    width: "100%",
+                    background: "#111",
+                    border: "1px solid #2a2a2a",
+                    borderRadius: "6px",
+                    color: form.primaryCategory ? "#fff" : "#444",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                    outline: "none",
+                    appearance: "auto",
+                    WebkitAppearance: "auto",
+                  }}
+                >
+                  <option value="" disabled>Choose your niche</option>
+                  {VERTICALS.map((v) => (
+                    <option key={v.value} value={v.value} style={{ background: "#111", color: "#fff" }}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="location" className="text-[#aaa] text-sm">Location</Label>
