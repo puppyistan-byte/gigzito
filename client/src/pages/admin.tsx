@@ -1191,7 +1191,7 @@ export default function AdminPage() {
                       <SelectTrigger className="w-[110px] h-7 text-xs bg-[#111] border-[#2a2a2a] text-white" data-testid={`select-role-${u.id}`}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                         {availableRoles.map((r) => (
                           <SelectItem key={r} value={r} className="text-xs">
                             <span className="font-semibold">{ROLE_LABELS[r] ?? r}</span>
@@ -1213,7 +1213,7 @@ export default function AdminPage() {
                       <SelectTrigger className="w-[95px] h-7 text-xs bg-[#111] border-[#2a2a2a] text-white" data-testid={`select-tier-${u.id}`}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" onCloseAutoFocus={(e) => e.preventDefault()}>
                         {GZ_TIERS.map((t) => (
                           <SelectItem key={t} value={t} className="text-xs">
                             <span className={`font-bold ${GZ_TIER_COLORS[t]?.includes("blue") ? "text-blue-400" : GZ_TIER_COLORS[t]?.includes("purple") ? "text-purple-400" : GZ_TIER_COLORS[t]?.includes("amber") ? "text-amber-400" : "text-zinc-400"}`}>{t}</span>
