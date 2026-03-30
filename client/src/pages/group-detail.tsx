@@ -417,6 +417,19 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
     onError: (e: any) => toast({ title: "Could not invite", description: e.message, variant: "destructive" }),
   });
 
+  const emailInviteMut = useMutation({
+    mutationFn: (email: string) => apiRequest("POST", `/api/groups/${groupId}/invite/email`, { email }),
+    onSuccess: (data: any) => {
+      if (data.registered) {
+        toast({ title: "Invite sent!", description: "This user is on Gigzito — they've been invited and notified." });
+      } else {
+        toast({ title: "Email invite sent!", description: "They'll receive an email with a link to join Gigzito and the group." });
+      }
+      setSearch(""); setSearchResults([]);
+    },
+    onError: (e: any) => toast({ title: "Could not send email invite", description: e.message, variant: "destructive" }),
+  });
+
   const removeMut = useMutation({
     mutationFn: (uid: number) => apiRequest("DELETE", `/api/groups/${groupId}/members/${uid}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }),
@@ -481,6 +494,25 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
                     </Button>
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Email invite fallback — show when no users found and search looks like an email */}
+            {!searching && search.length > 3 && search.includes("@") && searchResults.length === 0 && (
+              <div className="border rounded-lg px-2.5 py-2 flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium leading-none truncate">{search}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Not on Gigzito yet — send an email invite</p>
+                </div>
+                <Button
+                  data-testid="button-email-invite"
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] px-2 border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+                  onClick={() => emailInviteMut.mutate(search)}
+                  disabled={emailInviteMut.isPending}
+                >
+                  <UserPlus className="w-3 h-3 mr-0.5" /> {emailInviteMut.isPending ? "Sending…" : "Email Invite"}
+                </Button>
               </div>
             )}
             <div className="flex items-center gap-2 text-xs">

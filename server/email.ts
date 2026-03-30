@@ -624,3 +624,38 @@ export async function sendMfaCode(toEmail: string, code: string): Promise<SendMf
 
   return { devMode: false };
 }
+
+export async function sendGroupInviteEmail(opts: {
+  toEmail: string;
+  groupName: string;
+  inviterName: string;
+  joinUrl: string;
+  isNewUser: boolean;
+}): Promise<{ devMode: boolean }> {
+  const { toEmail, groupName, inviterName, joinUrl, isNewUser } = opts;
+  const html = `
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{margin:0;padding:0;background:#0a0a0a;font-family:Arial,sans-serif;color:#e0e0e0}
+.wrap{max-width:520px;margin:0 auto;padding:32px 16px}
+.logo{font-size:28px;font-weight:900;color:#ff3333;letter-spacing:-1px;margin-bottom:4px}
+.sub{font-size:12px;color:#555;margin-bottom:32px}
+.card{background:#141414;border:1px solid #222;border-radius:12px;padding:28px}
+h2{margin:0 0 8px;font-size:20px;color:#fff}
+p{margin:12px 0;font-size:14px;line-height:1.6;color:#aaa}
+.btn{display:inline-block;margin-top:20px;padding:13px 28px;background:#ff3333;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px}
+.footer{margin-top:24px;font-size:11px;color:#444;text-align:center}
+</style></head><body>
+<div class="wrap">
+  <div class="logo">Gigzito</div>
+  <div class="sub">Getcho Gig On</div>
+  <div class="card">
+    <h2>You've been invited to join <span style="color:#ff3333">${groupName}</span></h2>
+    <p><strong style="color:#fff">${inviterName}</strong> invited you to join their private group on Gigzito.</p>
+    ${isNewUser ? `<p>You'll need to create a free Gigzito account first — it only takes a minute. Once you sign up, you'll be taken straight into the group.</p>` : `<p>Click below to accept your invitation and join the group.</p>`}
+    <a href="${joinUrl}" class="btn">${isNewUser ? "Create Account & Join Group" : "Accept Invitation"}</a>
+  </div>
+  <div class="footer">This invite expires in 7 days. If you didn't expect this email, you can ignore it.</div>
+</div>
+</body></html>`;
+  return sendEmail({ toEmail, subject: `${inviterName} invited you to ${groupName} on Gigzito`, html });
+}

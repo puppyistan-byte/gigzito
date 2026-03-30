@@ -42,6 +42,7 @@ import GZMusicUploadPage from "@/pages/gz-music-upload";
 import MostLovedPage from "@/pages/most-loved";
 import GroupsPage from "@/pages/groups";
 import GroupDetailPage from "@/pages/group-detail";
+import JoinGroupPage from "@/pages/join-group";
 
 function Router() {
   return (
@@ -82,6 +83,7 @@ function Router() {
       <Route path="/most-loved" component={MostLovedPage} />
       <Route path="/groups" component={GroupsPage} />
       <Route path="/groups/:id" component={GroupDetailPage} />
+      <Route path="/join-group/:token" component={JoinGroupPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -96,7 +98,7 @@ function SocketInitializer() {
 function AppShell() {
   const [location] = useLocation();
   const hideNavbarRoutes = ["/offer-center", "/gz-invite"];
-  const showNavbar = !hideNavbarRoutes.includes(location);
+  const showNavbar = !hideNavbarRoutes.includes(location) && !location.startsWith("/join-group");
   return (
     <>
       <SocketInitializer />

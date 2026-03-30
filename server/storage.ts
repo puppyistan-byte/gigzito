@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupWallets, groupWalletContributions, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupWallet, type GroupWalletContribution } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupWallets, groupWalletContributions, notifications, groupEmailInvites, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -253,6 +253,16 @@ export interface IStorage {
   // Group Wallet Contributions
   getWalletContributions(walletId: number): Promise<GroupWalletContribution[]>;
   createWalletContribution(walletId: number, groupId: number, userId: number, displayName: string | null, data: { amount: number; currency: string; txHash?: string; note?: string }): Promise<GroupWalletContribution>;
+  // Notifications
+  createNotification(userId: number, type: string, title: string, message: string, link?: string): Promise<Notification>;
+  getNotifications(userId: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  markNotificationRead(id: number, userId: number): Promise<void>;
+  markAllNotificationsRead(userId: number): Promise<void>;
+  // Group Email Invites
+  createGroupEmailInvite(groupId: number, email: string, invitedBy: number, token: string, groupName: string, inviterName: string | null): Promise<GroupEmailInvite>;
+  getGroupEmailInviteByToken(token: string): Promise<GroupEmailInvite | null>;
+  claimGroupEmailInvite(token: string, userId: number): Promise<GroupEmailInvite | null>;
 
   // Activity Feed
   getMyActivityFeed(providerProfileId: number, limit?: number): Promise<ActivityEvent[]>;
@@ -2976,6 +2986,56 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date(),
     }).returning();
     return row;
+  }
+
+  // Notifications
+  async createNotification(userId: number, type: string, title: string, message: string, link?: string) {
+    const [row] = await db.insert(notifications).values({
+      userId, type, title, message, link: link ?? null, isRead: false, createdAt: new Date(),
+    }).returning();
+    return row;
+  }
+
+  async getNotifications(userId: number) {
+    return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(50);
+  }
+
+  async getUnreadNotificationCount(userId: number) {
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return count ?? 0;
+  }
+
+  async markNotificationRead(id: number, userId: number) {
+    await db.update(notifications).set({ isRead: true }).where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsRead(userId: number) {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.userId, userId));
+  }
+
+  // Group Email Invites
+  async createGroupEmailInvite(groupId: number, email: string, invitedBy: number, token: string, groupName: string, inviterName: string | null) {
+    const [row] = await db.insert(groupEmailInvites).values({
+      groupId, email, token, invitedBy, groupName, inviterName: inviterName ?? null,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    }).returning();
+    return row;
+  }
+
+  async getGroupEmailInviteByToken(token: string) {
+    const [row] = await db.select().from(groupEmailInvites).where(eq(groupEmailInvites.token, token));
+    return row ?? null;
+  }
+
+  async claimGroupEmailInvite(token: string, userId: number) {
+    const invite = await this.getGroupEmailInviteByToken(token);
+    if (!invite || invite.claimedBy || invite.expiresAt < new Date()) return null;
+    const [updated] = await db.update(groupEmailInvites)
+      .set({ claimedBy: userId, claimedAt: new Date() })
+      .where(eq(groupEmailInvites.token, token))
+      .returning();
+    return updated ?? null;
   }
 }
 

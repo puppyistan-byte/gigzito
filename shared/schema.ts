@@ -1150,3 +1150,32 @@ export const groupWalletContributions = pgTable("group_wallet_contributions", {
 export const insertGroupWalletContributionSchema = createInsertSchema(groupWalletContributions).omit({ id: true, walletId: true, groupId: true, userId: true, displayName: true, createdAt: true });
 export type GroupWalletContribution = typeof groupWalletContributions.$inferSelect;
 export type InsertGroupWalletContribution = z.infer<typeof insertGroupWalletContributionSchema>;
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  link: text("link"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type Notification = typeof notifications.$inferSelect;
+
+// Group Email Invites (for non-registered users)
+export const groupEmailInvites = pgTable("group_email_invites", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  invitedBy: integer("invited_by").notNull(),
+  groupName: text("group_name").notNull(),
+  inviterName: text("inviter_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  claimedBy: integer("claimed_by"),
+  claimedAt: timestamp("claimed_at"),
+});
+export type GroupEmailInvite = typeof groupEmailInvites.$inferSelect;

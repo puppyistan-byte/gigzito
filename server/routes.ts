@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement, sendGroupInviteEmail } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -4200,8 +4200,92 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!inviteeUserId) return res.status(400).json({ message: "inviteeUserId required" });
     const mem = await storage.getUserGroupRole(id, userId);
     if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
-    try { return res.status(201).json(await storage.inviteToGroup(id, inviteeUserId, userId)); }
+    try {
+      const result = await storage.inviteToGroup(id, inviteeUserId, userId);
+      // Send in-app notification to invited user
+      try {
+        const group = await storage.getGroupById(id);
+        const inviterProfile = await storage.getProviderProfile(userId);
+        const inviterName = inviterProfile?.displayName ?? "Someone";
+        const groupName = group?.name ?? "a group";
+        await storage.createNotification(
+          inviteeUserId,
+          "group_invite",
+          `You've been invited to ${groupName}`,
+          `${inviterName} invited you to join ${groupName}. Go to Groups to accept.`,
+          `/groups/${id}`
+        );
+      } catch (_) {}
+      return res.status(201).json(result);
+    }
     catch (e: any) { return res.status(400).json({ message: e.message }); }
+  });
+
+  // POST /api/groups/:id/invite/email — invite a non-registered user by email
+  app.post("/api/groups/:id/invite/email", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const { email } = req.body;
+    if (!email || !email.includes("@")) return res.status(400).json({ message: "Valid email required" });
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try {
+      const group = await storage.getGroupById(id);
+      if (!group) return res.status(404).json({ message: "Group not found" });
+      const inviterProfile = await storage.getProviderProfile(userId);
+      const inviterName = inviterProfile?.displayName ?? "A Gigzito member";
+      // Check if user already registered
+      const existingUser = await storage.getUserByEmail(email);
+      const token = randomBytes(32).toString("hex");
+      const APP_URL = process.env.APP_URL || "https://gigzito.com";
+      if (existingUser) {
+        // Invite them directly by userId and send a notification
+        try { await storage.inviteToGroup(id, existingUser.id, userId); } catch (_) {}
+        await storage.createNotification(
+          existingUser.id,
+          "group_invite",
+          `You've been invited to ${group.name}`,
+          `${inviterName} invited you to join ${group.name}. Go to Groups to accept.`,
+          `/groups/${id}`
+        );
+        await sendGroupInviteEmail({ toEmail: email, groupName: group.name, inviterName, joinUrl: `${APP_URL}/groups/${id}`, isNewUser: false });
+        return res.json({ ok: true, registered: true });
+      } else {
+        // Create email invite record
+        await storage.createGroupEmailInvite(id, email.toLowerCase(), userId, token, group.name, inviterName);
+        const joinUrl = `${APP_URL}/join-group/${token}`;
+        await sendGroupInviteEmail({ toEmail: email, groupName: group.name, inviterName, joinUrl, isNewUser: true });
+        return res.json({ ok: true, registered: false });
+      }
+    } catch (e: any) {
+      console.error("[group invite/email]", e);
+      return res.status(500).json({ message: "Failed to send invite" });
+    }
+  });
+
+  // GET /api/groups/join/:token — get info about an email invite token
+  app.get("/api/groups/join/:token", async (req, res) => {
+    const invite = await storage.getGroupEmailInviteByToken(req.params.token);
+    if (!invite || invite.expiresAt < new Date()) return res.status(404).json({ message: "Invite not found or expired" });
+    if (invite.claimedBy) return res.status(410).json({ message: "Invite already claimed" });
+    return res.json({ groupId: invite.groupId, groupName: invite.groupName, inviterName: invite.inviterName, email: invite.email });
+  });
+
+  // POST /api/groups/join/:token — claim an email invite (must be logged in)
+  app.post("/api/groups/join/:token", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Login required" });
+    try {
+      const invite = await storage.claimGroupEmailInvite(req.params.token, userId);
+      if (!invite) return res.status(410).json({ message: "Invite not found, expired, or already claimed" });
+      // Add user directly to group as accepted member
+      try { await storage.inviteToGroup(invite.groupId, userId, invite.invitedBy); } catch (_) {}
+      try { await storage.respondToGroupInvite(invite.groupId, userId, true); } catch (_) {}
+      return res.json({ ok: true, groupId: invite.groupId, groupName: invite.groupName });
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to claim invite" });
+    }
   });
 
   app.post("/api/groups/:id/invite/respond", async (req, res) => {
@@ -4490,6 +4574,33 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }));
     }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  // Notification routes
+  app.get("/api/notifications", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    return res.json(await storage.getNotifications(userId));
+  });
+
+  app.get("/api/notifications/count", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.json({ count: 0 });
+    return res.json({ count: await storage.getUnreadNotificationCount(userId) });
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    await storage.markNotificationRead(parseInt(req.params.id), userId);
+    return res.json({ ok: true });
+  });
+
+  app.patch("/api/notifications/read-all", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    await storage.markAllNotificationsRead(userId);
+    return res.json({ ok: true });
   });
 
   return httpServer;

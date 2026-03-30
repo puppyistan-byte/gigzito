@@ -9,7 +9,120 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell, Trophy, Users } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell, Trophy, Users, CheckCheck } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import type { Notification } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
+
+function NotificationBell() {
+  const [, navigate] = useLocation();
+  const qc = useQueryClient();
+
+  const { data: countData } = useQuery<{ count: number }>({
+    queryKey: ["/api/notifications/count"],
+    refetchInterval: 30_000,
+  });
+
+  const { data: notifs = [] } = useQuery<Notification[]>({
+    queryKey: ["/api/notifications"],
+    enabled: false,
+  });
+
+  const markReadMut = useMutation({
+    mutationFn: (id: number) => apiRequest("PATCH", `/api/notifications/${id}/read`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/notifications"] });
+      qc.invalidateQueries({ queryKey: ["/api/notifications/count"] });
+    },
+  });
+
+  const markAllMut = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/notifications/read-all", {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/notifications"] });
+      qc.invalidateQueries({ queryKey: ["/api/notifications/count"] });
+    },
+  });
+
+  const unread = countData?.count ?? 0;
+
+  const handleOpen = () => {
+    qc.invalidateQueries({ queryKey: ["/api/notifications"] });
+    qc.fetchQuery({ queryKey: ["/api/notifications"] });
+  };
+
+  const handleNotifClick = (n: Notification) => {
+    if (!n.isRead) markReadMut.mutate(n.id);
+    if (n.link) navigate(n.link);
+  };
+
+  return (
+    <DropdownMenu onOpenChange={(open) => open && handleOpen()}>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="relative flex items-center justify-center rounded-full bg-black/60 border border-white/10 backdrop-blur-sm h-9 w-9 hover:bg-black/80 transition-colors focus:outline-none"
+          data-testid="button-notification-bell"
+          aria-label="Notifications"
+        >
+          <Bell className="h-4 w-4 text-zinc-300" />
+          {unread > 0 && (
+            <span
+              data-testid="badge-notification-count"
+              className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
+            >
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        className="w-80 bg-[#0d0d0d] border-[#2a2a2a] text-white shadow-xl p-0"
+      >
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e1e1e]">
+          <span className="text-sm font-semibold">Notifications</span>
+          {unread > 0 && (
+            <button
+              onClick={() => markAllMut.mutate()}
+              className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1"
+              data-testid="button-mark-all-read"
+            >
+              <CheckCheck className="h-3 w-3" /> Mark all read
+            </button>
+          )}
+        </div>
+
+        <div className="max-h-72 overflow-y-auto">
+          {notifs.length === 0 ? (
+            <p className="text-center text-xs text-zinc-500 py-6">No notifications yet</p>
+          ) : (
+            notifs.map((n) => (
+              <div
+                key={n.id}
+                data-testid={`notification-item-${n.id}`}
+                onClick={() => handleNotifClick(n)}
+                className={`flex gap-2.5 px-3 py-2.5 cursor-pointer border-b border-[#1a1a1a] hover:bg-white/5 transition-colors ${n.isRead ? "opacity-60" : ""}`}
+              >
+                <div className="mt-0.5 shrink-0">
+                  <div className={`h-2 w-2 rounded-full mt-1 ${n.isRead ? "bg-zinc-600" : "bg-red-500"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-white leading-tight truncate">{n.title}</p>
+                  <p className="text-[11px] text-zinc-400 leading-snug mt-0.5">{n.message}</p>
+                  <p className="text-[10px] text-zinc-600 mt-1">
+                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -51,6 +164,9 @@ export function Navbar() {
       }}
       data-testid="navbar-profile"
     >
+      {/* Notification Bell */}
+      <NotificationBell />
+
       {/* Avatar dropdown for navigation */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
