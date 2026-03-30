@@ -354,6 +354,13 @@ export default function ProviderProfilePage() {
     staleTime: 30_000,
   });
 
+  type MyGroup = { id: number; name: string; description: string; coverUrl: string | null; isPrivate: boolean; memberCount: number; myRole: string };
+  const { data: myGroups = [] } = useQuery<MyGroup[]>({
+    queryKey: ["/api/groups"],
+    queryFn: () => fetch("/api/groups", { credentials: "include" }).then(r => r.json()),
+    enabled: !!myUserId,
+  });
+
   const set = (field: keyof FormState, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -783,29 +790,56 @@ export default function ProviderProfilePage() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white">GZGroups</p>
-                    <p className="text-[11px] text-[#666]">Your private community clubhouse — Wall, Calendar, Kanban & more</p>
+                    <p className="text-[11px] text-[#666]">Your private community clubhouses</p>
                   </div>
                   <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded border border-green-700/50 text-green-300 bg-green-900/30 uppercase tracking-widest">
                     {tier}
                   </span>
                 </div>
-                <p className="text-xs text-[#555] leading-relaxed">
-                  Create invite-only or open groups with a shared <span className="text-green-400 font-semibold">Wall</span>, <span className="text-blue-400 font-semibold">Calendar</span>, <span className="text-amber-400 font-semibold">Kanban board</span>, Endeavors, and Member roster. Meetup charges $39/mo — yours is included.
-                </p>
+
+                {/* Group membership list */}
+                {myGroups.length > 0 ? (
+                  <div className="space-y-1.5" data-testid="list-my-groups">
+                    {myGroups.map((g) => (
+                      <a key={g.id} href={`/groups/${g.id}`} data-testid={`link-group-${g.id}`}
+                        className="flex items-center gap-3 rounded-lg border border-green-800/30 bg-green-900/20 hover:bg-green-900/40 transition-colors px-3 py-2 group">
+                        {g.coverUrl ? (
+                          <img src={g.coverUrl} alt={g.name} className="w-8 h-8 rounded-md object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-md bg-green-800/50 flex items-center justify-center flex-shrink-0">
+                            <Users className="w-3.5 h-3.5 text-green-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{g.name}</p>
+                          <p className="text-[10px] text-[#666]">{g.memberCount} member{g.memberCount !== 1 ? "s" : ""}</p>
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 ${
+                          g.myRole === "admin" ? "bg-amber-900/40 text-amber-400 border border-amber-700/40" : "bg-green-900/40 text-green-400 border border-green-700/40"
+                        }`}>{g.myRole}</span>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#555] leading-relaxed">
+                    You haven't joined any groups yet. Create one or get invited to a mastermind, team, or community.
+                  </p>
+                )}
+
                 <div className="flex gap-2">
                   <a href="/groups" data-testid="btn-go-to-my-groups" className="flex-1">
                     <Button
                       type="button"
-                      className="w-full bg-green-700 hover:bg-green-600 text-white font-bold rounded-xl h-10 text-sm flex items-center justify-center gap-2"
+                      className="w-full bg-green-700 hover:bg-green-600 text-white font-bold rounded-xl h-9 text-sm flex items-center justify-center gap-2"
                     >
                       <Users className="h-4 w-4" />
-                      My Groups
+                      All Groups
                     </Button>
                   </a>
                   <a href="/groups?create=1" data-testid="btn-create-group-profile" className="flex-1">
                     <Button
                       type="button"
-                      className="w-full bg-green-900/60 hover:bg-green-800/60 border border-green-700/40 text-green-300 font-bold rounded-xl h-10 text-sm flex items-center justify-center gap-2"
+                      className="w-full bg-green-900/60 hover:bg-green-800/60 border border-green-700/40 text-green-300 font-bold rounded-xl h-9 text-sm flex items-center justify-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
                       Create Group
