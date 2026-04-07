@@ -22,7 +22,7 @@ function getTransporter(): nodemailer.Transporter {
         port: SMTP_PORT,
         secure: SMTP_PORT === 465,
         ...(SMTP_USER && SMTP_PASS ? { auth: { user: SMTP_USER, pass: SMTP_PASS } } : {}),
-        tls: { rejectUnauthorized: false },
+        tls: { rejectUnauthorized: true },
       });
     }
   }

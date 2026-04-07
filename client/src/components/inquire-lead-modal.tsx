@@ -36,7 +36,7 @@ export function InquireLeadModal({ listing, onClose }: InquireLeadModalProps) {
 
   // Client-side geo: browser request uses real public IP, works in dev + prod
   useEffect(() => {
-    fetch("http://ip-api.com/json/?fields=city,regionName,country,status")
+    fetch("https://ip-api.com/json/?fields=city,regionName,country,status")
       .then((r) => r.json())
       .then((d) => {
         if (d.status === "success") {

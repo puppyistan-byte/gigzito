@@ -3713,7 +3713,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           if (result.devMode) devMode = true;
           sent++;
         } catch (err) {
-          console.error(`[notifications] failed to send to ${u.email}:`, err);
+          console.error(`[notifications] failed to send to user ${u.id}:`, err instanceof Error ? err.message : String(err));
           failed++;
         }
       }

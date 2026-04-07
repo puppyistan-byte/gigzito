@@ -153,16 +153,18 @@ function getWatchableUrl(url: string): string {
   } catch { return url; }
 }
 
+const YT_ORIGIN = "https://www.youtube.com";
+
 function stopIframe(iframe: HTMLIFrameElement | null) {
   if (!iframe) return;
   try {
     iframe.contentWindow?.postMessage(
       JSON.stringify({ event: "command", func: "stopVideo", args: [] }),
-      "*"
+      YT_ORIGIN
     );
     iframe.contentWindow?.postMessage(
       JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
-      "*"
+      YT_ORIGIN
     );
   } catch (_) {}
   iframe.src = "about:blank";
@@ -416,7 +418,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
         try {
           iframe.contentWindow.postMessage(
             JSON.stringify({ event: "command", func: next ? "mute" : "unMute", args: [] }),
-            "*"
+            YT_ORIGIN
           );
         } catch (_) {}
       }
@@ -436,9 +438,10 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
     setNativeVideoFailed(false);
   }, [listing.id]);
 
-  // Listen for YouTube iframe API error events
+  // Listen for YouTube iframe API error events — validate origin before processing
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
+      if (e.origin !== YT_ORIGIN && e.origin !== "https://www.youtube-nocookie.com") return;
       try {
         const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
         // YouTube iframe API: event=onError, info=100/101/150 means restricted/embedding disabled

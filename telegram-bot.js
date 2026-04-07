@@ -5,7 +5,7 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-const TOKEN = "8741716806:AAHM8snR6y0t7YlIQIoC9ApierS60UwE8PQ".trim();
+const TOKEN = (process.env.TELEGRAM_BOT_TOKEN ?? "").trim();
 const BASE = `https://api.telegram.org/bot${TOKEN}`;
 
 const ADMIN_CHAT_ID = 1753989947;

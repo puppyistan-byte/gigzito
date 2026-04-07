@@ -1,5 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -23,7 +25,55 @@ const PgStore = connectPgSimple(session);
 
 app.set("trust proxy", 1);
 
-// CORS — allow any origin so the mobile app (Expo) can call this API
+// ── Security headers via Helmet ──────────────────────────────────────────────
+// CSP allows YouTube/Vimeo embeds and external image/media sources the app needs.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.youtube.com", "https://player.vimeo.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+        mediaSrc: ["'self'", "blob:", "https:"],
+        frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://player.vimeo.com", "https://www.twitch.tv"],
+        connectSrc: ["'self'", "wss:", "ws:", "https:"],
+        workerSrc: ["'self'", "blob:"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Required for YouTube iframes
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    hsts: process.env.NODE_ENV === "production"
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    xContentTypeOptions: true,
+    xFrameOptions: { action: "sameorigin" },
+    xXssProtection: false, // Deprecated — CSP handles this
+    dnsPrefetchControl: { allow: false },
+    hidePoweredBy: true,
+  })
+);
+
+// ── Global API rate limiter ───────────────────────────────────────────────────
+// 300 requests per minute per IP — prevents brute-force and scraping.
+// Auth-specific routes have their own tighter limiters defined in routes.ts.
+const globalApiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests. Please slow down." },
+  skip: (req) => req.method === "OPTIONS",
+});
+app.use("/api", globalApiLimiter);
+
+// ── CORS — allow any origin so the mobile app (Expo) can call this API ───────
 app.use(
   cors({
     origin: true,           // reflect request origin (works for all apps including Expo)
@@ -59,12 +109,6 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-app.use((_req, res, next) => {
-  if (process.env.NODE_ENV === "production") {
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-  }
-  next();
-});
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });

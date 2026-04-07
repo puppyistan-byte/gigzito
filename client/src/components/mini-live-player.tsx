@@ -219,7 +219,7 @@ export function MiniLivePlayer() {
       if (!iframe?.contentWindow) return;
       try {
         iframe.contentWindow.postMessage(
-          JSON.stringify({ event: "command", func: "mute", args: [] }), "*"
+          JSON.stringify({ event: "command", func: "mute", args: [] }), "https://www.youtube.com"
         );
       } catch {}
     };
@@ -238,7 +238,7 @@ export function MiniLivePlayer() {
     try {
       iframe.contentWindow.postMessage(
         JSON.stringify({ event: "command", func: nextMuted ? "mute" : "unMute", args: [] }),
-        "*"
+        "https://www.youtube.com"
       );
     } catch (_) {}
   };
