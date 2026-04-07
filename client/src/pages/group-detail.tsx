@@ -830,7 +830,7 @@ function WalletContributions({ groupId, wallet, isAdmin }: { groupId: number; wa
 
   const { data: contribs = [], isLoading } = useQuery<Contribution[]>({
     queryKey: ["/api/groups", groupId, "wallets", wallet.id, "contributions"],
-    queryFn: () => fetch(`/api/groups/${groupId}/wallets/${wallet.id}/contributions`, { credentials: "include" }).then((r) => r.json()),
+    queryFn: () => fetch(`/api/groups/${groupId}/wallets/${wallet.id}/contributions`, { credentials: "include" }).then((r) => r.ok ? r.json() : []),
   });
 
   const fundMut = useMutation({
@@ -1103,7 +1103,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
 
   const { data: wallets = [], isLoading } = useQuery<GroupWallet[]>({
     queryKey: ["/api/groups", groupId, "wallets"],
-    queryFn: () => fetch(`/api/groups/${groupId}/wallets`, { credentials: "include" }).then((r) => r.json()),
+    queryFn: () => fetch(`/api/groups/${groupId}/wallets`, { credentials: "include" }).then((r) => r.ok ? r.json() : []),
   });
 
   const addMut = useMutation({
