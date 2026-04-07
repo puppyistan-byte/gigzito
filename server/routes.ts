@@ -4309,6 +4309,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const { message } = req.body as { message?: string };
+    if (!message || message.trim().length < 50) {
+      return res.status(400).json({ message: "Please provide at least 50 characters describing why you want to join." });
+    }
     try {
       const group = await storage.getGroupById(id, userId);
       if (!group) return res.status(404).json({ message: "Group not found" });
@@ -4316,11 +4320,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (group.myStatus === "pending") return res.status(409).json({ message: "Request already sent" });
       const user = await storage.getUserById(userId);
       const senderName = (user as any)?.email || "A user";
+      const trimmedMsg = message.trim();
       await storage.createNotification(
         group.createdBy,
         "join_request",
-        `Join request for "${group.name}"`,
-        `${senderName} has requested to join your group "${group.name}". Visit your group to review and invite them.`,
+        `Membership request for "${group.name}"`,
+        `${senderName} wants to join your group "${group.name}".\n\nTheir message:\n"${trimmedMsg}"\n\nVisit your group to review and invite them.`,
         `/groups/${id}`,
       );
       return res.json({ message: "Request sent" });

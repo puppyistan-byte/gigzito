@@ -32,6 +32,8 @@ export default function GroupsPage() {
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", isPrivate: true });
+  const [requestModal, setRequestModal] = useState<{ open: boolean; groupId: number | null; groupName: string }>({ open: false, groupId: null, groupName: "" });
+  const [joinMessage, setJoinMessage] = useState("");
   const formValid = form.name.trim().length > 0 && form.description.trim().length > 10;
 
   useEffect(() => {
@@ -57,10 +59,13 @@ export default function GroupsPage() {
   const [requestedGroups, setRequestedGroups] = useState<Set<number>>(new Set());
 
   const joinRequestMut = useMutation({
-    mutationFn: (groupId: number) => apiRequest("POST", `/api/groups/${groupId}/join-request`, {}),
-    onSuccess: (_, groupId) => {
+    mutationFn: ({ groupId, message }: { groupId: number; message: string }) =>
+      apiRequest("POST", `/api/groups/${groupId}/join-request`, { message }),
+    onSuccess: (_, { groupId }) => {
       setRequestedGroups((prev) => new Set(prev).add(groupId));
-      toast({ title: "Request sent!", description: "The group admin has been notified." });
+      setRequestModal({ open: false, groupId: null, groupName: "" });
+      setJoinMessage("");
+      toast({ title: "Membership request sent!", description: "The group admin has been notified and will review your request." });
     },
     onError: (err: any) => {
       const msg = err?.message ?? "";
@@ -423,13 +428,13 @@ export default function GroupsPage() {
                             data-testid={`button-join-featured-${g.id}`}
                             size="sm"
                             className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
-                            disabled={joinRequestMut.isPending}
                             onClick={() => {
                               if (!user) { navigate("/auth"); return; }
-                              joinRequestMut.mutate(g.id);
+                              setJoinMessage("");
+                              setRequestModal({ open: true, groupId: g.id, groupName: g.name });
                             }}
                           >
-                            <ArrowRight className="w-3.5 h-3.5" /> Ask to Join
+                            <ArrowRight className="w-3.5 h-3.5" /> Request Membership
                           </Button>
                         )}
                       </div>
@@ -520,6 +525,68 @@ export default function GroupsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Request Membership Modal ── */}
+      <Dialog
+        open={requestModal.open}
+        onOpenChange={(open) => {
+          if (!open) { setRequestModal({ open: false, groupId: null, groupName: "" }); setJoinMessage(""); }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-red-500" />
+              Request Membership
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{requestModal.groupName}</span> is a private group. Tell the admin why you'd like to join — your message will be sent directly to the group for review.
+            </p>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                Why do you want to join?
+              </label>
+              <Textarea
+                data-testid="input-join-message"
+                placeholder="Tell us about yourself and why you want to be part of this group..."
+                className="resize-none min-h-[120px]"
+                value={joinMessage}
+                onChange={(e) => setJoinMessage(e.target.value)}
+                maxLength={1000}
+              />
+              <div className={`text-xs flex items-center justify-between ${joinMessage.trim().length < 50 ? "text-muted-foreground" : "text-green-600 dark:text-green-400"}`}>
+                <span>{joinMessage.trim().length < 50 ? `${50 - joinMessage.trim().length} more characters needed` : "Looks good!"}</span>
+                <span>{joinMessage.trim().length}/1000</span>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-1">
+              <Button
+                data-testid="button-cancel-join-request"
+                variant="outline"
+                size="sm"
+                onClick={() => { setRequestModal({ open: false, groupId: null, groupName: "" }); setJoinMessage(""); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                data-testid="button-submit-join-request"
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                disabled={joinMessage.trim().length < 50 || joinRequestMut.isPending}
+                onClick={() => {
+                  if (!requestModal.groupId) return;
+                  joinRequestMut.mutate({ groupId: requestModal.groupId, message: joinMessage.trim() });
+                }}
+              >
+                <Send className="w-3.5 h-3.5" />
+                {joinRequestMut.isPending ? "Sending…" : "Send Request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
