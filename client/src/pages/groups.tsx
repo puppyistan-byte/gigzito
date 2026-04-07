@@ -32,6 +32,7 @@ export default function GroupsPage() {
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", isPrivate: true });
+  const formValid = form.name.trim().length > 0 && form.description.trim().length > 10;
 
   useEffect(() => {
     if (user && new URLSearchParams(window.location.search).get("create") === "1") {
@@ -272,8 +273,23 @@ export default function GroupsPage() {
                   <Input data-testid="input-group-name" className="mt-1" placeholder="e.g. The Launch Crew" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea data-testid="input-group-description" className="mt-1" placeholder="What's this group about?" rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium">Description *</label>
+                    <span className={`text-xs ${form.description.trim().length >= 10 ? "text-green-500" : "text-muted-foreground"}`}>
+                      {form.description.trim().length}/10 min
+                    </span>
+                  </div>
+                  <Textarea
+                    data-testid="input-group-description"
+                    className="mt-1"
+                    placeholder="Tell people what this group is about, who it's for, and what members can expect. A good description helps others decide if they want to join."
+                    rows={4}
+                    value={form.description}
+                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                  {form.description.trim().length > 0 && form.description.trim().length < 10 && (
+                    <p className="text-xs text-amber-500 mt-1">Please write at least 10 characters so others know what your group is about.</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -287,7 +303,7 @@ export default function GroupsPage() {
                   </button>
                   <span className="text-xs text-muted-foreground">{form.isPrivate ? "Invite only — only members can see content" : "Anyone can see this group"}</span>
                 </div>
-                <Button data-testid="button-submit-create-group" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={!form.name.trim() || createMut.isPending} onClick={() => createMut.mutate(form)}>
+                <Button data-testid="button-submit-create-group" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={!formValid || createMut.isPending} onClick={() => createMut.mutate(form)}>
                   {createMut.isPending ? "Creating…" : "Create Group"}
                 </Button>
               </div>
@@ -326,12 +342,21 @@ export default function GroupsPage() {
         </div>
 
         {/* ── Featured / Top Group Spotlight ── */}
-        {featuredGroups.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="w-4 h-4 text-yellow-500" />
-              <h2 className="text-sm font-semibold">Featured Group</h2>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Star className="w-4 h-4 text-yellow-500" />
+            <h2 className="text-sm font-semibold">Featured Group</h2>
+          </div>
+          {featuredGroups.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-8 text-center">
+              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="font-medium text-sm mb-1">No groups yet</p>
+              <p className="text-xs text-muted-foreground mb-4">Be the first to create a GZGroup — it will be featured right here for everyone to see.</p>
+              <Button data-testid="button-create-first-featured" size="sm" className="bg-red-600 hover:bg-red-700 text-white gap-2" onClick={() => setCreateOpen(true)}>
+                <Plus className="w-3.5 h-3.5" /> Create the First Group
+              </Button>
             </div>
+          ) : (
             <div className="space-y-3">
               {featuredGroups.slice(0, 1).map((g) => {
                 const isMember = myGroups.some((m) => m.id === g.id);
@@ -402,8 +427,8 @@ export default function GroupsPage() {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {invites.length > 0 && (
           <div className="mb-6 border border-amber-400/40 rounded-xl bg-amber-50 dark:bg-amber-950/20 p-4">
