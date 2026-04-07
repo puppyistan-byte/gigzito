@@ -35,7 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   PlusCircle, AlertCircle, CheckCircle2, ExternalLink,
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
-  Inbox, Zap, Clock, ChevronUp, ChevronLeft, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
+  Inbox, Zap, Clock, ChevronUp, ChevronLeft, ChevronRight, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
   Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
   Music, Headphones, Upload as UploadIcon,
 } from "lucide-react";
@@ -399,6 +399,13 @@ function ProviderDashboardInner() {
     enabled: !!myUserId,
   });
   const myMusicTracks: GZMusicTrack[] = Array.isArray(myMusicTracksRaw) ? myMusicTracksRaw : [];
+
+  type DashGroupCard = { id: number; name: string; description: string; coverUrl: string | null; isPrivate: boolean; memberCount: number; myRole: string; createdAt: string };
+  const { data: myGroupsRaw = [] } = useQuery<DashGroupCard[]>({
+    queryKey: ["/api/groups"],
+    enabled: !!user,
+  });
+  const myAdminGroups = myGroupsRaw.filter((g) => g.myRole === "admin");
 
   const { data: presenterContacts = [] } = useQuery<{ id: number; memberUserId: number; displayName: string | null; username: string | null; email: string; optedInAt: string }[]>({
     queryKey: ["/api/presenter-contacts/my-contacts"],
@@ -1869,6 +1876,49 @@ function ProviderDashboardInner() {
             )
           )}
         </div>
+
+        {/* ── My Groups section ─────────────────────────────────────────────── */}
+        {myAdminGroups.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-white flex items-center gap-2" data-testid="text-mygroups-title">
+                <Users className="h-4 w-4 text-red-500" /> My Groups
+              </h2>
+              <button
+                data-testid="button-view-all-groups"
+                onClick={() => navigate("/groups")}
+                className="text-xs text-[#888] hover:text-white transition-colors"
+              >
+                View All
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {myAdminGroups.map((g) => (
+                <button
+                  key={g.id}
+                  data-testid={`dashboard-group-card-${g.id}`}
+                  onClick={() => navigate(`/groups/${g.id}`)}
+                  className="text-left rounded-xl border border-[#1e1e1e] bg-[#0a0a0a] hover:border-red-800/50 hover:bg-[#0f0a0a] transition-all overflow-hidden"
+                >
+                  <div className="relative h-20 bg-gradient-to-br from-red-800/60 to-red-950">
+                    {g.coverUrl && <img src={g.coverUrl} className="w-full h-full object-cover opacity-60" alt={g.name} />}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                    <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
+                      <span className="text-white font-semibold text-sm truncate">{g.name}</span>
+                      <span className="text-white/60 text-xs ml-2 flex-shrink-0">{g.memberCount} {g.memberCount === 1 ? "member" : "members"}</span>
+                    </div>
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-between">
+                    <p className="text-[#666] text-xs truncate flex-1 mr-2">
+                      {g.description || "No description"}
+                    </p>
+                    <ChevronRight className="h-3.5 w-3.5 text-[#444] flex-shrink-0" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* CTA Leads section */}
         <div>

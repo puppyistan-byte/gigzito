@@ -4138,6 +4138,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try { return res.json(await storage.searchUsersForInvite(q, groupId)); } catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  app.get("/api/groups/featured", async (req, res) => {
+    try { return res.json(await storage.getFeaturedGroups(3)); } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   app.get("/api/groups", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -4298,6 +4302,29 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const { accept } = req.body;
     try { await storage.respondToGroupInvite(id, userId, !!accept); return res.json({ message: "Done" }); }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.post("/api/groups/:id/join-request", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    try {
+      const group = await storage.getGroupById(id, userId);
+      if (!group) return res.status(404).json({ message: "Group not found" });
+      if (group.myStatus === "accepted") return res.status(409).json({ message: "Already a member" });
+      if (group.myStatus === "pending") return res.status(409).json({ message: "Request already sent" });
+      const user = await storage.getUserById(userId);
+      const senderName = (user as any)?.email || "A user";
+      await storage.createNotification(
+        group.createdBy,
+        "join_request",
+        `Join request for "${group.name}"`,
+        `${senderName} has requested to join your group "${group.name}". Visit your group to review and invite them.`,
+        `/groups/${id}`,
+      );
+      return res.json({ message: "Request sent" });
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
   app.delete("/api/groups/:id/members/:uid", async (req, res) => {

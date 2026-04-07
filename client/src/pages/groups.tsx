@@ -9,7 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight } from "lucide-react";
+import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight, Home, Star, Send } from "lucide-react";
+
+type FeaturedGroup = {
+  id: number; name: string; description: string; coverUrl: string | null;
+  isPrivate: boolean; memberCount: number;
+};
 
 type GroupCard = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -42,6 +47,27 @@ export default function GroupsPage() {
   const { data: invites = [] } = useQuery<Invite[]>({
     queryKey: ["/api/groups/invites"],
     enabled: !!user,
+  });
+
+  const { data: featuredGroups = [] } = useQuery<FeaturedGroup[]>({
+    queryKey: ["/api/groups/featured"],
+  });
+
+  const [requestedGroups, setRequestedGroups] = useState<Set<number>>(new Set());
+
+  const joinRequestMut = useMutation({
+    mutationFn: (groupId: number) => apiRequest("POST", `/api/groups/${groupId}/join-request`, {}),
+    onSuccess: (_, groupId) => {
+      setRequestedGroups((prev) => new Set(prev).add(groupId));
+      toast({ title: "Request sent!", description: "The group admin has been notified." });
+    },
+    onError: (err: any) => {
+      const msg = err?.message ?? "";
+      if (msg.startsWith("401")) { navigate("/auth"); return; }
+      if (msg.includes("Already a member")) { toast({ title: "Already a member", description: "You're already in this group." }); return; }
+      if (msg.includes("Request already sent")) { toast({ title: "Already requested", description: "Your request is pending." }); return; }
+      toast({ title: "Could not send request", description: msg.replace(/^\d+:\s*/, "") || "Please try again.", variant: "destructive" });
+    },
   });
 
   const createMut = useMutation({
@@ -213,12 +239,24 @@ export default function GroupsPage() {
     <div className="min-h-screen bg-background pt-16 pb-12">
       <div className="max-w-4xl mx-auto px-4">
 
-        <div className="flex items-center justify-between py-6">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Users className="w-6 h-6 text-red-500" /> GZGroups
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Private clubhouses for your team, crew, or community</p>
+        {/* ── Top bar: Home + title + Create ── */}
+        <div className="flex items-center justify-between py-6 gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Button
+              data-testid="button-groups-home"
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={() => navigate("/")}
+            >
+              <Home className="w-4 h-4" /> Home
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Users className="w-6 h-6 text-red-500" /> GZGroups
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">Private clubhouses for your team, crew, or community</p>
+            </div>
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
@@ -286,6 +324,86 @@ export default function GroupsPage() {
             <p className="text-xs" style={{ color: "#71717a" }}>Intelligent Email & SMS notifications keep every member aligned — no app-checking required.</p>
           </div>
         </div>
+
+        {/* ── Featured / Top Group Spotlight ── */}
+        {featuredGroups.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Star className="w-4 h-4 text-yellow-500" />
+              <h2 className="text-sm font-semibold">Featured Group</h2>
+            </div>
+            <div className="space-y-3">
+              {featuredGroups.slice(0, 1).map((g) => {
+                const isMember = myGroups.some((m) => m.id === g.id);
+                const requested = requestedGroups.has(g.id);
+                return (
+                  <div
+                    key={g.id}
+                    data-testid={`featured-group-${g.id}`}
+                    className="rounded-2xl border border-border overflow-hidden bg-card"
+                  >
+                    <div className="relative h-32 bg-gradient-to-br from-red-600 to-red-900">
+                      {g.coverUrl && <img src={g.coverUrl} className="w-full h-full object-cover" alt={g.name} />}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                      <div className="absolute bottom-3 left-4 flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center flex-shrink-0">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-white font-bold text-base leading-tight">{g.name}</p>
+                          <p className="text-white/70 text-xs flex items-center gap-1">
+                            {g.isPrivate ? <Lock className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                            {g.isPrivate ? "Private" : "Open"} · {g.memberCount} {g.memberCount === 1 ? "member" : "members"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 flex items-start justify-between gap-4">
+                      <p className="text-sm text-muted-foreground flex-1 leading-relaxed line-clamp-2">
+                        {g.description || "A vibrant community on Gigzito — join to connect and collaborate."}
+                      </p>
+                      <div className="flex-shrink-0">
+                        {isMember ? (
+                          <Button
+                            data-testid={`button-enter-featured-${g.id}`}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                            onClick={() => navigate(`/groups/${g.id}`)}
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" /> Enter Group
+                          </Button>
+                        ) : requested ? (
+                          <Button
+                            data-testid={`button-requested-featured-${g.id}`}
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            className="gap-1.5 text-muted-foreground"
+                          >
+                            <Send className="w-3.5 h-3.5" /> Request Sent
+                          </Button>
+                        ) : (
+                          <Button
+                            data-testid={`button-join-featured-${g.id}`}
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                            disabled={joinRequestMut.isPending}
+                            onClick={() => {
+                              if (!user) { navigate("/auth"); return; }
+                              joinRequestMut.mutate(g.id);
+                            }}
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" /> Ask to Join
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {invites.length > 0 && (
           <div className="mb-6 border border-amber-400/40 rounded-xl bg-amber-50 dark:bg-amber-950/20 p-4">

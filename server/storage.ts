@@ -217,6 +217,7 @@ export interface IStorage {
   // ─── Groups ───────────────────────────────────────────────────────────────
   createGroup(data: { name: string; description?: string; coverUrl?: string; isPrivate?: boolean }, userId: number): Promise<Group>;
   getMyGroups(userId: number): Promise<Array<Group & { memberCount: number; myRole: string }>>;
+  getFeaturedGroups(limit?: number): Promise<Array<Group & { memberCount: number }>>;
   getGroupById(id: number, userId?: number): Promise<(Group & { memberCount: number; myRole: string | null; myStatus: string | null }) | null>;
   updateGroup(id: number, data: Partial<{ name: string; description: string; coverUrl: string; isPrivate: boolean }>): Promise<Group>;
   deleteGroup(id: number): Promise<void>;
@@ -2748,6 +2749,18 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(groupMembers, and(eq(groupMembers.groupId, groups.id), eq(groupMembers.userId, userId), eq(groupMembers.status, "accepted")))
       .orderBy(desc(groups.createdAt));
     return rows.map((r) => ({ ...r.group, memberCount: r.memberCount, myRole: r.myRole ?? "member" }));
+  }
+
+  async getFeaturedGroups(limit = 3) {
+    const rows = await db
+      .select({
+        group: groups,
+        memberCount: sql<number>`(SELECT COUNT(*)::int FROM group_members gm2 WHERE gm2.group_id = ${groups.id} AND gm2.status = 'accepted')`,
+      })
+      .from(groups)
+      .orderBy(sql`(SELECT COUNT(*)::int FROM group_members gm2 WHERE gm2.group_id = ${groups.id} AND gm2.status = 'accepted') DESC`)
+      .limit(limit);
+    return rows.map((r) => ({ ...r.group, memberCount: r.memberCount }));
   }
 
   async getGroupById(id: number, userId?: number) {
