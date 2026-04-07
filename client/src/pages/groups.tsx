@@ -106,6 +106,17 @@ export default function GroupsPage() {
   if (!user) return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
 
+      {/* ── Top nav bar with Home button ── */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 py-3 bg-black/80 backdrop-blur border-b border-white/5">
+        <button
+          data-testid="button-groups-home-loggedout"
+          onClick={() => navigate("/")}
+          className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
+        >
+          <Home className="w-4 h-4" /> Back to Gigzito
+        </button>
+      </div>
+
       {/* ── Hero ── */}
       <div className="relative flex flex-col items-center justify-center text-center px-6 pt-28 pb-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-red-950/60 via-black to-black pointer-events-none" />
@@ -245,12 +256,12 @@ export default function GroupsPage() {
           <div className="flex items-center gap-3">
             <Button
               data-testid="button-groups-home"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="gap-1.5 text-muted-foreground hover:text-foreground"
+              className="gap-1.5 border-border text-foreground hover:bg-muted"
               onClick={() => navigate("/")}
             >
-              <Home className="w-4 h-4" /> Home
+              <Home className="w-4 h-4" /> Back to Gigzito
             </Button>
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
