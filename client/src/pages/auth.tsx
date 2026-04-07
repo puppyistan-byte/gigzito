@@ -8,9 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck, Mail, RefreshCw, MailCheck } from "lucide-react";
+import { Loader2, ShieldCheck, Mail, RefreshCw, MailCheck, Flame, Zap } from "lucide-react";
 import { Link } from "wouter";
 import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
+
+const VALID_TIERS = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"];
+const TIER_COLORS: Record<string, string> = {
+  GZLurker: "#6b7280", GZGroups: "#22c55e", GZMarketer: "#7c3aed",
+  GZMarketerPro: "#ff2b2b", GZBusiness: "#f59e0b",
+};
 
 const RESEND_COOLDOWN = 30;
 
@@ -19,6 +25,13 @@ export default function AuthPage() {
   const { user, refetch } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Read URL query params for tier + tab
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlTier = searchParams.get("tier");
+  const urlTab = searchParams.get("tab");
+  const pendingTier = urlTier && VALID_TIERS.includes(urlTier) ? urlTier : null;
+  const defaultTab = urlTab === "register" ? "register" : "login";
 
   // Login / register state
   const [loginEmail, setLoginEmail] = useState("");
@@ -205,7 +218,7 @@ export default function AuthPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: regEmail, password: regPassword, disclaimerAccepted: true }),
+        body: JSON.stringify({ email: regEmail, password: regPassword, disclaimerAccepted: true, tier: pendingTier ?? "GZLurker" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -218,7 +231,8 @@ export default function AuthPage() {
       } else {
         await refetch();
         navigate("/provider/profile");
-        toast({ title: "Welcome to Gigzito!", description: "Complete your profile to start posting videos." });
+        const tierMsg = pendingTier && pendingTier !== "GZLurker" ? ` Your ${pendingTier} tier is active — free during Brand Build!` : " Complete your profile to start posting videos.";
+        toast({ title: "Welcome to Gigzito!", description: tierMsg });
       }
     } finally {
       setIsLoading(false);
@@ -391,7 +405,7 @@ export default function AuthPage() {
       </Link>
 
       <Card className="w-full max-w-sm p-6">
-        <Tabs defaultValue="login">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="w-full mb-4">
             <TabsTrigger value="login" className="flex-1" data-testid="tab-login">Log in</TabsTrigger>
             <TabsTrigger value="register" className="flex-1" data-testid="tab-register">Sign up</TabsTrigger>
@@ -448,6 +462,39 @@ export default function AuthPage() {
 
           <TabsContent value="register">
             <form onSubmit={handleRegister} className="space-y-4">
+              {/* Brand Build tier banner */}
+              {pendingTier && pendingTier !== "GZLurker" && (
+                <div
+                  data-testid="brand-build-tier-banner"
+                  style={{
+                    background: `${TIER_COLORS[pendingTier]}15`,
+                    border: `1px solid ${TIER_COLORS[pendingTier]}40`,
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <Flame size={16} style={{ color: TIER_COLORS[pendingTier], flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: TIER_COLORS[pendingTier] }}>
+                      {pendingTier} — FREE during Brand Build
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>
+                      Sign up and this tier activates instantly. No payment needed.
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!pendingTier && (
+                <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 10, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Zap size={13} style={{ color: "#22c55e", flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: "rgba(34,197,94,0.9)", fontWeight: 600 }}>
+                    All tiers free during Brand Build — pick one after signing up
+                  </span>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="reg-email">Email</Label>
                 <Input

@@ -420,7 +420,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post(api.auth.register.path, async (req, res) => {
     try {
-      const { email, password, disclaimerAccepted } = req.body;
+      const { email, password, disclaimerAccepted, tier } = req.body;
       if (!email || !password) return res.status(400).json({ message: "Email and password required" });
       if (!disclaimerAccepted) return res.status(400).json({ message: "You must accept the participation disclaimer to register." });
       const existing = await storage.getUserByEmail(email);
@@ -434,8 +434,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         `${req.protocol}://${req.get("host")}/verify-email?token=${verificationToken}`
       );
       const autoVerified = emailResult.devMode && !emailResult.verifyUrl;
+      const validTiers = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"];
+      const selectedTier = tier && validTiers.includes(tier) ? tier : "GZLurker";
       const user = await storage.createUser({
         email, password: hashed, role: "PROVIDER", disclaimerAccepted: true,
+        subscriptionTier: selectedTier,
         emailVerified: autoVerified,
         emailVerificationToken: autoVerified ? null : tokenHash,
         emailVerificationExpiresAt: autoVerified ? null : tokenExpiresAt,
@@ -4574,6 +4577,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       }));
     }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  // Self-service tier selection (Brand Build promo — all tiers free)
+  app.post("/api/user/set-tier", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const { tier } = req.body;
+    const validTiers = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"];
+    if (!validTiers.includes(tier)) return res.status(400).json({ message: "Invalid tier" });
+    await storage.updateSubscriptionTier(userId, tier);
+    (req.session as any).subscriptionTier = tier;
+    return res.json({ ok: true, tier });
   });
 
   // Notification routes
