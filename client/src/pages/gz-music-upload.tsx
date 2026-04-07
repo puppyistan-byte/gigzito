@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Music, Upload, Download, Shield, CheckCircle2, AlertTriangle,
   ArrowLeft, Loader2, FileAudio, FileBadge2, Send, Users, Mail,
-  Headphones, PartyPopper,
+  Headphones, PartyPopper, Home,
 } from "lucide-react";
 
 const ORANGE = "#ff7a00";
@@ -242,6 +242,21 @@ export default function GZMusicUploadPage() {
         <Navbar />
         <div className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-5">
 
+          {/* Back to home */}
+          <button
+            data-testid="btn-home-gz-music-upload-success"
+            onClick={() => navigate("/")}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "rgba(255,122,0,0.08)", border: "1px solid rgba(255,122,0,0.22)",
+              borderRadius: 8, padding: "6px 14px", cursor: "pointer",
+              color: ORANGE, fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <Home size={14} />
+            Return to Homepage
+          </button>
+
           {/* Success banner */}
           <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "linear-gradient(135deg, #0f1a0a, #0b0b0b)", border: "1px solid #22c55e40" }}>
             <div className="flex items-center justify-center w-14 h-14 rounded-full mx-auto" style={{ background: "#22c55e15", border: "2px solid #22c55e40" }}>
@@ -419,10 +434,23 @@ export default function GZMusicUploadPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-lg font-black text-white">Submit Your Track</h1>
             <p className="text-xs text-[#555]">GZMusic · GZ100 Submission</p>
           </div>
+          <button
+            data-testid="btn-home-gz-music-upload"
+            onClick={() => navigate("/")}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              background: "rgba(255,122,0,0.08)", border: "1px solid rgba(255,122,0,0.22)",
+              borderRadius: 8, padding: "5px 12px", cursor: "pointer",
+              color: ORANGE, fontSize: 12, fontWeight: 600,
+            }}
+          >
+            <Home size={13} />
+            Home
+          </button>
         </div>
 
         {/* Track Info */}

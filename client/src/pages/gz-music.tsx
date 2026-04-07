@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
   ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
-  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2,
+  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2, Home,
 } from "lucide-react";
 import { SiX, SiWhatsapp, SiFacebook, SiTelegram } from "react-icons/si";
 import type { GZMusicTrack } from "@shared/schema";
@@ -853,6 +853,23 @@ export default function GZMusicPage() {
     <div className="min-h-screen bg-black">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-6">
+
+        {/* ── Back to Home ─────────────────────────────────────────────────── */}
+        <button
+          data-testid="btn-home-gz-music"
+          onClick={() => navigate("/")}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            background: "rgba(255,122,0,0.08)", border: "1px solid rgba(255,122,0,0.22)",
+            borderRadius: 8, padding: "6px 14px", cursor: "pointer",
+            color: ORANGE, fontSize: 13, fontWeight: 600, transition: "background 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,122,0,0.16)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,122,0,0.08)")}
+        >
+          <Home size={14} />
+          Return to Homepage
+        </button>
 
         {/* ── Hero / Manifesto ──────────────────────────────────────────────── */}
         <div
