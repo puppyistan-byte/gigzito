@@ -1,9 +1,36 @@
+import { Component, type ReactNode } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(e: Error) { return { error: e?.message ?? "Unknown error" }; }
+  componentDidCatch(e: Error) { console.error("[ErrorBoundary]", e); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, background: "#0f0f0f", color: "#fff", fontFamily: "sans-serif" }}>
+          <div style={{ maxWidth: 480, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Something went wrong</h1>
+            <p style={{ fontSize: 13, color: "#aaa", marginBottom: 24, wordBreak: "break-word" }}>{this.state.error}</p>
+            <button
+              onClick={() => { this.setState({ error: null }); window.location.href = "/"; }}
+              style={{ background: "#cc0000", color: "#fff", border: "none", borderRadius: 999, padding: "10px 24px", fontWeight: 700, cursor: "pointer", fontSize: 14 }}
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { Navbar } from "@/components/navbar";
 import { useSocket } from "@/hooks/use-socket";
 import NotFound from "@/pages/not-found";
@@ -114,7 +141,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <AppShell />
+          <ErrorBoundary>
+            <AppShell />
+          </ErrorBoundary>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
