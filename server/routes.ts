@@ -4597,16 +4597,67 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const id = parseInt(req.params.id);
+    const wid = parseInt(req.params.wid);
     const mem = await storage.getUserGroupRole(id, userId);
     if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
     const { amount, currency, txHash, note } = req.body;
     if (!amount || isNaN(Number(amount))) return res.status(400).json({ message: "Valid amount required" });
     const profile = await storage.getProviderProfileByUserId(userId).catch(() => null);
     const displayName = (profile as any)?.displayName ?? null;
+    const avatarUrl = (profile as any)?.avatarUrl ?? null;
+
+    // Attempt on-chain verification for ETH-based tx hashes
+    let verified = false;
+    if (txHash && txHash.startsWith("0x") && txHash.length >= 60) {
+      try {
+        const wallets = await storage.getGroupWallets(id);
+        const wallet = wallets.find((w) => w.id === wid);
+        if (wallet) {
+          const apiRes = await fetch(`https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash=${txHash}`);
+          const apiData = await apiRes.json() as any;
+          if (apiData?.result?.to && wallet.address) {
+            verified = apiData.result.to.toLowerCase() === wallet.address.toLowerCase();
+          }
+        }
+      } catch (_) { /* verification failed silently */ }
+    }
+
     try {
-      return res.json(await storage.createWalletContribution(parseInt(req.params.wid), id, userId, displayName, {
-        amount: Number(amount), currency: currency ?? "USD", txHash, note
+      return res.json(await storage.createWalletContribution(wid, id, userId, displayName, {
+        amount: Number(amount), currency: currency ?? "USD", txHash, note, avatarUrl, verified
       }));
+    }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.put("/api/groups/:id/wallets/:wid/goal", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const wid = parseInt(req.params.wid);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    const { goalAmount, goalCurrency, goalLabel } = req.body;
+    try {
+      await storage.setWalletGoal(wid, {
+        goalAmount: goalAmount ? Number(goalAmount) : null,
+        goalCurrency: goalCurrency || null,
+        goalLabel: goalLabel || null,
+      });
+      return res.json({ ok: true });
+    }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.patch("/api/groups/:id/wallets/:wid/contributions/:cid/verify", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try {
+      await storage.verifyContribution(parseInt(req.params.cid));
+      return res.json({ ok: true });
     }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });

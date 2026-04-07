@@ -13,7 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Users, MessageSquare, Calendar, Target, ChevronLeft, Plus, Trash2, Lock, Globe,
   Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search,
-  Copy, Settings, KanbanSquare, ArrowRight, ArrowLeft, CheckSquare, Clock, Camera, Mail, Wallet, ExternalLink, Link2
+  Copy, Settings, KanbanSquare, ArrowRight, ArrowLeft, CheckSquare, Clock, Camera, Mail,
+  Wallet, ExternalLink, Link2, ShieldCheck, AlertCircle, BookOpen, TrendingUp,
+  ChevronDown, ChevronUp, Trophy, CircleDollarSign, Info
 } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -30,7 +32,7 @@ type Comment = { id: number; postId: number; userId: number; content: string; cr
 type Endeavor = { id: number; groupId: number; title: string; description: string; goalProgress: number; createdAt: string };
 type Event = { id: number; groupId: number; title: string; description: string; startAt: string; endAt: string | null; allDay: boolean; createdBy: number };
 type Member = { id: number; groupId: number; userId: number; role: string; status: string; displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
-type GroupWallet = { id: number; groupId: number; label: string; network: string; address: string; link: string | null; createdBy: number; createdAt: string };
+type GroupWallet = { id: number; groupId: number; label: string; network: string; address: string; link: string | null; createdBy: number; createdAt: string; goalAmount: number | null; goalCurrency: string | null; goalLabel: string | null };
 
 const MAIN_TABS = ["wall", "endeavors", "kanban", "wallet"] as const;
 type MainTab = typeof MAIN_TABS[number];
@@ -814,19 +816,21 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
 }
 
 // ─── CONTRIBUTION ROW ─────────────────────────────────────────────────────────
-type Contribution = { id: number; walletId: number; userId: number; amount: number; currency: string; txHash: string | null; note: string | null; displayName: string | null; createdAt: string };
+type Contribution = { id: number; walletId: number; userId: number; amount: number; currency: string; txHash: string | null; note: string | null; displayName: string | null; avatarUrl: string | null; verified: boolean; createdAt: string };
 
-function WalletContributions({ groupId, wallet, explorerBase }: { groupId: number; wallet: GroupWallet; explorerBase: string }) {
+function WalletContributions({ groupId, wallet, isAdmin }: { groupId: number; wallet: GroupWallet; isAdmin: boolean }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
-  const [fundForm, setFundForm] = useState({ amount: "", currency: wallet.network === "BTC" ? "BTC" : wallet.network.startsWith("ETH") || wallet.network === "USDT" || wallet.network === "USDC" ? wallet.network : "USD", txHash: "", note: "" });
+  const [goalOpen, setGoalOpen] = useState(false);
+  const defaultCurrency = wallet.network === "BTC" ? "BTC" : ["USDT","USDC"].includes(wallet.network) ? wallet.network : wallet.network;
+  const [fundForm, setFundForm] = useState({ amount: "", currency: defaultCurrency, txHash: "", note: "" });
+  const [goalForm, setGoalForm] = useState({ goalAmount: wallet.goalAmount?.toString() ?? "", goalCurrency: wallet.goalCurrency ?? defaultCurrency, goalLabel: wallet.goalLabel ?? "" });
 
   const { data: contribs = [], isLoading } = useQuery<Contribution[]>({
     queryKey: ["/api/groups", groupId, "wallets", wallet.id, "contributions"],
     queryFn: () => fetch(`/api/groups/${groupId}/wallets/${wallet.id}/contributions`, { credentials: "include" }).then((r) => r.json()),
-    enabled: open,
   });
 
   const fundMut = useMutation({
@@ -835,69 +839,176 @@ function WalletContributions({ groupId, wallet, explorerBase }: { groupId: numbe
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets", wallet.id, "contributions"] });
       setFundOpen(false);
       setFundForm((f) => ({ ...f, amount: "", txHash: "", note: "" }));
-      toast({ title: "Contribution logged!" });
+      toast({ title: "Contribution logged!", description: fundForm.txHash ? "We'll attempt on-chain verification automatically." : "Logged — add a tx hash to get it ✓ Verified." });
     },
     onError: () => toast({ title: "Failed to log contribution", variant: "destructive" }),
   });
 
+  const goalMut = useMutation({
+    mutationFn: (body: object) => apiRequest("PUT", `/api/groups/${groupId}/wallets/${wallet.id}/goal`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets"] });
+      setGoalOpen(false);
+      toast({ title: "Funding goal updated!" });
+    },
+    onError: () => toast({ title: "Failed to set goal", variant: "destructive" }),
+  });
+
+  const verifyMut = useMutation({
+    mutationFn: (cid: number) => apiRequest("PATCH", `/api/groups/${groupId}/wallets/${wallet.id}/contributions/${cid}/verify`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets", wallet.id, "contributions"] });
+      toast({ title: "Contribution verified!" });
+    },
+    onError: () => toast({ title: "Failed to verify", variant: "destructive" }),
+  });
+
   const total = contribs.reduce((s, c) => s + c.amount, 0);
+  const currency = contribs[0]?.currency ?? defaultCurrency;
+  const goalAmt = wallet.goalAmount ?? 0;
+  const goalPct = goalAmt > 0 ? Math.min(100, (total / goalAmt) * 100) : 0;
+
+  // Aggregate leaderboard: group by userId, sum amounts
+  const leaderMap = new Map<number, { displayName: string | null; avatarUrl: string | null; total: number; verifiedTotal: number; latest: Contribution }>();
+  for (const c of contribs) {
+    const entry = leaderMap.get(c.userId);
+    if (!entry) {
+      leaderMap.set(c.userId, { displayName: c.displayName, avatarUrl: c.avatarUrl, total: c.amount, verifiedTotal: c.verified ? c.amount : 0, latest: c });
+    } else {
+      entry.total += c.amount;
+      if (c.verified) entry.verifiedTotal += c.amount;
+    }
+  }
+  const leaderboard = [...leaderMap.entries()].map(([uid, d]) => ({ uid, ...d })).sort((a, b) => b.total - a.total);
+
+  const explorerTxUrl = (hash: string) => networkInfo(wallet.network).explorer(hash);
 
   return (
-    <div className="mt-2 border-t pt-2">
+    <div className="mt-3 border-t pt-3 space-y-3">
+      {/* Goal progress bar */}
+      {(wallet.goalAmount && wallet.goalAmount > 0) ? (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium flex items-center gap-1">
+              <Target className="w-3 h-3 text-indigo-500" />
+              {wallet.goalLabel || "Funding Goal"}
+            </span>
+            <span className="text-muted-foreground">
+              {total.toLocaleString(undefined, { maximumFractionDigits: 6 })} / {wallet.goalAmount.toLocaleString()} {wallet.goalCurrency ?? currency}
+            </span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
+              style={{ width: `${goalPct}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground text-right">{goalPct.toFixed(0)}% funded</p>
+        </div>
+      ) : null}
+
+      {/* Contributor toggle + Log button */}
       <div className="flex items-center justify-between">
         <button onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          <Users className="w-3.5 h-3.5" />
-          <span>{contribs.length > 0 ? `${contribs.length} contributor${contribs.length !== 1 ? "s" : ""} · ${total.toLocaleString()} ${fundForm.currency}` : "Track contributions"}</span>
-          <span className="text-[10px] opacity-60">{open ? "▲" : "▼"}</span>
+          <Trophy className="w-3.5 h-3.5" />
+          <span>
+            {contribs.length > 0
+              ? `${leaderboard.length} contributor${leaderboard.length !== 1 ? "s" : ""} · ${total.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${currency}`
+              : "No contributions yet"}
+          </span>
+          {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
-        <Button data-testid={`button-fund-wallet-${wallet.id}`} size="sm" variant="outline"
-          className="h-6 text-xs px-2 gap-1 text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
-          onClick={() => setFundOpen(true)}>
-          <Plus className="w-3 h-3" /> Fund
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {isAdmin && (
+            <Button data-testid={`button-set-goal-${wallet.id}`} size="sm" variant="outline"
+              className="h-6 text-xs px-2 gap-1 text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+              onClick={() => setGoalOpen(true)}>
+              <Target className="w-3 h-3" /> Goal
+            </Button>
+          )}
+          <Button data-testid={`button-fund-wallet-${wallet.id}`} size="sm" variant="outline"
+            className="h-6 text-xs px-2 gap-1 text-indigo-600 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+            onClick={() => setFundOpen(true)}>
+            <CircleDollarSign className="w-3 h-3" /> Log Contribution
+          </Button>
+        </div>
       </div>
 
+      {/* Leaderboard */}
       {open && (
-        <div className="mt-2 space-y-1.5">
-          {isLoading ? <div className="h-8 bg-muted animate-pulse rounded" /> :
-           contribs.length === 0 ? <p className="text-xs text-muted-foreground italic">No contributions logged yet.</p> :
-           contribs.map((c) => (
-            <div key={c.id} className="flex items-start justify-between gap-2 text-xs py-1 border-b border-dashed last:border-0">
-              <div>
-                <span className="font-medium">{c.displayName ?? "Member"}</span>
-                {c.note && <span className="text-muted-foreground ml-1">— {c.note}</span>}
-                {c.txHash && (
-                  <a href={`${explorerBase}${c.txHash}`} target="_blank" rel="noopener noreferrer"
-                    className="ml-1 text-indigo-500 hover:underline inline-flex items-center gap-0.5">
-                    <ExternalLink className="w-2.5 h-2.5" /> tx
-                  </a>
-                )}
+        <div className="space-y-2">
+          {isLoading ? (
+            <div className="h-8 bg-muted animate-pulse rounded" />
+          ) : leaderboard.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic text-center py-2">Be the first to log a contribution.</p>
+          ) : (
+            leaderboard.map((entry, idx) => (
+              <div key={entry.uid} className="flex items-center gap-2 py-1.5 border-b border-dashed last:border-0">
+                <span className="text-xs font-bold text-muted-foreground w-4 flex-shrink-0">#{idx + 1}</span>
+                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {entry.avatarUrl
+                    ? <img src={entry.avatarUrl} alt={entry.displayName ?? ""} className="w-full h-full object-cover" />
+                    : <span className="text-xs font-bold text-indigo-600">{(entry.displayName ?? "M")[0].toUpperCase()}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate">{entry.displayName ?? "Member"}</p>
+                  {/* Individual tx rows */}
+                  {contribs.filter((c) => c.userId === entry.uid).map((c) => (
+                    <div key={c.id} className="flex items-center gap-1 mt-0.5">
+                      {c.verified
+                        ? <ShieldCheck className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        : <AlertCircle className="w-3 h-3 text-yellow-500 flex-shrink-0" />}
+                      <span className="text-[10px] text-muted-foreground">
+                        {c.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })} {c.currency}
+                        {c.verified ? " · ✓ Verified" : " · Pending verification"}
+                      </span>
+                      {c.txHash && (
+                        <a href={explorerTxUrl(c.txHash)} target="_blank" rel="noopener noreferrer"
+                          className="text-indigo-500 hover:underline inline-flex items-center gap-0.5 text-[10px]">
+                          <ExternalLink className="w-2.5 h-2.5" /> tx
+                        </a>
+                      )}
+                      {isAdmin && !c.verified && (
+                        <button onClick={() => verifyMut.mutate(c.id)}
+                          className="text-[10px] text-green-600 hover:underline ml-1">
+                          Verify
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                  +{entry.total.toLocaleString(undefined, { maximumFractionDigits: 6 })} {currency}
+                </span>
               </div>
-              <span className="font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">+{c.amount} {c.currency}</span>
-            </div>
-           ))
-          }
-          {contribs.length > 0 && (
-            <div className="flex justify-between text-xs font-semibold pt-0.5">
-              <span>Total</span>
-              <span className="text-green-600 dark:text-green-400">{total.toLocaleString()} {fundForm.currency}</span>
+            ))
+          )}
+          {leaderboard.length > 0 && (
+            <div className="flex justify-between text-xs font-bold pt-1 border-t">
+              <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5 text-indigo-500" /> Total Raised</span>
+              <span className="text-green-600 dark:text-green-400">{total.toLocaleString(undefined, { maximumFractionDigits: 6 })} {currency}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Fund dialog */}
+      {/* Log Contribution dialog */}
       <Dialog open={fundOpen} onOpenChange={setFundOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-indigo-500" /> Log Contribution to {wallet.label}
+              <CircleDollarSign className="w-4 h-4 text-indigo-500" /> Log Contribution — {wallet.label}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-1">
-            <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-3 text-xs text-indigo-700 dark:text-indigo-300">
-              Funds are sent directly on-chain to the wallet address. This form records your contribution for group tracking only.
+            <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 p-3 text-xs text-indigo-700 dark:text-indigo-300 space-y-1">
+              <p className="font-semibold flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> How this works:</p>
+              <p>1. Send crypto from <strong>your own wallet</strong> to the group address below.</p>
+              <p>2. Paste your transaction hash here — Gigzito will verify it on-chain automatically for ETH-based transactions.</p>
+              <p>3. Your contribution appears on the group leaderboard with a ✓ Verified badge.</p>
+              <a href={networkInfo(wallet.network).explorer(wallet.address)} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 font-semibold text-indigo-600 hover:underline mt-1">
+                <ExternalLink className="w-3 h-3" /> View wallet address on explorer →
+              </a>
             </div>
             <div className="flex gap-2">
               <div className="flex-1">
@@ -912,26 +1023,67 @@ function WalletContributions({ groupId, wallet, explorerBase }: { groupId: numbe
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction Hash <span className="font-normal normal-case">(optional)</span></label>
-              <Input data-testid="input-contrib-txhash" placeholder="0x… proof of payment" className="mt-1 font-mono text-xs"
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Transaction Hash <span className="font-normal normal-case text-indigo-600">(paste for on-chain verification)</span>
+              </label>
+              <Input data-testid="input-contrib-txhash" placeholder="0x… or blockchain tx ID" className="mt-1 font-mono text-xs"
                 value={fundForm.txHash} onChange={(e) => setFundForm((f) => ({ ...f, txHash: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note <span className="font-normal normal-case">(optional)</span></label>
-              <Input data-testid="input-contrib-note" placeholder="e.g. Monthly pledge" className="mt-1"
+              <Input data-testid="input-contrib-note" placeholder="e.g. Monthly pledge, event fund…" className="mt-1"
                 value={fundForm.note} onChange={(e) => setFundForm((f) => ({ ...f, note: e.target.value }))} />
             </div>
+            <Button data-testid="button-log-contribution" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+              disabled={!fundForm.amount || isNaN(Number(fundForm.amount)) || Number(fundForm.amount) <= 0 || fundMut.isPending}
+              onClick={() => fundMut.mutate({ amount: Number(fundForm.amount), currency: fundForm.currency, txHash: fundForm.txHash || undefined, note: fundForm.note || undefined })}>
+              <ShieldCheck className="w-4 h-4" />
+              {fundMut.isPending ? "Logging & verifying…" : "Submit Contribution"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Goal dialog (admin only) */}
+      <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-indigo-500" /> Set Funding Goal — {wallet.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <div className="rounded-lg bg-muted/50 border p-3 text-xs text-muted-foreground">
+              Set a target amount for this wallet. Members will see a progress bar showing how close the group is to reaching it.
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Goal Label</label>
+              <Input data-testid="input-goal-label" placeholder="e.g. Annual retreat fund, Equipment purchase…" className="mt-1"
+                value={goalForm.goalLabel} onChange={(e) => setGoalForm((f) => ({ ...f, goalLabel: e.target.value }))} />
+            </div>
             <div className="flex gap-2">
-              <a href={networkInfo(wallet.network).explorer(wallet.address)} target="_blank" rel="noopener noreferrer"
-                className="flex-1">
-                <Button variant="outline" className="w-full gap-1.5 text-indigo-600 border-indigo-300">
-                  <ExternalLink className="w-3.5 h-3.5" /> Open Wallet to Send
-                </Button>
-              </a>
-              <Button data-testid="button-log-contribution" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                disabled={!fundForm.amount || isNaN(Number(fundForm.amount)) || Number(fundForm.amount) <= 0 || fundMut.isPending}
-                onClick={() => fundMut.mutate({ amount: Number(fundForm.amount), currency: fundForm.currency, txHash: fundForm.txHash || undefined, note: fundForm.note || undefined })}>
-                {fundMut.isPending ? "Logging…" : "Log It"}
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Target Amount</label>
+                <Input data-testid="input-goal-amount" type="number" min="0" step="any" placeholder="0.00" className="mt-1"
+                  value={goalForm.goalAmount} onChange={(e) => setGoalForm((f) => ({ ...f, goalAmount: e.target.value }))} />
+              </div>
+              <div className="w-28">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Currency</label>
+                <Input data-testid="input-goal-currency" className="mt-1 uppercase"
+                  value={goalForm.goalCurrency} onChange={(e) => setGoalForm((f) => ({ ...f, goalCurrency: e.target.value.toUpperCase() }))} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => {
+                setGoalForm({ goalAmount: "", goalCurrency: defaultCurrency, goalLabel: "" });
+                goalMut.mutate({ goalAmount: null, goalCurrency: null, goalLabel: null });
+              }}>
+                Clear Goal
+              </Button>
+              <Button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!goalForm.goalAmount || isNaN(Number(goalForm.goalAmount)) || goalMut.isPending}
+                onClick={() => goalMut.mutate({ goalAmount: Number(goalForm.goalAmount), goalCurrency: goalForm.goalCurrency, goalLabel: goalForm.goalLabel || null })}>
+                {goalMut.isPending ? "Saving…" : "Save Goal"}
               </Button>
             </div>
           </div>
@@ -1006,12 +1158,103 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
     return net.explorer(w.address);
   }
 
+  const [tutorialOpen, setTutorialOpen] = useState(true);
+
   return (
     <div className="space-y-4">
+
+      {/* ── Value Realized Tutorial ───────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 overflow-hidden">
+        <button
+          data-testid="button-toggle-tutorial"
+          onClick={() => setTutorialOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-indigo-600" />
+            <span className="font-semibold text-sm text-indigo-700 dark:text-indigo-300">How Value Realized Works — Safety Guide</span>
+          </div>
+          {tutorialOpen ? <ChevronUp className="w-4 h-4 text-indigo-500" /> : <ChevronDown className="w-4 h-4 text-indigo-500" />}
+        </button>
+
+        {tutorialOpen && (
+          <div className="px-4 pb-4 space-y-4">
+            <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
+              The Group Wallet is a <strong>self-custodial contribution tracker</strong>. Gigzito never holds or touches your funds — all crypto flows directly between member wallets and the group's registered addresses. Here's exactly how it works:
+            </p>
+
+            {/* Steps */}
+            <div className="grid sm:grid-cols-3 gap-3">
+              {[
+                {
+                  step: "1",
+                  icon: <Wallet className="w-5 h-5 text-indigo-600" />,
+                  title: "Admin registers a wallet",
+                  body: "The group admin adds a real on-chain wallet address (ETH, BTC, SOL, USDC, etc.). Only the admin controls that wallet — Gigzito has zero access.",
+                  color: "bg-indigo-100 dark:bg-indigo-900/40",
+                },
+                {
+                  step: "2",
+                  icon: <CircleDollarSign className="w-5 h-5 text-purple-600" />,
+                  title: "You send directly from your wallet",
+                  body: "Open your own crypto app (MetaMask, Phantom, Coinbase Wallet, etc.), copy the group address, and send. Your funds go straight on-chain — no middleman.",
+                  color: "bg-purple-100 dark:bg-purple-900/40",
+                },
+                {
+                  step: "3",
+                  icon: <ShieldCheck className="w-5 h-5 text-green-600" />,
+                  title: "Log your tx hash → get Verified",
+                  body: "Paste your transaction ID here. Gigzito checks Etherscan to confirm the tx went to the correct address. You get a ✓ Verified badge on the leaderboard.",
+                  color: "bg-green-100 dark:bg-green-900/40",
+                },
+              ].map((s) => (
+                <div key={s.step} className={`rounded-xl p-3 ${s.color} space-y-1.5`}>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-white dark:bg-black/20 flex items-center justify-center text-[10px] font-bold text-indigo-700 dark:text-indigo-300 flex-shrink-0">{s.step}</span>
+                    {s.icon}
+                    <span className="text-xs font-bold text-foreground">{s.title}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{s.body}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Safety guarantees */}
+            <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-3 space-y-1.5">
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4" /> Safety Guarantees
+              </p>
+              {[
+                "Gigzito never holds any funds — zero custody risk, zero liability.",
+                "All contributions are public on the blockchain — full transparency, anyone can verify.",
+                "Supports Gnosis Safe (multisig) — admin can use a wallet requiring multiple officer approvals before any funds move.",
+                "Admins can manually verify any contribution. Unverified entries are marked clearly so members can see what's confirmed.",
+                "The group wallet address is read-only on Gigzito — it can never be changed by the platform.",
+              ].map((item, i) => (
+                <p key={i} className="text-xs text-green-700 dark:text-green-300 flex items-start gap-1.5">
+                  <CheckSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> {item}
+                </p>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
+              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 mb-1">
+                <Info className="w-4 h-4" /> Pro Tip: Use a Gnosis Safe for Group Treasuries
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                For serious group funds, set up a free <strong>Gnosis Safe</strong> at{" "}
+                <a href="https://safe.global" target="_blank" rel="noopener noreferrer" className="underline font-semibold">safe.global</a>.
+                It requires M-of-N group officers to sign any outgoing transaction — meaning no single person can drain the treasury. Then register that Safe address here.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-base flex items-center gap-2"><Wallet className="w-4 h-4 text-indigo-500" /> Group Wallet</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Crypto addresses · member contributions tracked here</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Crypto addresses · member contributions tracked on-chain</p>
         </div>
         {isAdmin && (
           <Button data-testid="button-add-wallet" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1" onClick={() => setAddOpen(true)}>
@@ -1073,7 +1316,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
                     </button>
                   )}
                 </div>
-                <WalletContributions groupId={groupId} wallet={w} explorerBase={net.explorer("").replace(/[^/]*$/, "")} />
+                <WalletContributions groupId={groupId} wallet={w} isAdmin={isAdmin} />
               </div>
             );
           })}

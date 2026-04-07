@@ -253,7 +253,9 @@ export interface IStorage {
   deleteGroupWallet(id: number): Promise<void>;
   // Group Wallet Contributions
   getWalletContributions(walletId: number): Promise<GroupWalletContribution[]>;
-  createWalletContribution(walletId: number, groupId: number, userId: number, displayName: string | null, data: { amount: number; currency: string; txHash?: string; note?: string }): Promise<GroupWalletContribution>;
+  createWalletContribution(walletId: number, groupId: number, userId: number, displayName: string | null, data: { amount: number; currency: string; txHash?: string; note?: string; avatarUrl?: string; verified?: boolean }): Promise<GroupWalletContribution>;
+  setWalletGoal(walletId: number, goal: { goalAmount: number | null; goalCurrency: string | null; goalLabel: string | null }): Promise<void>;
+  verifyContribution(contribId: number): Promise<void>;
   // Notifications
   createNotification(userId: number, type: string, title: string, message: string, link?: string): Promise<Notification>;
   getNotifications(userId: number): Promise<Notification[]>;
@@ -2991,14 +2993,24 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(groupWalletContributions.createdAt));
   }
 
-  async createWalletContribution(walletId: number, groupId: number, userId: number, displayName: string | null, data: { amount: number; currency: string; txHash?: string; note?: string }) {
+  async createWalletContribution(walletId: number, groupId: number, userId: number, displayName: string | null, data: { amount: number; currency: string; txHash?: string; note?: string; avatarUrl?: string; verified?: boolean }) {
     const [row] = await db.insert(groupWalletContributions).values({
       walletId, groupId, userId, displayName,
       amount: data.amount, currency: data.currency,
       txHash: data.txHash ?? null, note: data.note ?? null,
+      avatarUrl: data.avatarUrl ?? null,
+      verified: data.verified ?? false,
       createdAt: new Date(),
     }).returning();
     return row;
+  }
+
+  async setWalletGoal(walletId: number, goal: { goalAmount: number | null; goalCurrency: string | null; goalLabel: string | null }) {
+    await db.update(groupWallets).set({ goalAmount: goal.goalAmount, goalCurrency: goal.goalCurrency, goalLabel: goal.goalLabel }).where(eq(groupWallets.id, walletId));
+  }
+
+  async verifyContribution(contribId: number) {
+    await db.update(groupWalletContributions).set({ verified: true }).where(eq(groupWalletContributions.id, contribId));
   }
 
   // Notifications

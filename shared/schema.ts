@@ -1125,6 +1125,9 @@ export const groupWallets = pgTable("group_wallets", {
   network: text("network").notNull(),
   address: text("address").notNull(),
   link: text("link"),
+  goalAmount: real("goal_amount"),
+  goalCurrency: text("goal_currency"),
+  goalLabel: text("goal_label"),
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -1144,6 +1147,8 @@ export const groupWalletContributions = pgTable("group_wallet_contributions", {
   txHash: text("tx_hash"),
   note: text("note"),
   displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  verified: boolean("verified").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
