@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight, Home, Star, Send } from "lucide-react";
+import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight, ArrowLeft, Home, Star, Send } from "lucide-react";
 
 type FeaturedGroup = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -111,9 +111,10 @@ export default function GroupsPage() {
         <button
           data-testid="button-groups-home-loggedout"
           onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 16px rgba(255,43,43,0.35)", letterSpacing: "0.02em", border: "none" }}
         >
-          <Home className="w-4 h-4" /> Back to Gigzito
+          <ArrowLeft size={14} />
+          Back to Gigzito
         </button>
       </div>
 
@@ -254,15 +255,14 @@ export default function GroupsPage() {
         {/* ── Top bar: Home + title + Create ── */}
         <div className="flex items-center justify-between py-6 gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <Button
+            <button
               data-testid="button-groups-home"
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-border text-foreground hover:bg-muted"
               onClick={() => navigate("/")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 16px rgba(255,43,43,0.35)", letterSpacing: "0.02em", border: "none" }}
             >
-              <Home className="w-4 h-4" /> Back to Gigzito
-            </Button>
+              <ArrowLeft size={14} />
+              Back to Gigzito
+            </button>
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 <Users className="w-6 h-6 text-red-500" /> GZGroups

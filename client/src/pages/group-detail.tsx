@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Users, MessageSquare, Calendar, Target, ChevronLeft, Plus, Trash2, Lock, Globe,
   Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search,
-  Copy, Settings, KanbanSquare, ArrowRight, CheckSquare, Clock, Camera, Mail, Wallet, ExternalLink, Link2
+  Copy, Settings, KanbanSquare, ArrowRight, ArrowLeft, CheckSquare, Clock, Camera, Mail, Wallet, ExternalLink, Link2
 } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -1226,6 +1226,18 @@ export default function GroupDetailPage() {
   return (
     <div className="min-h-screen bg-background pt-16 pb-12">
       <div className="max-w-5xl mx-auto px-4">
+
+        {/* ── Back to Gigzito ── */}
+        <div className="pt-4 pb-2">
+          <button
+            data-testid="button-group-detail-home"
+            onClick={() => navigate("/")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 16px rgba(255,43,43,0.35)", letterSpacing: "0.02em", border: "none" }}
+          >
+            <ArrowLeft size={14} />
+            Back to Gigzito
+          </button>
+        </div>
 
         {/* ── BANNER ─────────────────────────────────────────── */}
         <div className="relative rounded-2xl overflow-hidden mb-5 bg-gradient-to-br from-red-600 to-red-900 group/banner" style={{ height: 200 }}>
