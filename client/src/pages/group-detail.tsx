@@ -1100,6 +1100,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ label: "", network: "ETH", address: "", link: "" });
   const [mmConnecting, setMmConnecting] = useState(false);
+  const [multisigConfirmed, setMultisigConfirmed] = useState(false);
 
   const { data: wallets = [], isLoading } = useQuery<GroupWallet[]>({
     queryKey: ["/api/groups", groupId, "wallets"],
@@ -1113,6 +1114,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
       queryClient.invalidateQueries({ queryKey: ["/api/groups", groupId, "wallets"] });
       setAddOpen(false);
       setForm({ label: "", network: "ETH", address: "", link: "" });
+      setMultisigConfirmed(false);
       toast({ title: "Wallet added" });
     },
     onError: () => toast({ title: "Failed to add wallet", variant: "destructive" }),
@@ -1286,15 +1288,15 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
                 {
                   step: "1",
                   icon: <Wallet className="w-4 h-4 text-red-400" />,
-                  title: "Admin registers a wallet",
-                  body: "The group admin adds a real on-chain address (ETH, BTC, SOL, USDC…). Only the admin controls that wallet — Gigzito has zero access.",
+                  title: "Admin registers a multisig",
+                  body: "The Treasurer registers a multisig address (Gnosis Safe, Squads, Casa, etc.) — not a personal wallet. Multiple officers must co-sign any withdrawal.",
                   border: "border-red-800/40",
                 },
                 {
                   step: "2",
                   icon: <CircleDollarSign className="w-4 h-4 text-orange-400" />,
                   title: "Members send directly",
-                  body: "Use any crypto wallet — MetaMask, Phantom, Coinbase Wallet, WalletConnect, Edge, Trust Wallet, Rainbow, Exodus, Ledger, and more. Copy the group address and send. Funds go straight on-chain, no middleman.",
+                  body: "Open any wallet app — MetaMask, Phantom, Trust Wallet, Coinbase, Ledger, Exodus and more — copy the group's multisig address and send. Funds go straight on-chain, no middleman.",
                   border: "border-orange-800/40",
                 },
                 {
@@ -1316,36 +1318,58 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
               ))}
             </div>
 
-            {/* Supported wallets reference */}
-            <div className="rounded-xl border border-zinc-700/40 bg-white/5 p-3">
-              <p className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-orange-400" /> Works with any self-custody wallet
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { name: "MetaMask", color: "bg-orange-900/40 text-orange-300 border-orange-800/40" },
-                  { name: "WalletConnect", color: "bg-blue-900/40 text-blue-300 border-blue-800/40" },
-                  { name: "Coinbase Wallet", color: "bg-blue-900/40 text-blue-300 border-blue-800/40" },
-                  { name: "Phantom", color: "bg-purple-900/40 text-purple-300 border-purple-800/40" },
-                  { name: "Trust Wallet", color: "bg-sky-900/40 text-sky-300 border-sky-800/40" },
-                  { name: "Edge Wallet", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
-                  { name: "Rainbow", color: "bg-pink-900/40 text-pink-300 border-pink-800/40" },
-                  { name: "Exodus", color: "bg-indigo-900/40 text-indigo-300 border-indigo-800/40" },
-                  { name: "Ledger Live", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
-                  { name: "Trezor Suite", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
-                  { name: "Uniswap Wallet", color: "bg-pink-900/40 text-pink-300 border-pink-800/40" },
-                  { name: "Rabby", color: "bg-teal-900/40 text-teal-300 border-teal-800/40" },
-                  { name: "Zerion", color: "bg-violet-900/40 text-violet-300 border-violet-800/40" },
-                  { name: "Any ETH/BTC/SOL wallet", color: "bg-red-900/30 text-red-300 border-red-800/40" },
-                ].map((w) => (
-                  <span key={w.name} className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border ${w.color}`}>
-                    {w.name}
-                  </span>
-                ))}
+            {/* Wallet reference — two sections */}
+            <div className="space-y-2">
+              {/* Treasury wallets — multisig only */}
+              <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/20 p-3">
+                <p className="text-xs font-bold text-emerald-300 mb-2 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Treasury address — multisig required
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { name: "Gnosis Safe ★", color: "bg-emerald-900/40 text-emerald-300 border-emerald-800/40" },
+                    { name: "Safe{Wallet}", color: "bg-emerald-900/40 text-emerald-300 border-emerald-800/40" },
+                    { name: "Squads (SOL)", color: "bg-purple-900/40 text-purple-300 border-purple-800/40" },
+                    { name: "Coral (SOL)", color: "bg-purple-900/40 text-purple-300 border-purple-800/40" },
+                    { name: "Casa (BTC)", color: "bg-amber-900/40 text-amber-300 border-amber-800/40" },
+                    { name: "Unchained Capital", color: "bg-amber-900/40 text-amber-300 border-amber-800/40" },
+                    { name: "Any M-of-N multisig", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                  ].map((w) => (
+                    <span key={w.name} className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border ${w.color}`}>
+                      {w.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-emerald-400/60 mt-2">Single-key wallets (MetaMask personal, Phantom, Trust Wallet) are not accepted as treasury addresses.</p>
               </div>
-              <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-                If your wallet can send crypto and show you a transaction ID (tx hash), it works. Hardware wallets (Ledger, Trezor) are especially recommended for group treasuries.
-              </p>
+
+              {/* Sending wallets — any wallet works */}
+              <div className="rounded-xl border border-zinc-700/40 bg-white/5 p-3">
+                <p className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                  <CircleDollarSign className="w-3.5 h-3.5 text-orange-400" /> Sending your contribution — any wallet works
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { name: "MetaMask", color: "bg-orange-900/40 text-orange-300 border-orange-800/40" },
+                    { name: "Phantom", color: "bg-purple-900/40 text-purple-300 border-purple-800/40" },
+                    { name: "Coinbase Wallet", color: "bg-blue-900/40 text-blue-300 border-blue-800/40" },
+                    { name: "Trust Wallet", color: "bg-sky-900/40 text-sky-300 border-sky-800/40" },
+                    { name: "WalletConnect", color: "bg-blue-900/40 text-blue-300 border-blue-800/40" },
+                    { name: "Edge Wallet", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                    { name: "Rainbow", color: "bg-pink-900/40 text-pink-300 border-pink-800/40" },
+                    { name: "Exodus", color: "bg-indigo-900/40 text-indigo-300 border-indigo-800/40" },
+                    { name: "Ledger Live", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                    { name: "Trezor", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                    { name: "Rabby", color: "bg-teal-900/40 text-teal-300 border-teal-800/40" },
+                    { name: "Zerion", color: "bg-violet-900/40 text-violet-300 border-violet-800/40" },
+                  ].map((w) => (
+                    <span key={w.name} className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border ${w.color}`}>
+                      {w.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-2">Any wallet that can send crypto and generate a transaction ID (tx hash) works for contributions.</p>
+              </div>
             </div>
 
             {/* Safety guarantees */}
@@ -1382,12 +1406,12 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base flex items-center gap-2"><Wallet className="w-4 h-4 text-indigo-500" /> Group Wallet</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Crypto addresses · member contributions tracked on-chain</p>
+          <h3 className="font-semibold text-base flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Group Wallet</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Multisig treasury · contributions tracked on-chain</p>
         </div>
         {isAdmin && (
-          <Button data-testid="button-add-wallet" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1" onClick={() => setAddOpen(true)}>
-            <Plus className="w-3.5 h-3.5" /> Add Wallet
+          <Button data-testid="button-add-wallet" size="sm" className="bg-red-600 hover:bg-red-700 text-white gap-1" onClick={() => setAddOpen(true)}>
+            <Plus className="w-3.5 h-3.5" /> Add Multisig
           </Button>
         )}
       </div>
@@ -1397,8 +1421,8 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
       ) : wallets.length === 0 ? (
         <div className="text-center py-14 text-muted-foreground">
           <Wallet className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No wallets linked yet.</p>
-          {isAdmin && <p className="text-xs mt-1">Click "Add Wallet" to attach a crypto address.</p>}
+          <p className="text-sm">No multisig wallet linked yet.</p>
+          {isAdmin && <p className="text-xs mt-1">Click "Add Multisig" to register your group's treasury address.</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -1452,49 +1476,102 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
         </div>
       )}
 
-      {/* Add wallet dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="w-4 h-4" /> Add Wallet</DialogTitle></DialogHeader>
-          <div className="space-y-3 pt-1">
-            {/* MetaMask quick connect */}
-            <button data-testid="button-connect-metamask"
-              onClick={connectMetaMask} disabled={mmConnecting}
-              className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-orange-300 dark:border-orange-700 rounded-lg py-2.5 text-sm font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors disabled:opacity-60">
-              <span className="text-base">🦊</span>
-              {mmConnecting ? "Connecting…" : "Connect MetaMask to auto-fill"}
-            </button>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="flex-1 h-px bg-border" /> or fill in manually <div className="flex-1 h-px bg-border" />
+      {/* Add wallet dialog — multisig only */}
+      <Dialog open={addOpen} onOpenChange={(v) => { setAddOpen(v); if (!v) { setMultisigConfirmed(false); setForm({ label: "", network: "ETH", address: "", link: "" }); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Add Multisig Wallet
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+
+            {/* Multisig requirement notice */}
+            <div className="rounded-xl bg-amber-950/40 border border-amber-700/50 p-3 space-y-2">
+              <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> Multisig wallets only
+              </p>
+              <p className="text-xs text-amber-200/80 leading-relaxed">
+                GZGroups requires a <strong className="text-amber-200">multisig (multi-signature) wallet</strong> for all group treasuries. No single-key wallets (MetaMask personal accounts, Phantom, Trust Wallet, etc.) are permitted.
+              </p>
+              <p className="text-xs text-amber-200/80 leading-relaxed">
+                A multisig requires <strong className="text-amber-200">multiple officers to co-sign</strong> any withdrawal — no single person can drain the treasury alone.
+              </p>
+              <a
+                href="https://app.safe.global/new-safe/create"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="link-create-safe"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200 underline underline-offset-2 transition-colors"
+              >
+                <ArrowRight className="w-3 h-3" /> Create a free Gnosis Safe at safe.global →
+              </a>
             </div>
+
+            {/* Supported multisig options */}
+            <div className="rounded-xl border border-zinc-700/40 bg-white/5 p-3">
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Accepted multisig providers</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { name: "Gnosis Safe", note: "Recommended" },
+                  { name: "Safe{Wallet}", note: "" },
+                  { name: "Squads (Solana)", note: "" },
+                  { name: "Coral (Solana)", note: "" },
+                  { name: "Casa (BTC)", note: "" },
+                  { name: "Unchained Capital", note: "" },
+                  { name: "Any M-of-N multisig", note: "" },
+                ].map((w) => (
+                  <span key={w.name} className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border bg-emerald-900/30 text-emerald-300 border-emerald-800/40">
+                    {w.name}{w.note && <span className="text-emerald-500 font-bold"> ★</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Label</label>
-              <Input data-testid="input-wallet-label" placeholder="e.g. Main Treasury" className="mt-1"
+              <Input data-testid="input-wallet-label" placeholder="e.g. GZ Treasury Safe" className="mt-1"
                 value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Network</label>
               <select data-testid="select-wallet-network" value={form.network}
                 onChange={(e) => setForm((f) => ({ ...f, network: e.target.value }))}
-                className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                className="mt-1 w-full border rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-500">
                 {NETWORKS.map((n) => <option key={n.value} value={n.value}>{n.label} ({n.value})</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Wallet Address</label>
-              <Input data-testid="input-wallet-address" placeholder="0x… or bc1… or custom" className="mt-1 font-mono text-sm"
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Multisig Wallet Address</label>
+              <Input data-testid="input-wallet-address" placeholder="0x… (copy from your Safe or multisig app)" className="mt-1 font-mono text-sm"
                 value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+              <p className="text-[10px] text-muted-foreground mt-1">Copy this from your Gnosis Safe or multisig provider dashboard — not from MetaMask or a personal wallet.</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Custom Link <span className="font-normal normal-case">(optional)</span></label>
-              <Input data-testid="input-wallet-link" placeholder="https://…" className="mt-1"
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Safe/Multisig Link <span className="font-normal normal-case">(optional)</span></label>
+              <Input data-testid="input-wallet-link" placeholder="https://app.safe.global/…" className="mt-1"
                 value={form.link} onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))} />
-              <p className="text-xs text-muted-foreground mt-0.5">Overrides the auto block-explorer link</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Link to your Safe's transaction dashboard so members can verify</p>
             </div>
-            <Button data-testid="button-save-wallet" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-              disabled={!form.label.trim() || !form.address.trim() || addMut.isPending}
+
+            {/* Confirmation checkbox */}
+            <label data-testid="checkbox-multisig-confirm" className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-red-800/50 bg-red-950/20 p-3">
+              <input
+                type="checkbox"
+                checked={multisigConfirmed}
+                onChange={(e) => setMultisigConfirmed(e.target.checked)}
+                className="mt-0.5 accent-red-500 w-4 h-4 flex-shrink-0"
+              />
+              <span className="text-xs text-red-200/90 leading-relaxed">
+                I confirm this is a <strong className="text-red-200">multisig wallet address</strong> controlled by a designated Treasurer and at least one other officer. I understand that single-key personal wallets are not permitted in GZGroups.
+              </span>
+            </label>
+
+            <Button data-testid="button-save-wallet"
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+              disabled={!form.label.trim() || !form.address.trim() || !multisigConfirmed || addMut.isPending}
               onClick={() => addMut.mutate({ label: form.label.trim(), network: form.network, address: form.address.trim(), link: form.link.trim() || undefined })}>
-              {addMut.isPending ? "Adding…" : "Add Wallet"}
+              {addMut.isPending ? "Adding…" : "Add Multisig Wallet"}
             </Button>
           </div>
         </DialogContent>
