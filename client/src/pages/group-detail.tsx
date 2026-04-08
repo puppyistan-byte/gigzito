@@ -1294,7 +1294,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
                   step: "2",
                   icon: <CircleDollarSign className="w-4 h-4 text-orange-400" />,
                   title: "Members send directly",
-                  body: "Open MetaMask, Phantom, or Coinbase Wallet — copy the group address and send. Funds go straight on-chain, no middleman.",
+                  body: "Use any crypto wallet — MetaMask, Phantom, Coinbase Wallet, WalletConnect, Edge, Trust Wallet, Rainbow, Exodus, Ledger, and more. Copy the group address and send. Funds go straight on-chain, no middleman.",
                   border: "border-orange-800/40",
                 },
                 {
@@ -1314,6 +1314,38 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
                   <p className="text-xs text-zinc-400 leading-relaxed">{s.body}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Supported wallets reference */}
+            <div className="rounded-xl border border-zinc-700/40 bg-white/5 p-3">
+              <p className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-orange-400" /> Works with any self-custody wallet
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { name: "MetaMask", color: "bg-orange-900/40 text-orange-300 border-orange-800/40" },
+                  { name: "WalletConnect", color: "bg-blue-900/40 text-blue-300 border-blue-800/40" },
+                  { name: "Coinbase Wallet", color: "bg-blue-900/40 text-blue-300 border-blue-800/40" },
+                  { name: "Phantom", color: "bg-purple-900/40 text-purple-300 border-purple-800/40" },
+                  { name: "Trust Wallet", color: "bg-sky-900/40 text-sky-300 border-sky-800/40" },
+                  { name: "Edge Wallet", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                  { name: "Rainbow", color: "bg-pink-900/40 text-pink-300 border-pink-800/40" },
+                  { name: "Exodus", color: "bg-indigo-900/40 text-indigo-300 border-indigo-800/40" },
+                  { name: "Ledger Live", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                  { name: "Trezor Suite", color: "bg-zinc-700/40 text-zinc-300 border-zinc-600/40" },
+                  { name: "Uniswap Wallet", color: "bg-pink-900/40 text-pink-300 border-pink-800/40" },
+                  { name: "Rabby", color: "bg-teal-900/40 text-teal-300 border-teal-800/40" },
+                  { name: "Zerion", color: "bg-violet-900/40 text-violet-300 border-violet-800/40" },
+                  { name: "Any ETH/BTC/SOL wallet", color: "bg-red-900/30 text-red-300 border-red-800/40" },
+                ].map((w) => (
+                  <span key={w.name} className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full border ${w.color}`}>
+                    {w.name}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
+                If your wallet can send crypto and show you a transaction ID (tx hash), it works. Hardware wallets (Ledger, Trezor) are especially recommended for group treasuries.
+              </p>
             </div>
 
             {/* Safety guarantees */}
