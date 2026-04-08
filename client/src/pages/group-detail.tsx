@@ -744,6 +744,162 @@ function deadlinePill(deadline: string | null): { label: string; cls: string } |
   return { label: format(new Date(deadline), "MMM d"), cls: "text-zinc-400 bg-zinc-800/60" };
 }
 
+// ── TOP-LEVEL: avoids component-inside-component remount bug ─────────────────
+
+interface KanbanFormProps {
+  title: string; desc: string; priority: string; deadline: string;
+  assignedTo: number | undefined; impact: string; effort: string;
+  members: Member[]; showMatrixFields: boolean;
+  onTitle: (v: string) => void; onDesc: (v: string) => void;
+  onPriority: (v: string) => void; onDeadline: (v: string) => void;
+  onAssignedTo: (v: number | undefined) => void;
+  onImpact: (v: string) => void; onEffort: (v: string) => void;
+  onEscape: () => void;
+}
+function KanbanCardForm({ title, desc, priority, deadline, assignedTo, impact, effort, members, showMatrixFields, onTitle, onDesc, onPriority, onDeadline, onAssignedTo, onImpact, onEffort, onEscape }: KanbanFormProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      <Input
+        data-testid="input-kanban-title"
+        autoFocus
+        placeholder="Card title…"
+        value={title}
+        onChange={e => onTitle(e.target.value)}
+        className="text-sm h-9 bg-zinc-800 border-zinc-700"
+        onKeyDown={e => { if (e.key === "Escape") onEscape(); }}
+      />
+      <Textarea
+        data-testid="input-kanban-desc"
+        placeholder="Description (optional)"
+        rows={3}
+        value={desc}
+        onChange={e => onDesc(e.target.value)}
+        className="text-sm resize-none bg-zinc-800 border-zinc-700 leading-relaxed"
+      />
+
+      {/* Priority */}
+      <div>
+        <p className="text-[9px] text-zinc-500 mb-1.5 font-bold tracking-wider">PRIORITY</p>
+        <div className="flex gap-1.5">
+          {(["high","medium","low"] as const).map(p => (
+            <button key={p} type="button" onClick={() => onPriority(p)}
+              className={`text-[10px] px-3 py-1 rounded-full border transition-all font-bold ${
+                priority === p
+                  ? p === "high"   ? "bg-red-900/70 text-red-300 border-red-700"
+                  : p === "medium" ? "bg-amber-900/60 text-amber-300 border-amber-700"
+                  :                  "bg-zinc-700 text-zinc-200 border-zinc-600"
+                  : "bg-zinc-800/50 text-zinc-500 border-zinc-700/50 hover:text-zinc-300"
+              }`}>{p.charAt(0).toUpperCase() + p.slice(1)}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Deadline */}
+      <div>
+        <p className="text-[9px] text-zinc-500 mb-1.5 font-bold tracking-wider">DEADLINE (optional)</p>
+        <Input type="date" value={deadline} onChange={e => onDeadline(e.target.value)}
+          className="text-sm h-9 bg-zinc-800 border-zinc-700" />
+      </div>
+
+      {/* Assignee */}
+      <div>
+        <p className="text-[9px] text-zinc-500 mb-1.5 font-bold tracking-wider">ASSIGN TO</p>
+        <select value={assignedTo ?? ""} onChange={e => onAssignedTo(e.target.value ? parseInt(e.target.value) : undefined)}
+          className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-zinc-300">
+          <option value="">Unassigned</option>
+          {members.filter(m => m.status === "accepted").map(m => (
+            <option key={m.userId} value={m.userId}>{m.displayName || m.username || m.email}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Impact + Effort (backlog only) */}
+      {showMatrixFields && (
+        <div className="pt-2 border-t border-zinc-700/40 space-y-3">
+          <p className="text-[9px] text-zinc-500 font-bold tracking-wider">IMPACT MATRIX (backlog items)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[9px] text-zinc-600 mb-1.5 font-medium">IMPACT LEVEL</p>
+              <div className="flex gap-1.5">
+                {(["high","low"] as const).map(v => (
+                  <button key={v} type="button" onClick={() => onImpact(impact === v ? "" : v)}
+                    className={`text-[10px] px-3 py-1 rounded-full border transition-all font-bold ${impact === v ? "bg-emerald-900/60 text-emerald-300 border-emerald-700" : "bg-zinc-800/50 text-zinc-500 border-zinc-700/50 hover:text-zinc-300"}`}>
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] text-zinc-600 mb-1.5 font-medium">EFFORT LEVEL</p>
+              <div className="flex gap-1.5">
+                {(["low","high"] as const).map(v => (
+                  <button key={v} type="button" onClick={() => onEffort(effort === v ? "" : v)}
+                    className={`text-[10px] px-3 py-1 rounded-full border transition-all font-bold ${effort === v ? "bg-purple-900/60 text-purple-300 border-purple-700" : "bg-zinc-800/50 text-zinc-500 border-zinc-700/50 hover:text-zinc-300"}`}>
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface KanbanCardDispProps {
+  card: KanbanCard; ci: number; colKeys: string[];
+  memberMap: Map<number, Member>;
+  onEdit: (c: KanbanCard) => void;
+  onMoveBack: (id: number, status: string) => void;
+  onMoveForward: (id: number, status: string) => void;
+}
+function KanbanCardDisp({ card, ci, colKeys, memberMap, onEdit, onMoveBack, onMoveForward }: KanbanCardDispProps) {
+  const assignee  = card.assignedTo ? memberMap.get(card.assignedTo) : null;
+  const pMeta     = PRIORITY_META[card.priority ?? "medium"] ?? PRIORITY_META.medium;
+  const dl        = deadlinePill(card.deadline);
+  const addedDays = Math.floor((Date.now() - new Date(card.createdAt).getTime()) / 86400000);
+  return (
+    <div data-testid={`kanban-card-${card.id}`}
+      className="bg-zinc-900/70 border border-zinc-700/40 rounded-xl p-3 shadow-sm group hover:border-zinc-600/60 transition-all cursor-pointer"
+      onClick={() => onEdit(card)}>
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${pMeta.bg} ${pMeta.text}`}>{pMeta.label}</span>
+        {dl && <span className={`text-[9px] px-2 py-0.5 rounded-full font-semibold ${dl.cls}`}>{dl.label}</span>}
+        {card.impactLevel && card.effortLevel && (
+          <span className="text-[9px] text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded-full">on matrix</span>
+        )}
+      </div>
+      <p className="text-sm font-semibold text-zinc-100 leading-snug">{card.title}</p>
+      {card.description && <p className="text-xs text-zinc-500 mt-1 leading-relaxed line-clamp-2">{card.description}</p>}
+      <div className="flex items-center justify-between mt-2.5">
+        <span className="text-[9px] text-zinc-600">
+          {addedDays === 0 ? "Today" : addedDays === 1 ? "1d ago" : `${addedDays}d ago`}
+        </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+            {ci > 0 && (
+              <button data-testid={`button-move-card-back-${card.id}`}
+                onClick={e => { e.stopPropagation(); onMoveBack(card.id, colKeys[ci - 1]); }}
+                className="text-[9px] text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded border border-zinc-700/50 hover:border-zinc-500 transition-colors">← Back</button>
+            )}
+            {ci < KANBAN_COLS.length - 1 && (
+              <button data-testid={`button-move-card-forward-${card.id}`}
+                onClick={e => { e.stopPropagation(); onMoveForward(card.id, colKeys[ci + 1]); }}
+                className="text-[9px] text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded border border-zinc-700/50 hover:border-zinc-500 transition-colors">Next →</button>
+            )}
+          </div>
+          {assignee && (
+            assignee.avatarUrl
+              ? <img src={assignee.avatarUrl} alt={assignee.displayName ?? ""} title={assignee.displayName ?? ""} className="w-5 h-5 rounded-full border border-zinc-600 object-cover" />
+              : <div className="w-5 h-5 rounded-full bg-zinc-700 border border-zinc-600 flex items-center justify-center text-[8px] font-bold text-zinc-300" title={assignee.displayName ?? ""}>{(assignee.displayName ?? assignee.email ?? "?").charAt(0).toUpperCase()}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: boolean; myUserId: number }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -834,145 +990,6 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   const matrixCards  = backlogCards.filter(c => c.impactLevel && c.effortLevel);
   const unplotted    = backlogCards.filter(c => !c.impactLevel || !c.effortLevel);
 
-  // ── CARD FORM (shared by add + edit) ──────────────────────────────────────
-  const CardFormInner = ({ forStatus }: { forStatus?: string }) => (
-    <div className="bg-zinc-900 border border-zinc-700/60 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
-      <Input
-        data-testid="input-kanban-title"
-        autoFocus
-        placeholder="Card title…"
-        value={newTitle}
-        onChange={(e) => setNewTitle(e.target.value)}
-        className="text-sm h-8 bg-zinc-800 border-zinc-700"
-        onKeyDown={(e) => { if (e.key === "Escape") { setAddingCol(null); setEditCard(null); } }}
-      />
-      <Textarea
-        data-testid="input-kanban-desc"
-        placeholder="Description (optional)"
-        rows={2}
-        value={newDesc}
-        onChange={(e) => setNewDesc(e.target.value)}
-        className="text-xs resize-none bg-zinc-800 border-zinc-700"
-      />
-
-      {/* Priority + Deadline row */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">PRIORITY</p>
-          <div className="flex gap-1">
-            {["high","medium","low"].map(p => (
-              <button key={p} onClick={() => setNewPriority(p)}
-                className={`text-[9px] px-2 py-0.5 rounded-full border transition-all font-bold ${
-                  newPriority === p
-                    ? p === "high"   ? "bg-red-900/70 text-red-400 border-red-700"
-                    : p === "medium" ? "bg-amber-900/60 text-amber-400 border-amber-700"
-                    :                  "bg-zinc-700 text-zinc-300 border-zinc-600"
-                    : "bg-zinc-800/50 text-zinc-600 border-zinc-700/50 hover:text-zinc-400"
-                }`}>{p.toUpperCase().slice(0,3)}</button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">DEADLINE</p>
-          <Input type="date" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)}
-            className="text-[10px] h-7 bg-zinc-800 border-zinc-700 px-2" />
-        </div>
-      </div>
-
-      {/* Assignee */}
-      <div>
-        <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">ASSIGN TO</p>
-        <select
-          value={newAssignedTo ?? ""}
-          onChange={(e) => setNewAssignedTo(e.target.value ? parseInt(e.target.value) : undefined)}
-          className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-zinc-300">
-          <option value="">Unassigned</option>
-          {members.filter(m => m.status === "accepted").map(m => (
-            <option key={m.userId} value={m.userId}>{m.displayName || m.username || m.email}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Impact + Effort (backlog only) */}
-      {(forStatus === "backlog" || editCard?.status === "backlog") && (
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-700/40">
-          <div>
-            <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">IMPACT</p>
-            <div className="flex gap-1">
-              {["high","low"].map(v => (
-                <button key={v} onClick={() => setNewImpact(newImpact === v ? "" : v)}
-                  className={`text-[9px] px-2 py-0.5 rounded-full border transition-all font-bold ${newImpact === v ? "bg-emerald-900/60 text-emerald-400 border-emerald-700" : "bg-zinc-800/50 text-zinc-600 border-zinc-700/50 hover:text-zinc-400"}`}>
-                  {v.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">EFFORT</p>
-            <div className="flex gap-1">
-              {["low","high"].map(v => (
-                <button key={v} onClick={() => setNewEffort(newEffort === v ? "" : v)}
-                  className={`text-[9px] px-2 py-0.5 rounded-full border transition-all font-bold ${newEffort === v ? "bg-purple-900/60 text-purple-400 border-purple-700" : "bg-zinc-800/50 text-zinc-600 border-zinc-700/50 hover:text-zinc-400"}`}>
-                  {v.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // ── KANBAN CARD DISPLAY ───────────────────────────────────────────────────
-  const KanbanCardItem = ({ card, ci }: { card: KanbanCard; ci: number }) => {
-    const assignee  = card.assignedTo ? memberMap.get(card.assignedTo) : null;
-    const pMeta     = PRIORITY_META[card.priority ?? "medium"] ?? PRIORITY_META.medium;
-    const dl        = deadlinePill(card.deadline);
-    const addedDays = Math.floor((Date.now() - new Date(card.createdAt).getTime()) / 86400000);
-    return (
-      <div data-testid={`kanban-card-${card.id}`}
-        className="bg-zinc-900/70 border border-zinc-700/40 rounded-xl p-2.5 shadow-sm group hover:border-zinc-600/60 transition-all cursor-pointer"
-        onClick={() => openEdit(card)}>
-        {/* Priority + Deadline */}
-        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${pMeta.bg} ${pMeta.text}`}>{pMeta.label}</span>
-          {dl && <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${dl.cls}`}>{dl.label}</span>}
-          {card.impactLevel && card.effortLevel && (
-            <span className="text-[8px] text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded-full">on matrix</span>
-          )}
-        </div>
-        {/* Title */}
-        <p className="text-xs font-semibold text-zinc-100 leading-snug">{card.title}</p>
-        {card.description && <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed line-clamp-2">{card.description}</p>}
-        {/* Bottom: date + move + avatar */}
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-[9px] text-zinc-600">
-            {addedDays === 0 ? "Added today" : addedDays === 1 ? "1d ago" : `${addedDays}d ago`}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-              {ci > 0 && (
-                <button data-testid={`button-move-card-back-${card.id}`}
-                  onClick={e => { e.stopPropagation(); moveMut.mutate({ id: card.id, status: colKeys[ci - 1] }); }}
-                  className="text-[8px] text-zinc-500 hover:text-zinc-300 px-1 py-0.5 rounded border border-zinc-700/50 hover:border-zinc-600 transition-colors">← Back</button>
-              )}
-              {ci < KANBAN_COLS.length - 1 && (
-                <button data-testid={`button-move-card-forward-${card.id}`}
-                  onClick={e => { e.stopPropagation(); moveMut.mutate({ id: card.id, status: colKeys[ci + 1] }); }}
-                  className="text-[8px] text-zinc-500 hover:text-zinc-300 px-1 py-0.5 rounded border border-zinc-700/50 hover:border-zinc-600 transition-colors">Next →</button>
-              )}
-            </div>
-            {assignee && (
-              assignee.avatarUrl
-                ? <img src={assignee.avatarUrl} alt={assignee.displayName ?? ""} title={assignee.displayName ?? ""} className="w-5 h-5 rounded-full border border-zinc-600 object-cover" />
-                : <div className="w-5 h-5 rounded-full bg-zinc-700 border border-zinc-600 flex items-center justify-center text-[8px] font-bold text-zinc-300" title={assignee.displayName ?? ""}>{(assignee.displayName ?? assignee.email ?? "?").charAt(0).toUpperCase()}</div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="pb-4 space-y-4">
       {/* ── TOOLBAR ── */}
@@ -1002,7 +1019,15 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
             <DialogHeader>
               <DialogTitle className="text-sm font-bold text-zinc-200">Edit Card</DialogTitle>
             </DialogHeader>
-            <CardFormInner />
+            <KanbanCardForm
+              title={newTitle} desc={newDesc} priority={newPriority} deadline={newDeadline}
+              assignedTo={newAssignedTo} impact={newImpact} effort={newEffort}
+              members={members} showMatrixFields={editCard?.status === "backlog"}
+              onTitle={setNewTitle} onDesc={setNewDesc} onPriority={setNewPriority}
+              onDeadline={setNewDeadline} onAssignedTo={setNewAssignedTo}
+              onImpact={setNewImpact} onEffort={setNewEffort}
+              onEscape={() => setEditCard(null)}
+            />
             <div className="flex gap-2 pt-1">
               <Button data-testid="button-save-kanban-card" size="sm"
                 className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
@@ -1047,21 +1072,35 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
                 </div>
 
                 {addingCol === col.key && (
-                  <>
-                    <CardFormInner forStatus={col.key} />
+                  <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl p-3 flex flex-col gap-3">
+                    <KanbanCardForm
+                      title={newTitle} desc={newDesc} priority={newPriority} deadline={newDeadline}
+                      assignedTo={newAssignedTo} impact={newImpact} effort={newEffort}
+                      members={members} showMatrixFields={col.key === "backlog"}
+                      onTitle={setNewTitle} onDesc={setNewDesc} onPriority={setNewPriority}
+                      onDeadline={setNewDeadline} onAssignedTo={setNewAssignedTo}
+                      onImpact={setNewImpact} onEffort={setNewEffort}
+                      onEscape={() => setAddingCol(null)}
+                    />
                     <div className="flex gap-1.5">
                       <Button data-testid="button-save-kanban-card" size="sm"
-                        className="flex-1 h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                        className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
                         disabled={!newTitle.trim() || createMut.isPending}
                         onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key, priority: newPriority, deadline: newDeadline || undefined, assignedTo: newAssignedTo, impactLevel: newImpact || undefined, effortLevel: newEffort || undefined })}>
                         Add Card
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingCol(null)}>Cancel</Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setAddingCol(null)}>Cancel</Button>
                     </div>
-                  </>
+                  </div>
                 )}
 
-                {colCards.map(card => <KanbanCardItem key={card.id} card={card} ci={ci} />)}
+                {colCards.map(card => (
+                  <KanbanCardDisp key={card.id} card={card} ci={ci} colKeys={colKeys} memberMap={memberMap}
+                    onEdit={openEdit}
+                    onMoveBack={(id, st) => moveMut.mutate({ id, status: st })}
+                    onMoveForward={(id, st) => moveMut.mutate({ id, status: st })}
+                  />
+                ))}
 
                 {colCards.length === 0 && addingCol !== col.key && (
                   <p className="text-[10px] text-zinc-600 text-center py-6 italic">
