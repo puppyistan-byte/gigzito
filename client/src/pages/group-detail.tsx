@@ -15,7 +15,7 @@ import {
   Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search,
   Copy, Settings, KanbanSquare, ArrowRight, ArrowLeft, CheckSquare, Clock, Camera, Mail,
   Wallet, ExternalLink, Link2, ShieldCheck, AlertCircle, BookOpen, TrendingUp,
-  ChevronDown, ChevronUp, Trophy, CircleDollarSign, Info
+  ChevronDown, ChevronUp, Trophy, CircleDollarSign, Info, RefreshCw
 } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -833,6 +833,14 @@ function WalletContributions({ groupId, wallet, isAdmin }: { groupId: number; wa
     queryFn: () => fetch(`/api/groups/${groupId}/wallets/${wallet.id}/contributions`, { credentials: "include" }).then((r) => r.ok ? r.json() : []),
   });
 
+  type BalanceResult = { balance: number; currency: string; cachedAt: number; cached: boolean; nextRefreshAt: string; unsupported?: boolean };
+  const { data: balanceData, isLoading: balanceLoading, refetch: refetchBalance, isFetching: balanceFetching } = useQuery<BalanceResult>({
+    queryKey: ["/api/groups", groupId, "wallets", wallet.id, "balance"],
+    queryFn: () => fetch(`/api/groups/${groupId}/wallets/${wallet.id}/balance`, { credentials: "include" }).then((r) => r.ok ? r.json() : null),
+    staleTime: 4 * 60 * 1000,
+    retry: 1,
+  });
+
   const fundMut = useMutation({
     mutationFn: (body: object) => apiRequest("POST", `/api/groups/${groupId}/wallets/${wallet.id}/contributions`, body),
     onSuccess: () => {
@@ -866,7 +874,11 @@ function WalletContributions({ groupId, wallet, isAdmin }: { groupId: number; wa
   const total = contribs.reduce((s, c) => s + c.amount, 0);
   const currency = contribs[0]?.currency ?? defaultCurrency;
   const goalAmt = wallet.goalAmount ?? 0;
-  const goalPct = goalAmt > 0 ? Math.min(100, (total / goalAmt) * 100) : 0;
+  // Prefer live on-chain balance for thermometer; fall back to logged contributions
+  const liveBalance = balanceData && !balanceData.unsupported ? balanceData.balance : null;
+  const thermometerValue = liveBalance ?? total;
+  const goalPct = goalAmt > 0 ? Math.min(100, (thermometerValue / goalAmt) * 100) : 0;
+  const goalColor = goalPct >= 100 ? "from-emerald-500 to-emerald-400" : goalPct >= 75 ? "from-amber-500 to-orange-400" : "from-red-600 to-red-400";
 
   // Aggregate leaderboard: group by userId, sum amounts
   const leaderMap = new Map<number, { displayName: string | null; avatarUrl: string | null; total: number; verifiedTotal: number; latest: Contribution }>();
@@ -885,23 +897,82 @@ function WalletContributions({ groupId, wallet, isAdmin }: { groupId: number; wa
 
   return (
     <div className="mt-3 border-t pt-3 space-y-3">
-      {/* Goal progress bar */}
+
+      {/* Live on-chain balance pill */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {balanceLoading ? (
+            <div className="h-5 w-32 rounded-full bg-muted animate-pulse" />
+          ) : balanceData && !balanceData.unsupported ? (
+            <div className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-950/50 text-emerald-300 border border-emerald-800/50 px-2.5 py-1 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {balanceData.balance.toLocaleString(undefined, { maximumFractionDigits: 6 })} {balanceData.currency}
+              <span className="text-emerald-500 font-normal ml-0.5">on-chain</span>
+            </div>
+          ) : balanceData?.unsupported ? (
+            <span className="text-[10px] text-zinc-500 italic">Live balance not supported for {wallet.network}</span>
+          ) : (
+            <span className="text-[10px] text-zinc-500 italic">Balance unavailable</span>
+          )}
+          {balanceData && (
+            <span className="text-[10px] text-zinc-600">
+              {balanceData.cached ? "cached · " : ""}updated {new Date(balanceData.cachedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+        </div>
+        <button
+          data-testid={`button-refresh-balance-${wallet.id}`}
+          onClick={() => refetchBalance()}
+          disabled={balanceFetching}
+          title="Refresh live balance"
+          className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40"
+        >
+          <RefreshCw className={`w-3 h-3 ${balanceFetching ? "animate-spin" : ""}`} /> Refresh
+        </button>
+      </div>
+
+      {/* Goal thermometer */}
       {(wallet.goalAmount && wallet.goalAmount > 0) ? (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 rounded-xl border border-zinc-700/40 bg-white/5 p-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-medium flex items-center gap-1">
-              <Target className="w-3 h-3 text-indigo-500" />
+            <span className="font-semibold flex items-center gap-1.5 text-white">
+              <Target className="w-3.5 h-3.5 text-red-400" />
               {wallet.goalLabel || "Funding Goal"}
             </span>
-            <span className="text-muted-foreground">
-              {total.toLocaleString(undefined, { maximumFractionDigits: 6 })} / {wallet.goalAmount.toLocaleString()} {wallet.goalCurrency ?? currency}
+            <span className="font-mono text-zinc-300 text-xs">
+              {thermometerValue.toLocaleString(undefined, { maximumFractionDigits: 6 })} / {wallet.goalAmount.toLocaleString()} {wallet.goalCurrency ?? currency}
             </span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
-              style={{ width: `${goalPct}%` }} />
+
+          {/* Thermometer bar */}
+          <div className="relative h-4 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r ${goalColor} transition-all duration-1000 ease-out relative`}
+              style={{ width: `${goalPct}%` }}
+            >
+              {goalPct > 8 && (
+                <span className="absolute right-2 top-0 h-full flex items-center text-[9px] font-bold text-white/90">
+                  {goalPct.toFixed(0)}%
+                </span>
+              )}
+            </div>
+            {goalPct <= 8 && (
+              <span className="absolute left-2 top-0 h-full flex items-center text-[9px] font-bold text-zinc-400">
+                {goalPct.toFixed(0)}%
+              </span>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground text-right">{goalPct.toFixed(0)}% funded</p>
+
+          <div className="flex items-center justify-between text-[10px] text-zinc-500">
+            <span className="flex items-center gap-1">
+              {liveBalance !== null ? (
+                <><div className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Using live on-chain balance</>
+              ) : (
+                <><div className="w-1.5 h-1.5 rounded-full bg-zinc-500" /> Based on logged contributions</>
+              )}
+            </span>
+            {goalPct >= 100 && <span className="text-emerald-400 font-bold">🎉 Goal reached!</span>}
+          </div>
         </div>
       ) : null}
 

@@ -4649,6 +4649,97 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  // ── Live on-chain balance ────────────────────────────────────────────────
+  const _balanceCache = new Map<number, { balance: number; currency: string; cachedAt: number; unsupported?: boolean }>();
+  const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const EVM_RPCS: Record<string, string> = {
+    ETH:  "https://eth.llamarpc.com",
+    MATIC:"https://polygon-rpc.com",
+    BNB:  "https://bsc-dataseed.binance.org/",
+    AVAX: "https://api.avax.network/ext/bc/C/rpc",
+    ARB:  "https://arb1.arbitrum.io/rpc",
+    OP:   "https://mainnet.optimism.io",
+    BASE: "https://mainnet.base.org",
+  };
+
+  async function fetchOnChainBalance(network: string, address: string): Promise<{ balance: number; currency: string; unsupported?: boolean }> {
+    // EVM chains — native token balance
+    if (EVM_RPCS[network]) {
+      const rpc = EVM_RPCS[network];
+      const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [address, "latest"] });
+      const r = await fetch(rpc, { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(8000) });
+      const d = await r.json() as any;
+      const weiHex = d?.result as string;
+      if (!weiHex) throw new Error("No result from RPC");
+      const wei = BigInt(weiHex);
+      const balance = Number(wei) / 1e18;
+      const nativeCurrency: Record<string, string> = { ETH: "ETH", MATIC: "MATIC", BNB: "BNB", AVAX: "AVAX", ARB: "ETH", OP: "ETH", BASE: "ETH" };
+      return { balance, currency: nativeCurrency[network] ?? network };
+    }
+    // Bitcoin via Blockstream
+    if (network === "BTC") {
+      const r = await fetch(`https://blockstream.info/api/address/${address}`, { signal: AbortSignal.timeout(8000) });
+      const d = await r.json() as any;
+      const funded = (d?.chain_stats?.funded_txo_sum ?? 0) + (d?.mempool_stats?.funded_txo_sum ?? 0);
+      const spent  = (d?.chain_stats?.spent_txo_sum  ?? 0) + (d?.mempool_stats?.spent_txo_sum  ?? 0);
+      return { balance: (funded - spent) / 1e8, currency: "BTC" };
+    }
+    // Solana via public RPC
+    if (network === "SOL") {
+      const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [address] });
+      const r = await fetch("https://api.mainnet-beta.solana.com", { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(8000) });
+      const d = await r.json() as any;
+      const lamports = d?.result?.value ?? 0;
+      return { balance: lamports / 1e9, currency: "SOL" };
+    }
+    // USDC / USDT — ERC-20 on Ethereum, balanceOf via eth_call
+    if (network === "USDC" || network === "USDT") {
+      const tokenContracts: Record<string, string> = {
+        USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      };
+      const contract = tokenContracts[network];
+      const paddedAddr = address.replace("0x", "").padStart(64, "0");
+      const data = `0x70a08231000000000000000000000000${paddedAddr}`;
+      const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: contract, data }, "latest"] });
+      const r = await fetch("https://eth.llamarpc.com", { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(8000) });
+      const d = await r.json() as any;
+      const hex = d?.result as string;
+      if (!hex || hex === "0x") return { balance: 0, currency: network };
+      const raw = BigInt(hex);
+      return { balance: Number(raw) / 1e6, currency: network }; // USDC/USDT use 6 decimals
+    }
+    return { balance: 0, currency: network, unsupported: true };
+  }
+
+  app.get("/api/groups/:id/wallets/:wid/balance", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id  = parseInt(req.params.id);
+    const wid = parseInt(req.params.wid);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+
+    const cached = _balanceCache.get(wid);
+    if (cached && Date.now() - cached.cachedAt < _CACHE_TTL) {
+      return res.json({ ...cached, cached: true, nextRefreshAt: new Date(cached.cachedAt + _CACHE_TTL).toISOString() });
+    }
+
+    const wallets = await storage.getGroupWallets(id);
+    const wallet = wallets.find((w) => w.id === wid);
+    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
+    try {
+      const result = await fetchOnChainBalance(wallet.network, wallet.address);
+      const entry = { ...result, cachedAt: Date.now() };
+      _balanceCache.set(wid, entry);
+      return res.json({ ...entry, cached: false, nextRefreshAt: new Date(entry.cachedAt + _CACHE_TTL).toISOString() });
+    } catch (e: any) {
+      return res.status(502).json({ message: "Balance fetch failed", detail: e?.message ?? "unknown" });
+    }
+  });
+
   app.patch("/api/groups/:id/wallets/:wid/contributions/:cid/verify", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
