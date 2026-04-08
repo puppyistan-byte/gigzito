@@ -1164,64 +1164,91 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
     <div className="space-y-4">
 
       {/* ── Value Realized Tutorial ───────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 overflow-hidden">
+      <div className="rounded-2xl border border-red-900/40 bg-gradient-to-br from-zinc-900 to-black dark:from-zinc-900 dark:to-black overflow-hidden shadow-lg shadow-black/30">
         <button
           data-testid="button-toggle-tutorial"
           onClick={() => setTutorialOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition-colors"
         >
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-600" />
-            <span className="font-semibold text-sm text-indigo-700 dark:text-indigo-300">How Value Realized Works — Safety Guide</span>
+          <div className="flex items-center gap-2.5">
+            <BookOpen className="w-4 h-4 text-red-400" />
+            <span className="font-bold text-sm text-white tracking-wide">Group Wallet — How It Works & Safety Guide</span>
           </div>
-          {tutorialOpen ? <ChevronUp className="w-4 h-4 text-indigo-500" /> : <ChevronDown className="w-4 h-4 text-indigo-500" />}
+          {tutorialOpen
+            ? <ChevronUp className="w-4 h-4 text-red-400 flex-shrink-0" />
+            : <ChevronDown className="w-4 h-4 text-red-400 flex-shrink-0" />}
         </button>
 
         {tutorialOpen && (
-          <div className="px-4 pb-4 space-y-4">
-            <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
-              The Group Wallet is a <strong>self-custodial contribution tracker</strong>. Gigzito never holds or touches your funds — all crypto flows directly between member wallets and the group's registered addresses. Here's exactly how it works:
+          <div className="px-4 pb-5 space-y-4 border-t border-white/10">
+
+            {/* Mastermind Principle banner */}
+            <div className="mt-4 rounded-xl bg-gradient-to-r from-red-950/80 to-red-900/50 border border-red-700/50 p-4">
+              <div className="flex items-start gap-3">
+                <Trophy className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-bold text-red-300 leading-snug">
+                    Built on the Mastermind Principle
+                  </p>
+                  <p className="text-xs text-red-200/80 leading-relaxed">
+                    The Group Wallet is reserved for the <strong className="text-red-200">strongest of bonds</strong> — members who operate in a true <em>spirit of harmony</em>, united around a shared financial vision. This is not for casual groups. This is for those who hold each other accountable.
+                  </p>
+                  <a
+                    href="https://www.youtube.com/watch?v=XMzu0ZzyIFo"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-300 hover:text-red-200 underline underline-offset-2 transition-colors mt-0.5"
+                    data-testid="link-mastermind-principle"
+                  >
+                    <ArrowRight className="w-3 h-3" /> Watch: The Mastermind Principle
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              The Group Wallet is a <strong className="text-zinc-200">self-custodial contribution tracker</strong>. Gigzito never holds or touches your funds — all crypto flows directly between member wallets and the group's registered addresses.
             </p>
 
             {/* Steps */}
-            <div className="grid sm:grid-cols-3 gap-3">
+            <div className="grid sm:grid-cols-3 gap-2.5">
               {[
                 {
                   step: "1",
-                  icon: <Wallet className="w-5 h-5 text-indigo-600" />,
+                  icon: <Wallet className="w-4 h-4 text-red-400" />,
                   title: "Admin registers a wallet",
-                  body: "The group admin adds a real on-chain wallet address (ETH, BTC, SOL, USDC, etc.). Only the admin controls that wallet — Gigzito has zero access.",
-                  color: "bg-indigo-100 dark:bg-indigo-900/40",
+                  body: "The group admin adds a real on-chain address (ETH, BTC, SOL, USDC…). Only the admin controls that wallet — Gigzito has zero access.",
+                  border: "border-red-800/40",
                 },
                 {
                   step: "2",
-                  icon: <CircleDollarSign className="w-5 h-5 text-purple-600" />,
-                  title: "You send directly from your wallet",
-                  body: "Open your own crypto app (MetaMask, Phantom, Coinbase Wallet, etc.), copy the group address, and send. Your funds go straight on-chain — no middleman.",
-                  color: "bg-purple-100 dark:bg-purple-900/40",
+                  icon: <CircleDollarSign className="w-4 h-4 text-orange-400" />,
+                  title: "Members send directly",
+                  body: "Open MetaMask, Phantom, or Coinbase Wallet — copy the group address and send. Funds go straight on-chain, no middleman.",
+                  border: "border-orange-800/40",
                 },
                 {
                   step: "3",
-                  icon: <ShieldCheck className="w-5 h-5 text-green-600" />,
-                  title: "Log your tx hash → get Verified",
-                  body: "Paste your transaction ID here. Gigzito checks Etherscan to confirm the tx went to the correct address. You get a ✓ Verified badge on the leaderboard.",
-                  color: "bg-green-100 dark:bg-green-900/40",
+                  icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
+                  title: "Log tx hash → get Verified",
+                  body: "Paste your transaction ID here. Gigzito checks Etherscan to confirm the tx. You earn a ✓ Verified badge on the leaderboard.",
+                  border: "border-emerald-800/40",
                 },
               ].map((s) => (
-                <div key={s.step} className={`rounded-xl p-3 ${s.color} space-y-1.5`}>
+                <div key={s.step} className={`rounded-xl p-3 bg-white/5 border ${s.border} space-y-1.5`}>
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-white dark:bg-black/20 flex items-center justify-center text-[10px] font-bold text-indigo-700 dark:text-indigo-300 flex-shrink-0">{s.step}</span>
+                    <span className="w-5 h-5 rounded-full bg-red-900/60 flex items-center justify-center text-[10px] font-bold text-red-300 flex-shrink-0">{s.step}</span>
                     {s.icon}
-                    <span className="text-xs font-bold text-foreground">{s.title}</span>
+                    <span className="text-xs font-bold text-white">{s.title}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{s.body}</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{s.body}</p>
                 </div>
               ))}
             </div>
 
             {/* Safety guarantees */}
-            <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-3 space-y-1.5">
-              <p className="text-xs font-bold text-green-700 dark:text-green-400 flex items-center gap-1.5">
+            <div className="rounded-xl border border-emerald-900/50 bg-emerald-950/30 p-3 space-y-1.5">
+              <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4" /> Safety Guarantees
               </p>
               {[
@@ -1231,20 +1258,20 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
                 "Admins can manually verify any contribution. Unverified entries are marked clearly so members can see what's confirmed.",
                 "The group wallet address is read-only on Gigzito — it can never be changed by the platform.",
               ].map((item, i) => (
-                <p key={i} className="text-xs text-green-700 dark:text-green-300 flex items-start gap-1.5">
-                  <CheckSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> {item}
+                <p key={i} className="text-xs text-emerald-300/80 flex items-start gap-1.5">
+                  <CheckSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-emerald-400" /> {item}
                 </p>
               ))}
             </div>
 
-            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
-              <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 mb-1">
+            <div className="rounded-xl border border-amber-800/40 bg-amber-950/20 p-3">
+              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5 mb-1">
                 <Info className="w-4 h-4" /> Pro Tip: Use a Gnosis Safe for Group Treasuries
               </p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-                For serious group funds, set up a free <strong>Gnosis Safe</strong> at{" "}
-                <a href="https://safe.global" target="_blank" rel="noopener noreferrer" className="underline font-semibold">safe.global</a>.
-                It requires M-of-N group officers to sign any outgoing transaction — meaning no single person can drain the treasury. Then register that Safe address here.
+              <p className="text-xs text-amber-300/80 leading-relaxed">
+                For serious group funds, set up a free <strong className="text-amber-300">Gnosis Safe</strong> at{" "}
+                <a href="https://safe.global" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-amber-300 hover:text-amber-200">safe.global</a>.
+                It requires M-of-N group officers to sign any outgoing transaction — no single person can drain the treasury.
               </p>
             </div>
           </div>
