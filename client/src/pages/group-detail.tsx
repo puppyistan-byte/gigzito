@@ -1159,6 +1159,7 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
   }
 
   const [tutorialOpen, setTutorialOpen] = useState(true);
+  const [treasuryMoreOpen, setTreasuryMoreOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -1183,27 +1184,96 @@ function WalletTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) 
           <div className="px-4 pb-5 space-y-4 border-t border-white/10">
 
             {/* Mastermind Principle banner */}
-            <div className="mt-4 rounded-xl bg-gradient-to-r from-red-950/80 to-red-900/50 border border-red-700/50 p-4">
-              <div className="flex items-start gap-3">
-                <Trophy className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                <div className="space-y-1.5">
-                  <p className="text-sm font-bold text-red-300 leading-snug">
-                    Built on the Mastermind Principle
-                  </p>
-                  <p className="text-xs text-red-200/80 leading-relaxed">
-                    The Group Wallet is reserved for the <strong className="text-red-200">strongest of bonds</strong> — members who operate in a true <em>spirit of harmony</em>, united around a shared financial vision. This is not for casual groups. This is for those who hold each other accountable.
-                  </p>
-                  <a
-                    href="https://www.youtube.com/watch?v=XMzu0ZzyIFo"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-300 hover:text-red-200 underline underline-offset-2 transition-colors mt-0.5"
-                    data-testid="link-mastermind-principle"
-                  >
-                    <ArrowRight className="w-3 h-3" /> Watch: The Mastermind Principle
-                  </a>
+            <div className="mt-4 rounded-xl bg-gradient-to-r from-red-950/80 to-red-900/50 border border-red-700/50 overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <Trophy className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <p className="text-sm font-bold text-red-300 leading-snug">
+                      Built on the Mastermind Principle
+                    </p>
+                    <p className="text-xs text-red-200/80 leading-relaxed">
+                      The Group Wallet is reserved for the <strong className="text-red-200">strongest of bonds</strong> — members who operate in a true <em>spirit of harmony</em>, united around a shared financial vision. This is not for casual groups. This is for those who hold each other accountable.
+                    </p>
+
+                    {/* Treasury trust warning */}
+                    <div className="rounded-lg bg-black/30 border border-red-800/50 px-3 py-2.5 space-y-1">
+                      <p className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" /> Treasurer Rule — Read Before Sharing a Wallet
+                      </p>
+                      <p className="text-xs text-amber-200/80 leading-relaxed">
+                        Any wallet address shared in a Mastermind group <strong className="text-amber-200">must be held by a designated Treasurer</strong> — the most trusted member of the group. Only that person should control the private key or seed phrase.
+                      </p>
+                      <p className="text-xs text-amber-200/80 leading-relaxed">
+                        <strong className="text-amber-200">Important:</strong> A wallet address alone is <em>deposit-only</em>. No one can extract or move funds using just an address — only the holder of the private key can initiate withdrawals. Sharing your address here is safe; <strong className="text-red-300">never share your private key or seed phrase with anyone</strong>.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 pt-0.5">
+                      <a
+                        href="https://www.youtube.com/watch?v=XMzu0ZzyIFo"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-300 hover:text-red-200 underline underline-offset-2 transition-colors"
+                        data-testid="link-mastermind-principle"
+                      >
+                        <ArrowRight className="w-3 h-3" /> Watch: The Mastermind Principle
+                      </a>
+                      <button
+                        data-testid="button-treasury-more"
+                        onClick={() => setTreasuryMoreOpen((v) => !v)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+                      >
+                        {treasuryMoreOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        {treasuryMoreOpen ? "Less" : "More about treasury safety"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Expanded treasury detail panel */}
+              {treasuryMoreOpen && (
+                <div className="border-t border-red-800/40 bg-black/40 px-4 py-4 space-y-3">
+                  <p className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Treasury Best Practices</p>
+                  {[
+                    {
+                      icon: <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />,
+                      text: "Appoint a single Treasurer by group vote — typically the most financially accountable and technically capable member.",
+                    },
+                    {
+                      icon: <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />,
+                      text: "The Treasurer's private key and seed phrase must NEVER be shared with any other member, including the admin. This is non-negotiable.",
+                    },
+                    {
+                      icon: <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />,
+                      text: "The wallet address shown here is deposit-only. Anyone can send funds to it, but withdrawals require the Treasurer's private key — it is physically impossible to extract funds with just an address.",
+                    },
+                    {
+                      icon: <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />,
+                      text: "For maximum protection, use a Gnosis Safe (multisig): requires M-of-N officers to co-sign any withdrawal — no single person can move funds unilaterally.",
+                    },
+                    {
+                      icon: <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />,
+                      text: "If a Treasurer leaves the group or becomes unreachable, the group should rotate the treasury wallet immediately and establish a successor before any further contributions are made.",
+                    },
+                    {
+                      icon: <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />,
+                      text: "All contributions logged here are publicly verifiable on the blockchain — full transparency for every member, at all times.",
+                    },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      {item.icon}
+                      <p className="text-xs text-zinc-300 leading-relaxed">{item.text}</p>
+                    </div>
+                  ))}
+                  <div className="rounded-lg bg-red-950/50 border border-red-800/40 px-3 py-2.5 mt-1">
+                    <p className="text-xs text-red-300 leading-relaxed">
+                      <strong>Bottom line:</strong> Sharing a wallet address is safe — it's like giving someone your bank account number so they can wire you money. Only the holder of the private key (your Treasurer) can move those funds. Protect that key like a vault combination.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
