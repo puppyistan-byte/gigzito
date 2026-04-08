@@ -2,10 +2,32 @@
 
 ## VPS Migration SQL (run in `psql gigzito` before next deploy)
 ```sql
+-- Kanban strategic upgrades (new session):
+ALTER TABLE group_kanban_cards ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'medium';
+ALTER TABLE group_kanban_cards ADD COLUMN IF NOT EXISTS deadline timestamptz;
+ALTER TABLE group_kanban_cards ADD COLUMN IF NOT EXISTS assigned_to integer;
+ALTER TABLE group_kanban_cards ADD COLUMN IF NOT EXISTS impact_level text;
+ALTER TABLE group_kanban_cards ADD COLUMN IF NOT EXISTS effort_level text;
+CREATE TABLE IF NOT EXISTS group_retrospectives (
+  id serial PRIMARY KEY,
+  group_id integer NOT NULL,
+  user_id integer NOT NULL,
+  display_name text,
+  avatar_url text,
+  win text NOT NULL,
+  roadblock text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+-- Group wallet goal fields (prior session):
+ALTER TABLE group_wallets ADD COLUMN IF NOT EXISTS goal_amount real;
+ALTER TABLE group_wallets ADD COLUMN IF NOT EXISTS goal_currency text;
+ALTER TABLE group_wallets ADD COLUMN IF NOT EXISTS goal_label text;
+ALTER TABLE group_wallet_contributions ADD COLUMN IF NOT EXISTS verified boolean DEFAULT false;
+ALTER TABLE group_wallet_contributions ADD COLUMN IF NOT EXISTS avatar_url text;
+-- GZ Music (prior session):
 ALTER TABLE video_listings ADD COLUMN IF NOT EXISTS bg_music_track_id INTEGER REFERENCES gz_music_tracks(id) ON DELETE SET NULL;
 ALTER TABLE video_listings ADD COLUMN IF NOT EXISTS bg_music_volume INTEGER NOT NULL DEFAULT 70;
 ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS shared_to_library BOOLEAN NOT NULL DEFAULT true;
--- Previously pending (include if not yet run):
 CREATE TABLE IF NOT EXISTS gz_music_comments (id SERIAL PRIMARY KEY, track_id INTEGER NOT NULL REFERENCES gz_music_tracks(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, content TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
 ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS play_count INTEGER NOT NULL DEFAULT 0;
 ```

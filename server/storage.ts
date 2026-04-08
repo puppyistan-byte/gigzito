@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupWallets, groupWalletContributions, notifications, groupEmailInvites, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -244,9 +244,11 @@ export interface IStorage {
   updateGroupEvent(id: number, data: Partial<{ title: string; description: string; startAt: Date; endAt: Date; allDay: boolean }>): Promise<GroupEvent>;
   deleteGroupEvent(id: number): Promise<void>;
   getGroupKanbanCards(groupId: number): Promise<GroupKanbanCard[]>;
-  createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string }): Promise<GroupKanbanCard>;
-  updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string }>): Promise<GroupKanbanCard>;
+  createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string }): Promise<GroupKanbanCard>;
+  updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null }>): Promise<GroupKanbanCard>;
   deleteGroupKanbanCard(id: number): Promise<void>;
+  getGroupRetrospectives(groupId: number): Promise<GroupRetrospective[]>;
+  createGroupRetrospective(groupId: number, userId: number, displayName: string | null, avatarUrl: string | null, data: { win: string; roadblock: string }): Promise<GroupRetrospective>;
   // Group Wallets
   getGroupWallets(groupId: number): Promise<GroupWallet[]>;
   createGroupWallet(groupId: number, userId: number, data: { label: string; network: string; address: string; link?: string }): Promise<GroupWallet>;
@@ -2958,20 +2960,46 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(groupKanbanCards).where(eq(groupKanbanCards.groupId, groupId)).orderBy(groupKanbanCards.position, groupKanbanCards.createdAt);
   }
 
-  async createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string }) {
+  async createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string }) {
     const existing = await db.select({ id: groupKanbanCards.id }).from(groupKanbanCards).where(eq(groupKanbanCards.groupId, groupId));
     const position = existing.length;
-    const [row] = await db.insert(groupKanbanCards).values({ groupId, createdBy: userId, title: data.title, description: data.description ?? null, status: data.status ?? "todo", position }).returning();
+    const [row] = await db.insert(groupKanbanCards).values({
+      groupId, createdBy: userId, title: data.title, description: data.description ?? null,
+      status: data.status ?? "todo", position,
+      priority: data.priority ?? "medium",
+      deadline: data.deadline ? new Date(data.deadline) : null,
+      assignedTo: data.assignedTo ?? null,
+      impactLevel: data.impactLevel ?? null,
+      effortLevel: data.effortLevel ?? null,
+    }).returning();
     return row;
   }
 
-  async updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string }>) {
-    const [row] = await db.update(groupKanbanCards).set(data).where(eq(groupKanbanCards.id, id)).returning();
+  async updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null }>) {
+    const updateData: Record<string, unknown> = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.priority !== undefined) updateData.priority = data.priority;
+    if ("deadline" in data) updateData.deadline = data.deadline ? new Date(data.deadline) : null;
+    if ("assignedTo" in data) updateData.assignedTo = data.assignedTo ?? null;
+    if ("impactLevel" in data) updateData.impactLevel = data.impactLevel ?? null;
+    if ("effortLevel" in data) updateData.effortLevel = data.effortLevel ?? null;
+    const [row] = await db.update(groupKanbanCards).set(updateData).where(eq(groupKanbanCards.id, id)).returning();
     return row;
   }
 
   async deleteGroupKanbanCard(id: number) {
     await db.delete(groupKanbanCards).where(eq(groupKanbanCards.id, id));
+  }
+
+  async getGroupRetrospectives(groupId: number) {
+    return db.select().from(groupRetrospectives).where(eq(groupRetrospectives.groupId, groupId)).orderBy(desc(groupRetrospectives.createdAt));
+  }
+
+  async createGroupRetrospective(groupId: number, userId: number, displayName: string | null, avatarUrl: string | null, data: { win: string; roadblock: string }) {
+    const [row] = await db.insert(groupRetrospectives).values({ groupId, userId, displayName, avatarUrl, win: data.win, roadblock: data.roadblock }).returning();
+    return row;
   }
 
   async getGroupWallets(groupId: number) {

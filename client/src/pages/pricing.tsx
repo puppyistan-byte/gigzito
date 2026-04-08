@@ -142,7 +142,7 @@ const FEATURES: Feature[] = [
   { label: "Create GZGroups", tooltip: "Create your own private or open group.", values: [false, true, false, true, true] },
   { label: "Unlimited Group Members", tooltip: "No cap on how many members can join.", values: [false, true, false, true, true] },
   { label: "Private / Invite-Only Groups", tooltip: "Lock your group to invited members only.", values: [false, true, false, true, true] },
-  { label: "Group Kanban Board", tooltip: "Built-in project board inside every group.", values: [false, true, false, true, true] },
+  { label: "Strategic Kanban Board", tooltip: "4-lane board (Backlog → Done) with priority badges, deadlines, assignee avatars, Impact Matrix view, and Weekly Retrospective log.", values: [false, true, false, true, true] },
   { label: "Group Calendar & Events", tooltip: "Schedule meetups and share a group calendar.", values: [false, true, false, true, true] },
   { label: "Campaign Creation", tooltip: "Build structured marketing campaigns.", values: [false, false, false, true, true] },
   { label: "Campaign Tagging", tooltip: "Tag videos and leads to specific campaigns.", values: [false, false, false, true, true] },

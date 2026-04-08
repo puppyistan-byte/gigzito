@@ -718,28 +718,77 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
 }
 
 // ─── KANBAN TAB ───────────────────────────────────────────────────────────────
-type KanbanCard = { id: number; groupId: number; title: string; description: string | null; status: string; position: number; createdBy: number; createdAt: string };
+type KanbanCard = { id: number; groupId: number; title: string; description: string | null; status: string; position: number; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null; createdBy: number; createdAt: string };
+type Retrospective = { id: number; groupId: number; userId: number; displayName: string | null; avatarUrl: string | null; win: string; roadblock: string; createdAt: string };
 
-const KANBAN_COLS: { key: string; label: string; color: string; icon: JSX.Element }[] = [
-  { key: "todo",        label: "To Do",      color: "border-zinc-400",  icon: <Clock className="w-3.5 h-3.5 text-zinc-400" /> },
-  { key: "in_progress", label: "In Progress", color: "border-amber-400", icon: <ArrowRight className="w-3.5 h-3.5 text-amber-400" /> },
-  { key: "done",        label: "Done",       color: "border-green-500", icon: <CheckSquare className="w-3.5 h-3.5 text-green-500" /> },
+const KANBAN_COLS = [
+  { key: "backlog",     label: "Backlog",     subtitle: "Ideas & holding tank",  topColor: "border-zinc-500",    headerBg: "bg-zinc-800/50",    icon: <BookOpen className="w-3.5 h-3.5 text-zinc-400" />    },
+  { key: "todo",        label: "To Do",       subtitle: "Committed this sprint",  topColor: "border-blue-500",    headerBg: "bg-blue-950/40",    icon: <Clock className="w-3.5 h-3.5 text-blue-400" />       },
+  { key: "in_progress", label: "In Progress", subtitle: "Active WIP",             topColor: "border-amber-500",   headerBg: "bg-amber-950/40",   icon: <ArrowRight className="w-3.5 h-3.5 text-amber-400" /> },
+  { key: "done",        label: "Done",        subtitle: "Wins archive",           topColor: "border-emerald-500", headerBg: "bg-emerald-950/40", icon: <CheckSquare className="w-3.5 h-3.5 text-emerald-400" /> },
 ];
+
+const PRIORITY_META: Record<string, { label: string; bg: string; text: string }> = {
+  high:   { label: "HIGH",   bg: "bg-red-900/60",   text: "text-red-400" },
+  medium: { label: "MED",    bg: "bg-amber-900/50", text: "text-amber-400" },
+  low:    { label: "LOW",    bg: "bg-zinc-800/60",  text: "text-zinc-400" },
+};
+
+function deadlinePill(deadline: string | null): { label: string; cls: string } | null {
+  if (!deadline) return null;
+  const diff = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+  if (diff < 0)  return { label: `${Math.abs(diff)}d overdue`, cls: "text-red-400 bg-red-900/40" };
+  if (diff === 0) return { label: "Due today!", cls: "text-orange-400 bg-orange-900/40" };
+  if (diff <= 3)  return { label: `${diff}d left`, cls: "text-amber-400 bg-amber-900/40" };
+  if (diff <= 7)  return { label: `${diff}d left`, cls: "text-yellow-500 bg-yellow-900/30" };
+  return { label: format(new Date(deadline), "MMM d"), cls: "text-zinc-400 bg-zinc-800/60" };
+}
 
 function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: boolean; myUserId: number }) {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const [addingCol, setAddingCol] = useState<string | null>(null);
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
 
-  const { data: cards = [], isLoading } = useQuery<KanbanCard[]>({ queryKey: ["/api/groups", groupId, "kanban"] });
+  const [view, setView]           = useState<"board" | "matrix">("board");
+  const [retroOpen, setRetroOpen] = useState(false);
+  const [addingCol, setAddingCol] = useState<string | null>(null);
+  const [editCard, setEditCard]   = useState<KanbanCard | null>(null);
+
+  // shared form fields
+  const [newTitle,      setNewTitle]      = useState("");
+  const [newDesc,       setNewDesc]       = useState("");
+  const [newPriority,   setNewPriority]   = useState("medium");
+  const [newDeadline,   setNewDeadline]   = useState("");
+  const [newAssignedTo, setNewAssignedTo] = useState<number | undefined>();
+  const [newImpact,     setNewImpact]     = useState("");
+  const [newEffort,     setNewEffort]     = useState("");
+  const [retroWin,      setRetroWin]      = useState("");
+  const [retroRoadblock,setRetroRoadblock]= useState("");
+
+  const { data: cards   = [], isLoading } = useQuery<KanbanCard[]>({ queryKey: ["/api/groups", groupId, "kanban"] });
+  const { data: members = [] }            = useQuery<Member[]>({ queryKey: ["/api/groups", groupId, "members"] });
+  const { data: retros  = [] }            = useQuery<Retrospective[]>({
+    queryKey: ["/api/groups", groupId, "retrospectives"],
+    queryFn: () => fetch(`/api/groups/${groupId}/retrospectives`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
+  });
+
+  const colKeys   = KANBAN_COLS.map(c => c.key);
+  const memberMap = new Map(members.map(m => [m.userId, m]));
 
   const createMut = useMutation({
-    mutationFn: (d: { title: string; description: string; status: string }) =>
-      apiRequest("POST", `/api/groups/${groupId}/kanban`, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }); setAddingCol(null); setNewTitle(""); setNewDesc(""); },
+    mutationFn: (d: object) => apiRequest("POST", `/api/groups/${groupId}/kanban`, d),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] });
+      setAddingCol(null); setNewTitle(""); setNewDesc(""); setNewPriority("medium");
+      setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort("");
+    },
     onError: () => toast({ title: "Failed to create card", variant: "destructive" }),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, ...data }: { id: number } & Record<string, unknown>) =>
+      apiRequest("PATCH", `/api/groups/${groupId}/kanban/${id}`, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }); setEditCard(null); },
+    onError: () => toast({ title: "Failed to update card", variant: "destructive" }),
   });
 
   const moveMut = useMutation({
@@ -750,67 +799,405 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/groups/${groupId}/kanban/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] }); setEditCard(null); },
   });
 
-  const colKeys = KANBAN_COLS.map((c) => c.key);
+  const retroMut = useMutation({
+    mutationFn: (d: { win: string; roadblock: string }) => apiRequest("POST", `/api/groups/${groupId}/retrospectives`, d),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "retrospectives"] });
+      setRetroWin(""); setRetroRoadblock("");
+      toast({ title: "Retrospective logged!" });
+    },
+    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+  });
+
+  const openAdd = (colKey: string) => {
+    setAddingCol(colKey); setNewTitle(""); setNewDesc(""); setNewPriority("medium");
+    setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort("");
+  };
+
+  const openEdit = (card: KanbanCard) => {
+    setEditCard(card);
+    setNewTitle(card.title);
+    setNewDesc(card.description ?? "");
+    setNewPriority(card.priority ?? "medium");
+    setNewDeadline(card.deadline ? card.deadline.slice(0, 10) : "");
+    setNewAssignedTo(card.assignedTo ?? undefined);
+    setNewImpact(card.impactLevel ?? "");
+    setNewEffort(card.effortLevel ?? "");
+  };
+
   if (isLoading) return <div className="h-40 animate-pulse bg-muted rounded-xl" />;
 
-  return (
-    <div className="pb-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {KANBAN_COLS.map((col, ci) => {
-          const colCards = cards.filter((c) => c.status === col.key);
-          return (
-            <div key={col.key} className={`rounded-xl border-t-2 ${col.color} bg-muted/30 p-3 flex flex-col gap-2`}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5 font-semibold text-sm">
-                  {col.icon} {col.label}
-                  <span className="ml-1 text-xs text-muted-foreground font-normal">({colCards.length})</span>
-                </div>
-                <button data-testid={`button-add-card-${col.key}`} onClick={() => { setAddingCol(col.key); setNewTitle(""); setNewDesc(""); }} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Plus className="w-4 h-4" />
+  const backlogCards = cards.filter(c => c.status === "backlog");
+  const matrixCards  = backlogCards.filter(c => c.impactLevel && c.effortLevel);
+  const unplotted    = backlogCards.filter(c => !c.impactLevel || !c.effortLevel);
+
+  // ── CARD FORM (shared by add + edit) ──────────────────────────────────────
+  const CardFormInner = ({ forStatus }: { forStatus?: string }) => (
+    <div className="bg-zinc-900 border border-zinc-700/60 rounded-xl p-3 flex flex-col gap-2.5 shadow-lg">
+      <Input
+        data-testid="input-kanban-title"
+        autoFocus
+        placeholder="Card title…"
+        value={newTitle}
+        onChange={(e) => setNewTitle(e.target.value)}
+        className="text-sm h-8 bg-zinc-800 border-zinc-700"
+        onKeyDown={(e) => { if (e.key === "Escape") { setAddingCol(null); setEditCard(null); } }}
+      />
+      <Textarea
+        data-testid="input-kanban-desc"
+        placeholder="Description (optional)"
+        rows={2}
+        value={newDesc}
+        onChange={(e) => setNewDesc(e.target.value)}
+        className="text-xs resize-none bg-zinc-800 border-zinc-700"
+      />
+
+      {/* Priority + Deadline row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">PRIORITY</p>
+          <div className="flex gap-1">
+            {["high","medium","low"].map(p => (
+              <button key={p} onClick={() => setNewPriority(p)}
+                className={`text-[9px] px-2 py-0.5 rounded-full border transition-all font-bold ${
+                  newPriority === p
+                    ? p === "high"   ? "bg-red-900/70 text-red-400 border-red-700"
+                    : p === "medium" ? "bg-amber-900/60 text-amber-400 border-amber-700"
+                    :                  "bg-zinc-700 text-zinc-300 border-zinc-600"
+                    : "bg-zinc-800/50 text-zinc-600 border-zinc-700/50 hover:text-zinc-400"
+                }`}>{p.toUpperCase().slice(0,3)}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">DEADLINE</p>
+          <Input type="date" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)}
+            className="text-[10px] h-7 bg-zinc-800 border-zinc-700 px-2" />
+        </div>
+      </div>
+
+      {/* Assignee */}
+      <div>
+        <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">ASSIGN TO</p>
+        <select
+          value={newAssignedTo ?? ""}
+          onChange={(e) => setNewAssignedTo(e.target.value ? parseInt(e.target.value) : undefined)}
+          className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-zinc-300">
+          <option value="">Unassigned</option>
+          {members.filter(m => m.status === "accepted").map(m => (
+            <option key={m.userId} value={m.userId}>{m.displayName || m.username || m.email}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Impact + Effort (backlog only) */}
+      {(forStatus === "backlog" || editCard?.status === "backlog") && (
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-700/40">
+          <div>
+            <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">IMPACT</p>
+            <div className="flex gap-1">
+              {["high","low"].map(v => (
+                <button key={v} onClick={() => setNewImpact(newImpact === v ? "" : v)}
+                  className={`text-[9px] px-2 py-0.5 rounded-full border transition-all font-bold ${newImpact === v ? "bg-emerald-900/60 text-emerald-400 border-emerald-700" : "bg-zinc-800/50 text-zinc-600 border-zinc-700/50 hover:text-zinc-400"}`}>
+                  {v.toUpperCase()}
                 </button>
-              </div>
-
-              {addingCol === col.key && (
-                <div className="bg-card border rounded-lg p-2 flex flex-col gap-2">
-                  <Input data-testid="input-kanban-title" autoFocus placeholder="Card title…" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="text-sm h-8" />
-                  <Textarea data-testid="input-kanban-desc" placeholder="Description (optional)" rows={2} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="text-xs resize-none" />
-                  <div className="flex gap-1.5">
-                    <Button data-testid="button-save-kanban-card" size="sm" className="flex-1 h-7 text-xs bg-red-600 hover:bg-red-700 text-white" disabled={!newTitle.trim() || createMut.isPending} onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key })}>Add</Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingCol(null)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
-
-              {colCards.map((card) => (
-                <div key={card.id} data-testid={`kanban-card-${card.id}`} className="bg-card border rounded-lg p-2.5 shadow-sm group">
-                  <p className="text-sm font-medium leading-snug">{card.title}</p>
-                  {card.description && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{card.description}</p>}
-                  <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {ci > 0 && (
-                      <button data-testid={`button-move-card-back-${card.id}`} onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci - 1] })} className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors">← Back</button>
-                    )}
-                    {ci < KANBAN_COLS.length - 1 && (
-                      <button data-testid={`button-move-card-forward-${card.id}`} onClick={() => moveMut.mutate({ id: card.id, status: colKeys[ci + 1] })} className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border hover:border-foreground transition-colors">Next →</button>
-                    )}
-                    {(isAdmin || card.createdBy === myUserId) && (
-                      <button data-testid={`button-delete-card-${card.id}`} onClick={() => deleteMut.mutate(card.id)} className="ml-auto text-muted-foreground hover:text-red-500 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
               ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[9px] text-zinc-500 mb-1 font-bold tracking-wider">EFFORT</p>
+            <div className="flex gap-1">
+              {["low","high"].map(v => (
+                <button key={v} onClick={() => setNewEffort(newEffort === v ? "" : v)}
+                  className={`text-[9px] px-2 py-0.5 rounded-full border transition-all font-bold ${newEffort === v ? "bg-purple-900/60 text-purple-400 border-purple-700" : "bg-zinc-800/50 text-zinc-600 border-zinc-700/50 hover:text-zinc-400"}`}>
+                  {v.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
-              {colCards.length === 0 && addingCol !== col.key && (
-                <p className="text-xs text-muted-foreground text-center py-4 italic">No cards yet</p>
+  // ── KANBAN CARD DISPLAY ───────────────────────────────────────────────────
+  const KanbanCardItem = ({ card, ci }: { card: KanbanCard; ci: number }) => {
+    const assignee  = card.assignedTo ? memberMap.get(card.assignedTo) : null;
+    const pMeta     = PRIORITY_META[card.priority ?? "medium"] ?? PRIORITY_META.medium;
+    const dl        = deadlinePill(card.deadline);
+    const addedDays = Math.floor((Date.now() - new Date(card.createdAt).getTime()) / 86400000);
+    return (
+      <div data-testid={`kanban-card-${card.id}`}
+        className="bg-zinc-900/70 border border-zinc-700/40 rounded-xl p-2.5 shadow-sm group hover:border-zinc-600/60 transition-all cursor-pointer"
+        onClick={() => openEdit(card)}>
+        {/* Priority + Deadline */}
+        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${pMeta.bg} ${pMeta.text}`}>{pMeta.label}</span>
+          {dl && <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold ${dl.cls}`}>{dl.label}</span>}
+          {card.impactLevel && card.effortLevel && (
+            <span className="text-[8px] text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded-full">on matrix</span>
+          )}
+        </div>
+        {/* Title */}
+        <p className="text-xs font-semibold text-zinc-100 leading-snug">{card.title}</p>
+        {card.description && <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed line-clamp-2">{card.description}</p>}
+        {/* Bottom: date + move + avatar */}
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-[9px] text-zinc-600">
+            {addedDays === 0 ? "Added today" : addedDays === 1 ? "1d ago" : `${addedDays}d ago`}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+              {ci > 0 && (
+                <button data-testid={`button-move-card-back-${card.id}`}
+                  onClick={e => { e.stopPropagation(); moveMut.mutate({ id: card.id, status: colKeys[ci - 1] }); }}
+                  className="text-[8px] text-zinc-500 hover:text-zinc-300 px-1 py-0.5 rounded border border-zinc-700/50 hover:border-zinc-600 transition-colors">← Back</button>
+              )}
+              {ci < KANBAN_COLS.length - 1 && (
+                <button data-testid={`button-move-card-forward-${card.id}`}
+                  onClick={e => { e.stopPropagation(); moveMut.mutate({ id: card.id, status: colKeys[ci + 1] }); }}
+                  className="text-[8px] text-zinc-500 hover:text-zinc-300 px-1 py-0.5 rounded border border-zinc-700/50 hover:border-zinc-600 transition-colors">Next →</button>
               )}
             </div>
-          );
-        })}
+            {assignee && (
+              assignee.avatarUrl
+                ? <img src={assignee.avatarUrl} alt={assignee.displayName ?? ""} title={assignee.displayName ?? ""} className="w-5 h-5 rounded-full border border-zinc-600 object-cover" />
+                : <div className="w-5 h-5 rounded-full bg-zinc-700 border border-zinc-600 flex items-center justify-center text-[8px] font-bold text-zinc-300" title={assignee.displayName ?? ""}>{(assignee.displayName ?? assignee.email ?? "?").charAt(0).toUpperCase()}</div>
+            )}
+          </div>
+        </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="pb-4 space-y-4">
+      {/* ── TOOLBAR ── */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-0.5 bg-zinc-800/60 border border-zinc-700/40 rounded-lg p-0.5">
+          <button onClick={() => setView("board")}
+            className={`text-xs px-3 py-1 rounded-md transition-all font-medium ${view === "board" ? "bg-zinc-700 text-white shadow" : "text-zinc-500 hover:text-zinc-300"}`}>
+            Board
+          </button>
+          <button onClick={() => setView("matrix")}
+            className={`text-xs px-3 py-1 rounded-md transition-all font-medium ${view === "matrix" ? "bg-zinc-700 text-white shadow" : "text-zinc-500 hover:text-zinc-300"}`}>
+            Impact Matrix
+          </button>
+        </div>
+        <button
+          data-testid="button-toggle-retro"
+          onClick={() => setRetroOpen(o => !o)}
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${retroOpen ? "bg-purple-900/40 border-purple-700/60 text-purple-300 font-medium" : "border-zinc-700/40 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600/60"}`}>
+          <Trophy className="w-3.5 h-3.5" /> Weekly Retro
+        </button>
+      </div>
+
+      {/* ── EDIT CARD DIALOG ── */}
+      {editCard && (
+        <Dialog open={!!editCard} onOpenChange={o => { if (!o) setEditCard(null); }}>
+          <DialogContent className="bg-zinc-950 border-zinc-800 text-white max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-bold text-zinc-200">Edit Card</DialogTitle>
+            </DialogHeader>
+            <CardFormInner />
+            <div className="flex gap-2 pt-1">
+              <Button data-testid="button-save-kanban-card" size="sm"
+                className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
+                disabled={!newTitle.trim() || updateMut.isPending}
+                onClick={() => updateMut.mutate({ id: editCard.id, title: newTitle, description: newDesc, priority: newPriority, deadline: newDeadline || null, assignedTo: newAssignedTo ?? null, impactLevel: newImpact || null, effortLevel: newEffort || null })}>
+                Save Changes
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditCard(null)}>Cancel</Button>
+            </div>
+            {(isAdmin || editCard.createdBy === myUserId) && (
+              <button
+                data-testid={`button-delete-card-${editCard.id}`}
+                onClick={() => { if (confirm("Delete this card?")) deleteMut.mutate(editCard.id); }}
+                className="w-full text-[10px] text-red-500/70 hover:text-red-400 py-1 transition-colors">
+                Delete card
+              </button>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── BOARD VIEW ── */}
+      {view === "board" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {KANBAN_COLS.map((col, ci) => {
+            const colCards = cards.filter(c => c.status === col.key);
+            return (
+              <div key={col.key} className={`rounded-xl border-t-2 ${col.topColor} border border-zinc-700/30 ${col.headerBg} p-3 flex flex-col gap-2 min-h-[200px]`}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <div>
+                    <div className="flex items-center gap-1.5 font-semibold text-sm text-zinc-100">
+                      {col.icon} {col.label}
+                      <span className="text-[10px] text-zinc-500 font-normal">({colCards.length})</span>
+                    </div>
+                    <p className="text-[9px] text-zinc-600 mt-0.5">{col.subtitle}</p>
+                  </div>
+                  <button data-testid={`button-add-card-${col.key}`}
+                    onClick={() => openAdd(col.key)}
+                    className="text-zinc-600 hover:text-zinc-300 transition-colors">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {addingCol === col.key && (
+                  <>
+                    <CardFormInner forStatus={col.key} />
+                    <div className="flex gap-1.5">
+                      <Button data-testid="button-save-kanban-card" size="sm"
+                        className="flex-1 h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                        disabled={!newTitle.trim() || createMut.isPending}
+                        onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key, priority: newPriority, deadline: newDeadline || undefined, assignedTo: newAssignedTo, impactLevel: newImpact || undefined, effortLevel: newEffort || undefined })}>
+                        Add Card
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingCol(null)}>Cancel</Button>
+                    </div>
+                  </>
+                )}
+
+                {colCards.map(card => <KanbanCardItem key={card.id} card={card} ci={ci} />)}
+
+                {colCards.length === 0 && addingCol !== col.key && (
+                  <p className="text-[10px] text-zinc-600 text-center py-6 italic">
+                    {col.key === "backlog" ? "Add ideas & wild brainstorms…" : col.key === "done" ? "Wins will appear here 🏆" : "No cards yet"}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── MATRIX VIEW ── */}
+      {view === "matrix" && (
+        <div className="space-y-4">
+          <p className="text-xs text-zinc-500 text-center">Plot your Backlog items by Impact vs Effort to find your biggest leverage points</p>
+
+          <div className="relative">
+            {/* Y-axis label */}
+            <div className="absolute -left-1 top-0 bottom-0 w-5 flex items-center justify-center pointer-events-none z-10">
+              <span className="text-[8px] text-zinc-600 font-bold rotate-[-90deg] whitespace-nowrap tracking-widest">IMPACT ▲</span>
+            </div>
+            {/* X-axis label */}
+            <div className="absolute bottom-[-18px] left-5 right-0 flex items-center justify-center pointer-events-none">
+              <span className="text-[8px] text-zinc-600 font-bold tracking-widest">EFFORT →</span>
+            </div>
+
+            <div className="ml-5 grid grid-cols-2 border border-zinc-700/50 rounded-xl overflow-hidden">
+              {([
+                { impact: "high", effort: "low",  label: "⚡ Quick Wins",      accent: "border-emerald-700/60 bg-emerald-950/25", dot: "bg-emerald-500", desc: "High Impact · Low Effort" },
+                { impact: "high", effort: "high", label: "🏔 Major Projects",  accent: "border-amber-700/60 bg-amber-950/25",   dot: "bg-amber-400",   desc: "High Impact · High Effort" },
+                { impact: "low",  effort: "low",  label: "📌 Fill-Ins",        accent: "border-zinc-700/40 bg-zinc-900/30",     dot: "bg-zinc-500",    desc: "Low Impact · Low Effort" },
+                { impact: "low",  effort: "high", label: "⏳ Time Sinks",      accent: "border-red-800/50 bg-red-950/25",       dot: "bg-red-500",     desc: "Low Impact · High Effort" },
+              ] as const).map(q => {
+                const qCards = matrixCards.filter(c => c.impactLevel === q.impact && c.effortLevel === q.effort);
+                return (
+                  <div key={`${q.impact}-${q.effort}`} className={`border ${q.accent} p-3 min-h-[140px]`}>
+                    <p className="text-[10px] font-bold text-zinc-300 mb-0.5">{q.label}</p>
+                    <p className="text-[8px] text-zinc-600 mb-2">{q.desc}</p>
+                    {qCards.map(c => {
+                      const p = PRIORITY_META[c.priority ?? "medium"];
+                      return (
+                        <div key={c.id} onClick={() => openEdit(c)}
+                          className="flex items-start gap-1.5 mb-1.5 cursor-pointer group/mc hover:bg-white/5 rounded p-0.5 transition-colors">
+                          <div className={`w-2 h-2 rounded-full mt-0.5 shrink-0 ${q.dot}`} />
+                          <div>
+                            <p className="text-[10px] text-zinc-300 leading-snug group-hover/mc:text-white transition-colors">{c.title}</p>
+                            <span className={`text-[8px] font-bold ${p.text}`}>{p.label}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {qCards.length === 0 && <p className="text-[9px] text-zinc-700 italic">No items plotted here</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Unplotted */}
+          {unplotted.length > 0 && (
+            <div className="rounded-xl border border-zinc-700/40 bg-zinc-900/30 p-3 mt-6">
+              <p className="text-xs font-semibold text-zinc-400 mb-1">📋 Backlog — not yet plotted ({unplotted.length})</p>
+              <p className="text-[10px] text-zinc-600 mb-2">Click a card to set its Impact & Effort and plot it on the matrix</p>
+              <div className="flex flex-wrap gap-1.5">
+                {unplotted.map(c => {
+                  const p = PRIORITY_META[c.priority ?? "medium"];
+                  return (
+                    <button key={c.id} onClick={() => openEdit(c)}
+                      className="text-xs bg-zinc-800/60 border border-zinc-700/40 rounded-lg px-2.5 py-1.5 text-zinc-300 hover:border-zinc-600 hover:text-white transition-all text-left max-w-[200px] truncate">
+                      <span className={`text-[8px] font-black ${p.text} mr-1`}>{p.label}</span>{c.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {backlogCards.length === 0 && (
+            <div className="text-center py-10 text-zinc-600 text-xs">
+              Add cards to the Backlog lane in Board view, then set their Impact & Effort to populate the matrix
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── RETROSPECTIVE LOG ── */}
+      {retroOpen && (
+        <div className="rounded-xl border border-purple-800/40 bg-purple-950/20 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-purple-400" />
+            <h3 className="text-sm font-bold text-purple-300">Weekly Mastermind Retrospective</h3>
+          </div>
+          <p className="text-[10px] text-purple-400/70">Log one major win and one roadblock this week. Review together at your next session.</p>
+
+          <div className="space-y-2">
+            <div>
+              <label className="text-[9px] text-emerald-400 font-black mb-1 block tracking-wider">🏆 MAJOR WIN THIS WEEK</label>
+              <Textarea data-testid="input-retro-win" placeholder="What was the biggest win for the group this week?" rows={2}
+                value={retroWin} onChange={e => setRetroWin(e.target.value)}
+                className="text-xs resize-none bg-zinc-900/60 border-zinc-700" />
+            </div>
+            <div>
+              <label className="text-[9px] text-red-400 font-black mb-1 block tracking-wider">🚧 BIGGEST ROADBLOCK</label>
+              <Textarea data-testid="input-retro-roadblock" placeholder="What obstacle is slowing the group down?" rows={2}
+                value={retroRoadblock} onChange={e => setRetroRoadblock(e.target.value)}
+                className="text-xs resize-none bg-zinc-900/60 border-zinc-700" />
+            </div>
+            <Button data-testid="button-submit-retro" size="sm"
+              className="bg-purple-700 hover:bg-purple-600 text-white h-8 text-xs w-full"
+              disabled={!retroWin.trim() || !retroRoadblock.trim() || retroMut.isPending}
+              onClick={() => retroMut.mutate({ win: retroWin, roadblock: retroRoadblock })}>
+              Log This Week's Retrospective
+            </Button>
+          </div>
+
+          {retros.length > 0 && (
+            <div className="space-y-2 mt-1 max-h-64 overflow-y-auto">
+              <p className="text-[9px] text-zinc-500 font-bold tracking-wider">PREVIOUS ENTRIES</p>
+              {retros.map(r => (
+                <div key={r.id} className="bg-zinc-900/50 border border-zinc-700/40 rounded-lg p-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    {r.avatarUrl
+                      ? <img src={r.avatarUrl} className="w-4 h-4 rounded-full object-cover" alt="" />
+                      : <div className="w-4 h-4 rounded-full bg-zinc-700 flex items-center justify-center text-[7px] font-bold">{(r.displayName ?? "?").charAt(0)}</div>}
+                    <span className="text-[10px] text-zinc-400 font-medium">{r.displayName ?? "Member"}</span>
+                    <span className="text-[9px] text-zinc-600 ml-auto">{format(new Date(r.createdAt), "MMM d, yyyy")}</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-300"><span className="font-bold text-emerald-400">Win:</span> {r.win}</p>
+                  <p className="text-[10px] text-red-300 mt-0.5"><span className="font-bold text-red-400">Block:</span> {r.roadblock}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

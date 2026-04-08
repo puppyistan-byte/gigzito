@@ -343,7 +343,7 @@ export default function GroupsPage() {
               { icon: <Calendar className="w-4 h-4" style={{ color: "#60a5fa" }} />, label: "Group Calendar", desc: "Schedule events, sync RSVPs, one source of truth." },
               { icon: <Image className="w-4 h-4" style={{ color: "#f472b6" }} />, label: "Media Vault", desc: "Share hi-res photos & videos from every meetup." },
               { icon: <Users className="w-4 h-4" style={{ color: "#4ade80" }} />, label: "Member Dashboard", desc: "Live pulse for updates, docs, and group goals." },
-              { icon: <KanbanSquare className="w-4 h-4" style={{ color: "#fbbf24" }} />, label: "Kanban Board", desc: "Move tasks from To Do → In Progress → Done." },
+              { icon: <KanbanSquare className="w-4 h-4" style={{ color: "#fbbf24" }} />, label: "Strategic Kanban", desc: "4-lane board + Impact Matrix + Weekly Retro log." },
             ].map((f, i) => (
               <div key={f.label} className="px-4 py-3 flex flex-col gap-1" style={{ borderRight: i < 3 ? "1px solid rgba(255,255,255,0.07)" : "none", borderTop: i >= 2 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
                 <div className="flex items-center gap-1.5">{f.icon}<span className="text-xs font-semibold" style={{ color: "#f4f4f5" }}>{f.label}</span></div>

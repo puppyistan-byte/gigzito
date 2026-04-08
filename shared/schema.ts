@@ -1109,6 +1109,11 @@ export const groupKanbanCards = pgTable("group_kanban_cards", {
   description: text("description"),
   status: text("status").notNull().default("todo"),
   position: integer("position").notNull().default(0),
+  priority: text("priority").notNull().default("medium"),
+  deadline: timestamp("deadline", { withTimezone: true }),
+  assignedTo: integer("assigned_to"),
+  impactLevel: text("impact_level"),
+  effortLevel: text("effort_level"),
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -1116,6 +1121,23 @@ export const groupKanbanCards = pgTable("group_kanban_cards", {
 export const insertGroupKanbanCardSchema = createInsertSchema(groupKanbanCards).omit({ id: true, groupId: true, createdBy: true, createdAt: true, position: true });
 export type GroupKanbanCard = typeof groupKanbanCards.$inferSelect;
 export type InsertGroupKanbanCard = z.infer<typeof insertGroupKanbanCardSchema>;
+
+// ─── GZGROUPS RETROSPECTIVES ──────────────────────────────────────────────────
+
+export const groupRetrospectives = pgTable("group_retrospectives", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull(),
+  userId: integer("user_id").notNull(),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  win: text("win").notNull(),
+  roadblock: text("roadblock").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertGroupRetrospectiveSchema = createInsertSchema(groupRetrospectives).omit({ id: true, groupId: true, userId: true, displayName: true, avatarUrl: true, createdAt: true });
+export type GroupRetrospective = typeof groupRetrospectives.$inferSelect;
+export type InsertGroupRetrospective = z.infer<typeof insertGroupRetrospectiveSchema>;
 
 // Group Wallets
 export const groupWallets = pgTable("group_wallets", {
