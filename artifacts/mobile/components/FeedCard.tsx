@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView, VideoSize } from "expo-video";
+import Svg, { Rect, Polygon } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -218,7 +219,7 @@ export function FeedCard({ item, isActive }: Props) {
 
   // Compute the contain-style bounds for the VideoView so landscape videos letterbox correctly
   // This bypasses the unreliable native contentFit prop on iOS
-  const videoContainStyle = React.useMemo(() => {
+  const videoContainStyle = useMemo(() => {
     // Default to 16:9 landscape until we hear back from the track event
     const vW = videoSize?.width ?? 1920;
     const vH = videoSize?.height ?? 1080;
@@ -288,22 +289,42 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* GZ branded play/pause button — always visible when active, glows when paused */}
+      {/* GZ branded play/pause button — spec-accurate from client/src/pages/home.tsx */}
       {resolvedVideoUrlForPlayer && isActive ? (
         <Pressable
           onPress={handleVideoTap}
-          style={styles.gzBtnCenterWrap}
           hitSlop={20}
+          style={({ pressed }) => [
+            styles.gzBtn,
+            {
+              opacity: paused ? 0.85 : pressed ? 0.38 : 0.18,
+              shadowRadius: paused ? 18 : 6,
+              shadowOpacity: paused ? 0.75 : 0.3,
+              elevation: paused ? 18 : 6,
+            },
+          ]}
         >
-          <View style={[styles.gzPlayBtn, !paused && styles.gzPlayBtnPlaying]}>
+          {/* GZ logo — circular 100×100 */}
+          <Image
+            source={require("@/assets/images/gz-logo.png")}
+            style={styles.gzBtnLogo}
+            resizeMode="cover"
+          />
+
+          {/* When paused: dark overlay circle + red border ring behind the triangle */}
+          {paused && <View style={styles.gzPausedOverlay} />}
+
+          {/* Icon overlay — pause bars (playing) or play triangle (paused) */}
+          <View style={[styles.gzIconOverlay, paused && { marginLeft: 3 }]}>
             {paused ? (
-              <Image
-                source={require("@/assets/images/gz-logo.png")}
-                style={styles.gzPlayLogo}
-                resizeMode="contain"
-              />
+              <Svg width={28} height={28} viewBox="0 0 24 24">
+                <Polygon points="5,3 19,12 5,21" fill="white" />
+              </Svg>
             ) : (
-              <Ionicons name="pause" size={36} color={Colors.accent} />
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Rect x="5" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+                <Rect x="15" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+              </Svg>
             )}
           </View>
         </Pressable>
@@ -517,36 +538,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: Colors.surface,
   },
-  gzBtnCenterWrap: {
+  gzBtn: {
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginTop: -45,
-    marginLeft: -45,
-    zIndex: 6,
-  },
-  gzPlayBtn: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: "rgba(0,0,0,0.62)",
-    borderWidth: 2.5,
-    borderColor: Colors.accent,
+    marginTop: -50,
+    marginLeft: -50,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    zIndex: 25,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: Colors.accent,
+    shadowColor: "rgb(255,43,43)",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 12,
   },
-  gzPlayBtnPlaying: {
-    opacity: 0.5,
-    backgroundColor: "rgba(180,0,0,0.35)",
+  gzBtnLogo: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
-  gzPlayLogo: {
-    width: 56,
-    height: 56,
+  gzPausedOverlay: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderWidth: 2.5,
+    borderColor: "rgba(255,43,43,0.8)",
+  },
+  gzIconOverlay: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
