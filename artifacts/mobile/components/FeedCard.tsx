@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -89,6 +91,30 @@ export function FeedCard({ item, isActive }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
+  const resolvedVideoUrlForPlayer = resolveUrl(item.videoUrl || item.video_url || null);
+  const videoPlayer = useVideoPlayer(
+    resolvedVideoUrlForPlayer ? { uri: resolvedVideoUrlForPlayer } : null,
+    (p) => {
+      p.loop = true;
+      p.muted = muted;
+    }
+  );
+
+  useEffect(() => {
+    if (!resolvedVideoUrlForPlayer) return;
+    try {
+      if (isActive) {
+        videoPlayer.play();
+      } else {
+        videoPlayer.pause();
+      }
+    } catch {}
+  }, [isActive, resolvedVideoUrlForPlayer]);
+
+  useEffect(() => {
+    try { videoPlayer.muted = muted; } catch {}
+  }, [muted]);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -161,29 +187,40 @@ export function FeedCard({ item, isActive }: Props) {
     }
   };
 
-  const poster = resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null);
+  const resolvedVideoUrl = resolveUrl(item.videoUrl || item.video_url || null);
+  const poster = resolveUrl(
+    item.provider?.avatarUrl || item.provider?.thumbUrl ||
+    item.thumbnailUrl || item.thumbnail_url || null
+  );
   const tags: string[] = item.tags ?? [];
   const vertical = item.vertical || item.category || "";
 
-  const videoUrl = item.videoUrl || item.video_url || "";
-  const shareUrl = videoUrl || `https://gigzito.com/listing/${item.id}`;
+  const shareUrl = resolvedVideoUrl || `https://gigzito.com/listing/${item.id}`;
 
   return (
     <View style={styles.card}>
-      {/* Background poster */}
-      {poster ? (
+      {/* Video background — native player */}
+      {resolvedVideoUrlForPlayer ? (
+        <VideoView
+          player={videoPlayer}
+          style={styles.bg}
+          contentFit="cover"
+          nativeControls={false}
+          allowsFullscreen={false}
+        />
+      ) : poster ? (
         <Image
           source={{ uri: poster }}
-          style={[styles.bg, { opacity: cardPressed ? 1 : 0.5 }]}
+          style={styles.bg}
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.bg, styles.bgFallback, { opacity: cardPressed ? 1 : 0.5 }]}>
+        <View style={[styles.bg, styles.bgFallback]}>
           <Feather name="video" size={48} color={Colors.textMuted} />
         </View>
       )}
 
-      {/* Invisible pressable layer — sits between image and gradient so FlatList scroll still works */}
+      {/* Invisible pressable layer — sits between video and gradient so FlatList scroll still works */}
       <Pressable
         accessible={false}
         onPressIn={() => setCardPressed(true)}
@@ -378,7 +415,7 @@ export function FeedCard({ item, isActive }: Props) {
         onClose={() => setShareOpen(false)}
         title={item.title}
         url={shareUrl}
-        videoUrl={videoUrl}
+        videoUrl={resolvedVideoUrl ?? undefined}
       />
       <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
