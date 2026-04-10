@@ -211,26 +211,25 @@ export function FeedCard({ item, isActive }: Props) {
 
   return (
     <View style={styles.card}>
-      {/* Background: video player only for active card, poster otherwise */}
-      {isActive && resolvedVideoUrlForPlayer ? (
-        <VideoView
-          player={videoPlayer}
-          style={styles.bg}
-          contentFit="cover"
-          nativeControls={false}
-          allowsFullscreen={false}
-        />
-      ) : poster ? (
-        <Image
-          source={{ uri: poster }}
-          style={styles.bg}
-          resizeMode="cover"
-        />
+      {/* Poster image — always rendered as background (fixes black cards while buffering) */}
+      {poster ? (
+        <Image source={{ uri: poster }} style={styles.bg} resizeMode="cover" />
       ) : (
         <View style={[styles.bg, styles.bgFallback]}>
           <Feather name="video" size={48} color={Colors.textMuted} />
         </View>
       )}
+
+      {/* Video player — only mount when this card is active */}
+      {isActive && resolvedVideoUrlForPlayer ? (
+        <VideoView
+          player={videoPlayer}
+          style={styles.bg}
+          contentFit="contain"
+          nativeControls={false}
+          allowsFullscreen={false}
+        />
+      ) : null}
 
       {/* Tap layer — whole screen tappable to pause/resume */}
       <Pressable
@@ -241,10 +240,10 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* GZ branded play button — visible only when paused */}
-      {resolvedVideoUrlForPlayer && isActive && paused ? (
+      {/* GZ branded play/pause indicator — centered overlay */}
+      {resolvedVideoUrlForPlayer && isActive ? (
         <View pointerEvents="none" style={styles.tapIconWrap}>
-          <View style={styles.gzPlayBtn}>
+          <View style={[styles.gzPlayBtn, !paused && styles.gzPlayBtnHidden]}>
             <Image
               source={require("@/assets/images/gz-logo.png")}
               style={styles.gzPlayLogo}
@@ -327,6 +326,17 @@ export function FeedCard({ item, isActive }: Props) {
         >
           <Feather name={muted ? "volume-x" : "volume-2"} size={20} color="#fff" />
         </Pressable>
+
+        {/* Play / Pause */}
+        {resolvedVideoUrlForPlayer && isActive ? (
+          <Pressable
+            onPress={handleVideoTap}
+            style={[styles.railBtn, styles.railBtnPlayPause]}
+            testID={`button-playpause-${item.id}`}
+          >
+            <Feather name={paused ? "play" : "pause"} size={20} color="#fff" />
+          </Pressable>
+        ) : null}
 
         {/* Like / Show Love */}
         <View style={styles.railGroup}>
@@ -483,6 +493,9 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 12,
   },
+  gzPlayBtnHidden: {
+    opacity: 0,
+  },
   gzPlayLogo: {
     width: 56,
     height: 56,
@@ -563,6 +576,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  railBtnPlayPause: {
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.4)",
+    marginTop: 4,
   },
   gzIcon: {
     width: 36,
