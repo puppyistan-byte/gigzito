@@ -204,7 +204,7 @@ export function FeedCard({ item, isActive }: Props) {
         <VideoView
           player={videoPlayer}
           style={styles.bg}
-          contentFit="cover"
+          contentFit="contain"
           nativeControls={false}
           allowsFullscreen={false}
         />
