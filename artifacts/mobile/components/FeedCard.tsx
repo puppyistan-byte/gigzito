@@ -260,8 +260,12 @@ export function FeedCard({ item, isActive }: Props) {
 
   return (
     <View style={styles.card}>
-      {/* Poster image — always rendered as background (fixes black cards while buffering) */}
-      {poster ? (
+      {/* Background layer:
+          - Inactive or no video → show poster (so cards look good while idle)
+          - Active + has video → pure black, so the letterboxed video has proper black bars */}
+      {isActive && resolvedVideoUrlForPlayer ? (
+        <View style={[styles.bg, { backgroundColor: "#000" }]} />
+      ) : poster ? (
         <Image source={{ uri: poster }} style={styles.bg} resizeMode="cover" />
       ) : (
         <View style={[styles.bg, styles.bgFallback]}>
