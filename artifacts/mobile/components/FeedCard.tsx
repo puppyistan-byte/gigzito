@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Animated,
   Dimensions,
   Image,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -93,9 +91,6 @@ export function FeedCard({ item, isActive }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const tapIconAnim = useRef(new Animated.Value(0)).current;
-  const tapIconScale = useRef(new Animated.Value(0.6)).current;
-  const [tapIcon, setTapIcon] = useState<"play" | "pause">("pause");
 
   const resolvedVideoUrlForPlayer = resolveUrl(item.videoUrl || item.video_url || null);
   const videoPlayer = useVideoPlayer(
@@ -127,28 +122,9 @@ export function FeedCard({ item, isActive }: Props) {
     try { videoPlayer.muted = muted; } catch {}
   }, [muted]);
 
-  function showTapIcon(icon: "play" | "pause") {
-    setTapIcon(icon);
-    tapIconAnim.setValue(1);
-    tapIconScale.setValue(0.6);
-    Animated.parallel([
-      Animated.spring(tapIconScale, { toValue: 1, useNativeDriver: true, speed: 40 }),
-      Animated.sequence([
-        Animated.delay(400),
-        Animated.timing(tapIconAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-      ]),
-    ]).start();
-  }
-
   function handleVideoTap() {
     Haptics.selectionAsync();
-    if (paused) {
-      setPaused(false);
-      showTapIcon("pause");
-    } else {
-      setPaused(true);
-      showTapIcon("play");
-    }
+    setPaused((p) => !p);
   }
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -240,7 +216,7 @@ export function FeedCard({ item, isActive }: Props) {
         <VideoView
           player={videoPlayer}
           style={styles.bg}
-          contentFit="contain"
+          contentFit="cover"
           nativeControls={false}
           allowsFullscreen={false}
         />
@@ -256,7 +232,7 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       )}
 
-      {/* Tap layer — pause/play toggle + press feedback */}
+      {/* Tap layer — whole screen tappable to pause/resume */}
       <Pressable
         accessible={false}
         onPress={resolvedVideoUrlForPlayer && isActive ? handleVideoTap : undefined}
@@ -265,21 +241,17 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Tap-to-pause/play icon overlay */}
-      {resolvedVideoUrlForPlayer && isActive ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.tapIconWrap,
-            { opacity: tapIconAnim, transform: [{ scale: tapIconScale }] },
-          ]}
-        >
-          <Ionicons
-            name={tapIcon === "play" ? "play" : "pause"}
-            size={52}
-            color="rgba(255,255,255,0.92)"
-          />
-        </Animated.View>
+      {/* GZ branded play button — visible only when paused */}
+      {resolvedVideoUrlForPlayer && isActive && paused ? (
+        <View pointerEvents="none" style={styles.tapIconWrap}>
+          <View style={styles.gzPlayBtn}>
+            <Image
+              source={require("@/assets/images/gz-logo.png")}
+              style={styles.gzPlayLogo}
+              resizeMode="contain"
+            />
+          </View>
+        </View>
       ) : null}
 
       {/* Gradient overlay */}
@@ -495,6 +467,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 5,
+  },
+  gzPlayBtn: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    borderWidth: 2.5,
+    borderColor: Colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  gzPlayLogo: {
+    width: 56,
+    height: 56,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
