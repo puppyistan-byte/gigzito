@@ -240,17 +240,28 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* GZ branded play/pause indicator — centered overlay */}
+      {/* GZ branded play/pause button — always visible when active, glows when paused */}
       {resolvedVideoUrlForPlayer && isActive ? (
-        <View pointerEvents="none" style={styles.tapIconWrap}>
-          <View style={[styles.gzPlayBtn, !paused && styles.gzPlayBtnHidden]}>
-            <Image
-              source={require("@/assets/images/gz-logo.png")}
-              style={styles.gzPlayLogo}
-              resizeMode="contain"
-            />
+        <Pressable
+          onPress={handleVideoTap}
+          style={styles.gzBtnCenterWrap}
+          hitSlop={20}
+        >
+          <View style={[styles.gzPlayBtn, !paused && styles.gzPlayBtnPlaying]}>
+            {paused ? (
+              <Image
+                source={require("@/assets/images/gz-logo.png")}
+                style={styles.gzPlayLogo}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.pauseBarsWrap}>
+                <View style={styles.pauseBar} />
+                <View style={styles.pauseBar} />
+              </View>
+            )}
           </View>
-        </View>
+        </Pressable>
       ) : null}
 
       {/* Gradient overlay */}
@@ -326,17 +337,6 @@ export function FeedCard({ item, isActive }: Props) {
         >
           <Feather name={muted ? "volume-x" : "volume-2"} size={20} color="#fff" />
         </Pressable>
-
-        {/* Play / Pause */}
-        {resolvedVideoUrlForPlayer && isActive ? (
-          <Pressable
-            onPress={handleVideoTap}
-            style={[styles.railBtn, styles.railBtnPlayPause]}
-            testID={`button-playpause-${item.id}`}
-          >
-            <Feather name={paused ? "play" : "pause"} size={20} color="#fff" />
-          </Pressable>
-        ) : null}
 
         {/* Like / Show Love */}
         <View style={styles.railGroup}>
@@ -472,11 +472,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: Colors.surface,
   },
-  tapIconWrap: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 5,
+  gzBtnCenterWrap: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -45,
+    marginLeft: -45,
+    zIndex: 6,
   },
   gzPlayBtn: {
     width: 90,
@@ -493,8 +495,21 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 12,
   },
-  gzPlayBtnHidden: {
-    opacity: 0,
+  gzPlayBtnPlaying: {
+    opacity: 0.22,
+    borderColor: "rgba(255,255,255,0.35)",
+    shadowOpacity: 0,
+  },
+  pauseBarsWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  pauseBar: {
+    width: 6,
+    height: 26,
+    borderRadius: 3,
+    backgroundColor: "#fff",
   },
   gzPlayLogo: {
     width: 56,
@@ -576,11 +591,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  railBtnPlayPause: {
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.4)",
-    marginTop: 4,
   },
   gzIcon: {
     width: 36,
