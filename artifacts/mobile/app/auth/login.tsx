@@ -174,6 +174,41 @@ export default function LoginScreen() {
                 <Text style={styles.hintAccent}>Register on gigzito.com</Text>
               </Text>
             </Pressable>
+
+            {/* QA Quick Login — dev builds only, never shown in production */}
+            {__DEV__ ? (
+              <Pressable
+                onPress={() => {
+                  setEmail("tester@gigzito.com");
+                  setPassword("Tester123!");
+                  setError("");
+                  setEmailNotVerified(false);
+                  setLoading(true);
+                  login("tester@gigzito.com", "Tester123!")
+                    .then((result: any) => {
+                      if (result?.mfaRequired) {
+                        router.push({ pathname: "/auth/mfa", params: { email: "tester@gigzito.com" } });
+                      } else {
+                        router.replace("/(tabs)");
+                      }
+                    })
+                    .catch((e: any) => {
+                      if (e.emailNotVerified) {
+                        setError("Tester email not verified yet — verify it in the gigzito.com admin panel.");
+                        setEmailNotVerified(true);
+                      } else {
+                        setError(e.message || "QA login failed.");
+                      }
+                    })
+                    .finally(() => setLoading(false));
+                }}
+                disabled={loading}
+                style={styles.qaBtn}
+              >
+                <Feather name="zap" size={14} color="#000" />
+                <Text style={styles.qaBtnText}>QA Login (tester)</Text>
+              </Pressable>
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -291,5 +326,21 @@ const styles = StyleSheet.create({
   hintAccent: {
     color: Colors.accent,
     fontFamily: "Inter_500Medium",
+  },
+  qaBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    backgroundColor: "#FFD700",
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  qaBtnText: {
+    color: "#000",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.2,
   },
 });
