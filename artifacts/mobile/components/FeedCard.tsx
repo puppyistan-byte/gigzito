@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Dimensions,
   Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
 import Svg, { Rect, Polygon } from "react-native-svg";
@@ -22,12 +24,20 @@ import { ShareSheet } from "@/components/ShareSheet";
 import { NavigationMenu, HamburgerButton } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
+const { width: SW, height: SH } = Dimensions.get("window");
 const API_BASE = "https://www.gigzito.com";
 
 function resolveUrl(uri?: string | null): string | null {
   if (!uri) return null;
   if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
   return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
+}
+
+// Returns true only for direct video files — YouTube, Vimeo, etc. cannot be played by expo-video
+function isDirectVideoUrl(url: string | null): boolean {
+  if (!url) return false;
+  if (/youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|twitch\.tv/i.test(url)) return false;
+  return true;
 }
 
 function formatTime(secs: number) {
@@ -91,7 +101,9 @@ export function FeedCard({ item, isActive }: Props) {
   const insets = useSafeAreaInsets();
 
 
-  const resolvedVideoUrlForPlayer = resolveUrl(item.videoUrl || item.video_url || null);
+  const rawVideoUrl = resolveUrl(item.videoUrl || item.video_url || null);
+  // Only pass direct video files to the native player — YouTube/Vimeo etc. will never play
+  const resolvedVideoUrlForPlayer = isDirectVideoUrl(rawVideoUrl) ? rawVideoUrl : null;
   const videoPlayer = useVideoPlayer(
     resolvedVideoUrlForPlayer ? { uri: resolvedVideoUrlForPlayer } : null,
     (p) => {
@@ -202,10 +214,14 @@ export function FeedCard({ item, isActive }: Props) {
   };
 
 
-  const resolvedVideoUrl = resolveUrl(item.videoUrl || item.video_url || null);
+  const resolvedVideoUrl = rawVideoUrl;
+  // Try every possible thumbnail/cover field the API might return
   const poster = resolveUrl(
-    item.provider?.avatarUrl || item.provider?.thumbUrl ||
-    item.thumbnailUrl || item.thumbnail_url || null
+    item.provider?.avatarUrl ||
+    item.coverUrl || item.cover_url ||
+    item.thumbnailUrl || item.thumbnail_url ||
+    item.imageUrl || item.image_url ||
+    item.provider?.thumbUrl || null
   );
   const tags: string[] = item.tags ?? [];
   const vertical = item.vertical || item.category || "";
@@ -214,12 +230,8 @@ export function FeedCard({ item, isActive }: Props) {
 
   return (
     <View style={styles.card}>
-      {/* Background layer:
-          - Inactive or no video → show poster (so cards look good while idle)
-          - Active + has video → pure black, so the letterboxed video has proper black bars */}
-      {isActive && resolvedVideoUrlForPlayer ? (
-        <View style={[styles.bg, { backgroundColor: "#000" }]} />
-      ) : poster ? (
+      {/* Poster always fills the background — shows while inactive, and briefly while video loads */}
+      {poster ? (
         <Image source={{ uri: poster }} style={styles.bg} resizeMode="cover" />
       ) : (
         <View style={[styles.bg, styles.bgFallback]}>
@@ -479,9 +491,10 @@ export function FeedCard({ item, isActive }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: "100%",
-    height: "100%",
+    width: SW,
+    height: SH,
     backgroundColor: "#000",
+    overflow: "hidden",
   },
   bg: {
     ...StyleSheet.absoluteFillObject,
