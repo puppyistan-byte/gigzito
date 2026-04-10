@@ -484,8 +484,8 @@ export function FeedCard({ item, isActive }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: SW,
-    height: SH,
+    width: "100%",
+    height: "100%",
     backgroundColor: "#000",
   },
   bg: {
