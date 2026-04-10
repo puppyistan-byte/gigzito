@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -94,6 +94,7 @@ export function FeedCard({ item, isActive }: Props) {
   }, [videoLikesData, likeInitialized]);
 
   const [paused, setPaused] = useState(false);
+  const [videoNativeSize, setVideoNativeSize] = useState<{ width: number; height: number } | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -124,17 +125,51 @@ export function FeedCard({ item, isActive }: Props) {
     } catch {}
   }, [isActive, paused, resolvedVideoUrlForPlayer]);
 
-  // Reset paused when this card becomes active
+  // Reset state when card becomes active
   useEffect(() => {
     if (isActive) {
       setPaused(false);
+      setVideoNativeSize(null);
     }
   }, [isActive]);
+
+  // Get actual video pixel dimensions from native player — contentFit is ignored on iOS AVPlayerLayer
+  useEffect(() => {
+    let sub: any;
+    try {
+      sub = (videoPlayer as any).addListener?.("videoTrackChange", ({ videoTrack }: any) => {
+        const w = videoTrack?.size?.width;
+        const h = videoTrack?.size?.height;
+        if (w && h && w > 0 && h > 0) {
+          setVideoNativeSize({ width: w, height: h });
+        }
+      });
+    } catch {}
+    return () => { try { sub?.remove?.(); } catch {} };
+  }, [videoPlayer]);
 
   useEffect(() => {
     try { videoPlayer.muted = muted; } catch {}
   }, [muted]);
 
+
+  // Manually compute contain-fit bounds because iOS AVPlayerLayer ignores contentFit prop.
+  // Default: fill the whole screen until we know real dimensions.
+  const videoContainStyle = useMemo(() => {
+    if (!videoNativeSize) return StyleSheet.absoluteFillObject as any;
+    const { width: vW, height: vH } = videoNativeSize;
+    const videoAspect = vW / vH;
+    const screenAspect = SW / SH;
+    if (videoAspect > screenAspect) {
+      // Wider than screen (landscape) — fit width, letterbox top/bottom
+      const displayH = SW / videoAspect;
+      return { position: "absolute" as const, left: 0, right: 0, top: (SH - displayH) / 2, height: displayH };
+    } else {
+      // Taller than screen (portrait) — fit height, pillarbox sides
+      const displayW = SH * videoAspect;
+      return { position: "absolute" as const, top: 0, bottom: 0, left: (SW - displayW) / 2, width: displayW };
+    }
+  }, [videoNativeSize]);
 
   function handleVideoTap() {
     Haptics.selectionAsync();
@@ -239,12 +274,12 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       )}
 
-      {/* Video player — contain shows full video without cropping */}
+      {/* Video player — uses manually computed bounds since iOS ignores contentFit prop */}
       {isActive && resolvedVideoUrlForPlayer ? (
         <VideoView
           player={videoPlayer}
-          style={StyleSheet.absoluteFillObject}
-          contentFit="contain"
+          style={videoContainStyle}
+          contentFit="fill"
           nativeControls={false}
           allowsFullscreen={false}
         />
