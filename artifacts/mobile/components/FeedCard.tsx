@@ -255,10 +255,7 @@ export function FeedCard({ item, isActive }: Props) {
                 resizeMode="contain"
               />
             ) : (
-              <View style={styles.pauseBarsWrap}>
-                <View style={styles.pauseBar} />
-                <View style={styles.pauseBar} />
-              </View>
+              <Ionicons name="pause" size={36} color={Colors.accent} />
             )}
           </View>
         </Pressable>
@@ -496,20 +493,8 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   gzPlayBtnPlaying: {
-    opacity: 0.22,
-    borderColor: "rgba(255,255,255,0.35)",
-    shadowOpacity: 0,
-  },
-  pauseBarsWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
-  pauseBar: {
-    width: 6,
-    height: 26,
-    borderRadius: 3,
-    backgroundColor: "#fff",
+    opacity: 0.5,
+    backgroundColor: "rgba(180,0,0,0.35)",
   },
   gzPlayLogo: {
     width: 56,
