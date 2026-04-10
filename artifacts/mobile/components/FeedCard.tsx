@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   Image,
   Platform,
@@ -73,7 +74,7 @@ export function FeedCard({ item, isActive }: Props) {
   const [likeCount, setLikeCount] = useState<number>(
     typeof item.likeCount === "number" ? item.likeCount : 0
   );
-  const [cardPressed, setCardPressed] = useState(false);
+  const [cardPressed, setCardPressed] = useState(false); // used for press feedback
 
   // Once the per-video likes data arrives, sync liked + count (only on first load)
   useEffect(() => {
@@ -85,11 +86,16 @@ export function FeedCard({ item, isActive }: Props) {
     }
   }, [videoLikesData, likeInitialized]);
 
+  const [paused, setPaused] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const tapIconAnim = useRef(new Animated.Value(0)).current;
+  const tapIconScale = useRef(new Animated.Value(0.6)).current;
+  const [tapIcon, setTapIcon] = useState<"play" | "pause">("pause");
 
   const resolvedVideoUrlForPlayer = resolveUrl(item.videoUrl || item.video_url || null);
   const videoPlayer = useVideoPlayer(
@@ -100,20 +106,50 @@ export function FeedCard({ item, isActive }: Props) {
     }
   );
 
+  // Play/pause based on isActive + user paused state
   useEffect(() => {
     if (!resolvedVideoUrlForPlayer) return;
     try {
-      if (isActive) {
+      if (isActive && !paused) {
         videoPlayer.play();
       } else {
         videoPlayer.pause();
       }
     } catch {}
-  }, [isActive, resolvedVideoUrlForPlayer]);
+  }, [isActive, paused, resolvedVideoUrlForPlayer]);
+
+  // Reset paused state when this card becomes active again
+  useEffect(() => {
+    if (isActive) setPaused(false);
+  }, [isActive]);
 
   useEffect(() => {
     try { videoPlayer.muted = muted; } catch {}
   }, [muted]);
+
+  function showTapIcon(icon: "play" | "pause") {
+    setTapIcon(icon);
+    tapIconAnim.setValue(1);
+    tapIconScale.setValue(0.6);
+    Animated.parallel([
+      Animated.spring(tapIconScale, { toValue: 1, useNativeDriver: true, speed: 40 }),
+      Animated.sequence([
+        Animated.delay(400),
+        Animated.timing(tapIconAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }
+
+  function handleVideoTap() {
+    Haptics.selectionAsync();
+    if (paused) {
+      setPaused(false);
+      showTapIcon("pause");
+    } else {
+      setPaused(true);
+      showTapIcon("play");
+    }
+  }
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -199,8 +235,8 @@ export function FeedCard({ item, isActive }: Props) {
 
   return (
     <View style={styles.card}>
-      {/* Video background — native player */}
-      {resolvedVideoUrlForPlayer ? (
+      {/* Background: video player only for active card, poster otherwise */}
+      {isActive && resolvedVideoUrlForPlayer ? (
         <VideoView
           player={videoPlayer}
           style={styles.bg}
@@ -220,13 +256,31 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       )}
 
-      {/* Invisible pressable layer — sits between video and gradient so FlatList scroll still works */}
+      {/* Tap layer — pause/play toggle + press feedback */}
       <Pressable
         accessible={false}
+        onPress={resolvedVideoUrlForPlayer && isActive ? handleVideoTap : undefined}
         onPressIn={() => setCardPressed(true)}
         onPressOut={() => setCardPressed(false)}
         style={StyleSheet.absoluteFillObject}
       />
+
+      {/* Tap-to-pause/play icon overlay */}
+      {resolvedVideoUrlForPlayer && isActive ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.tapIconWrap,
+            { opacity: tapIconAnim, transform: [{ scale: tapIconScale }] },
+          ]}
+        >
+          <Ionicons
+            name={tapIcon === "play" ? "play" : "pause"}
+            size={52}
+            color="rgba(255,255,255,0.92)"
+          />
+        </Animated.View>
+      ) : null}
 
       {/* Gradient overlay */}
       <LinearGradient
@@ -435,6 +489,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surface,
+  },
+  tapIconWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 5,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
