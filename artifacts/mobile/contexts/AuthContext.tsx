@@ -34,6 +34,25 @@ type AuthState = {
   isLoading: boolean;
 };
 
+const QA_TOKEN = "__qa_dev_tester__";
+
+const QA_USER: User = {
+  id: 9999,
+  email: "tester@gigzito.com",
+  role: "USER",
+  subscriptionTier: "GZMarketer",
+  username: "tester",
+  displayName: "QA Tester",
+  avatarUrl: null,
+};
+
+const QA_PROFILE: Profile = {
+  username: "tester",
+  displayName: "QA Tester",
+  avatarUrl: null,
+  bio: "Dev QA test account",
+};
+
 type LoginResult = {
   mfaRequired: boolean;
   email?: string;
@@ -43,6 +62,7 @@ type LoginResult = {
 
 type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<LoginResult>;
+  loginQA: () => Promise<void>;
   verifyMfa: (email: string, code: string) => Promise<void>;
   resendMfaCode: (email: string) => Promise<{ message: string; waitSeconds?: number }>;
   resendVerification: (email: string) => Promise<void>;
@@ -93,6 +113,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const token = await getToken();
       if (token) {
+        // QA dev token — restore mock session without hitting the network
+        if (token === QA_TOKEN) {
+          setState({
+            token: QA_TOKEN,
+            user: QA_USER,
+            profile: QA_PROFILE,
+            isLoading: false,
+          });
+          return;
+        }
         try {
           const res = await fetch(`${BASE_URL}/api/mobile/refresh`, {
             method: "POST",
@@ -122,7 +152,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "Content-Type": "application/json",
         ...(options.headers as Record<string, string>),
       };
-      if (state.token) {
+      // QA dev token is not valid on gigzito.com — omit it so public endpoints still work
+      if (state.token && state.token !== QA_TOKEN) {
         headers["Authorization"] = `Bearer ${state.token}`;
       }
       const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
@@ -134,6 +165,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [state.token]
   );
+
+  const loginQA = useCallback(async () => {
+    await saveToken(QA_TOKEN);
+    setState({ token: QA_TOKEN, user: QA_USER, profile: QA_PROFILE, isLoading: false });
+  }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     const res = await fetch(`${BASE_URL}/api/mobile/login`, {
@@ -269,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, verifyMfa, resendMfaCode, resendVerification, forgotPassword, resetPassword, changePassword, resetMfa, logout, refreshMe, apiRequest }}
+      value={{ ...state, login, loginQA, verifyMfa, resendMfaCode, resendVerification, forgotPassword, resetPassword, changePassword, resetMfa, logout, refreshMe, apiRequest }}
     >
       {children}
     </AuthContext.Provider>

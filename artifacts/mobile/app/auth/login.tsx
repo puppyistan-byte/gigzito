@@ -21,7 +21,7 @@ import Colors from "@/constants/colors";
 const logo = require("@/assets/images/gigzito-logo.png");
 
 export default function LoginScreen() {
-  const { login, resendVerification } = useAuth();
+  const { login, loginQA, resendVerification } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -178,29 +178,11 @@ export default function LoginScreen() {
             {/* QA Quick Login — dev builds only, never shown in production */}
             {__DEV__ ? (
               <Pressable
-                onPress={() => {
-                  setEmail("tester@gigzito.com");
-                  setPassword("Tester123!");
+                onPress={async () => {
                   setError("");
                   setEmailNotVerified(false);
-                  setLoading(true);
-                  login("tester@gigzito.com", "Tester123!")
-                    .then((result: any) => {
-                      if (result?.mfaRequired) {
-                        router.push({ pathname: "/auth/mfa", params: { email: "tester@gigzito.com" } });
-                      } else {
-                        router.replace("/(tabs)");
-                      }
-                    })
-                    .catch((e: any) => {
-                      if (e.emailNotVerified) {
-                        setError("Tester email not verified yet — verify it in the gigzito.com admin panel.");
-                        setEmailNotVerified(true);
-                      } else {
-                        setError(e.message || "QA login failed.");
-                      }
-                    })
-                    .finally(() => setLoading(false));
+                  await loginQA();
+                  router.replace("/(tabs)");
                 }}
                 disabled={loading}
                 style={styles.qaBtn}
