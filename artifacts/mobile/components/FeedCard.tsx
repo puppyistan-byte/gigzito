@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
   Image,
   Pressable,
   StyleSheet,
@@ -8,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useVideoPlayer, VideoView, VideoSize } from "expo-video";
+import { useVideoPlayer, VideoView } from "expo-video";
 import Svg, { Rect, Polygon } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +22,6 @@ import { ShareSheet } from "@/components/ShareSheet";
 import { NavigationMenu, HamburgerButton } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
-const { width: SW, height: SH } = Dimensions.get("window");
 const API_BASE = "https://www.gigzito.com";
 
 function resolveUrl(uri?: string | null): string | null {
@@ -86,7 +84,6 @@ export function FeedCard({ item, isActive }: Props) {
   }, [videoLikesData, likeInitialized]);
 
   const [paused, setPaused] = useState(false);
-  const [videoSize, setVideoSize] = useState<VideoSize | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -115,11 +112,10 @@ export function FeedCard({ item, isActive }: Props) {
     } catch {}
   }, [isActive, paused, resolvedVideoUrlForPlayer]);
 
-  // Reset paused + videoSize when this card becomes active
+  // Reset paused when this card becomes active
   useEffect(() => {
     if (isActive) {
       setPaused(false);
-      setVideoSize(null);
     }
   }, [isActive]);
 
@@ -127,18 +123,6 @@ export function FeedCard({ item, isActive }: Props) {
     try { videoPlayer.muted = muted; } catch {}
   }, [muted]);
 
-  // Listen for the actual video dimensions once the track loads
-  useEffect(() => {
-    let sub: any;
-    try {
-      sub = (videoPlayer as any).addListener?.('videoTrackChange', ({ videoTrack }: any) => {
-        if (videoTrack?.size?.width && videoTrack?.size?.height) {
-          setVideoSize(videoTrack.size);
-        }
-      });
-    } catch {}
-    return () => { try { sub?.remove?.(); } catch {} };
-  }, [videoPlayer]);
 
   function handleVideoTap() {
     Haptics.selectionAsync();
@@ -217,36 +201,6 @@ export function FeedCard({ item, isActive }: Props) {
     }
   };
 
-  // Compute the contain-style bounds for the VideoView so landscape videos letterbox correctly
-  // This bypasses the unreliable native contentFit prop on iOS
-  const videoContainStyle = useMemo(() => {
-    // Default to 16:9 landscape until we hear back from the track event
-    const vW = videoSize?.width ?? 1920;
-    const vH = videoSize?.height ?? 1080;
-    const videoAspect = vW / vH;
-    const screenAspect = SW / SH;
-    if (videoAspect > screenAspect) {
-      // Landscape video — fit to width, letterbox top/bottom
-      const displayH = SW / videoAspect;
-      return {
-        position: "absolute" as const,
-        left: 0,
-        right: 0,
-        top: (SH - displayH) / 2,
-        height: displayH,
-      };
-    } else {
-      // Portrait or square video — fit to height, pillarbox left/right
-      const displayW = SH * videoAspect;
-      return {
-        position: "absolute" as const,
-        top: 0,
-        bottom: 0,
-        left: (SW - displayW) / 2,
-        width: displayW,
-      };
-    }
-  }, [videoSize]);
 
   const resolvedVideoUrl = resolveUrl(item.videoUrl || item.video_url || null);
   const poster = resolveUrl(
@@ -273,12 +227,12 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       )}
 
-      {/* Video player — only mount when this card is active */}
+      {/* Video player — only mount when this card is active; contentFit="contain" letterboxes natively */}
       {isActive && resolvedVideoUrlForPlayer ? (
         <VideoView
           player={videoPlayer}
-          style={videoContainStyle}
-          contentFit="fill"
+          style={StyleSheet.absoluteFillObject}
+          contentFit="contain"
           nativeControls={false}
           allowsFullscreen={false}
         />
@@ -308,11 +262,11 @@ export function FeedCard({ item, isActive }: Props) {
             },
           ]}
         >
-          {/* GZ logo — circular 100×100 */}
+          {/* GZ logo — full logo, no circular crop */}
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzBtnLogo}
-            resizeMode="cover"
+            resizeMode="contain"
           />
 
           {/* When paused: dark overlay circle + red border ring behind the triangle */}
@@ -558,10 +512,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
   },
   gzBtnLogo: {
-    position: "absolute",
     width: 100,
     height: 100,
-    borderRadius: 50,
   },
   gzPausedOverlay: {
     position: "absolute",
