@@ -10,7 +10,7 @@ import {
 
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
-import Svg, { Rect, Polygon } from "react-native-svg";
+import Svg, { Polygon } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -267,39 +267,28 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Play/pause indicator — purely visual, style.pointerEvents passes all taps to Pressable above */}
+      {/* Play/pause button — red glowing circle, barely visible when playing, full when paused */}
       {resolvedVideoUrlForPlayer && isActive ? (
         <View
           style={[
             styles.gzBtn,
-            {
-              pointerEvents: "none",
-              opacity: paused ? 1 : 0.55,
-              shadowRadius: paused ? 18 : 8,
-              shadowOpacity: paused ? 0.8 : 0.4,
-              elevation: paused ? 18 : 8,
-            },
+            { pointerEvents: "none", opacity: paused ? 1 : 0.18 },
           ]}
         >
-          <View style={styles.gzBtnBg} />
+          {/* GZ logo watermark behind the play icon */}
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzBtnLogo}
             resizeMode="contain"
           />
-          {paused && <View style={styles.gzPausedOverlay} />}
-          <View style={[styles.gzIconOverlay, paused && { marginLeft: 3 }]}>
-            {paused ? (
-              <Svg width={32} height={32} viewBox="0 0 24 24">
-                <Polygon points="5,3 19,12 5,21" fill="white" />
+          {/* Play arrow — only shown when paused */}
+          {paused ? (
+            <View style={styles.gzPlayIcon}>
+              <Svg width={40} height={40} viewBox="0 0 24 24">
+                <Polygon points="6,3 20,12 6,21" fill="white" />
               </Svg>
-            ) : (
-              <Svg width={26} height={26} viewBox="0 0 24 24">
-                <Rect x="5" y="4" width="4" height="16" rx="1" fill="white" />
-                <Rect x="15" y="4" width="4" height="16" rx="1" fill="white" />
-              </Svg>
-            )}
-          </View>
+            </View>
+          ) : null}
         </View>
       ) : null}
 
@@ -509,41 +498,31 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    marginTop: -50,
-    marginLeft: -50,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    marginTop: -44,
+    marginLeft: -44,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: Colors.accent,
     zIndex: 25,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "rgb(255,43,43)",
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 0 },
-  },
-  gzBtnBg: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    shadowRadius: 28,
+    shadowOpacity: 1,
+    elevation: 20,
   },
   gzBtnLogo: {
     position: "absolute",
-    width: 100,
-    height: 100,
+    width: 64,
+    height: 64,
+    opacity: 0.35,
   },
-  gzPausedOverlay: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    borderWidth: 2.5,
-    borderColor: "rgba(255,43,43,0.8)",
-  },
-  gzIconOverlay: {
+  gzPlayIcon: {
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 5,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
