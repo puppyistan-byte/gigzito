@@ -251,7 +251,14 @@ export function FeedCard({ item, isActive }: Props) {
         />
       ) : null}
 
-      {/* Tap layer — whole screen tappable to pause/resume */}
+      {/* Gradient — visual only, must NOT intercept taps */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.92)"]}
+        locations={[0.3, 0.6, 1]}
+        style={[styles.gradient, { pointerEvents: "none" }]}
+      />
+
+      {/* Tap layer rendered ABOVE the gradient so it actually receives center-screen taps */}
       <Pressable
         accessible={false}
         onPress={resolvedVideoUrlForPlayer && isActive ? handleVideoTap : undefined}
@@ -260,13 +267,13 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Play/pause indicator — purely visual, tap layer above handles all taps */}
+      {/* Play/pause indicator — purely visual, style.pointerEvents passes all taps to Pressable above */}
       {resolvedVideoUrlForPlayer && isActive ? (
         <View
-          pointerEvents="none"
           style={[
             styles.gzBtn,
             {
+              pointerEvents: "none",
               opacity: paused ? 1 : 0.55,
               shadowRadius: paused ? 18 : 8,
               shadowOpacity: paused ? 0.8 : 0.4,
@@ -295,14 +302,6 @@ export function FeedCard({ item, isActive }: Props) {
           </View>
         </View>
       ) : null}
-
-      {/* Gradient overlay — pointerEvents none so taps pass through to the Pressable tap layer */}
-      <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.92)"]}
-        locations={[0.3, 0.6, 1]}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
 
       {/* Hamburger — top left */}
       <HamburgerButton onPress={() => setMenuOpen(true)} />
