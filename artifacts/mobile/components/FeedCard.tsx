@@ -296,11 +296,12 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       ) : null}
 
-      {/* Gradient overlay */}
+      {/* Gradient overlay — pointerEvents none so taps pass through to the Pressable tap layer */}
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.92)"]}
         locations={[0.3, 0.6, 1]}
         style={styles.gradient}
+        pointerEvents="none"
       />
 
       {/* Hamburger — top left */}

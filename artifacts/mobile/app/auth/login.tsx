@@ -81,6 +81,22 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
+      {/* DEV ONLY — always-visible QA bypass bar at the very top */}
+      {__DEV__ ? (
+        <Pressable
+          onPress={async () => {
+            setError("");
+            setEmailNotVerified(false);
+            await loginQA();
+            router.replace("/(tabs)");
+          }}
+          style={styles.qaBanner}
+        >
+          <Feather name="zap" size={15} color="#000" />
+          <Text style={styles.qaBannerText}>DEV — Tap to skip login</Text>
+        </Pressable>
+      ) : null}
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}
@@ -324,5 +340,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.2,
+  },
+  qaBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFD700",
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    zIndex: 100,
+  },
+  qaBannerText: {
+    color: "#000",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.3,
   },
 });
