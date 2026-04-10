@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useVideoPlayer, VideoView } from "expo-video";
+import { useVideoPlayer, VideoView, VideoSize } from "expo-video";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -85,6 +85,7 @@ export function FeedCard({ item, isActive }: Props) {
   }, [videoLikesData, likeInitialized]);
 
   const [paused, setPaused] = useState(false);
+  const [videoSize, setVideoSize] = useState<VideoSize | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -113,14 +114,30 @@ export function FeedCard({ item, isActive }: Props) {
     } catch {}
   }, [isActive, paused, resolvedVideoUrlForPlayer]);
 
-  // Reset paused state when this card becomes active again
+  // Reset paused + videoSize when this card becomes active
   useEffect(() => {
-    if (isActive) setPaused(false);
+    if (isActive) {
+      setPaused(false);
+      setVideoSize(null);
+    }
   }, [isActive]);
 
   useEffect(() => {
     try { videoPlayer.muted = muted; } catch {}
   }, [muted]);
+
+  // Listen for the actual video dimensions once the track loads
+  useEffect(() => {
+    let sub: any;
+    try {
+      sub = (videoPlayer as any).addListener?.('videoTrackChange', ({ videoTrack }: any) => {
+        if (videoTrack?.size?.width && videoTrack?.size?.height) {
+          setVideoSize(videoTrack.size);
+        }
+      });
+    } catch {}
+    return () => { try { sub?.remove?.(); } catch {} };
+  }, [videoPlayer]);
 
   function handleVideoTap() {
     Haptics.selectionAsync();
@@ -133,7 +150,7 @@ export function FeedCard({ item, isActive }: Props) {
     setTimeLeft(totalSecs);
     if (isActive) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((t) => {
+        setTimeLeft((t: number) => {
           if (t <= 1) {
             clearInterval(timerRef.current!);
             return 0;
@@ -199,6 +216,37 @@ export function FeedCard({ item, isActive }: Props) {
     }
   };
 
+  // Compute the contain-style bounds for the VideoView so landscape videos letterbox correctly
+  // This bypasses the unreliable native contentFit prop on iOS
+  const videoContainStyle = React.useMemo(() => {
+    // Default to 16:9 landscape until we hear back from the track event
+    const vW = videoSize?.width ?? 1920;
+    const vH = videoSize?.height ?? 1080;
+    const videoAspect = vW / vH;
+    const screenAspect = SW / SH;
+    if (videoAspect > screenAspect) {
+      // Landscape video — fit to width, letterbox top/bottom
+      const displayH = SW / videoAspect;
+      return {
+        position: "absolute" as const,
+        left: 0,
+        right: 0,
+        top: (SH - displayH) / 2,
+        height: displayH,
+      };
+    } else {
+      // Portrait or square video — fit to height, pillarbox left/right
+      const displayW = SH * videoAspect;
+      return {
+        position: "absolute" as const,
+        top: 0,
+        bottom: 0,
+        left: (SW - displayW) / 2,
+        width: displayW,
+      };
+    }
+  }, [videoSize]);
+
   const resolvedVideoUrl = resolveUrl(item.videoUrl || item.video_url || null);
   const poster = resolveUrl(
     item.provider?.avatarUrl || item.provider?.thumbUrl ||
@@ -224,8 +272,8 @@ export function FeedCard({ item, isActive }: Props) {
       {isActive && resolvedVideoUrlForPlayer ? (
         <VideoView
           player={videoPlayer}
-          style={styles.bg}
-          contentFit="contain"
+          style={videoContainStyle}
+          contentFit="fill"
           nativeControls={false}
           allowsFullscreen={false}
         />
