@@ -227,12 +227,12 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       )}
 
-      {/* Video player — cover fills the frame TikTok-style */}
+      {/* Video player — contain shows full video without cropping */}
       {isActive && resolvedVideoUrlForPlayer ? (
         <VideoView
           player={videoPlayer}
           style={StyleSheet.absoluteFillObject}
-          contentFit="cover"
+          contentFit="contain"
           nativeControls={false}
           allowsFullscreen={false}
         />
@@ -247,35 +247,27 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Play/pause button — centered, always visible enough to tap */}
+      {/* Play/pause indicator — purely visual, tap layer above handles all taps */}
       {resolvedVideoUrlForPlayer && isActive ? (
-        <Pressable
-          onPress={handleVideoTap}
-          hitSlop={24}
-          style={({ pressed }) => [
+        <View
+          pointerEvents="none"
+          style={[
             styles.gzBtn,
             {
-              opacity: paused ? 1 : pressed ? 0.7 : 0.55,
+              opacity: paused ? 1 : 0.55,
               shadowRadius: paused ? 18 : 8,
               shadowOpacity: paused ? 0.8 : 0.4,
               elevation: paused ? 18 : 8,
             },
           ]}
         >
-          {/* Dark circle background so the icon is readable on any video */}
           <View style={styles.gzBtnBg} />
-
-          {/* GZ logo watermark behind icon */}
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzBtnLogo}
             resizeMode="contain"
           />
-
-          {/* When paused: extra dark overlay + red border ring */}
           {paused && <View style={styles.gzPausedOverlay} />}
-
-          {/* Icon */}
           <View style={[styles.gzIconOverlay, paused && { marginLeft: 3 }]}>
             {paused ? (
               <Svg width={32} height={32} viewBox="0 0 24 24">
@@ -288,7 +280,7 @@ export function FeedCard({ item, isActive }: Props) {
               </Svg>
             )}
           </View>
-        </Pressable>
+        </View>
       ) : null}
 
       {/* Gradient overlay */}
