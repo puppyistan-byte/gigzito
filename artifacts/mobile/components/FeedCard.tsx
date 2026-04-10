@@ -227,12 +227,12 @@ export function FeedCard({ item, isActive }: Props) {
         </View>
       )}
 
-      {/* Video player — only mount when this card is active; contentFit="contain" letterboxes natively */}
+      {/* Video player — cover fills the frame TikTok-style */}
       {isActive && resolvedVideoUrlForPlayer ? (
         <VideoView
           player={videoPlayer}
           style={StyleSheet.absoluteFillObject}
-          contentFit="contain"
+          contentFit="cover"
           nativeControls={false}
           allowsFullscreen={false}
         />
@@ -247,41 +247,44 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* GZ branded play/pause button — spec-accurate from client/src/pages/home.tsx */}
+      {/* Play/pause button — centered, always visible enough to tap */}
       {resolvedVideoUrlForPlayer && isActive ? (
         <Pressable
           onPress={handleVideoTap}
-          hitSlop={20}
+          hitSlop={24}
           style={({ pressed }) => [
             styles.gzBtn,
             {
-              opacity: paused ? 0.85 : pressed ? 0.38 : 0.18,
-              shadowRadius: paused ? 18 : 6,
-              shadowOpacity: paused ? 0.75 : 0.3,
-              elevation: paused ? 18 : 6,
+              opacity: paused ? 1 : pressed ? 0.7 : 0.55,
+              shadowRadius: paused ? 18 : 8,
+              shadowOpacity: paused ? 0.8 : 0.4,
+              elevation: paused ? 18 : 8,
             },
           ]}
         >
-          {/* GZ logo — full logo, no circular crop */}
+          {/* Dark circle background so the icon is readable on any video */}
+          <View style={styles.gzBtnBg} />
+
+          {/* GZ logo watermark behind icon */}
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzBtnLogo}
             resizeMode="contain"
           />
 
-          {/* When paused: dark overlay circle + red border ring behind the triangle */}
+          {/* When paused: extra dark overlay + red border ring */}
           {paused && <View style={styles.gzPausedOverlay} />}
 
-          {/* Icon overlay — pause bars (playing) or play triangle (paused) */}
+          {/* Icon */}
           <View style={[styles.gzIconOverlay, paused && { marginLeft: 3 }]}>
             {paused ? (
-              <Svg width={28} height={28} viewBox="0 0 24 24">
+              <Svg width={32} height={32} viewBox="0 0 24 24">
                 <Polygon points="5,3 19,12 5,21" fill="white" />
               </Svg>
             ) : (
-              <Svg width={22} height={22} viewBox="0 0 24 24">
-                <Rect x="5" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
-                <Rect x="15" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+              <Svg width={26} height={26} viewBox="0 0 24 24">
+                <Rect x="5" y="4" width="4" height="16" rx="1" fill="white" />
+                <Rect x="15" y="4" width="4" height="16" rx="1" fill="white" />
               </Svg>
             )}
           </View>
@@ -511,7 +514,15 @@ const styles = StyleSheet.create({
     shadowColor: "rgb(255,43,43)",
     shadowOffset: { width: 0, height: 0 },
   },
+  gzBtnBg: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
   gzBtnLogo: {
+    position: "absolute",
     width: 100,
     height: 100,
   },
