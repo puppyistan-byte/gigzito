@@ -1,0 +1,103 @@
+Now let me check how isActive is consumed in the VideoCard to complete the picture:
+
+
+2 actions
+Now let me check the exact play/pause logic inside video-card.tsx:
+
+
+2 actions
+Here is the complete implementation guide for the mobile developer:
+
+Pause / Play — Full Technical Spec
+Two files involved
+File	Role
+client/src/pages/home.tsx	Owns all state + renders the button
+client/src/components/video-card.tsx	Receives isActive prop and actually plays/pauses the video element
+The core concept — one boolean rules everything
+The button does not directly call .pause() or .play() on the video. Instead it flips a state boolean, and the video card watches that boolean via its isActive prop. This is important for mobile — the pattern is:
+
+Button tap → toggle userPaused state → isActive recalculates → VideoCard useEffect fires → .pause() or .play()
+
+State variables (home.tsx)
+// Toggled by the user tapping the GZ logo button
+const [userPaused, setUserPaused] = useState(false);
+// System-set — fires when ZitoTV live player unmutes or pops out
+const [feedPaused, setFeedPaused] = useState(false);
+const feedPausedRef = useRef(false); // ref copy avoids stale closure in callbacks
+
+The isActive prop passed to each VideoCard (home.tsx line 673)
+isActive={idx === currentIndex && !feedPaused && !userPaused}
+
+Three things must ALL be true for a video to play:
+
+It's the currently visible card (idx === currentIndex)
+ZitoTV hasn't taken over (!feedPaused)
+User hasn't tapped pause (!userPaused)
+Button tap handler (home.tsx line 686)
+onClick={() => setUserPaused((prev) => !prev)}
+
+Single toggle. Nothing else.
+
+Auto-reset on swipe to new card (home.tsx line 85)
+useEffect(() => {
+  setUserPaused(false);
+}, [currentIndex]);
+
+When the user swipes to the next video, userPaused resets to false so every new video always starts playing.
+
+What VideoCard does when isActive changes (video-card.tsx lines 461–506)
+useEffect(() => {
+  if (!isActive) {
+    // ── PAUSE / STOP ──────────────────────────────────
+    if (nativeVideo) {
+      video.pause();
+      video.currentTime = 0;   // rewinds to beginning
+    } else {
+      // YouTube / Vimeo iframe
+      iframe.src = "about:blank";   // kills the iframe entirely
+    }
+    clearInterval(countdownTimer);
+    return;
+  }
+  // ── PLAY ─────────────────────────────────────────
+  if (nativeVideo) {
+    video.currentTime = 0;      // always starts from beginning
+    video.muted = isMuted;
+    video.volume = isMuted ? 0 : 1;
+    video.play();
+  } else {
+    // Reload embed URL with autoplay=1 parameter
+    iframe.src = buildEmbedUrl(videoUrl, { autoplay: true, muted: isMuted });
+  }
+  startCountdownTimer();        // counts up to the max play duration
+}, [isActive, listing.id]);
+
+Key detail for mobile: The video always rewinds to currentTime = 0 on both pause and resume. There is no "resume from where you left off" — every video restarts when you come back to it.
+
+System-level pause (ZitoTV events) — home.tsx lines 90–115
+These fire when the Zito.TV live stream widget is interacted with. On mobile this would translate to a live stream player taking over audio:
+
+"zitotv-unmuted" event  →  feedPaused = true  +  mute the feed
+"zitotv-focused" event  →  feedPaused = true
+"zitotv-closed" event   →  feedPaused = false  (feed resumes)
+
+Scrolling to any new card also clears feedPaused (line 184).
+
+Summary for mobile implementation
+State needed:
+  userPaused: Bool = false
+  feedPaused: Bool = false   (system controlled)
+  currentIndex: Int
+isActive = (cardIndex == currentIndex) && !feedPaused && !userPaused
+On button tap:
+  userPaused = !userPaused
+On swipe to new card:
+  userPaused = false          ← always auto-clear
+When isActive becomes false:
+  video.pause()
+  video.seek(to: 0)
+When isActive becomes true:
+  video.seek(to: 0)
+  video.play()
+
+The GZ logo button is just a visual toggle — the real pause/play logic lives entirely in the isActive → useEffect chain inside the video card component.

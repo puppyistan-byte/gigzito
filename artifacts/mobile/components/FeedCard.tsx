@@ -10,7 +10,7 @@ import {
 
 import { LinearGradient } from "expo-linear-gradient";
 import { useVideoPlayer, VideoView } from "expo-video";
-import Svg, { Polygon } from "react-native-svg";
+import Svg, { Polygon, Rect } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -267,28 +267,33 @@ export function FeedCard({ item, isActive }: Props) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Play/pause button — red glowing circle, barely visible when playing, full when paused */}
+      {/* Play/pause button — red glowing circle with icon, faint when playing, full when paused */}
       {resolvedVideoUrlForPlayer && isActive ? (
         <View
           style={[
             styles.gzBtn,
-            { pointerEvents: "none", opacity: paused ? 1 : 0.18 },
+            { pointerEvents: "none", opacity: paused ? 1 : 0.55 },
           ]}
         >
-          {/* GZ logo watermark behind the play icon */}
+          {/* GZ logo watermark behind the play/pause icon */}
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzBtnLogo}
             resizeMode="contain"
           />
-          {/* Play arrow — only shown when paused */}
-          {paused ? (
-            <View style={styles.gzPlayIcon}>
-              <Svg width={40} height={40} viewBox="0 0 24 24">
-                <Polygon points="6,3 20,12 6,21" fill="white" />
+          {/* Icon overlay — pause bars when playing, play arrow when paused */}
+          <View style={[styles.gzPlayIcon, paused && { marginLeft: 4 }]}>
+            {paused ? (
+              <Svg width={32} height={32} viewBox="0 0 24 24">
+                <Polygon points="5,3 19,12 5,21" fill="white" />
               </Svg>
-            </View>
-          ) : null}
+            ) : (
+              <Svg width={28} height={28} viewBox="0 0 24 24">
+                <Rect x="5" y="4" width="4" height="16" rx="1" fill="white" />
+                <Rect x="15" y="4" width="4" height="16" rx="1" fill="white" />
+              </Svg>
+            )}
+          </View>
         </View>
       ) : null}
 
