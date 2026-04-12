@@ -420,24 +420,24 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
         {/* GZFlash — above GeeZee */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/gzflash" as any); }}
-          style={styles.railBtn}
+          style={styles.gzRailLogoBtn}
         >
           <Image
             source={require("@/assets/images/gz-flash-logo.png")}
-            style={styles.gzIcon}
-            resizeMode="contain"
+            style={styles.gzRailLogo}
+            resizeMode="cover"
           />
         </Pressable>
 
         {/* GeeZee Rolodex */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/geezee" as any); }}
-          style={styles.railBtn}
+          style={styles.gzRailLogoBtn}
         >
           <Image
             source={require("@/assets/images/gz-logo.png")}
-            style={styles.gzIcon}
-            resizeMode="contain"
+            style={styles.gzRailLogo}
+            resizeMode="cover"
           />
         </Pressable>
 
@@ -717,7 +717,18 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    opacity: 0.5,
+    opacity: 0.4,
+  },
+  gzRailLogoBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  gzRailLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
