@@ -381,28 +381,14 @@ export default function OfferCenterPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {canCreateAd && (
-              <Link href="/gz-business">
-                <Button
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-8 text-xs rounded-xl gap-1.5"
-                  data-testid="btn-create-ad"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create Ad
-                </Button>
-              </Link>
-            )}
-            <button
-              onClick={() => { refetch(); setTick((t) => t + 1); }}
-              className="w-8 h-8 rounded-xl bg-[#111] border border-[#1e1e1e] flex items-center justify-center text-[#555] hover:text-blue-400 hover:border-blue-900/50 transition-all"
-              data-testid="btn-refresh"
-              title="Refresh"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={() => { refetch(); setTick((t) => t + 1); }}
+            className="w-8 h-8 rounded-xl bg-[#111] border border-[#1e1e1e] flex items-center justify-center text-[#555] hover:text-blue-400 hover:border-blue-900/50 transition-all"
+            data-testid="btn-refresh"
+            title="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {ads.length > 0 && (
@@ -433,14 +419,6 @@ export default function OfferCenterPage() {
             <p className="text-[#3a3a3a] text-sm mt-1.5 max-w-xs mx-auto">
               GZBusiness members deploy flash offers — they rank here by Potency Score.
             </p>
-            {canCreateAd && (
-              <Link href="/gz-business">
-                <Button className="mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold h-9 text-sm rounded-xl gap-2" data-testid="btn-empty-create">
-                  <Plus className="h-4 w-4" />
-                  Launch Your First Ad
-                </Button>
-              </Link>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
