@@ -21,7 +21,7 @@ import Colors from "@/constants/colors";
 const logo = require("@/assets/images/gigzito-logo.png");
 
 export default function LoginScreen() {
-  const { login, loginQA, resendVerification } = useAuth();
+  const { login, resendVerification } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -81,22 +81,6 @@ export default function LoginScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
-      {/* DEV ONLY — always-visible QA bypass bar at the very top */}
-      {__DEV__ ? (
-        <Pressable
-          onPress={async () => {
-            setError("");
-            setEmailNotVerified(false);
-            await loginQA();
-            router.replace("/(tabs)");
-          }}
-          style={styles.qaBanner}
-        >
-          <Feather name="zap" size={15} color="#000" />
-          <Text style={styles.qaBannerText}>DEV — Tap to skip login</Text>
-        </Pressable>
-      ) : null}
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.flex}
@@ -190,23 +174,6 @@ export default function LoginScreen() {
                 <Text style={styles.hintAccent}>Register on gigzito.com</Text>
               </Text>
             </Pressable>
-
-            {/* QA Quick Login — dev builds only, never shown in production */}
-            {__DEV__ ? (
-              <Pressable
-                onPress={async () => {
-                  setError("");
-                  setEmailNotVerified(false);
-                  await loginQA();
-                  router.replace("/(tabs)");
-                }}
-                disabled={loading}
-                style={styles.qaBtn}
-              >
-                <Feather name="zap" size={14} color="#000" />
-                <Text style={styles.qaBtnText}>QA Login (tester)</Text>
-              </Pressable>
-            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -324,37 +291,5 @@ const styles = StyleSheet.create({
   hintAccent: {
     color: Colors.accent,
     fontFamily: "Inter_500Medium",
-  },
-  qaBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    backgroundColor: "#FFD700",
-    borderRadius: 10,
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  qaBtnText: {
-    color: "#000",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.2,
-  },
-  qaBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#FFD700",
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    zIndex: 100,
-  },
-  qaBannerText: {
-    color: "#000",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.3,
   },
 });

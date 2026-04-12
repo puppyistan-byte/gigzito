@@ -61,7 +61,6 @@
     "expo-camera": "^17.0.10",
     "expo-clipboard": "^8.0.8",
     "expo-document-picker": "^14.0.8",
-    "expo-secure-store": "^15.0.8",
-    "expo-video": "^3.0.16"
+    "expo-secure-store": "^15.0.8"
   }
 }

@@ -7,10 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-
 import { LinearGradient } from "expo-linear-gradient";
-import { useVideoPlayer, VideoView } from "expo-video";
-import Svg, { Polygon, Rect } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -31,13 +28,6 @@ function resolveUrl(uri?: string | null): string | null {
   if (!uri) return null;
   if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
   return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
-}
-
-// Returns true only for direct video files — YouTube, Vimeo, etc. cannot be played by expo-video
-function isDirectVideoUrl(url: string | null): boolean {
-  if (!url) return false;
-  if (/youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|twitch\.tv/i.test(url)) return false;
-  return true;
 }
 
 function formatTime(secs: number) {
@@ -81,7 +71,7 @@ export function FeedCard({ item, isActive }: Props) {
   const [likeCount, setLikeCount] = useState<number>(
     typeof item.likeCount === "number" ? item.likeCount : 0
   );
-  const [cardPressed, setCardPressed] = useState(false); // used for press feedback
+  const [cardPressed, setCardPressed] = useState(false);
 
   // Once the per-video likes data arrives, sync liked + count (only on first load)
   useEffect(() => {
@@ -93,54 +83,11 @@ export function FeedCard({ item, isActive }: Props) {
     }
   }, [videoLikesData, likeInitialized]);
 
-  const [paused, setPaused] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const insets = useSafeAreaInsets();
-
-
-  const rawVideoUrl = resolveUrl(item.videoUrl || item.video_url || null);
-  // Only pass direct video files to the native player — YouTube/Vimeo etc. will never play
-  const resolvedVideoUrlForPlayer = isDirectVideoUrl(rawVideoUrl) ? rawVideoUrl : null;
-  const videoPlayer = useVideoPlayer(
-    resolvedVideoUrlForPlayer ? { uri: resolvedVideoUrlForPlayer } : null,
-    (p) => {
-      p.loop = true;
-      p.muted = muted;
-    }
-  );
-
-  // Play/pause based on isActive + user paused state
-  useEffect(() => {
-    if (!resolvedVideoUrlForPlayer) return;
-    try {
-      if (isActive && !paused) {
-        videoPlayer.play();
-      } else {
-        videoPlayer.pause();
-      }
-    } catch {}
-  }, [isActive, paused, resolvedVideoUrlForPlayer]);
-
-  // Reset state when card becomes active
-  useEffect(() => {
-    if (isActive) {
-      setPaused(false);
-    }
-  }, [isActive]);
-
-  useEffect(() => {
-    try { videoPlayer.muted = muted; } catch {}
-  }, [muted]);
-
-
-
-  function handleVideoTap() {
-    Haptics.selectionAsync();
-    setPaused((p) => !p);
-  }
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -148,7 +95,7 @@ export function FeedCard({ item, isActive }: Props) {
     setTimeLeft(totalSecs);
     if (isActive) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((t: number) => {
+        setTimeLeft((t) => {
           if (t <= 1) {
             clearInterval(timerRef.current!);
             return 0;
@@ -214,88 +161,42 @@ export function FeedCard({ item, isActive }: Props) {
     }
   };
 
-
-  const resolvedVideoUrl = rawVideoUrl;
-  // Try every possible thumbnail/cover field the API might return
-  const poster = resolveUrl(
-    item.provider?.avatarUrl ||
-    item.coverUrl || item.cover_url ||
-    item.thumbnailUrl || item.thumbnail_url ||
-    item.imageUrl || item.image_url ||
-    item.provider?.thumbUrl || null
-  );
+  const poster = resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null);
   const tags: string[] = item.tags ?? [];
   const vertical = item.vertical || item.category || "";
 
-  const shareUrl = resolvedVideoUrl || `https://gigzito.com/listing/${item.id}`;
+  const videoUrl = item.videoUrl || item.video_url || "";
+  const shareUrl = videoUrl || `https://gigzito.com/listing/${item.id}`;
 
   return (
     <View style={styles.card}>
-      {/* Poster always fills the background — shows while inactive, and briefly while video loads */}
+      {/* Background poster */}
       {poster ? (
-        <Image source={{ uri: poster }} style={styles.bg} resizeMode="cover" />
+        <Image
+          source={{ uri: poster }}
+          style={[styles.bg, { opacity: cardPressed ? 1 : 0.5 }]}
+          resizeMode="cover"
+        />
       ) : (
-        <View style={[styles.bg, styles.bgFallback]}>
+        <View style={[styles.bg, styles.bgFallback, { opacity: cardPressed ? 1 : 0.5 }]}>
           <Feather name="video" size={48} color={Colors.textMuted} />
         </View>
       )}
 
-      {/* Video player — absoluteFillObject + contain letterboxes correctly on all platforms */}
-      {isActive && resolvedVideoUrlForPlayer ? (
-        <VideoView
-          player={videoPlayer}
-          style={StyleSheet.absoluteFillObject}
-          contentFit="contain"
-          nativeControls={false}
-          allowsFullscreen={false}
-        />
-      ) : null}
-
-      {/* Gradient — visual only, must NOT intercept taps */}
-      <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.92)"]}
-        locations={[0.3, 0.6, 1]}
-        style={[styles.gradient, { pointerEvents: "none" }]}
-      />
-
-      {/* Tap layer rendered ABOVE the gradient so it actually receives center-screen taps */}
+      {/* Invisible pressable layer — sits between image and gradient so FlatList scroll still works */}
       <Pressable
         accessible={false}
-        onPress={resolvedVideoUrlForPlayer && isActive ? handleVideoTap : undefined}
         onPressIn={() => setCardPressed(true)}
         onPressOut={() => setCardPressed(false)}
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Play/pause button — red glowing circle with icon, faint when playing, full when paused */}
-      {resolvedVideoUrlForPlayer && isActive ? (
-        <View
-          style={[
-            styles.gzBtn,
-            { pointerEvents: "none", opacity: paused ? 1 : 0.55 },
-          ]}
-        >
-          {/* GZ logo watermark behind the play/pause icon */}
-          <Image
-            source={require("@/assets/images/gz-logo.png")}
-            style={styles.gzBtnLogo}
-            resizeMode="contain"
-          />
-          {/* Icon overlay — pause bars when playing, play arrow when paused */}
-          <View style={[styles.gzPlayIcon, paused && { marginLeft: 4 }]}>
-            {paused ? (
-              <Svg width={32} height={32} viewBox="0 0 24 24">
-                <Polygon points="5,3 19,12 5,21" fill="white" />
-              </Svg>
-            ) : (
-              <Svg width={28} height={28} viewBox="0 0 24 24">
-                <Rect x="5" y="4" width="4" height="16" rx="1" fill="white" />
-                <Rect x="15" y="4" width="4" height="16" rx="1" fill="white" />
-              </Svg>
-            )}
-          </View>
-        </View>
-      ) : null}
+      {/* Gradient overlay */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.55)", "rgba(0,0,0,0.92)"]}
+        locations={[0.3, 0.6, 1]}
+        style={styles.gradient}
+      />
 
       {/* Hamburger — top left */}
       <HamburgerButton onPress={() => setMenuOpen(true)} />
@@ -477,7 +378,7 @@ export function FeedCard({ item, isActive }: Props) {
         onClose={() => setShareOpen(false)}
         title={item.title}
         url={shareUrl}
-        videoUrl={resolvedVideoUrl ?? undefined}
+        videoUrl={videoUrl}
       />
       <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
@@ -489,7 +390,6 @@ const styles = StyleSheet.create({
     width: SW,
     height: SH,
     backgroundColor: "#000",
-    overflow: "hidden",
   },
   bg: {
     ...StyleSheet.absoluteFillObject,
@@ -498,36 +398,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Colors.surface,
-  },
-  gzBtn: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginTop: -44,
-    marginLeft: -44,
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: Colors.accent,
-    zIndex: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 28,
-    shadowOpacity: 1,
-    elevation: 20,
-  },
-  gzBtnLogo: {
-    position: "absolute",
-    width: 64,
-    height: 64,
-    opacity: 0.35,
-  },
-  gzPlayIcon: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 5,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
