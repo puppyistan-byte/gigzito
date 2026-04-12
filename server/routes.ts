@@ -434,7 +434,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         `${req.protocol}://${req.get("host")}/verify-email?token=${verificationToken}`
       );
       const autoVerified = emailResult.devMode && !emailResult.verifyUrl;
-      const validTiers = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"];
+      const validTiers = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
       const selectedTier = tier && validTiers.includes(tier) ? tier : "GZLurker";
       const user = await storage.createUser({
         email, password: hashed, role: "PROVIDER", disclaimerAccepted: true,
@@ -2420,7 +2420,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const { tier } = req.body;
-    const VALID_TIERS = ["GZLurker", "GZMarketer", "GZMarketerPro", "GZBusiness"];
+    const VALID_TIERS = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
     if (!VALID_TIERS.includes(tier)) return res.status(400).json({ message: "Invalid tier. Must be one of: " + VALID_TIERS.join(", ") });
     await storage.updateSubscriptionTier(id, tier);
     const actorUserId = (req.session as any).userId;
