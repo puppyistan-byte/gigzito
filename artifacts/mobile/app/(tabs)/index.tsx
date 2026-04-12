@@ -13,6 +13,8 @@ import { useListings } from "@/hooks/useApi";
 import { FeedCard } from "@/components/FeedCard";
 import Colors from "@/constants/colors";
 
+// Global muted state lives here so ALL cards share one consistent toggle.
+
 const { height: SH } = Dimensions.get("window");
 
 function EmptyFeed() {
@@ -35,7 +37,9 @@ function LoadingFeed() {
 
 export default function FeedScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [muted, setMuted] = useState(true);
   const { data: listings, isLoading, refetch, isRefetching } = useListings();
+  const handleMuteToggle = useCallback(() => setMuted((m) => !m), []);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -58,7 +62,12 @@ export default function FeedScreen() {
         data={items}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item, index }) => (
-          <FeedCard item={item} isActive={index === activeIndex} />
+          <FeedCard
+            item={item}
+            isActive={index === activeIndex}
+            muted={muted}
+            onMuteToggle={handleMuteToggle}
+          />
         )}
         pagingEnabled
         snapToInterval={SH}

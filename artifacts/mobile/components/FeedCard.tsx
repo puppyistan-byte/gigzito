@@ -77,9 +77,11 @@ function ctaLabel(ctaType?: string) {
 type Props = {
   item: any;
   isActive: boolean;
+  muted: boolean;
+  onMuteToggle: () => void;
 };
 
-export function FeedCard({ item, isActive }: Props) {
+export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
   const { token } = useAuth();
   const { mutate: toggleLike } = useToggleLike(item.id);
 
@@ -89,7 +91,6 @@ export function FeedCard({ item, isActive }: Props) {
 
   const totalSecs = item.durationSeconds || 60;
   const [timeLeft, setTimeLeft] = useState(totalSecs);
-  const [muted, setMuted] = useState(true);
   const [liked, setLiked] = useState<boolean>(
     item.isLiked ?? item.userLiked ?? item.liked ?? false
   );
@@ -206,28 +207,39 @@ export function FeedCard({ item, isActive }: Props) {
   // Direct video playback for gigzito-hosted uploads
   const gigzitoVideoUri = isGigzitoVideo(rawVideoUrl) ? resolveUrl(rawVideoUrl) : null;
 
-  // useVideoPlayer must be called unconditionally (Rules of Hooks)
+  // useVideoPlayer must be called unconditionally (Rules of Hooks).
+  // Always start muted so the browser's autoplay policy is satisfied.
   const player = useVideoPlayer(
     gigzitoVideoUri ? { uri: gigzitoVideoUri } : null,
     (p) => {
       p.loop = true;
-      p.muted = muted;
+      p.muted = true;
     }
   );
 
+  // Play/pause whenever the active card changes.
+  // We force muted=true before play so autoplay policy is never violated.
+  // A second attempt after 400 ms covers player init timing on slower connections.
+  const playRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!gigzitoVideoUri || !player) return;
+    if (playRetryRef.current) clearTimeout(playRetryRef.current);
     if (isActive) {
-      // Always ensure muted before play so browser autoplay policy is satisfied.
-      // User can tap the volume button to unmute after playback starts.
-      try { player.muted = true; } catch {}
-      try { player.play(); } catch {}
+      const tryPlay = () => {
+        try { player.muted = true; } catch {}
+        try { player.play(); } catch {}
+      };
+      tryPlay();
+      playRetryRef.current = setTimeout(tryPlay, 400);
     } else {
       try { player.pause(); } catch {}
     }
+    return () => {
+      if (playRetryRef.current) clearTimeout(playRetryRef.current);
+    };
   }, [isActive, gigzitoVideoUri]);
 
-  // Keep mute state in sync with the player
+  // Keep the player's mute state in sync with the global muted prop.
   useEffect(() => {
     if (player && gigzitoVideoUri) {
       try { player.muted = muted; } catch {}
@@ -331,7 +343,7 @@ export function FeedCard({ item, isActive }: Props) {
 
         {/* Mute */}
         <Pressable
-          onPress={() => { Haptics.selectionAsync(); setMuted((m) => !m); }}
+          onPress={() => { Haptics.selectionAsync(); onMuteToggle(); }}
           style={styles.railBtn}
           testID={`button-mute-${item.id}`}
         >
