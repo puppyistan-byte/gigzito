@@ -263,7 +263,8 @@ export default function OfferCenterPage() {
 
   const userRole = (user as any)?.user?.role ?? "";
   const userTier = (user as any)?.user?.subscriptionTier ?? "";
-  const canCreateAd = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(userRole) || userTier === "GZBusiness";
+  const isAdmin = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(userRole);
+  const canCreateAd = isAdmin || ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(userTier);
 
   const sortedAds = [...ads].sort((a, b) => b.potencyScore - a.potencyScore);
 
@@ -292,36 +293,76 @@ export default function OfferCenterPage() {
             </button>
           </Link>
 
-          {user ? (
-            <Link href="/profile">
-              <button
-                className="flex items-center gap-2 group"
-                data-testid="btn-profile-avatar"
-                title={username ?? "Profile"}
-              >
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={username ?? "avatar"}
-                    className="w-8 h-8 rounded-full object-cover border border-[#222] group-hover:border-blue-500/50 transition-all"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center text-blue-300 text-xs font-bold group-hover:border-blue-500/60 transition-all">
-                    {initials}
-                  </div>
-                )}
-              </button>
-            </Link>
-          ) : (
-            <Link href="/auth">
-              <button
-                className="text-xs font-semibold text-[#555] hover:text-white transition-colors"
-                data-testid="btn-login"
-              >
-                Log in
-              </button>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Create Ad CTA — always visible, behaviour changes by auth/tier */}
+            {!user ? (
+              <Link href="/auth">
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-8 text-xs rounded-xl gap-1.5"
+                  data-testid="btn-create-ad-login"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Create Flash Ad
+                </Button>
+              </Link>
+            ) : canCreateAd ? (
+              <Link href="/gz-business">
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-8 text-xs rounded-xl gap-1.5"
+                  data-testid="btn-create-ad"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Create Flash Ad
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/pricing">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-700/50 text-blue-400 hover:bg-blue-900/30 h-8 text-xs rounded-xl gap-1.5"
+                  data-testid="btn-upgrade-for-ad"
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  Upgrade to Create
+                </Button>
+              </Link>
+            )}
+
+            {/* Profile avatar / login */}
+            {user ? (
+              <Link href="/profile">
+                <button
+                  className="flex items-center gap-2 group"
+                  data-testid="btn-profile-avatar"
+                  title={username ?? "Profile"}
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={username ?? "avatar"}
+                      className="w-8 h-8 rounded-full object-cover border border-[#222] group-hover:border-blue-500/50 transition-all"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center text-blue-300 text-xs font-bold group-hover:border-blue-500/60 transition-all">
+                      {initials}
+                    </div>
+                  )}
+                </button>
+              </Link>
+            ) : (
+              <Link href="/auth">
+                <button
+                  className="text-xs font-semibold text-[#555] hover:text-white transition-colors"
+                  data-testid="btn-login"
+                >
+                  Log in
+                </button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 

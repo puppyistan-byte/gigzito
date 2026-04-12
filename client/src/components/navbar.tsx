@@ -306,7 +306,7 @@ export function Navbar() {
             Preemptive Marketing
           </DropdownMenuItem>
 
-          {(isAdmin || user?.user?.subscriptionTier === "GZBusiness") && (
+          {(isAdmin || ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(user?.user?.subscriptionTier ?? "")) && (
             <DropdownMenuItem
               className="gap-2 cursor-pointer hover:bg-blue-500/10 focus:bg-blue-500/10 text-blue-400"
               onClick={() => navigate("/gz-business")}
