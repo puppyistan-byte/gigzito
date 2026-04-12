@@ -37,13 +37,14 @@ import {
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, ChevronRight, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
   Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
-  Music, Headphones, Upload as UploadIcon,
+  Music, Headphones, Upload as UploadIcon, Flame, RefreshCw,
 } from "lucide-react";
+import { GzFlashForm } from "@/components/gz-flash-form";
 import { InviteCard } from "@/components/invite-card";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion, GZMusicTrack } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion, GZMusicTrack, GzFlashAd } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -414,6 +415,27 @@ function ProviderDashboardInner() {
   const { data: geoCampaigns = [] } = useQuery<GeoTargetCampaign[]>({
     queryKey: ["/api/geo-campaigns"],
     enabled: !!user,
+  });
+
+  // GZFlash state
+  const userTier = user?.user?.subscriptionTier ?? "";
+  const canUseGzFlash = isAdmin || ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(userTier);
+  const [showGzFlashForm, setShowGzFlashForm] = useState(false);
+  const [editingGzAd, setEditingGzAd] = useState<GzFlashAd | null>(null);
+
+  const { data: myGzFlashAds = [], isLoading: gzFlashLoading, refetch: refetchMyGzFlash } = useQuery<GzFlashAd[]>({
+    queryKey: ["/api/gz-flash/mine"],
+    enabled: !!user && canUseGzFlash,
+  });
+
+  const deleteGzFlashMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/gz-flash/${id}`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gz-flash/mine"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gz-flash"] });
+      toast({ title: "Flash ad deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete ad", variant: "destructive" }),
   });
 
   // Broadcast modal state
@@ -1113,6 +1135,129 @@ function ProviderDashboardInner() {
 
         {/* ─── GigJack Center ─── */}
         <GigJackCenter />
+
+        {/* ─── GZFlash Ad Center ─── */}
+        {canUseGzFlash && (
+          <div data-testid="section-gzflash-dashboard">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Flame className="h-4 w-4 text-blue-400" />
+                <h2 className="text-sm font-semibold text-white">GZFlash Ad Center</h2>
+                {myGzFlashAds.length > 0 && (
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-300 border border-blue-700/50">
+                    {myGzFlashAds.filter((a) => a.status === "active").length} active
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => refetchMyGzFlash()}
+                  className="text-[#555] hover:text-blue-400 transition-colors"
+                  data-testid="btn-refresh-my-gzflash"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => { setEditingGzAd(null); setShowGzFlashForm((v) => !v); }}
+                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all bg-blue-600 hover:bg-blue-500 text-white"
+                  data-testid="btn-new-gzflash-ad"
+                >
+                  <Flame className="h-3 w-3" />
+                  {showGzFlashForm && !editingGzAd ? "Cancel" : "New Flash Ad"}
+                </button>
+              </div>
+            </div>
+
+            {showGzFlashForm && (
+              <div className="mb-4">
+                <GzFlashForm
+                  existing={editingGzAd ?? undefined}
+                  onClose={() => { setShowGzFlashForm(false); setEditingGzAd(null); }}
+                  onSaved={() => {
+                    setShowGzFlashForm(false);
+                    setEditingGzAd(null);
+                    refetchMyGzFlash();
+                  }}
+                />
+              </div>
+            )}
+
+            {gzFlashLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] animate-pulse" />)}
+              </div>
+            ) : myGzFlashAds.length === 0 ? (
+              <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-gzflash">
+                <Flame className="h-7 w-7 mx-auto mb-3 text-[#2a2a2a]" />
+                <p className="text-[#555] text-sm font-semibold">No flash ads yet</p>
+                <p className="text-[#444] text-xs mt-1 mb-4">Deploy a time-limited deal and compete for Pole Position in the GZFlash feed.</p>
+                <button
+                  onClick={() => { setEditingGzAd(null); setShowGzFlashForm(true); }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-black text-sm bg-blue-600 hover:bg-blue-500 text-white transition-all"
+                  data-testid="btn-create-first-gzflash"
+                >
+                  <Flame className="h-3.5 w-3.5" /> Launch Your First Flash Ad
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myGzFlashAds.map((ad) => {
+                  const isActive = ad.status === "active";
+                  const isPaused = ad.status === "paused";
+                  const salePrice = ((ad.retailPriceCents ?? 0) * (1 - (ad.discountPercent ?? 0) / 100) / 100).toFixed(2);
+                  const expiresAt = ad.expiresAt ? new Date(ad.expiresAt) : null;
+                  const minsLeft = expiresAt ? Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / 60000)) : 0;
+                  return (
+                    <div
+                      key={ad.id}
+                      className={`rounded-xl border p-4 ${isActive ? "border-blue-800/40 bg-blue-950/10" : isPaused ? "border-amber-800/40 bg-amber-950/10" : "border-[#1e1e1e] bg-[#0b0b0b]"}`}
+                      data-testid={`card-gzflash-${ad.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {ad.artworkUrl && (
+                          <img src={ad.artworkUrl} alt={ad.title} className="w-12 h-12 rounded-lg object-cover border border-[#2a2a2a] shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-sm font-bold text-white truncate">{ad.title}</span>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${isActive ? "bg-blue-900/30 text-blue-300 border-blue-700/50" : isPaused ? "bg-amber-900/30 text-amber-300 border-amber-700/50" : "bg-[#111] text-[#555] border-[#222]"}`}>
+                              {ad.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px] text-[#666] flex-wrap">
+                            <span>${salePrice} sale price</span>
+                            <span>{ad.discountPercent}% off</span>
+                            {isActive && expiresAt && <span className="text-blue-400">{minsLeft}m left</span>}
+                            <span>Score: {ad.potencyScore ?? 0}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="icon" variant="ghost"
+                            className="h-7 w-7 text-[#555] hover:text-white"
+                            onClick={() => { setEditingGzAd(ad); setShowGzFlashForm(true); }}
+                            data-testid={`btn-edit-gzflash-${ad.id}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className="h-7 w-7 text-[#ff1a1a]/60 hover:text-[#ff1a1a]"
+                            onClick={() => deleteGzFlashMutation.mutate(ad.id)}
+                            disabled={deleteGzFlashMutation.isPending}
+                            data-testid={`btn-delete-gzflash-${ad.id}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ─── Gig Cards ─── */}
         {profile && <GigCardSection profile={profile} />}
