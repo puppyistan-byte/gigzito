@@ -21,11 +21,12 @@ function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+// Thresholds match backend computePotency exactly
 function getZone(score: number) {
-  if (score >= 90) return { label: "HOT",     color: "#F87171", bg: "rgba(127,29,29,0.5)",  stripe: "#F87171" };
-  if (score >= 70) return { label: "TRENDING", color: "#FB923C", bg: "rgba(124,45,18,0.5)",  stripe: "#FB923C" };
-  if (score >= 40) return { label: "ACTIVE",   color: "#FACC15", bg: "rgba(113,63,18,0.5)",  stripe: "#FACC15" };
-  return             { label: "COOL",    color: "#888888", bg: "rgba(40,40,40,0.4)",   stripe: "#334155" };
+  if (score >= 80) return { label: "HOT",      color: "#F87171", bg: "rgba(127,29,29,0.5)",   stripe: "#F87171" };
+  if (score >= 55) return { label: "TRENDING",  color: "#FB923C", bg: "rgba(124,45,18,0.5)",   stripe: "#FB923C" };
+  if (score >= 30) return { label: "ACTIVE",    color: "#FACC15", bg: "rgba(113,63,18,0.5)",   stripe: "#FACC15" };
+  return             { label: "COOL",     color: "#60A5FA", bg: "rgba(30,58,138,0.3)",   stripe: "#1D4ED8" };
 }
 
 function useCountdown(expiresAt: string) {

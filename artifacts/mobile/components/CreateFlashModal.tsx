@@ -62,6 +62,33 @@ export function CreateFlashModal({ visible, onClose }: Props) {
     return null;
   })();
 
+  // Live potency preview — mirrors backend computePotency at launch moment:
+  // claimedCount=0 → scarcityFactor=2.0; timeFraction=1.0 → timeFactor=1.0
+  const potencyPreview = (() => {
+    const r = parseFloat(retailPrice);
+    const f = parseFloat(flashPrice);
+    const qty = parseInt(slots, 10);
+    if (!isNaN(r) && r > 0 && !isNaN(f) && f >= 0 && f < r && !isNaN(qty) && qty > 0) {
+      const V = r * 100;                                   // retail in cents
+      const P = f * 100;                                   // flash in cents
+      const savingsIndex   = (V - P) / V;                 // = discountPct/100
+      const timeFactor     = 1.0;                          // at launch, full time left
+      const scarcityFactor = 2.0;                          // 0 claimed → max scarcity
+      const COMFORT        = 10000;
+      const priceFriction  = 1 / (1 + P / COMFORT);
+      const raw = savingsIndex * timeFactor * scarcityFactor * priceFriction;
+      return Math.min(100, Math.round(raw * 100));
+    }
+    return null;
+  })();
+
+  const potencyZone = (score: number) => {
+    if (score >= 80) return { label: "HOT",      color: "#F87171", bar: "#F87171" };
+    if (score >= 55) return { label: "TRENDING",  color: "#FB923C", bar: "#FB923C" };
+    if (score >= 30) return { label: "ACTIVE",    color: "#FACC15", bar: "#FACC15" };
+    return             { label: "COOL",     color: "#60A5FA", bar: "#1D4ED8" };
+  };
+
   const expiresAt = (): string => {
     const h = parseInt(hours, 10) || 0;
     const m = parseInt(minutes, 10) || 0;
@@ -251,6 +278,31 @@ export function CreateFlashModal({ visible, onClose }: Props) {
                 <Text style={s.discountHintText}>{computedDiscountPct}% discount</Text>
               </View>
             ) : null}
+
+            {/* Live potency score preview */}
+            {potencyPreview !== null ? (() => {
+              const zone = potencyZone(potencyPreview);
+              return (
+                <View style={s.potencyBox}>
+                  <View style={s.potencyTopRow}>
+                    <Feather name="zap" size={12} color={zone.color} />
+                    <Text style={s.potencyLabel}>Launch Potency Score</Text>
+                    <View style={[s.potencyBadge, { backgroundColor: zone.bar + "33", borderColor: zone.bar + "66" }]}>
+                      <Text style={[s.potencyBadgeText, { color: zone.color }]}>
+                        {zone.label}
+                      </Text>
+                    </View>
+                    <Text style={[s.potencyScore, { color: zone.color }]}>{potencyPreview}</Text>
+                  </View>
+                  <View style={s.potencyBarBg}>
+                    <View style={[s.potencyBarFill, { width: `${potencyPreview}%` as any, backgroundColor: zone.bar }]} />
+                  </View>
+                  <Text style={s.potencyHint}>
+                    Score at launch · rises as slots fill and deadline nears
+                  </Text>
+                </View>
+              );
+            })() : null}
 
             {/* Number of Offers */}
             <View style={s.field}>
@@ -517,6 +569,57 @@ const s = StyleSheet.create({
     color: "#4ADE80",
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+  },
+  potencyBox: {
+    backgroundColor: "#070d1a",
+    borderWidth: 1,
+    borderColor: "#1a2848",
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+  },
+  potencyTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  potencyLabel: {
+    color: "#94A3B8",
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    flex: 1,
+  },
+  potencyBadge: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  potencyBadgeText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.4,
+  },
+  potencyScore: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    minWidth: 32,
+    textAlign: "right",
+  },
+  potencyBarBg: {
+    height: 5,
+    backgroundColor: "#1a2848",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  potencyBarFill: {
+    height: 5,
+    borderRadius: 3,
+  },
+  potencyHint: {
+    color: "#334155",
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
   },
   durationHeader: {
     flexDirection: "row",
