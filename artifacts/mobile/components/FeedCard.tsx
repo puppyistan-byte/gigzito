@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { useToggleLike, useVideoLikes } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommentsDrawer } from "@/components/CommentsDrawer";
@@ -28,6 +29,30 @@ function resolveUrl(uri?: string | null): string | null {
   if (!uri) return null;
   if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
   return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
+}
+
+/** Return a YouTube thumbnail URL if the given videoUrl is a YouTube link. */
+function youtubeThumb(url: string): string | null {
+  if (!url) return null;
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const re of patterns) {
+    const m = url.match(re);
+    if (m) return `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;
+  }
+  return null;
+}
+
+/** True when the URL is a file hosted on gigzito (relative or absolute gigzito domain). */
+function isGigzitoVideo(url: string): boolean {
+  if (!url) return false;
+  if (url.startsWith("/uploads/")) return true;
+  if (url.startsWith(API_BASE + "/uploads/")) return true;
+  return false;
 }
 
 function formatTime(secs: number) {
@@ -161,24 +186,68 @@ export function FeedCard({ item, isActive }: Props) {
     }
   };
 
-  const poster = resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null);
   const tags: string[] = item.tags ?? [];
   const vertical = item.vertical || item.category || "";
 
-  const videoUrl = item.videoUrl || item.video_url || "";
-  const shareUrl = videoUrl || `https://gigzito.com/listing/${item.id}`;
+  const rawVideoUrl = item.videoUrl || item.video_url || "";
+  const videoUrl = rawVideoUrl;
+  const shareUrl = rawVideoUrl || `https://gigzito.com/listing/${item.id}`;
+
+  // Resolve the best available poster image:
+  // 1. YouTube thumbnail extracted from videoUrl
+  // 2. Provider thumbUrl (if non-empty)
+  // 3. Provider avatarUrl as last resort
+  const ytThumb = youtubeThumb(rawVideoUrl);
+  const poster =
+    ytThumb ||
+    resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null) ||
+    resolveUrl(item.provider?.avatarUrl || null);
+
+  // Direct video playback for gigzito-hosted uploads
+  const gigzitoVideoUri = isGigzitoVideo(rawVideoUrl) ? resolveUrl(rawVideoUrl) : null;
+
+  // useVideoPlayer must be called unconditionally (Rules of Hooks)
+  const player = useVideoPlayer(
+    gigzitoVideoUri ? { uri: gigzitoVideoUri } : null,
+    (p) => {
+      p.loop = true;
+      p.muted = muted;
+    }
+  );
+
+  useEffect(() => {
+    if (!gigzitoVideoUri || !player) return;
+    try {
+      if (isActive) { player.muted = muted; player.play(); }
+      else { player.pause(); }
+    } catch {}
+  }, [isActive, gigzitoVideoUri]);
+
+  // Keep mute state in sync with the player
+  useEffect(() => {
+    if (player && gigzitoVideoUri) {
+      try { player.muted = muted; } catch {}
+    }
+  }, [muted, gigzitoVideoUri]);
 
   return (
     <View style={styles.card}>
-      {/* Background poster */}
-      {poster ? (
+      {/* Background: actual video player for gigzito uploads, poster image otherwise */}
+      {gigzitoVideoUri ? (
+        <VideoView
+          player={player}
+          style={styles.bg}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      ) : poster ? (
         <Image
           source={{ uri: poster }}
-          style={[styles.bg, { opacity: cardPressed ? 1 : 0.5 }]}
+          style={styles.bg}
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.bg, styles.bgFallback, { opacity: cardPressed ? 1 : 0.5 }]}>
+        <View style={[styles.bg, styles.bgFallback]}>
           <Feather name="video" size={48} color={Colors.textMuted} />
         </View>
       )}
