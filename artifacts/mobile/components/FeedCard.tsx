@@ -32,20 +32,27 @@ function resolveUrl(uri?: string | null): string | null {
   return `${API_BASE}${uri.startsWith("/") ? "" : "/"}${uri}`;
 }
 
-/** Return a YouTube thumbnail URL if the given videoUrl is a YouTube link. */
-function youtubeThumb(url: string): string | null {
+const YT_PATTERNS = [
+  /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+  /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+  /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+  /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+];
+
+/** Extract the 11-char YouTube video ID, or null if not a YouTube URL. */
+function extractYoutubeId(url: string): string | null {
   if (!url) return null;
-  const patterns = [
-    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-  ];
-  for (const re of patterns) {
+  for (const re of YT_PATTERNS) {
     const m = url.match(re);
-    if (m) return `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;
+    if (m) return m[1];
   }
   return null;
+}
+
+/** Return a YouTube thumbnail URL if the given videoUrl is a YouTube link. */
+function youtubeThumb(url: string): string | null {
+  const id = extractYoutubeId(url);
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
 }
 
 /** True when the URL is a file hosted on gigzito (relative or absolute gigzito domain). */
@@ -199,7 +206,8 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
   // 1. YouTube thumbnail extracted from videoUrl
   // 2. Provider thumbUrl (if non-empty)
   // 3. Provider avatarUrl as last resort
-  const ytThumb = youtubeThumb(rawVideoUrl);
+  const ytVideoId = extractYoutubeId(rawVideoUrl);
+  const ytThumb = ytVideoId ? `https://img.youtube.com/vi/${ytVideoId}/hqdefault.jpg` : null;
   const poster =
     ytThumb ||
     resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null) ||
@@ -260,11 +268,47 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
     }
   }, [muted, effectiveVideoUri]);
 
+  // YouTube embed URL — autoplay, looped, no controls, no related videos.
+  // muted=1 is required for autoplay policy; we apply the desired mute state
+  // via postMessage after the player is ready (handled by the iframe itself).
+  const ytEmbedSrc = ytVideoId
+    ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytVideoId}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1`
+    : null;
+
   return (
     <View style={styles.card}>
-      {/* Background: actual video player for gigzito uploads, poster image otherwise.
-          .mov files are excluded on web (Chrome/Firefox can't decode QuickTime). */}
-      {effectiveVideoUri ? (
+      {/* Background layer priority:
+          1. YouTube iframe embed (web only, when we have a YT video ID)
+          2. expo-video player (gigzito mp4 uploads)
+          3. Static poster/thumbnail image
+          4. Fallback dark placeholder */}
+      {Platform.OS === "web" && ytEmbedSrc ? (
+        // On web, mount the iframe only when this card is active to save bandwidth.
+        // Unmounting (isActive false) cleanly stops playback on the previous card.
+        isActive
+          ? React.createElement("iframe", {
+              key: ytVideoId,
+              src: ytEmbedSrc,
+              style: {
+                position: "absolute",
+                top: 0, left: 0,
+                width: "100%", height: "100%",
+                border: "none",
+                pointerEvents: "none",
+              },
+              allow: "autoplay; encrypted-media",
+              allowFullScreen: false,
+            })
+          : poster
+          ? React.createElement(Image as any, {
+              source: { uri: poster },
+              style: styles.bg,
+              resizeMode: "cover",
+            })
+          : React.createElement(View as any, { style: [styles.bg, styles.bgFallback] },
+              React.createElement(Feather as any, { name: "video", size: 48, color: Colors.textMuted })
+            )
+      ) : effectiveVideoUri ? (
         <VideoView
           player={player}
           style={styles.bg}
