@@ -139,7 +139,12 @@ export function CreateFlashModal({ visible, onClose }: Props) {
         handleClose();
       },
       onError: (e: any) => {
-        setError(e?.message || "Failed to launch deal. Please try again.");
+        const raw = e?.message ?? "";
+        if (raw.toLowerCase().includes("unauthorized") || raw.includes("401")) {
+          setError("GZBusiness or higher tier required to post GZFlash ads. Upgrade your plan on gigzito.com.");
+        } else {
+          setError(raw || "Failed to launch deal. Please try again.");
+        }
       },
     });
   };

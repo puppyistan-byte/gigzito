@@ -40,7 +40,12 @@ function sizeForCols(cols: 1 | 2 | 3): CardSize {
 export default function GZFlashScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  // GZFlash ad creation requires GZBusiness tier or higher (mirrors backend requireAuth check)
+  const canCreate = !!token && !!user && (
+    ["GZBusiness", "GZEnterprise"].includes(user.subscriptionTier) ||
+    ["admin", "superadmin"].includes(user.role)
+  );
 
   const { data: raw, isLoading, refetch, isRefetching } = useGZFlash();
   const { mutate: claim, isPending: claiming, variables: claimingId } = useClaimFlash();
@@ -95,7 +100,7 @@ export default function GZFlashScreen() {
               : "Limited-time deals, live now"}
           </Text>
         </View>
-        {token ? (
+        {canCreate ? (
           <Pressable
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setCreateOpen(true); }}
             style={styles.createBtn}
