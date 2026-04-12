@@ -277,15 +277,20 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
   }, [isActive]);
 
   // Send a postMessage command to the YouTube iframe player.
+  // YouTube IFrame API requires args="" (empty string) not [].
+  // Target must be "https://www.youtube.com" (not wildcard "*").
   const ytCommand = useCallback((func: string) => {
     try {
       ytIframeRef.current?.contentWindow?.postMessage(
-        JSON.stringify({ event: "command", func, args: [] }), "*"
+        JSON.stringify({ event: "command", func, args: "" }),
+        "https://www.youtube.com"
       );
     } catch {}
   }, []);
 
   // Toggle play/pause for both YouTube (postMessage) and gigzito MP4 (expo-video).
+  // For expo-video we also cancel any pending play-retry timer so it can't
+  // override a user-initiated pause that fires within the 500ms retry window.
   const handlePlayPause = useCallback(() => {
     Haptics.selectionAsync();
     const willBePaused = !paused;
@@ -293,7 +298,13 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
     if (ytVideoId && Platform.OS === "web") {
       ytCommand(willBePaused ? "pauseVideo" : "playVideo");
     } else if (player && effectiveVideoUri) {
-      try { willBePaused ? player.pause() : player.play(); } catch {}
+      if (willBePaused) {
+        if (playRetryRef.current) clearTimeout(playRetryRef.current);
+        if (muteApplyRef.current) clearTimeout(muteApplyRef.current);
+        try { player.pause(); } catch {}
+      } else {
+        try { player.play(); } catch {}
+      }
     }
   }, [paused, ytVideoId, player, effectiveVideoUri, ytCommand]);
 
