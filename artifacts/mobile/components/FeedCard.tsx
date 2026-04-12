@@ -89,7 +89,7 @@ export function FeedCard({ item, isActive }: Props) {
 
   const totalSecs = item.durationSeconds || 60;
   const [timeLeft, setTimeLeft] = useState(totalSecs);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const [liked, setLiked] = useState<boolean>(
     item.isLiked ?? item.userLiked ?? item.liked ?? false
   );
@@ -217,10 +217,14 @@ export function FeedCard({ item, isActive }: Props) {
 
   useEffect(() => {
     if (!gigzitoVideoUri || !player) return;
-    try {
-      if (isActive) { player.muted = muted; player.play(); }
-      else { player.pause(); }
-    } catch {}
+    if (isActive) {
+      // Always ensure muted before play so browser autoplay policy is satisfied.
+      // User can tap the volume button to unmute after playback starts.
+      try { player.muted = true; } catch {}
+      try { player.play(); } catch {}
+    } else {
+      try { player.pause(); } catch {}
+    }
   }, [isActive, gigzitoVideoUri]);
 
   // Keep mute state in sync with the player
