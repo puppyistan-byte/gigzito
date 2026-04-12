@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -23,6 +24,14 @@ export function TextInput({ label, error, icon, containerStyle, isPassword, ...p
   const [focused, setFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // On web, keyboardType="email-address" maps to type="email" which shows
+  // the browser's built-in validation popup. Force type="text" on web and
+  // rely on inputMode for the correct mobile keyboard hint instead.
+  const webOverrides: any =
+    Platform.OS === "web" && props.keyboardType === "email-address"
+      ? { type: "text", inputMode: "email" }
+      : {};
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -38,6 +47,7 @@ export function TextInput({ label, error, icon, containerStyle, isPassword, ...p
         ) : null}
         <RNTextInput
           {...props}
+          {...webOverrides}
           secureTextEntry={isPassword && !showPassword}
           onFocus={(e) => {
             setFocused(true);
