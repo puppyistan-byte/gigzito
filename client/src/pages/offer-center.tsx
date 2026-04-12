@@ -333,7 +333,7 @@ export default function OfferCenterPage() {
 
             {/* Profile avatar / login */}
             {user ? (
-              <Link href="/profile">
+              <Link href="/provider/profile">
                 <button
                   className="flex items-center gap-2 group"
                   data-testid="btn-profile-avatar"
