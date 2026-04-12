@@ -483,20 +483,20 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
 
       {/* GZ Play/Pause — centered on the video, matches desktop main site design */}
       <Pressable onPress={handlePlayPause} style={styles.gzPlayPauseOuter}>
-        {/* Dark circle overlay with red ring — only visible when paused */}
-        <View
-          style={[
-            styles.gzPlayPauseCircle,
-            paused
-              ? { backgroundColor: "rgba(0,0,0,0.45)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.8)" }
-              : { backgroundColor: "transparent", borderWidth: 0 },
-          ]}
-        />
-        {/* GZ logo as button body */}
+        {/* GZ logo — translucent bottom layer so video shows through */}
         <Image
           source={require("@/assets/images/gz-logo.png")}
           style={styles.gzPlayPauseLogo}
           resizeMode="cover"
+        />
+        {/* Red semi-transparent circle on top of logo — tints it red; darker ring when paused */}
+        <View
+          style={[
+            styles.gzPlayPauseCircle,
+            paused
+              ? { backgroundColor: "rgba(0,0,0,0.55)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.9)" }
+              : { backgroundColor: "rgba(160,0,0,0.5)", borderWidth: 2.5, borderColor: "rgba(220,30,30,0.7)" },
+          ]}
         />
         {/* SVG icon absolutely centered on top */}
         <View style={styles.gzPlayPauseIconWrap} pointerEvents="none">
@@ -717,6 +717,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    opacity: 0.82,
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
