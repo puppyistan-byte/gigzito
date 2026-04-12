@@ -429,36 +429,16 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
           />
         </Pressable>
 
-        {/* GZ Play / Pause — branded button */}
-        <Pressable onPress={handlePlayPause} style={styles.gzPlayPauseOuter}>
-          {/* Dark overlay circle with red ring — only when paused */}
-          <View
-            style={[
-              styles.gzPlayPauseCircle,
-              paused
-                ? { backgroundColor: "rgba(0,0,0,0.45)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.8)" }
-                : { backgroundColor: "transparent", borderWidth: 0 },
-            ]}
-          />
-          {/* GZ logo as button body */}
+        {/* GeeZee Rolodex */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/geezee" as any); }}
+          style={styles.railBtn}
+        >
           <Image
             source={require("@/assets/images/gz-logo.png")}
-            style={styles.gzPlayPauseLogo}
-            resizeMode="cover"
+            style={styles.gzIcon}
+            resizeMode="contain"
           />
-          {/* SVG icon absolutely centered on top */}
-          <View style={styles.gzPlayPauseIconWrap} pointerEvents="none">
-            {paused ? (
-              <Svg width={28} height={28} viewBox="0 0 24 24" style={{ marginLeft: 3 }}>
-                <Polygon points="5,3 19,12 5,21" fill="white" />
-              </Svg>
-            ) : (
-              <Svg width={22} height={22} viewBox="0 0 24 24">
-                <Rect x="5" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
-                <Rect x="15" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
-              </Svg>
-            )}
-          </View>
         </Pressable>
 
         {/* Mute */}
@@ -500,6 +480,38 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
           <Text style={styles.railCount}>{item.commentCount ?? ""}</Text>
         </View>
       </View>
+
+      {/* GZ Play/Pause — centered on the video, matches desktop main site design */}
+      <Pressable onPress={handlePlayPause} style={styles.gzPlayPauseOuter}>
+        {/* Dark circle overlay with red ring — only visible when paused */}
+        <View
+          style={[
+            styles.gzPlayPauseCircle,
+            paused
+              ? { backgroundColor: "rgba(0,0,0,0.45)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.8)" }
+              : { backgroundColor: "transparent", borderWidth: 0 },
+          ]}
+        />
+        {/* GZ logo as button body */}
+        <Image
+          source={require("@/assets/images/gz-logo.png")}
+          style={styles.gzPlayPauseLogo}
+          resizeMode="cover"
+        />
+        {/* SVG icon absolutely centered on top */}
+        <View style={styles.gzPlayPauseIconWrap} pointerEvents="none">
+          {paused ? (
+            <Svg width={28} height={28} viewBox="0 0 24 24" style={{ marginLeft: 3 }}>
+              <Polygon points="5,3 19,12 5,21" fill="white" />
+            </Svg>
+          ) : (
+            <Svg width={22} height={22} viewBox="0 0 24 24">
+              <Rect x="5" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+              <Rect x="15" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+            </Svg>
+          )}
+        </View>
+      </Pressable>
 
       {/* Creator avatar — bottom right floating */}
       <Pressable
@@ -687,21 +699,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   gzPlayPauseOuter: {
-    width: 52,
-    height: 52,
+    position: "absolute",
+    top: SH / 2 - 50,
+    left: SW / 2 - 50,
+    width: 100,
+    height: 100,
     alignItems: "center",
     justifyContent: "center",
   },
   gzPlayPauseCircle: {
     position: "absolute",
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   gzPlayPauseLogo: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
