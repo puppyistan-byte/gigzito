@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Svg, { Rect, Polygon } from "react-native-svg";
 import {
   Dimensions,
   Image,
@@ -121,6 +122,8 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
   const [inquireOpen, setInquireOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const ytIframeRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -268,6 +271,32 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
     }
   }, [muted, effectiveVideoUri]);
 
+  // Reset paused state every time this card becomes the active card.
+  useEffect(() => {
+    if (isActive) setPaused(false);
+  }, [isActive]);
+
+  // Send a postMessage command to the YouTube iframe player.
+  const ytCommand = useCallback((func: string) => {
+    try {
+      ytIframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func, args: [] }), "*"
+      );
+    } catch {}
+  }, []);
+
+  // Toggle play/pause for both YouTube (postMessage) and gigzito MP4 (expo-video).
+  const handlePlayPause = useCallback(() => {
+    Haptics.selectionAsync();
+    const willBePaused = !paused;
+    setPaused(willBePaused);
+    if (ytVideoId && Platform.OS === "web") {
+      ytCommand(willBePaused ? "pauseVideo" : "playVideo");
+    } else if (player && effectiveVideoUri) {
+      try { willBePaused ? player.pause() : player.play(); } catch {}
+    }
+  }, [paused, ytVideoId, player, effectiveVideoUri, ytCommand]);
+
   // YouTube embed URL — autoplay, looped, no controls, no related videos.
   // muted=1 is required for autoplay policy; we apply the desired mute state
   // via postMessage after the player is ready (handled by the iframe itself).
@@ -287,6 +316,7 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
         // Unmounting (isActive false) cleanly stops playback on the previous card.
         isActive
           ? React.createElement("iframe", {
+              ref: ytIframeRef,
               key: ytVideoId,
               src: ytEmbedSrc,
               style: {
@@ -388,16 +418,36 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
           />
         </Pressable>
 
-        {/* GeeZee Rolodex */}
-        <Pressable
-          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/geezee" as any); }}
-          style={styles.railBtn}
-        >
+        {/* GZ Play / Pause — branded button */}
+        <Pressable onPress={handlePlayPause} style={styles.gzPlayPauseOuter}>
+          {/* Dark overlay circle with red ring — only when paused */}
+          <View
+            style={[
+              styles.gzPlayPauseCircle,
+              paused
+                ? { backgroundColor: "rgba(0,0,0,0.45)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.8)" }
+                : { backgroundColor: "transparent", borderWidth: 0 },
+            ]}
+          />
+          {/* GZ logo as button body */}
           <Image
             source={require("@/assets/images/gz-logo.png")}
-            style={styles.gzIcon}
-            resizeMode="contain"
+            style={styles.gzPlayPauseLogo}
+            resizeMode="cover"
           />
+          {/* SVG icon absolutely centered on top */}
+          <View style={styles.gzPlayPauseIconWrap} pointerEvents="none">
+            {paused ? (
+              <Svg width={28} height={28} viewBox="0 0 24 24" style={{ marginLeft: 3 }}>
+                <Polygon points="5,3 19,12 5,21" fill="white" />
+              </Svg>
+            ) : (
+              <Svg width={22} height={22} viewBox="0 0 24 24">
+                <Rect x="5" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+                <Rect x="15" y="4" width="4" height="16" rx="1" fill="rgba(255,255,255,0.6)" />
+              </Svg>
+            )}
+          </View>
         </Pressable>
 
         {/* Mute */}
@@ -624,6 +674,28 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
+  },
+  gzPlayPauseOuter: {
+    width: 52,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gzPlayPauseCircle: {
+    position: "absolute",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  gzPlayPauseLogo: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  gzPlayPauseIconWrap: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
   },
   railCount: {
     color: "#fff",
