@@ -15,7 +15,9 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useGZFlash, useClaimFlash } from "@/hooks/useApi";
+import { useAuth } from "@/contexts/AuthContext";
 import { GZFlashCard, CardSize } from "@/components/GZFlashCard";
+import { CreateFlashModal } from "@/components/CreateFlashModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingScreen";
 
@@ -38,12 +40,14 @@ function sizeForCols(cols: 1 | 2 | 3): CardSize {
 export default function GZFlashScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const { token } = useAuth();
 
   const { data: raw, isLoading, refetch, isRefetching } = useGZFlash();
   const { mutate: claim, isPending: claiming, variables: claimingId } = useClaimFlash();
 
   const listRef = useRef<FlatList>(null);
   const [showMore, setShowMore] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const contentH = useRef(0);
   const listH = useRef(0);
   const scrollY = useRef(0);
@@ -91,7 +95,17 @@ export default function GZFlashScreen() {
               : "Limited-time deals, live now"}
           </Text>
         </View>
+        {token ? (
+          <Pressable
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setCreateOpen(true); }}
+            style={styles.createBtn}
+          >
+            <Feather name="plus" size={18} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
       </View>
+
+      <CreateFlashModal visible={createOpen} onClose={() => setCreateOpen(false)} />
 
       <View style={styles.divider} />
 
@@ -189,6 +203,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#070d1a",
     borderWidth: 1,
     borderColor: "#1a2030",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#2563EB",
     alignItems: "center",
     justifyContent: "center",
   },
