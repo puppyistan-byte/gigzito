@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -204,52 +205,66 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
     resolveUrl(item.provider?.thumbUrl || item.thumbnailUrl || item.thumbnail_url || null) ||
     resolveUrl(item.provider?.avatarUrl || null);
 
-  // Direct video playback for gigzito-hosted uploads
+  // Direct video playback for gigzito-hosted uploads.
+  // On web, .mov (QuickTime) files cannot be decoded by Chrome/Firefox/Brave,
+  // so we fall back to poster image for those. MP4 files play fine on all browsers.
   const gigzitoVideoUri = isGigzitoVideo(rawVideoUrl) ? resolveUrl(rawVideoUrl) : null;
+  const isMovOnWeb = Platform.OS === "web" && !!gigzitoVideoUri?.match(/\.mov(\?|$)/i);
+  const effectiveVideoUri = isMovOnWeb ? null : gigzitoVideoUri;
 
   // useVideoPlayer must be called unconditionally (Rules of Hooks).
-  // Always start muted so the browser's autoplay policy is satisfied.
+  // Start muted — required so browser autoplay policy is satisfied.
+  // We attempt to unmute right after play begins if the user wants sound.
   const player = useVideoPlayer(
-    gigzitoVideoUri ? { uri: gigzitoVideoUri } : null,
+    effectiveVideoUri ? { uri: effectiveVideoUri } : null,
     (p) => {
       p.loop = true;
       p.muted = true;
     }
   );
 
-  // Play/pause whenever the active card changes.
-  // We force muted=true before play so autoplay policy is never violated.
-  // A second attempt after 400 ms covers player init timing on slower connections.
+  // Play/pause whenever the active card or video source changes.
+  // Sequence: force muted → play (satisfies autoplay policy) → apply desired mute state.
+  // A 500 ms retry covers slow-loading sources that weren't ready on first attempt.
   const playRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const muteApplyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!gigzitoVideoUri || !player) return;
+    if (!effectiveVideoUri || !player) return;
     if (playRetryRef.current) clearTimeout(playRetryRef.current);
+    if (muteApplyRef.current) clearTimeout(muteApplyRef.current);
     if (isActive) {
       const tryPlay = () => {
-        try { player.muted = true; } catch {}
+        try { player.muted = true; } catch {}        // muted first — autoplay
         try { player.play(); } catch {}
+        // After play is initiated, apply the desired mute state.
+        // Most browsers allow unmuting after play() has been called.
+        muteApplyRef.current = setTimeout(() => {
+          try { player.muted = muted; } catch {}
+        }, 150);
       };
       tryPlay();
-      playRetryRef.current = setTimeout(tryPlay, 400);
+      playRetryRef.current = setTimeout(tryPlay, 500);
     } else {
       try { player.pause(); } catch {}
     }
     return () => {
       if (playRetryRef.current) clearTimeout(playRetryRef.current);
+      if (muteApplyRef.current) clearTimeout(muteApplyRef.current);
     };
-  }, [isActive, gigzitoVideoUri]);
+  }, [isActive, effectiveVideoUri]);
 
-  // Keep the player's mute state in sync with the global muted prop.
+  // Keep the player's mute state in sync whenever the global muted prop changes.
   useEffect(() => {
-    if (player && gigzitoVideoUri) {
+    if (player && effectiveVideoUri) {
       try { player.muted = muted; } catch {}
     }
-  }, [muted, gigzitoVideoUri]);
+  }, [muted, effectiveVideoUri]);
 
   return (
     <View style={styles.card}>
-      {/* Background: actual video player for gigzito uploads, poster image otherwise */}
-      {gigzitoVideoUri ? (
+      {/* Background: actual video player for gigzito uploads, poster image otherwise.
+          .mov files are excluded on web (Chrome/Firefox can't decode QuickTime). */}
+      {effectiveVideoUri ? (
         <VideoView
           player={player}
           style={styles.bg}

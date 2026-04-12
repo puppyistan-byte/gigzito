@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -37,7 +38,9 @@ function LoadingFeed() {
 
 export default function FeedScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [muted, setMuted] = useState(true);
+  // On native (iOS/Android) videos play with sound by default.
+  // On web the browser blocks unmuted autoplay, so we start muted there.
+  const [muted, setMuted] = useState(Platform.OS === "web");
   const { data: listings, isLoading, refetch, isRefetching } = useListings();
   const handleMuteToggle = useCallback(() => setMuted((m) => !m), []);
 
