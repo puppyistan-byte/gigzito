@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,20 +13,10 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useCreateFlash } from "@/hooks/useApi";
 
-const DURATIONS = [
-  { label: "1 hr",  hours: 1 },
-  { label: "4 hrs", hours: 4 },
-  { label: "12 hrs",hours: 12 },
-  { label: "24 hrs",hours: 24 },
-  { label: "48 hrs",hours: 48 },
-  { label: "72 hrs",hours: 72 },
-];
-
-function hoursFromNow(hours: number): string {
-  return new Date(Date.now() + hours * 3_600_000).toISOString();
-}
+type DurationMode = "from_now" | "pick_date";
 
 type Props = {
   visible: boolean;
@@ -35,54 +26,85 @@ type Props = {
 export function CreateFlashModal({ visible, onClose }: Props) {
   const { mutate: create, isPending } = useCreateFlash();
 
-  const [title, setTitle]                 = useState("");
-  const [retailPrice, setRetailPrice]     = useState("");
-  const [discountPct, setDiscountPct]     = useState("");
-  const [quantity, setQuantity]           = useState("10");
-  const [durationIdx, setDurationIdx]     = useState(3);
-  const [displayMode, setDisplayMode]     = useState<"countdown" | "slots">("countdown");
-  const [artworkUrl, setArtworkUrl]       = useState("");
-  const [description, setDescription]    = useState("");
-  const [error, setError]                 = useState("");
+  const [title, setTitle]               = useState("");
+  const [imageUri, setImageUri]         = useState("");
+  const [imageUrlInput, setImageUrlInput] = useState("");
+  const [retailPrice, setRetailPrice]   = useState("");
+  const [flashPrice, setFlashPrice]     = useState("");
+  const [slots, setSlots]               = useState("10");
+  const [durationMode, setDurationMode] = useState<DurationMode>("from_now");
+  const [hours, setHours]               = useState("1");
+  const [minutes, setMinutes]           = useState("0");
+  const [displayMode, setDisplayMode]   = useState<"countdown" | "slots">("countdown");
+  const [error, setError]               = useState("");
 
-  const flashPreview = (() => {
-    const retail = parseFloat(retailPrice);
-    const pct    = parseFloat(discountPct);
-    if (!isNaN(retail) && retail > 0 && !isNaN(pct) && pct > 0 && pct < 100) {
-      return `$${(retail * (1 - pct / 100)).toFixed(2)}`;
+  const activeBannerUri = imageUri || imageUrlInput.trim() || null;
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [300, 168],
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+      setImageUrlInput("");
+    }
+  };
+
+  const computedDiscountPct = (() => {
+    const r = parseFloat(retailPrice);
+    const f = parseFloat(flashPrice);
+    if (!isNaN(r) && r > 0 && !isNaN(f) && f >= 0 && f < r) {
+      return Math.round(((r - f) / r) * 100);
     }
     return null;
   })();
 
+  const expiresAt = (): string => {
+    const h = parseInt(hours, 10) || 0;
+    const m = parseInt(minutes, 10) || 0;
+    return new Date(Date.now() + (h * 60 + m) * 60_000).toISOString();
+  };
+
   const reset = () => {
-    setTitle(""); setRetailPrice(""); setDiscountPct("");
-    setQuantity("10"); setDurationIdx(3); setDisplayMode("countdown");
-    setArtworkUrl(""); setDescription(""); setError("");
+    setTitle(""); setImageUri(""); setImageUrlInput("");
+    setRetailPrice(""); setFlashPrice(""); setSlots("10");
+    setDurationMode("from_now"); setHours("1"); setMinutes("0");
+    setDisplayMode("countdown"); setError("");
   };
 
   const handleClose = () => { reset(); onClose(); };
 
-  const handleSubmit = () => {
+  const handleLaunch = () => {
     setError("");
     const retail = parseFloat(retailPrice);
-    const pct    = parseFloat(discountPct);
-    const qty    = parseInt(quantity, 10);
+    const flash  = parseFloat(flashPrice);
+    const qty    = parseInt(slots, 10);
+    const h      = parseInt(hours, 10) || 0;
+    const m      = parseInt(minutes, 10) || 0;
 
-    if (!title.trim())                          return setError("Deal title is required.");
-    if (isNaN(retail) || retail <= 0)           return setError("Enter a valid retail price.");
-    if (isNaN(pct) || pct < 1 || pct > 99)     return setError("Discount must be between 1% and 99%.");
-    if (isNaN(qty) || qty < 1)                  return setError("Available slots must be at least 1.");
+    if (!title.trim())                              return setError("Ad title is required.");
+    if (isNaN(retail) || retail <= 0)               return setError("Enter a valid retail price.");
+    if (isNaN(flash)  || flash < 0)                 return setError("Enter a valid flash sale price.");
+    if (flash >= retail)                            return setError("Flash price must be lower than retail price.");
+    if (isNaN(qty) || qty < 1)                      return setError("Number of offers must be at least 1.");
+    if (h === 0 && m === 0)                         return setError("Duration must be at least 1 minute.");
+
+    const discountPercent = Math.round(((retail - flash) / retail) * 100);
 
     const body: Record<string, any> = {
-      title:             title.trim(),
-      retailPriceCents:  Math.round(retail * 100),
-      discountPercent:   pct,
-      quantity:          qty,
-      expiresAt:         hoursFromNow(DURATIONS[durationIdx].hours),
+      title:            title.trim(),
+      retailPriceCents: Math.round(retail * 100),
+      discountPercent,
+      quantity:         qty,
+      expiresAt:        expiresAt(),
       displayMode,
     };
-    if (artworkUrl.trim())   body.artworkUrl   = artworkUrl.trim();
-    if (description.trim())  body.description  = description.trim();
+
+    const artwork = imageUri || imageUrlInput.trim();
+    if (artwork) body.artworkUrl = artwork;
 
     create(body, {
       onSuccess: () => {
@@ -90,7 +112,7 @@ export function CreateFlashModal({ visible, onClose }: Props) {
         handleClose();
       },
       onError: (e: any) => {
-        setError(e?.message || "Failed to post deal. Please try again.");
+        setError(e?.message || "Failed to launch deal. Please try again.");
       },
     });
   };
@@ -106,26 +128,15 @@ export function CreateFlashModal({ visible, onClose }: Props) {
         style={s.root}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Drag handle */}
-        <View style={s.handle} />
-
-        {/* Header bar */}
-        <View style={s.header}>
-          <Pressable onPress={handleClose} style={s.headerBtn}>
-            <Feather name="x" size={20} color="#60A5FA" />
-          </Pressable>
-
-          <View style={s.headerCenter}>
-            <Feather name="zap" size={16} color="#FACC15" />
-            <Text style={s.headerTitle}>New Flash Deal</Text>
+        {/* Top bar */}
+        <View style={s.topBar}>
+          <View style={s.topBarLeft}>
+            <Feather name="zap" size={16} color="#60A5FA" />
+            <Text style={s.topBarTitle}>GZFlash Ad Center</Text>
           </View>
-
-          <Pressable
-            onPress={handleSubmit}
-            disabled={isPending}
-            style={[s.postBtn, isPending && s.postBtnDisabled]}
-          >
-            <Text style={s.postBtnText}>{isPending ? "Posting…" : "Post"}</Text>
+          <Pressable onPress={handleClose} style={s.cancelBtn}>
+            <Feather name="x" size={14} color="#fff" />
+            <Text style={s.cancelBtnText}>Cancel</Text>
           </Pressable>
         </View>
 
@@ -135,355 +146,468 @@ export function CreateFlashModal({ visible, onClose }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Error banner */}
-          {error ? (
-            <View style={s.errorBox}>
-              <Feather name="alert-circle" size={14} color="#F87171" />
-              <Text style={s.errorText}>{error}</Text>
+          {/* Modal card */}
+          <View style={s.card}>
+            {/* Card header */}
+            <View style={s.cardHeader}>
+              <View style={s.cardHeaderLeft}>
+                <Feather name="zap" size={15} color="#60A5FA" />
+                <Text style={s.cardTitle}>New GZFlash Ad</Text>
+              </View>
+              <Pressable onPress={handleClose}>
+                <Feather name="x" size={18} color="#64748B" />
+              </Pressable>
             </View>
-          ) : null}
 
-          {/* ── Title ── */}
-          <Field label="Deal Title *">
-            <TextInput
-              style={s.input}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="e.g. 50% Off Logo Design Package"
-              placeholderTextColor="#2d3e58"
-              maxLength={80}
-              returnKeyType="next"
-            />
-          </Field>
+            {/* Error */}
+            {error ? (
+              <View style={s.errorBox}>
+                <Feather name="alert-circle" size={13} color="#F87171" />
+                <Text style={s.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          {/* ── Price + Discount row ── */}
-          <View style={s.row}>
-            <Field label="Retail Price ($) *" flex>
+            {/* Ad Title */}
+            <View style={s.field}>
+              <Text style={s.label}>Ad Title *</Text>
               <TextInput
                 style={s.input}
-                value={retailPrice}
-                onChangeText={setRetailPrice}
-                placeholder="99.00"
+                value={title}
+                onChangeText={setTitle}
+                placeholder="e.g. Summer Sale – 50% off sneakers"
                 placeholderTextColor="#2d3e58"
-                keyboardType="decimal-pad"
+                maxLength={80}
+                returnKeyType="next"
               />
-            </Field>
-            <Field label="Discount % *" flex>
+            </View>
+
+            {/* Ad Image */}
+            <View style={s.field}>
+              <Text style={s.label}>Ad Image</Text>
+              <View style={s.imageRow}>
+                <Pressable onPress={pickImage} style={s.uploadBtn}>
+                  <Feather name="upload" size={14} color="#60A5FA" />
+                  <Text style={s.uploadBtnText}>Upload Image</Text>
+                </Pressable>
+                <TextInput
+                  style={[s.input, s.urlInput]}
+                  value={imageUrlInput}
+                  onChangeText={(t) => { setImageUrlInput(t); setImageUri(""); }}
+                  placeholder="or paste image URL"
+                  placeholderTextColor="#2d3e58"
+                  keyboardType="url"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Banner preview / placeholder */}
+              <Pressable onPress={pickImage} style={s.bannerZone}>
+                {activeBannerUri ? (
+                  <Image
+                    source={{ uri: activeBannerUri }}
+                    style={s.bannerPreview}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={s.bannerPlaceholder}>
+                    <Feather name="image" size={20} color="#2d3e58" />
+                    <Text style={s.bannerPlaceholderText}>
+                      Click to add banner image (300×168px ideal)
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            </View>
+
+            {/* Retail Price + Flash Price */}
+            <View style={s.row}>
+              <View style={[s.field, { flex: 1 }]}>
+                <Text style={s.label}>Retail Price ($) *</Text>
+                <TextInput
+                  style={s.input}
+                  value={retailPrice}
+                  onChangeText={setRetailPrice}
+                  placeholder="29.99"
+                  placeholderTextColor="#2d3e58"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={[s.field, { flex: 1 }]}>
+                <Text style={s.label}>Flash Sale Price ($) *</Text>
+                <TextInput
+                  style={s.input}
+                  value={flashPrice}
+                  onChangeText={setFlashPrice}
+                  placeholder="14.99"
+                  placeholderTextColor="#2d3e58"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+            {computedDiscountPct !== null ? (
+              <View style={s.discountHint}>
+                <Feather name="tag" size={11} color="#4ADE80" />
+                <Text style={s.discountHintText}>{computedDiscountPct}% discount</Text>
+              </View>
+            ) : null}
+
+            {/* Number of Offers */}
+            <View style={s.field}>
+              <Text style={s.label}>Number of Offers (slots) *</Text>
               <TextInput
                 style={s.input}
-                value={discountPct}
-                onChangeText={setDiscountPct}
-                placeholder="30"
+                value={slots}
+                onChangeText={setSlots}
+                placeholder="10"
                 placeholderTextColor="#2d3e58"
                 keyboardType="number-pad"
-                maxLength={2}
               />
-            </Field>
-          </View>
-
-          {/* Flash price live preview */}
-          {flashPreview ? (
-            <View style={s.previewRow}>
-              <Feather name="zap" size={12} color="#4ADE80" />
-              <Text style={s.previewText}>
-                Flash price: <Text style={s.previewPrice}>{flashPreview}</Text>
-              </Text>
             </View>
-          ) : null}
 
-          {/* ── Slots ── */}
-          <Field label="Available Slots *">
-            <TextInput
-              style={s.input}
-              value={quantity}
-              onChangeText={setQuantity}
-              placeholder="10"
-              placeholderTextColor="#2d3e58"
-              keyboardType="number-pad"
-            />
-          </Field>
+            {/* Duration */}
+            <View style={s.field}>
+              <View style={s.durationHeader}>
+                <Text style={s.label}>Duration *</Text>
+                <View style={s.durationToggleRow}>
+                  <Pressable
+                    onPress={() => setDurationMode("pick_date")}
+                    style={[s.durationToggle, durationMode === "pick_date" && s.durationToggleActive]}
+                  >
+                    <Feather name="calendar" size={11} color={durationMode === "pick_date" ? "#fff" : "#60A5FA"} />
+                    <Text style={[s.durationToggleText, durationMode === "pick_date" && s.durationToggleTextActive]}>
+                      Pick date & time
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDurationMode("from_now")}
+                    style={[s.durationToggle, durationMode === "from_now" && s.durationToggleActive]}
+                  >
+                    <Feather name="clock" size={11} color={durationMode === "from_now" ? "#fff" : "#60A5FA"} />
+                    <Text style={[s.durationToggleText, durationMode === "from_now" && s.durationToggleTextActive]}>
+                      From now
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
 
-          {/* ── Duration chips ── */}
-          <Field label="Deal Duration *">
-            <View style={s.chipRow}>
-              {DURATIONS.map((d, i) => (
+              <View style={s.row}>
+                <TextInput
+                  style={[s.input, { flex: 1 }]}
+                  value={hours}
+                  onChangeText={setHours}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <TextInput
+                  style={[s.input, { flex: 1 }]}
+                  value={minutes}
+                  onChangeText={setMinutes}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+              </View>
+              <Text style={s.durationHint}>hours / minutes from now</Text>
+            </View>
+
+            {/* Ad Display Mode */}
+            <View style={s.field}>
+              <Text style={s.label}>Ad Display Mode</Text>
+              <View style={s.modeRow}>
                 <Pressable
-                  key={d.label}
-                  onPress={() => { Haptics.selectionAsync(); setDurationIdx(i); }}
-                  style={[s.chip, durationIdx === i && s.chipActive]}
+                  onPress={() => setDisplayMode("countdown")}
+                  style={[s.modeCard, displayMode === "countdown" && s.modeCardActive]}
                 >
-                  <Text style={[s.chipText, durationIdx === i && s.chipTextActive]}>
-                    {d.label}
+                  <Feather name="clock" size={22} color={displayMode === "countdown" ? "#fff" : "#64748B"} />
+                  <Text style={[s.modeCardTitle, displayMode === "countdown" && s.modeCardTitleActive]}>
+                    Countdown Clock
+                  </Text>
+                  <Text style={[s.modeCardSub, displayMode === "countdown" && s.modeCardSubActive]}>
+                    Shows live timer — drives time urgency
                   </Text>
                 </Pressable>
-              ))}
+                <Pressable
+                  onPress={() => setDisplayMode("slots")}
+                  style={[s.modeCard, displayMode === "slots" && s.modeCardActive]}
+                >
+                  <Feather name="hash" size={22} color={displayMode === "slots" ? "#fff" : "#64748B"} />
+                  <Text style={[s.modeCardTitle, displayMode === "slots" && s.modeCardTitleActive]}>
+                    Number of Offers
+                  </Text>
+                  <Text style={[s.modeCardSub, displayMode === "slots" && s.modeCardSubActive]}>
+                    Shows slots remaining — drives scarcity
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </Field>
 
-          {/* ── Display mode toggle ── */}
-          <Field label="Urgency Display">
-            <View style={s.toggleRow}>
-              <Pressable
-                onPress={() => setDisplayMode("countdown")}
-                style={[s.toggleBtn, displayMode === "countdown" && s.toggleBtnActive]}
-              >
-                <Feather name="clock" size={14} color={displayMode === "countdown" ? "#fff" : "#60A5FA"} />
-                <Text style={[s.toggleText, displayMode === "countdown" && s.toggleTextActive]}>
-                  Countdown
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setDisplayMode("slots")}
-                style={[s.toggleBtn, displayMode === "slots" && s.toggleBtnActive]}
-              >
-                <Feather name="layers" size={14} color={displayMode === "slots" ? "#fff" : "#60A5FA"} />
-                <Text style={[s.toggleText, displayMode === "slots" && s.toggleTextActive]}>
-                  Slots Left
-                </Text>
-              </Pressable>
-            </View>
-          </Field>
-
-          {/* ── Description (optional) ── */}
-          <Field label="Description (optional)">
-            <TextInput
-              style={[s.input, s.inputMulti]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Briefly describe your deal…"
-              placeholderTextColor="#2d3e58"
-              multiline
-              numberOfLines={3}
-              maxLength={280}
-            />
-          </Field>
-
-          {/* ── Artwork URL (optional) ── */}
-          <Field label="Artwork Image URL (optional)">
-            <TextInput
-              style={s.input}
-              value={artworkUrl}
-              onChangeText={setArtworkUrl}
-              placeholder="https://example.com/image.jpg"
-              placeholderTextColor="#2d3e58"
-              keyboardType="url"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </Field>
-
-          {/* Post button at bottom too */}
-          <Pressable
-            onPress={handleSubmit}
-            disabled={isPending}
-            style={[s.submitBtn, isPending && s.postBtnDisabled]}
-          >
-            <Feather name="zap" size={16} color="#FACC15" />
-            <Text style={s.submitBtnText}>{isPending ? "Posting deal…" : "Post Flash Deal"}</Text>
-          </Pressable>
+            {/* Launch button */}
+            <Pressable
+              onPress={handleLaunch}
+              disabled={isPending}
+              style={[s.launchBtn, isPending && s.launchBtnDisabled]}
+            >
+              <Feather name="zap" size={18} color="#fff" />
+              <Text style={s.launchBtnText}>{isPending ? "Launching…" : "Launch GZFlash"}</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-function Field({
-  label, children, flex,
-}: {
-  label: string; children: React.ReactNode; flex?: boolean;
-}) {
-  return (
-    <View style={[s.field, flex && { flex: 1 }]}>
-      <Text style={s.label}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#050a18",
+    backgroundColor: "#070d1a",
   },
-  handle: {
-    width: 40, height: 4,
-    backgroundColor: "#1a2848",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  header: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#0e1c30",
   },
-  headerBtn: {
-    width: 38, height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCenter: {
-    flex: 1,
+  topBarLeft: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
+    gap: 8,
   },
-  headerTitle: {
+  topBarTitle: {
     color: "#FFFFFF",
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
   },
-  postBtn: {
+  cancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: "#2563EB",
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
   },
-  postBtnDisabled: {
-    backgroundColor: "#1a2030",
-  },
-  postBtnText: {
+  cancelBtnText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   scroll: { flex: 1 },
   scrollContent: {
+    padding: 14,
+    paddingBottom: 60,
+  },
+  card: {
+    backgroundColor: "#0d1726",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#1a2848",
     padding: 16,
     gap: 18,
-    paddingBottom: 60,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  cardTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
   },
   errorBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
     backgroundColor: "rgba(127,29,29,0.35)",
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(248,113,113,0.25)",
-    padding: 12,
+    borderColor: "rgba(248,113,113,0.2)",
+    padding: 10,
   },
   errorText: {
     color: "#F87171",
     fontSize: 13,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_400Regular",
     flex: 1,
     lineHeight: 18,
   },
-  field: { gap: 6 },
-  row: { flexDirection: "row", gap: 12 },
+  field: { gap: 7 },
+  row: { flexDirection: "row", gap: 10 },
   label: {
-    color: "#60A5FA",
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
+    color: "#CBD5E1",
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
   },
   input: {
-    backgroundColor: "#070d1a",
+    backgroundColor: "#0a1525",
     borderWidth: 1,
     borderColor: "#1a2848",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    borderRadius: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
     color: "#FFFFFF",
     fontSize: 15,
     fontFamily: "Inter_400Regular",
   },
-  inputMulti: {
-    minHeight: 80,
-    textAlignVertical: "top",
-    paddingTop: 13,
+  imageRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
   },
-  previewRow: {
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#0a1525",
+    borderWidth: 1,
+    borderColor: "#1a2848",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  uploadBtnText: {
+    color: "#60A5FA",
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+  },
+  urlInput: {
+    flex: 1,
+    fontSize: 13,
+  },
+  bannerZone: {
+    borderWidth: 1,
+    borderColor: "#1a2848",
+    borderStyle: "dashed",
+    borderRadius: 8,
+    overflow: "hidden",
+    minHeight: 80,
+  },
+  bannerPreview: {
+    width: "100%",
+    height: 120,
+  },
+  bannerPlaceholder: {
+    height: 80,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  bannerPlaceholderText: {
+    color: "#2d3e58",
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
+  discountHint: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     marginTop: -10,
     paddingHorizontal: 2,
   },
-  previewText: {
-    color: "#64748B",
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  previewPrice: {
+  discountHintText: {
     color: "#4ADE80",
-    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
   },
-  chipRow: {
+  durationHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#070d1a",
+  durationToggleRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  durationToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "#1a2848",
+    backgroundColor: "#0a1525",
   },
-  chipActive: {
+  durationToggleActive: {
     backgroundColor: "#1D4ED8",
     borderColor: "#3B82F6",
   },
-  chipText: {
+  durationToggleText: {
     color: "#60A5FA",
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_500Medium",
   },
-  chipTextActive: {
+  durationToggleTextActive: {
     color: "#FFFFFF",
     fontFamily: "Inter_600SemiBold",
   },
-  toggleRow: {
+  durationHint: {
+    color: "#2d3e58",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    marginTop: -4,
+  },
+  modeRow: {
     flexDirection: "row",
     gap: 10,
   },
-  toggleBtn: {
+  modeCard: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    paddingVertical: 13,
-    borderRadius: 10,
-    backgroundColor: "#070d1a",
+    backgroundColor: "#0a1525",
     borderWidth: 1,
     borderColor: "#1a2848",
+    borderRadius: 10,
+    padding: 14,
+    alignItems: "center",
+    gap: 6,
   },
-  toggleBtnActive: {
+  modeCardActive: {
     backgroundColor: "#1D4ED8",
     borderColor: "#3B82F6",
   },
-  toggleText: {
-    color: "#60A5FA",
+  modeCardTitle: {
+    color: "#64748B",
     fontSize: 13,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
   },
-  toggleTextActive: {
+  modeCardTitleActive: {
     color: "#FFFFFF",
-    fontFamily: "Inter_600SemiBold",
   },
-  submitBtn: {
-    backgroundColor: "#1D4ED8",
-    borderRadius: 12,
+  modeCardSub: {
+    color: "#334155",
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 14,
+  },
+  modeCardSubActive: {
+    color: "rgba(255,255,255,0.7)",
+  },
+  launchBtn: {
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
     height: 52,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 9,
     marginTop: 4,
-    borderWidth: 1,
-    borderColor: "#3B82F6",
   },
-  submitBtnText: {
+  launchBtnDisabled: {
+    backgroundColor: "#1a2030",
+  },
+  launchBtnText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: "Inter_700Bold",
