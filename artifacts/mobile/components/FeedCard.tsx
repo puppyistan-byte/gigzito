@@ -489,13 +489,13 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
           style={styles.gzPlayPauseLogo}
           resizeMode="cover"
         />
-        {/* Red semi-transparent circle on top of logo — tints it red; darker ring when paused */}
+        {/* Overlay circle — dark + red ring when paused, fully transparent when playing */}
         <View
           style={[
             styles.gzPlayPauseCircle,
             paused
-              ? { backgroundColor: "rgba(0,0,0,0.55)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.9)" }
-              : { backgroundColor: "rgba(160,0,0,0.5)", borderWidth: 2.5, borderColor: "rgba(220,30,30,0.7)" },
+              ? { backgroundColor: "rgba(0,0,0,0.45)", borderWidth: 2.5, borderColor: "rgba(255,43,43,0.8)" }
+              : { backgroundColor: "transparent", borderWidth: 0 },
           ]}
         />
         {/* SVG icon absolutely centered on top */}
@@ -717,7 +717,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    opacity: 0.82,
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
