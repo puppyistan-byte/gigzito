@@ -516,7 +516,79 @@ export default function HomePage() {
           }}
           data-testid="category-menu-panel"
         >
-          {/* ── Categories collapsible ── */}
+          {/* ── Get the App — always first ── */}
+          <a
+            href="https://gigzito.com/ota-dist/android/gigzito.apk"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMenuOpen(false)}
+            data-testid="button-menu-get-the-app"
+            style={{
+              display: "flex", alignItems: "center", gap: "10px",
+              width: "100%", padding: "9px 16px",
+              background: "rgba(74,222,128,0.10)", border: "none",
+              cursor: "pointer", textDecoration: "none",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.18)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.10)"; }}
+          >
+            <Smartphone style={{ width: 13, height: 13, color: "#4ade80", flexShrink: 0 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#4ade80", letterSpacing: "0.01em" }}>Get the App</span>
+              <span style={{ fontSize: "9px", color: "rgba(74,222,128,0.55)", letterSpacing: "0.02em" }}>Android Beta · APK download</span>
+            </div>
+          </a>
+
+          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+
+          {/* ── Nav links ── */}
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/all-eyes-on-me"); }}
+            data-testid="button-all-eyes-on-me"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Eye style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#ff2b2b", letterSpacing: "0.01em" }}>All Eyes On Me</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/pricing"); }}
+            data-testid="button-menu-pricing"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Layers style={{ width: 13, height: 13, color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: "0.01em" }}>Membership Tiers</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/keeping-it-geezee"); }}
+            data-testid="button-menu-keeping-it-geezee"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Flame style={{ width: 13, height: 13, color: "#f59e0b", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>Keeping it Geezee</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/gz-music"); }}
+            data-testid="button-menu-gz-music"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,122,0,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Music style={{ width: 13, height: 13, color: "#ff7a00", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff7a00", letterSpacing: "0.01em" }}>GZMusic · GZ100</span>
+          </button>
+
+          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+
+          {/* ── Categories collapsible — at the bottom ── */}
           <button
             onClick={() => setCatOpen((o) => !o)}
             data-testid="button-menu-categories-toggle"
@@ -559,11 +631,7 @@ export default function HomePage() {
                   >
                     {isActive && <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#ff2b2b", flexShrink: 0 }} />}
                     {!isActive && <span style={{ width: 3, flexShrink: 0 }} />}
-                    <span style={{
-                      fontSize: "12px",
-                      fontWeight: isActive ? 700 : 400,
-                      color: isActive ? "#ff2b2b" : "rgba(255,255,255,0.65)",
-                    }}>
+                    <span style={{ fontSize: "12px", fontWeight: isActive ? 700 : 400, color: isActive ? "#ff2b2b" : "rgba(255,255,255,0.65)" }}>
                       {label}
                     </span>
                   </button>
@@ -571,105 +639,6 @@ export default function HomePage() {
               })}
             </div>
           )}
-
-          {/* Divider + All Eyes On Me */}
-          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/all-eyes-on-me"); }}
-            data-testid="button-all-eyes-on-me"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              width: "100%",
-              padding: "9px 16px",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Eye style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#ff2b2b", letterSpacing: "0.01em" }}>
-              All Eyes On Me
-            </span>
-          </button>
-
-          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/pricing"); }}
-            data-testid="button-menu-pricing"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Layers style={{ width: 13, height: 13, color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: "0.01em" }}>
-              Membership Tiers
-            </span>
-          </button>
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/keeping-it-geezee"); }}
-            data-testid="button-menu-keeping-it-geezee"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Flame style={{ width: 13, height: 13, color: "#f59e0b", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>
-              Keeping it Geezee
-            </span>
-          </button>
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/gz-music"); }}
-            data-testid="button-menu-gz-music"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,122,0,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Music style={{ width: 13, height: 13, color: "#ff7a00", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff7a00", letterSpacing: "0.01em" }}>
-              GZMusic · GZ100
-            </span>
-          </button>
-
-          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
-
-          <a
-            href="https://gigzito.com/ota-dist/android/gigzito.apk"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setMenuOpen(false)}
-            data-testid="button-menu-get-the-app"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              width: "100%",
-              padding: "9px 16px",
-              background: "rgba(74,222,128,0.06)",
-              border: "none",
-              cursor: "pointer",
-              textDecoration: "none",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.12)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.06)"; }}
-          >
-            <Smartphone style={{ width: 13, height: 13, color: "#4ade80", flexShrink: 0 }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "#4ade80", letterSpacing: "0.01em" }}>
-                Get the App
-              </span>
-              <span style={{ fontSize: "9px", color: "rgba(74,222,128,0.5)", letterSpacing: "0.02em" }}>
-                Android Beta · APK download
-              </span>
-            </div>
-          </a>
         </div>
       </div>
 
