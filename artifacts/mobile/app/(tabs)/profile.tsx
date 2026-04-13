@@ -587,8 +587,8 @@ export default function ProfileScreen() {
       <View style={styles.menuSection}>
         <Text style={styles.menuHeader}>Content</Text>
         <View style={styles.menuCard}>
-          <MenuItem icon="video" label="My Listings" value={String(myListings?.length ?? 0)} />
-          <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} />
+          <MenuItem icon="video" label="My Listings" value={String(myListings?.length ?? 0)} onPress={() => router.push("/profile/my-listings")} />
+          <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} onPress={() => router.push("/profile/my-geemotions")} />
           <MenuItem icon="star" label="GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
         </View>
       </View>
