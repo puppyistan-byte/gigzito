@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -88,6 +87,13 @@ export default function EditProfileScreen() {
   const [showPhone, setShowPhone] = useState(false);
   const [email, setEmail] = useState("");
 
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [discordUrl, setDiscordUrl] = useState("");
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -104,6 +110,12 @@ export default function EditProfileScreen() {
       setContactTelegram(p.contactTelegram ?? "");
       setWebsiteUrl(p.websiteUrl ?? "");
       setShowPhone(p.showPhone ?? false);
+      setInstagramUrl(p.instagramUrl ?? "");
+      setTiktokUrl(p.tiktokUrl ?? "");
+      setYoutubeUrl(p.youtubeUrl ?? "");
+      setFacebookUrl(p.facebookUrl ?? "");
+      setTwitterUrl(p.twitterUrl ?? "");
+      setDiscordUrl(p.discordUrl ?? "");
     }
     if (acc) {
       setEmail(acc.email ?? "");
@@ -120,6 +132,12 @@ export default function EditProfileScreen() {
         displayName, username, bio, avatarUrl, location,
         primaryCategory, contactEmail, contactPhone,
         contactTelegram, websiteUrl, showPhone,
+        instagramUrl: instagramUrl.trim() || null,
+        tiktokUrl:    tiktokUrl.trim()    || null,
+        youtubeUrl:   youtubeUrl.trim()   || null,
+        facebookUrl:  facebookUrl.trim()  || null,
+        twitterUrl:   twitterUrl.trim()   || null,
+        discordUrl:   discordUrl.trim()   || null,
       };
       await updateProfile(profileData);
 
@@ -196,6 +214,35 @@ export default function EditProfileScreen() {
         {/* Category */}
         <Section title="Primary Category" icon="grid">
           <CategoryPicker value={primaryCategory} onChange={setPrimaryCategory} />
+        </Section>
+
+        {/* Social Media Links */}
+        <Section title="Social Media Links" icon="share-2">
+          {([
+            { key: "instagramUrl", label: "Instagram",    icon: "instagram",      placeholder: "https://instagram.com/you",  color: "#E1306C", value: instagramUrl, onChange: setInstagramUrl },
+            { key: "tiktokUrl",    label: "TikTok",       icon: "music",          placeholder: "https://tiktok.com/@you",    color: "#69C9D0", value: tiktokUrl,    onChange: setTiktokUrl    },
+            { key: "youtubeUrl",   label: "YouTube",      icon: "youtube",        placeholder: "https://youtube.com/@you",   color: "#FF0000", value: youtubeUrl,   onChange: setYoutubeUrl   },
+            { key: "facebookUrl",  label: "Facebook",     icon: "facebook",       placeholder: "https://facebook.com/you",   color: "#1877F2", value: facebookUrl,  onChange: setFacebookUrl  },
+            { key: "twitterUrl",   label: "Twitter / X",  icon: "twitter",        placeholder: "https://twitter.com/you",    color: "#1DA1F2", value: twitterUrl,   onChange: setTwitterUrl   },
+            { key: "discordUrl",   label: "Discord",      icon: "message-circle", placeholder: "https://discord.gg/...",     color: "#5865F2", value: discordUrl,   onChange: setDiscordUrl   },
+          ] as const).map(({ key, label, icon, placeholder, color, value, onChange }) => (
+            <View key={key} style={s.socialField}>
+              <View style={[s.socialIcon, { backgroundColor: `${color}22` }]}>
+                <Feather name={icon as any} size={14} color={color} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  label={label}
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder={placeholder}
+                  keyboardType="url"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+          ))}
         </Section>
 
         {/* Location & Contact */}
@@ -346,4 +393,10 @@ const s = StyleSheet.create({
     justifyContent: "center", paddingVertical: 12,
   },
   geezeeLinkText: { color: Colors.accent, fontSize: 14, fontFamily: "Inter_500Medium" },
+  socialField: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
+  socialIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
+    marginBottom: 4,
+  },
 });
