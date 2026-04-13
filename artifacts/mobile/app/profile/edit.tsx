@@ -186,10 +186,27 @@ export default function EditProfileScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Avatar preview */}
+        {/* Avatar editor */}
         <View style={s.avatarSection}>
-          <Avatar uri={avatarUrl} name={displayName || "?"} size={72} />
-          <Text style={s.avatarHint}>Paste a URL below to update your photo</Text>
+          <View style={s.avatarWrap}>
+            <Avatar uri={avatarUrl} name={displayName || "?"} size={86} />
+            <View style={s.cameraBadge}>
+              <Feather name="camera" size={14} color="#fff" />
+            </View>
+          </View>
+          <View style={s.avatarUrlRow}>
+            <TextInput
+              label="Photo URL"
+              icon="image"
+              value={avatarUrl}
+              onChangeText={setAvatarUrl}
+              placeholder="https://your-photo-url.com/pic.jpg"
+              keyboardType="url"
+              autoCapitalize="none"
+              autoCorrect={false}
+              containerStyle={s.avatarUrlInput}
+            />
+          </View>
         </View>
 
         {/* Identity */}
@@ -199,9 +216,6 @@ export default function EditProfileScreen() {
           <TextInput label="Username" icon="at-sign" value={username}
             onChangeText={setUsername} placeholder="yourhandle"
             autoCapitalize="none" autoCorrect={false} />
-          <TextInput label="Avatar URL" icon="image" value={avatarUrl}
-            onChangeText={setAvatarUrl} placeholder="https://..."
-            keyboardType="url" autoCapitalize="none" />
           <View style={s.bioWrap}>
             <Text style={s.fieldLabel}>Bio / Slogan</Text>
             <TextInput value={bio} onChangeText={setBio}
@@ -340,8 +354,17 @@ const s = StyleSheet.create({
   },
   saveBtnText: { color: "#fff", fontSize: 14, fontFamily: "Inter_600SemiBold" },
   scroll: { paddingHorizontal: 16, paddingBottom: 60, gap: 16 },
-  avatarSection: { alignItems: "center", gap: 10, paddingVertical: 8 },
-  avatarHint: { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_400Regular" },
+  avatarSection: { flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 8, paddingHorizontal: 4 },
+  avatarWrap: { position: "relative" },
+  cameraBadge: {
+    position: "absolute", bottom: 0, right: 0,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.accent,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: 2, borderColor: Colors.dark,
+  },
+  avatarUrlRow: { flex: 1 },
+  avatarUrlInput: { flex: 1 },
   section: {
     backgroundColor: Colors.surface, borderRadius: 16,
     borderWidth: 1, borderColor: Colors.surfaceBorder, overflow: "hidden",
