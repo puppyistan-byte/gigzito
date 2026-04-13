@@ -198,7 +198,7 @@ export default function GZMusicScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <NavigationMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -317,8 +317,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#1a1a1a",
   },
   menuBtn: { padding: 4, marginRight: 8 },
-  headerBrand: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: GZ.txt, letterSpacing: -0.3 },
+  headerBrand: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, overflow: "visible" },
+  headerTitle: { fontSize: 20, fontFamily: "Inter_700Bold", color: GZ.txt, letterSpacing: -0.3, flexShrink: 0 },
   headerRight: { flexDirection: "row", gap: 4 },
   iconBtn: { padding: 8, borderRadius: 8 },
 
