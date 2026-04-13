@@ -20,7 +20,7 @@ import { useAudioPlayer } from "expo-audio";
 import { useGZ100, useGZLibrary, useGZToggleLike, useGZRecordPlay } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import Colors from "@/constants/colors";
-import NavigationMenu from "@/components/NavigationMenu";
+import { NavigationMenu } from "@/components/NavigationMenu";
 
 const GZ = {
   orange: "#ff7a00",
