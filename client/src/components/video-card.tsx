@@ -395,6 +395,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const videoRef     = useRef<HTMLVideoElement>(null);
   const [iframeSrc,  setIframeSrc]  = useState("about:blank");
   const [videoBlocked, setVideoBlocked] = useState(false);
+  // Increments each time the card goes active — gives the iframe a new key so
+  // Android WebView gets a fresh player instead of resuming a frozen one
+  const activationKeyRef = useRef(0);
 
   // Keep a ref to the current muted state so the iframe postMessage always uses the latest value
   const isMutedRef = useRef(isMuted);
@@ -486,6 +489,9 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
         v.play().catch(() => {});
       }
     } else {
+      // Bump activation counter so the iframe gets a new key → forces full remount
+      // instead of relying on a frozen Android WebView player to resume
+      activationKeyRef.current += 1;
       setIframeSrc(getVideoEmbedUrl(listing.videoUrl ?? "", true, isMutedRef.current));
     }
     const start = Date.now();
@@ -590,10 +596,11 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             />
           )}
 
-          {/* Iframe — only mounted when active; unmounting fully kills browser audio */}
+          {/* Iframe — only mounted when active; unmounting fully kills browser audio.
+              key includes activationKeyRef so Android WebView always gets a fresh player */}
           {listing.videoUrl && !isNativeVideo(listing.videoUrl ?? "") && iframeSrc !== "about:blank" && <iframe
             ref={iframeRef}
-            key={`video-${listing.id}`}
+            key={`video-${listing.id}-${activationKeyRef.current}`}
             src={iframeSrc}
             title={listing.title}
             style={{ position: "absolute", top: 0, right: 0, bottom: 0, left: 0, width: "100%", height: "100%", border: "none", zIndex: 0, pointerEvents: "none" }}
