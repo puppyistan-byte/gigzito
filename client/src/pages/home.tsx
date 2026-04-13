@@ -50,6 +50,7 @@ export default function HomePage() {
   const [fadeSplash, setFadeSplash] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -60,6 +61,7 @@ export default function HomePage() {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+        setCatOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -514,43 +516,61 @@ export default function HomePage() {
           }}
           data-testid="category-menu-panel"
         >
-          {CATEGORIES.map(({ key, label }) => {
-            const isActive = activeVertical === key;
-            return (
-              <button
-                key={key}
-                onClick={() => { setActiveVertical(key); setMenuOpen(false); }}
-                data-testid={`cat-tab-${key.toLowerCase()}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  width: "100%",
-                  padding: "9px 16px",
-                  background: isActive ? "rgba(255,43,43,0.12)" : "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "background 0.12s ease",
-                }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? "rgba(255,43,43,0.12)" : "transparent"; }}
-              >
-                {isActive && (
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#ff2b2b", flexShrink: 0 }} />
-                )}
-                {!isActive && <span style={{ width: 4, flexShrink: 0 }} />}
-                <span style={{
-                  fontSize: "13px",
-                  fontWeight: isActive ? 700 : 400,
-                  color: isActive ? "#ff2b2b" : "rgba(255,255,255,0.75)",
-                  letterSpacing: "0.01em",
-                }}>
-                  {label}
-                </span>
-              </button>
-            );
-          })}
+          {/* ── Categories collapsible ── */}
+          <button
+            onClick={() => setCatOpen((o) => !o)}
+            data-testid="button-menu-categories-toggle"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              width: "100%", padding: "9px 16px",
+              background: "rgba(255,43,43,0.06)", border: "none", cursor: "pointer",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#ff2b2b", flexShrink: 0 }} />
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff2b2b" }}>
+                {CATEGORIES.find(c => c.key === activeVertical)?.label ?? "All Videos"}
+              </span>
+            </div>
+            <ChevronDown style={{
+              width: 13, height: 13, color: "#ff2b2b", flexShrink: 0,
+              transform: catOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.18s ease",
+            }} />
+          </button>
+
+          {catOpen && (
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              {CATEGORIES.map(({ key, label }) => {
+                const isActive = activeVertical === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setActiveVertical(key); setCatOpen(false); setMenuOpen(false); }}
+                    data-testid={`cat-tab-${key.toLowerCase()}`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "10px",
+                      width: "100%", padding: "8px 16px 8px 28px",
+                      background: isActive ? "rgba(255,43,43,0.10)" : "transparent",
+                      border: "none", cursor: "pointer", textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? "rgba(255,43,43,0.10)" : "transparent"; }}
+                  >
+                    {isActive && <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#ff2b2b", flexShrink: 0 }} />}
+                    {!isActive && <span style={{ width: 3, flexShrink: 0 }} />}
+                    <span style={{
+                      fontSize: "12px",
+                      fontWeight: isActive ? 700 : 400,
+                      color: isActive ? "#ff2b2b" : "rgba(255,255,255,0.65)",
+                    }}>
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Divider + All Eyes On Me */}
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
