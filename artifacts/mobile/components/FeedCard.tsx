@@ -289,10 +289,17 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
   }, []);
 
   // Toggle play/pause for both YouTube (postMessage) and gigzito MP4 (expo-video).
-  // For expo-video we also cancel any pending play-retry timer so it can't
-  // override a user-initiated pause that fires within the 500ms retry window.
+  // On native, YouTube videos open in the YouTube app instead of playing inline.
   const handlePlayPause = useCallback(() => {
     Haptics.selectionAsync();
+    // On native, YouTube videos can't play inline — open in YouTube app.
+    if (ytVideoId && Platform.OS !== "web") {
+      const { Linking } = require("react-native");
+      Linking.openURL(`https://www.youtube.com/watch?v=${ytVideoId}`).catch(() => {
+        Linking.openURL(`https://youtu.be/${ytVideoId}`);
+      });
+      return;
+    }
     const willBePaused = !paused;
     setPaused(willBePaused);
     if (ytVideoId && Platform.OS === "web") {
@@ -382,6 +389,23 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
         locations={[0.3, 0.6, 1]}
         style={styles.gradient}
       />
+
+      {/* YouTube badge — native only, shown when card has a YouTube video */}
+      {ytVideoId && Platform.OS !== "web" ? (
+        <View style={styles.ytBadgeWrap} pointerEvents="box-none">
+          <Pressable
+            onPress={() => {
+              const { Linking } = require("react-native");
+              Linking.openURL(`https://www.youtube.com/watch?v=${ytVideoId}`);
+            }}
+            style={styles.ytBadge}
+          >
+            <Feather name="youtube" size={14} color="#fff" />
+            <Text style={styles.ytBadgeText}>Watch on YouTube</Text>
+            <Feather name="external-link" size={12} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* Hamburger — top left */}
       <HamburgerButton onPress={() => setMenuOpen(true)} />
@@ -618,6 +642,30 @@ const styles = StyleSheet.create({
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
+  },
+  ytBadgeWrap: {
+    position: "absolute",
+    bottom: 180,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 20,
+  },
+  ytBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(200,0,0,0.85)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  ytBadgeText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   topPillRow: {
     position: "absolute",
