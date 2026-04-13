@@ -8,7 +8,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy, Users } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy, Users, Smartphone } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_logo_1774147866824.png";
@@ -615,6 +615,39 @@ export default function HomePage() {
               GZMusic · GZ100
             </span>
           </button>
+
+          <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
+
+          <a
+            href="https://gigzito.com/ota-dist/android/gigzito.apk"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMenuOpen(false)}
+            data-testid="button-menu-get-the-app"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              width: "100%",
+              padding: "9px 16px",
+              background: "rgba(74,222,128,0.06)",
+              border: "none",
+              cursor: "pointer",
+              textDecoration: "none",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.12)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.06)"; }}
+          >
+            <Smartphone style={{ width: 13, height: 13, color: "#4ade80", flexShrink: 0 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#4ade80", letterSpacing: "0.01em" }}>
+                Get the App
+              </span>
+              <span style={{ fontSize: "9px", color: "rgba(74,222,128,0.5)", letterSpacing: "0.02em" }}>
+                Android Beta · APK download
+              </span>
+            </div>
+          </a>
         </div>
       </div>
 
