@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { WebView } from "react-native-webview";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
@@ -126,6 +127,7 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
   const [menuOpen, setMenuOpen] = useState(false);
   const [paused, setPaused] = useState(false);
   const ytIframeRef = useRef<any>(null);
+  const ytWebViewRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -290,22 +292,21 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
     } catch {}
   }, []);
 
-  // Toggle play/pause for both YouTube (postMessage) and gigzito MP4 (expo-video).
-  // On native, YouTube videos open in the YouTube app instead of playing inline.
+  // Toggle play/pause for YouTube (postMessage/injectJavaScript) and gigzito MP4 (expo-video).
   const handlePlayPause = useCallback(() => {
     Haptics.selectionAsync();
-    // On native, YouTube videos can't play inline — open in YouTube app.
-    if (ytVideoId && Platform.OS !== "web") {
-      const { Linking } = require("react-native");
-      Linking.openURL(`https://www.youtube.com/watch?v=${ytVideoId}`).catch(() => {
-        Linking.openURL(`https://youtu.be/${ytVideoId}`);
-      });
-      return;
-    }
     const willBePaused = !paused;
     setPaused(willBePaused);
-    if (ytVideoId && Platform.OS === "web") {
-      ytCommand(willBePaused ? "pauseVideo" : "playVideo");
+    if (ytVideoId) {
+      if (Platform.OS === "web") {
+        ytCommand(willBePaused ? "pauseVideo" : "playVideo");
+      } else {
+        // Control the embedded YouTube WebView via the YouTube IFrame API
+        const js = willBePaused
+          ? `document.querySelector('iframe')?.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}','*'); true;`
+          : `document.querySelector('iframe')?.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}','*'); true;`;
+        ytWebViewRef.current?.injectJavaScript(js);
+      }
     } else if (player && effectiveVideoUri) {
       if (willBePaused) {
         if (playRetryRef.current) clearTimeout(playRetryRef.current);
@@ -331,33 +332,49 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
           2. expo-video player (gigzito mp4 uploads)
           3. Static poster/thumbnail image
           4. Fallback dark placeholder */}
-      {Platform.OS === "web" && ytEmbedSrc ? (
-        // On web, mount the iframe only when this card is active to save bandwidth.
-        // Unmounting (isActive false) cleanly stops playback on the previous card.
-        isActive
-          ? React.createElement("iframe", {
-              ref: ytIframeRef,
-              key: ytVideoId,
-              src: ytEmbedSrc,
-              style: {
-                position: "absolute",
-                top: 0, left: 0,
-                width: "100%", height: "100%",
-                border: "none",
-                pointerEvents: "none",
-              },
-              allow: "autoplay; encrypted-media",
-              allowFullScreen: false,
-            })
-          : poster
-          ? React.createElement(Image as any, {
-              source: { uri: poster },
-              style: styles.bg,
-              resizeMode: "cover",
-            })
-          : React.createElement(View as any, { style: [styles.bg, styles.bgFallback] },
-              React.createElement(Feather as any, { name: "video", size: 48, color: Colors.textMuted })
+      {ytVideoId && ytEmbedSrc ? (
+        // YouTube video — iframe on web, WebView on native.
+        // Only mount when active so the inactive card's audio/video stops.
+        isActive ? (
+          Platform.OS === "web"
+            ? React.createElement("iframe", {
+                ref: ytIframeRef,
+                key: ytVideoId,
+                src: ytEmbedSrc,
+                style: {
+                  position: "absolute",
+                  top: 0, left: 0,
+                  width: "100%", height: "100%",
+                  border: "none",
+                  pointerEvents: "none",
+                },
+                allow: "autoplay; encrypted-media",
+                allowFullScreen: false,
+              })
+            : (
+              <WebView
+                ref={ytWebViewRef}
+                key={ytVideoId}
+                source={{ uri: ytEmbedSrc }}
+                style={styles.bg}
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                javaScriptEnabled
+                scrollEnabled={false}
+                bounces={false}
+                overScrollMode="never"
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                pointerEvents="none"
+              />
             )
+        ) : poster ? (
+          <Image source={{ uri: poster }} style={styles.bg} resizeMode="cover" />
+        ) : (
+          <View style={[styles.bg, styles.bgFallback]}>
+            <Feather name="video" size={48} color={Colors.textMuted} />
+          </View>
+        )
       ) : effectiveVideoUri ? (
         <VideoView
           player={player}
@@ -391,23 +408,6 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
         locations={[0.3, 0.6, 1]}
         style={styles.gradient}
       />
-
-      {/* YouTube badge — native only, shown when card has a YouTube video */}
-      {ytVideoId && Platform.OS !== "web" ? (
-        <View style={styles.ytBadgeWrap} pointerEvents="box-none">
-          <Pressable
-            onPress={() => {
-              const { Linking } = require("react-native");
-              Linking.openURL(`https://www.youtube.com/watch?v=${ytVideoId}`);
-            }}
-            style={styles.ytBadge}
-          >
-            <Feather name="youtube" size={14} color="#fff" />
-            <Text style={styles.ytBadgeText}>Watch on YouTube</Text>
-            <Feather name="external-link" size={12} color="rgba(255,255,255,0.7)" />
-          </Pressable>
-        </View>
-      ) : null}
 
       {/* Hamburger — top left */}
       <HamburgerButton onPress={() => setMenuOpen(true)} />
@@ -644,30 +644,6 @@ const styles = StyleSheet.create({
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
-  },
-  ytBadgeWrap: {
-    position: "absolute",
-    bottom: 180,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 20,
-  },
-  ytBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "rgba(200,0,0,0.85)",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  ytBadgeText: {
-    color: "#fff",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
   },
   topPillRow: {
     position: "absolute",
