@@ -8,7 +8,7 @@ import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy, Users, Smartphone } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy, Users, Smartphone, Shield, Copy, Check, ExternalLink, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_logo_1774147866824.png";
@@ -51,9 +51,21 @@ export default function HomePage() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
+  const [showApkDialog, setShowApkDialog] = useState(false);
+  const [apkHash, setApkHash] = useState<string | null>(null);
+  const [hashCopied, setHashCopied] = useState(false);
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch APK SHA256 when dialog opens
+  useEffect(() => {
+    if (!showApkDialog || apkHash) return;
+    fetch("https://gigzito.com/ota-dist/android/gigzito.apk.sha256")
+      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+      .then(t => setApkHash(t.trim().split(/\s+/)[0]))
+      .catch(() => setApkHash("unavailable"));
+  }, [showApkDialog, apkHash]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -279,6 +291,149 @@ export default function HomePage() {
   return (
     <div className="app-shell flex flex-col h-screen overflow-hidden relative">
       <Navbar />
+
+      {/* ── APK Security Dialog ── */}
+      {showApkDialog && (
+        <div
+          onClick={() => setShowApkDialog(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 99999,
+            background: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#111", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "16px", width: "100%", maxWidth: "400px",
+              overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.8)",
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              background: "linear-gradient(135deg,rgba(74,222,128,0.15),rgba(16,185,129,0.08))",
+              borderBottom: "1px solid rgba(74,222,128,0.15)",
+              padding: "20px 20px 16px",
+              display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: "10px",
+                  background: "rgba(74,222,128,0.15)", border: "1px solid rgba(74,222,128,0.3)",
+                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <Shield style={{ width: 20, height: 20, color: "#4ade80" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: "15px", fontWeight: 700, color: "#fff" }}>Verify Before Installing</div>
+                  <div style={{ fontSize: "11px", color: "rgba(74,222,128,0.7)", marginTop: 2 }}>Gigzito Android Beta · APK</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowApkDialog(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
+              >
+                <X style={{ width: 18, height: 18, color: "rgba(255,255,255,0.4)" }} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "20px" }}>
+
+              {/* SHA256 section */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+                  SHA-256 Fingerprint
+                </div>
+                <div style={{
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "8px", padding: "10px 12px",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <code style={{
+                    flex: 1, fontSize: "10px", color: apkHash === "unavailable" ? "#f87171" : "#4ade80",
+                    wordBreak: "break-all", lineHeight: 1.5, fontFamily: "monospace",
+                  }}>
+                    {apkHash === null ? "Fetching…" : apkHash === "unavailable" ? "Hash not yet available — APK not uploaded" : apkHash}
+                  </code>
+                  {apkHash && apkHash !== "unavailable" && apkHash !== null && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(apkHash);
+                        setHashCopied(true);
+                        setTimeout(() => setHashCopied(false), 2000);
+                      }}
+                      data-testid="button-copy-apk-hash"
+                      style={{ background: "none", border: "none", cursor: "pointer", flexShrink: 0, padding: 4 }}
+                    >
+                      {hashCopied
+                        ? <Check style={{ width: 14, height: 14, color: "#4ade80" }} />
+                        : <Copy style={{ width: 14, height: 14, color: "rgba(255,255,255,0.4)" }} />}
+                    </button>
+                  )}
+                </div>
+                {apkHash && apkHash !== "unavailable" && (
+                  <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", marginTop: 6, lineHeight: 1.5 }}>
+                    After downloading, verify on device: <code style={{ color: "rgba(74,222,128,0.6)" }}>sha256sum gigzito.apk</code>
+                  </div>
+                )}
+              </div>
+
+              {/* VirusTotal link */}
+              {apkHash && apkHash !== "unavailable" && apkHash !== null && (
+                <a
+                  href={`https://www.virustotal.com/gui/file/${apkHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="link-virustotal-apk"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 14px", borderRadius: "8px",
+                    background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)",
+                    textDecoration: "none", marginBottom: 16,
+                  }}
+                >
+                  <Shield style={{ width: 13, height: 13, color: "#60a5fa", flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: "12px", color: "#93c5fd", fontWeight: 600 }}>Check on VirusTotal</span>
+                  <ExternalLink style={{ width: 11, height: 11, color: "rgba(96,165,250,0.5)", flexShrink: 0 }} />
+                </a>
+              )}
+
+              {/* What to expect note */}
+              <div style={{
+                background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.15)",
+                borderRadius: "8px", padding: "10px 12px", marginBottom: 20,
+              }}>
+                <div style={{ fontSize: "11px", color: "#fbbf24", fontWeight: 600, marginBottom: 4 }}>Beta Install Tips</div>
+                <ul style={{ margin: 0, paddingLeft: 14, fontSize: "11px", color: "rgba(255,255,255,0.5)", lineHeight: 1.7 }}>
+                  <li>Enable "Install unknown apps" in Settings → Security</li>
+                  <li>Android may warn about unknown sources — this is normal for sideloaded APKs</li>
+                  <li>Always verify the hash above matches after download</li>
+                </ul>
+              </div>
+
+              {/* Download button */}
+              <button
+                onClick={() => {
+                  window.open("https://gigzito.com/ota-dist/android/gigzito.apk", "_blank", "noopener,noreferrer");
+                  setShowApkDialog(false);
+                }}
+                data-testid="button-download-apk-confirmed"
+                style={{
+                  width: "100%", padding: "13px", borderRadius: "10px", border: "none", cursor: "pointer",
+                  background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}
+              >
+                <Download style={{ width: 15, height: 15, color: "#fff" }} />
+                <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff" }}>Download APK</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* GZGroups top-right button */}
       <button
@@ -518,7 +673,7 @@ export default function HomePage() {
         >
           {/* ── Get the App — always first ── */}
           <button
-            onClick={() => { setMenuOpen(false); window.open("https://gigzito.com/ota-dist/android/gigzito.apk", "_blank", "noopener,noreferrer"); }}
+            onClick={() => { setMenuOpen(false); setApkHash(null); setShowApkDialog(true); }}
             data-testid="button-menu-get-the-app"
             style={{
               display: "flex", alignItems: "center", gap: "10px",
