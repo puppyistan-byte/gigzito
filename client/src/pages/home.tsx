@@ -517,27 +517,24 @@ export default function HomePage() {
           data-testid="category-menu-panel"
         >
           {/* ── Get the App — always first ── */}
-          <a
-            href="https://gigzito.com/ota-dist/android/gigzito.apk"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setMenuOpen(false)}
+          <button
+            onClick={() => { setMenuOpen(false); window.open("https://gigzito.com/ota-dist/android/gigzito.apk", "_blank", "noopener,noreferrer"); }}
             data-testid="button-menu-get-the-app"
             style={{
               display: "flex", alignItems: "center", gap: "10px",
               width: "100%", padding: "9px 16px",
               background: "rgba(74,222,128,0.10)", border: "none",
-              cursor: "pointer", textDecoration: "none",
+              cursor: "pointer", textAlign: "left",
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.18)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(74,222,128,0.10)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(74,222,128,0.18)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(74,222,128,0.10)"; }}
           >
             <Smartphone style={{ width: 13, height: 13, color: "#4ade80", flexShrink: 0 }} />
             <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span style={{ fontSize: "13px", fontWeight: 700, color: "#4ade80", letterSpacing: "0.01em" }}>Get the App</span>
               <span style={{ fontSize: "9px", color: "rgba(74,222,128,0.55)", letterSpacing: "0.02em" }}>Android Beta · APK download</span>
             </div>
-          </a>
+          </button>
 
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
 
