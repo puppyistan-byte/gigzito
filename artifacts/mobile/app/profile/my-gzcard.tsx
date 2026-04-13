@@ -133,8 +133,6 @@ export default function MyGZCardScreen() {
         ) : (
           <View style={[s.card, { width: CARD_WIDTH }]}>
             <LinearGradient colors={["#1C1C1E", "#0E0E10"]} style={s.gradient}>
-              {/* Tier stripe */}
-              <View style={[s.tierStripe, { backgroundColor: tierColor }]} />
 
               {/* Header: pic + name + handle */}
               <View style={s.header}>
@@ -206,17 +204,25 @@ export default function MyGZCardScreen() {
                 </View>
               ) : null}
 
-              {/* Footer: engagement + share */}
+              {/* Footer: engagement + square profile pic */}
               <View style={s.footer}>
                 <View style={s.engageStat}>
                   <Feather name="heart" size={14} color={Colors.purple} />
                   <Text style={s.engageText}>{engagements} engagements</Text>
                 </View>
-                <Image
-                  source={require("@/assets/images/gz-logo.png")}
-                  style={s.gzLogo}
-                  resizeMode="contain"
-                />
+                <View style={s.footerPicWrap}>
+                  {resolveUrl(card?.profilePic) ? (
+                    <Image
+                      source={{ uri: resolveUrl(card?.profilePic) ?? "" }}
+                      style={s.footerPic}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={s.footerPicInitials}>
+                      {name.split(" ").map((w: string) => w[0] ?? "").join("").toUpperCase().slice(0, 2)}
+                    </Text>
+                  )}
+                </View>
               </View>
             </LinearGradient>
           </View>
@@ -256,7 +262,6 @@ const s = StyleSheet.create({
   scroll:        { alignItems: "center", paddingBottom: 60, paddingTop: 12, gap: 20 },
   card:          { borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: Colors.surfaceBorder },
   gradient:      { borderRadius: 20 },
-  tierStripe:    { height: 4, width: "100%" },
   header:        { flexDirection: "row", alignItems: "flex-start", padding: 20, gap: 16 },
   picWrap:       { overflow: "hidden", borderWidth: 2.5, borderColor: Colors.purple, backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center" },
   picInitials:   { color: Colors.purple, fontFamily: "Inter_700Bold" },
@@ -282,7 +287,9 @@ const s = StyleSheet.create({
   footer:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 14 },
   engageStat:    { flexDirection: "row", alignItems: "center", gap: 6 },
   engageText:    { color: Colors.textMuted, fontSize: 12, fontFamily: "Inter_500Medium" },
-  gzLogo:        { width: 42, height: 26, opacity: 0.7 },
+  footerPicWrap: { width: 40, height: 40, borderRadius: 8, overflow: "hidden", borderWidth: 1.5, borderColor: Colors.purple, backgroundColor: Colors.surfaceElevated, alignItems: "center", justifyContent: "center" },
+  footerPic:     { width: 40, height: 40 },
+  footerPicInitials: { color: Colors.purple, fontSize: 14, fontFamily: "Inter_700Bold" },
   shareBtn:      { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.purple, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 },
   shareBtnText:  { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
   emptyWrap:     { alignItems: "center", gap: 14, marginTop: 20 },
