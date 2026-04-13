@@ -41,6 +41,7 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/gzflash-create" options={{ headerShown: false, animation: "slide_from_bottom" }} />
       <Stack.Screen name="profile/my-listings" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen name="profile/my-geemotions" options={{ headerShown: false, animation: "slide_from_right" }} />
+      <Stack.Screen name="profile/my-gzcard" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen name="gzmusic/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="gzmusic/upload" options={{ headerShown: false, animation: "slide_from_bottom" }} />
     </Stack>

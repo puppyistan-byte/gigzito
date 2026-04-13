@@ -103,15 +103,26 @@ export default function GeeZeeScreen() {
           </View>
         </View>
         {canCreateCard && (
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/profile/edit-geezee");
-            }}
-            style={styles.createBtn}
-          >
-            <Feather name="plus" size={18} color="#fff" />
-          </Pressable>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/profile/my-gzcard");
+              }}
+              style={styles.myCardBtn}
+            >
+              <Feather name="credit-card" size={15} color={Colors.purple} />
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push("/profile/edit-geezee");
+              }}
+              style={styles.createBtn}
+            >
+              <Feather name="plus" size={18} color="#fff" />
+            </Pressable>
+          </View>
         )}
       </View>
 
@@ -174,6 +185,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 4,
+  },
+  myCardBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: `${Colors.purple}18`,
+    borderWidth: 1.5,
+    borderColor: Colors.purple,
+    alignItems: "center",
+    justifyContent: "center",
   },
   createBtn: {
     width: 38,
