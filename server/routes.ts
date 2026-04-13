@@ -3544,6 +3544,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   const GZ_FLASH_TIERS = ["GZMarketerPro", "GZBusiness", "GZEnterprise"];
 
   app.get("/api/gz-flash/mine", async (req, res) => {
+    injectJwtSession(req);
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
@@ -3560,6 +3561,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post("/api/gz-flash", async (req, res) => {
+    injectJwtSession(req);
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
@@ -3578,6 +3580,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.put("/api/gz-flash/:id", async (req, res) => {
+    injectJwtSession(req);
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await storage.getUserById(session.userId);
@@ -3597,6 +3600,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.delete("/api/gz-flash/:id", async (req, res) => {
+    injectJwtSession(req);
     const session = (req as any).session;
     if (!session?.userId) return res.status(401).json({ message: "Unauthorized" });
     try {
