@@ -26,6 +26,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -53,9 +54,14 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!disclaimerAccepted) {
+      setError("You must accept the participation disclaimer to register.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/api/mobile/register`, {
+      const res = await fetch(`${BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,6 +69,7 @@ export default function RegisterScreen() {
           username: username.trim().toLowerCase(),
           email: email.trim().toLowerCase(),
           password,
+          disclaimerAccepted: true,
         }),
       });
       const data = await res.json().catch(() => ({ message: "Registration failed." }));
@@ -175,6 +182,39 @@ export default function RegisterScreen() {
               />
             </View>
 
+            <Pressable
+              style={styles.disclaimerRow}
+              onPress={() => { setDisclaimerAccepted((v) => !v); setError(""); }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: disclaimerAccepted }}
+            >
+              <View style={[styles.checkbox, disclaimerAccepted && styles.checkboxChecked]}>
+                {disclaimerAccepted && <Feather name="check" size={12} color="#fff" />}
+              </View>
+              <Text style={styles.disclaimerText}>
+                I agree to Gigzito's{" "}
+                <Text
+                  style={styles.disclaimerLink}
+                  onPress={() => {
+                    const { Linking } = require("react-native");
+                    Linking.openURL("https://gigzito.com/terms");
+                  }}
+                >
+                  Terms of Service
+                </Text>
+                {" "}and{" "}
+                <Text
+                  style={styles.disclaimerLink}
+                  onPress={() => {
+                    const { Linking } = require("react-native");
+                    Linking.openURL("https://gigzito.com/privacy");
+                  }}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </Pressable>
+
             {error ? (
               <View style={styles.errorBox}>
                 <Feather name="alert-circle" size={14} color={Colors.danger} />
@@ -255,6 +295,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   registerBtn: { marginTop: 4 },
+  disclaimerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  disclaimerText: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+    lineHeight: 20,
+  },
+  disclaimerLink: {
+    color: Colors.accent,
+    fontFamily: "Inter_500Medium",
+  },
   hint: {
     color: Colors.textMuted,
     fontSize: 13,
