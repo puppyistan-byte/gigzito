@@ -388,7 +388,7 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
 
       {/* Add Video + Go Live — side-by-side pill row, authenticated only */}
       {token ? (
-        <View style={styles.topPillRow}>
+        <View style={[styles.topPillRow, { top: insets.top + 12 }]}>
           <Pressable
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/listing/create" as any); }}
             style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
@@ -408,7 +408,7 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
       ) : null}
 
       {/* Duration timer — top right */}
-      <View style={styles.timerWrap}>
+      <View style={[styles.timerWrap, { top: insets.top + 12 }]}>
         <Feather name="clock" size={11} color={timerColor} />
         <Text style={[styles.timerText, { color: timerColor }]}>
           {formatTime(timeLeft)}
@@ -416,7 +416,7 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
       </View>
 
       {/* Right rail buttons */}
-      <View style={styles.rightRail}>
+      <View style={[styles.rightRail, { bottom: 200 + insets.bottom }]}>
         {/* GZFlash — above GeeZee */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/gzflash" as any); }}

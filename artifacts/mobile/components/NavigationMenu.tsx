@@ -269,8 +269,9 @@ export function NavigationMenu({ open, onClose }: Props) {
 }
 
 export function HamburgerButton({ onPress }: { onPress: () => void }) {
+  const insets = useSafeAreaInsets();
   return (
-    <Pressable onPress={onPress} style={styles.hamburger}>
+    <Pressable onPress={onPress} style={[styles.hamburger, { top: insets.top + 12 }]}>
       <Feather name="menu" size={24} color="#fff" />
     </Pressable>
   );
