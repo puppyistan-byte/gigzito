@@ -803,7 +803,7 @@ export default function HomePage() {
         style={{
           overflowY: "scroll",
           scrollSnapType: "y mandatory",
-          height: "calc(100dvh - 140px)",
+          height: "calc(100vh - 140px)",
           width: "100%",
           display: "flex",
           flexDirection: "column",
@@ -838,7 +838,7 @@ export default function HomePage() {
                 position: "relative",
                 width: "100%",
                 maxWidth: "420px",
-                height: "calc(100dvh - 140px)",
+                height: "calc(100vh - 140px)",
                 flexShrink: 0,
               }}
               data-testid={`listing-item-${idx}`}
