@@ -15,6 +15,8 @@
     },
     "ios": {
       "supportsTablet": false,
+      "bundleIdentifier": "com.gigzito.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Gigzito needs your camera to stream live video.",
         "NSMicrophoneUsageDescription": "Gigzito needs your microphone to capture audio while streaming."
@@ -22,6 +24,8 @@
     },
     "android": {
       "backgroundColor": "#0A0A0F",
+      "package": "com.gigzito.app",
+      "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
