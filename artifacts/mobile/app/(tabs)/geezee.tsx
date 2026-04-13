@@ -9,13 +9,18 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { useGeeZeeCards, useEngageLeaderboard, useLoveLeaderboard } from "@/hooks/useApi";
+import { useAuth } from "@/contexts/AuthContext";
 import { GeeZeeCardItem } from "@/components/GeeZeeCardItem";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingScreen";
 import { NavigationMenu } from "@/components/NavigationMenu";
 import { Feather } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
+
+const GZ_CARD_ELIGIBLE_TIERS = ["GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
 
 const TABS = ["Cards", "Top Loved", "Most Engaged"];
 
@@ -28,9 +33,12 @@ export default function GeeZeeScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { token, user } = useAuth();
   const { data: cards, isLoading: cardsLoading, refetch: refetchCards, isRefetching: refetchingCards } = useGeeZeeCards();
   const { data: loveBoard, isLoading: loveLoading, refetch: refetchLove } = useLoveLeaderboard();
   const { data: engageBoard, isLoading: engageLoading, refetch: refetchEngage } = useEngageLeaderboard();
+
+  const canCreateCard = !!token && !!user && GZ_CARD_ELIGIBLE_TIERS.includes(user.subscriptionTier);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
@@ -85,13 +93,26 @@ export default function GeeZeeScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad, paddingBottom: bottomPad }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => setMenuOpen(true)} style={styles.hamburger}>
-          <Feather name="menu" size={22} color={Colors.textPrimary} />
-        </Pressable>
-        <View>
-          <Text style={styles.title}>GeeZee Cards</Text>
-          <Text style={styles.subtitle}>Social Identity Cards</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+          <Pressable onPress={() => setMenuOpen(true)} style={styles.hamburger}>
+            <Feather name="menu" size={22} color={Colors.textPrimary} />
+          </Pressable>
+          <View>
+            <Text style={styles.title}>GeeZee Cards</Text>
+            <Text style={styles.subtitle}>Social Identity Cards</Text>
+          </View>
         </View>
+        {canCreateCard && (
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/profile/edit-geezee");
+            }}
+            style={styles.createBtn}
+          >
+            <Feather name="plus" size={18} color="#fff" />
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.tabRow}>
@@ -149,10 +170,18 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 4,
-    gap: 2,
+  },
+  createBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: Colors.purple,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     color: Colors.textPrimary,

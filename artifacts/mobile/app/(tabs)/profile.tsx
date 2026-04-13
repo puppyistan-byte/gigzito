@@ -25,7 +25,198 @@ import { NavigationMenu } from "@/components/NavigationMenu";
 import Colors from "@/constants/colors";
 
 const GZ_FLASH_TIERS = ["GZMarketerPro", "GZBusiness", "GZEnterprise"];
+const GZ_CARD_TIERS  = ["GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
 const zitoTvLogo = require("@/assets/images/zitotv.png");
+
+const TIER_ORDER = ["GZLurker", "GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
+const TIER_COLORS: Record<string, string> = {
+  GZLurker:       "#71717a",
+  GZMarketer:     "#60a5fa",
+  GZMarketerPro:  "#c084fc",
+  GZBusiness:     "#fbbf24",
+  GZEnterprise:   "#FFD700",
+};
+const TIER_LABELS: Record<string, string> = {
+  GZLurker:       "Lurker",
+  GZMarketer:     "Marketer",
+  GZMarketerPro:  "Marketer Pro",
+  GZBusiness:     "Business",
+  GZEnterprise:   "Enterprise",
+};
+
+const TIER_FEATURES: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  desc: string;
+  minTier: string;
+  accentColor: string;
+}[] = [
+  { icon: "user",         label: "GeeZee Card",       desc: "Social identity card",          minTier: "GZMarketer",    accentColor: "#60a5fa" },
+  { icon: "video",        label: "Video Listings",     desc: "Post videos to the feed",       minTier: "GZMarketer",    accentColor: "#60a5fa" },
+  { icon: "message-square", label: "Card Messaging",  desc: "Receive DMs on your card",      minTier: "GZMarketer",    accentColor: "#60a5fa" },
+  { icon: "zap",          label: "GZFlash Ads",        desc: "Time-limited flash deals",      minTier: "GZMarketerPro", accentColor: "#c084fc" },
+  { icon: "trending-up",  label: "Flash Analytics",    desc: "Potency scores & insights",     minTier: "GZMarketerPro", accentColor: "#c084fc" },
+  { icon: "tv",           label: "ZitoTV Live",        desc: "Live stream to your audience",  minTier: "GZBusiness",    accentColor: "#fbbf24" },
+  { icon: "star",         label: "Priority Support",   desc: "Dedicated account support",     minTier: "GZEnterprise",  accentColor: "#FFD700" },
+];
+
+function TierDashboard({ tier }: { tier: string }) {
+  const tierIndex = TIER_ORDER.indexOf(tier);
+  const color = TIER_COLORS[tier] ?? "#71717a";
+  const label = TIER_LABELS[tier] ?? tier;
+
+  return (
+    <View style={tierStyles.wrapper}>
+      <View style={tierStyles.headerRow}>
+        <View style={tierStyles.headerLeft}>
+          <View style={[tierStyles.tierDot, { backgroundColor: color }]} />
+          <Text style={tierStyles.headerTitle}>Your Plan</Text>
+        </View>
+        <View style={[tierStyles.tierBadge, { backgroundColor: `${color}22`, borderColor: `${color}55` }]}>
+          <Text style={[tierStyles.tierBadgeText, { color }]}>{label.toUpperCase()}</Text>
+        </View>
+      </View>
+
+      <View style={tierStyles.card}>
+        {TIER_FEATURES.map((feature, i) => {
+          const featureIndex = TIER_ORDER.indexOf(feature.minTier);
+          const unlocked = tierIndex >= featureIndex;
+          return (
+            <View key={feature.label} style={[tierStyles.featureRow, i < TIER_FEATURES.length - 1 && tierStyles.featureRowBorder]}>
+              <View style={[tierStyles.featureIconWrap, { backgroundColor: unlocked ? `${feature.accentColor}22` : "#1A1A1A" }]}>
+                <Feather name={feature.icon} size={14} color={unlocked ? feature.accentColor : Colors.textMuted} />
+              </View>
+              <View style={tierStyles.featureText}>
+                <Text style={[tierStyles.featureLabel, !unlocked && tierStyles.featureLabelLocked]}>{feature.label}</Text>
+                <Text style={tierStyles.featureDesc}>{feature.desc}</Text>
+              </View>
+              <View style={[tierStyles.featureStatus, { backgroundColor: unlocked ? "#00D9A522" : "#1A1A1A" }]}>
+                {unlocked
+                  ? <Feather name="check" size={12} color="#00D9A5" />
+                  : <Feather name="lock" size={12} color={Colors.textMuted} />
+                }
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {tier === "GZLurker" || tier === "GZMarketer" ? (
+        <View style={tierStyles.upgradeRow}>
+          <Feather name="arrow-up-circle" size={14} color={Colors.purple} />
+          <Text style={tierStyles.upgradeText}>
+            {tier === "GZLurker"
+              ? "Upgrade to GZMarketer to unlock GeeZee Cards and more"
+              : "Upgrade to GZMarketerPro to unlock GZFlash Ad Center"}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const tierStyles = StyleSheet.create({
+  wrapper: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    gap: 8,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  tierDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  headerTitle: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  tierBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tierBadgeText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
+  },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    overflow: "hidden",
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  featureRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  featureIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  featureText: {
+    flex: 1,
+    gap: 1,
+  },
+  featureLabel: {
+    color: Colors.textPrimary,
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+  },
+  featureLabelLocked: {
+    color: Colors.textMuted,
+  },
+  featureDesc: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
+  featureStatus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  upgradeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  upgradeText: {
+    color: Colors.purple,
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    flex: 1,
+  },
+});
 
 function ZitoTVBanner() {
   const pulse = useRef(new Animated.Value(1)).current;
@@ -325,11 +516,7 @@ export default function ProfileScreen() {
 
   const flashUnlocked = GZ_FLASH_TIERS.includes(tier);
 
-  const tierColor = tier === "GZLurker" ? Colors.textMuted
-    : tier === "GZMarketer" ? Colors.teal
-    : tier === "GZMarketerPro" ? Colors.accent
-    : tier === "GZBusiness" ? Colors.success
-    : Colors.live;
+  const tierColor = TIER_COLORS[tier] ?? "#71717a";
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.dark }}>
@@ -383,6 +570,8 @@ export default function ProfileScreen() {
           <StatBox label="Messages" value={inbox?.length ?? 0} />
         </View>
       </View>
+
+      <TierDashboard tier={tier} />
 
       <View style={styles.menuSection}>
         <Text style={styles.menuHeader}>Account</Text>
@@ -505,7 +694,7 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {(user?.role === "ADMIN" || user?.role === "SUPERADMIN") ? (
+      {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "SUPERUSER") ? (
         <View style={styles.menuSection}>
           <View style={styles.adminHeaderRow}>
             <View style={styles.adminBadge}>

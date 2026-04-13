@@ -44,7 +44,7 @@ export default function GZFlashScreen() {
   // GZFlash ad creation requires GZBusiness tier or higher (mirrors backend requireAuth check)
   const canCreate = !!token && !!user && (
     ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(user.subscriptionTier) ||
-    ["admin", "superadmin"].includes(user.role)
+    ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user.role)
   );
 
   const { data: raw, isLoading, refetch, isRefetching } = useGZFlash();
