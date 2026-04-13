@@ -89,12 +89,6 @@ export function CreateFlashModal({ visible, onClose }: Props) {
     return             { label: "COOL",     color: "#60A5FA", bar: "#1D4ED8" };
   };
 
-  const expiresAt = (): string => {
-    const h = parseInt(hours, 10) || 0;
-    const m = parseInt(minutes, 10) || 0;
-    return new Date(Date.now() + (h * 60 + m) * 60_000).toISOString();
-  };
-
   const reset = () => {
     setTitle(""); setImageUri(""); setImageUrlInput("");
     setRetailPrice(""); setFlashPrice(""); setSlots("10");
@@ -119,6 +113,10 @@ export function CreateFlashModal({ visible, onClose }: Props) {
     if (isNaN(qty) || qty < 1)                      return setError("Number of offers must be at least 1.");
     if (h === 0 && m === 0)                         return setError("Duration must be at least 1 minute.");
 
+    const durMin = h * 60 + m;
+    if (durMin < 5)    return setError("Duration must be at least 5 minutes.");
+    if (durMin > 43200) return setError("Duration cannot exceed 43,200 minutes (30 days).");
+
     const discountPercent = Math.round(((retail - flash) / retail) * 100);
 
     const body: Record<string, any> = {
@@ -126,7 +124,7 @@ export function CreateFlashModal({ visible, onClose }: Props) {
       retailPriceCents: Math.round(retail * 100),
       discountPercent,
       quantity:         qty,
-      expiresAt:        expiresAt(),
+      durationMinutes:  durMin,
       displayMode,
     };
 
