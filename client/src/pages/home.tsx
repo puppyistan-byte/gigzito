@@ -396,7 +396,7 @@ export default function HomePage() {
                   }}
                 >
                   <Shield style={{ width: 13, height: 13, color: "#60a5fa", flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: "12px", color: "#93c5fd", fontWeight: 600 }}>Check on VirusTotal</span>
+                  <span style={{ flex: 1, fontSize: "12px", color: "#93c5fd", fontWeight: 600 }}>Always scan your downloads with mobile virus protection</span>
                   <ExternalLink style={{ width: 11, height: 11, color: "rgba(96,165,250,0.5)", flexShrink: 0 }} />
                 </a>
               )}
