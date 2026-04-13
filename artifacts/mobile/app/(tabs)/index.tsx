@@ -10,6 +10,7 @@ import {
   View,
   ViewToken,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useListings } from "@/hooks/useApi";
 import { FeedCard } from "@/components/FeedCard";
 import Colors from "@/constants/colors";
@@ -38,11 +39,19 @@ function LoadingFeed() {
 
 export default function FeedScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isTabFocused, setIsTabFocused] = useState(true);
   // On native (iOS/Android) videos play with sound by default.
   // On web the browser blocks unmuted autoplay, so we start muted there.
   const [muted, setMuted] = useState(Platform.OS === "web");
   const { data: listings, isLoading, refetch, isRefetching } = useListings();
   const handleMuteToggle = useCallback(() => setMuted((m) => !m), []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsTabFocused(true);
+      return () => setIsTabFocused(false);
+    }, [])
+  );
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -67,7 +76,7 @@ export default function FeedScreen() {
         renderItem={({ item, index }) => (
           <FeedCard
             item={item}
-            isActive={index === activeIndex}
+            isActive={index === activeIndex && isTabFocused}
             muted={muted}
             onMuteToggle={handleMuteToggle}
           />
