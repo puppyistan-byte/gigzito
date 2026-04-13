@@ -73,6 +73,19 @@ export function useMyGeeZeeCard() {
   });
 }
 
+export function useSaveGeeZeeCard() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, any>) =>
+      apiRequest<any>("/api/gigness-cards", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["geezee-card", "mine"] });
+      qc.invalidateQueries({ queryKey: ["geezee-cards"] });
+    },
+  });
+}
+
 export function useGeeZeeCardByUser(userId: number) {
   const { apiRequest } = useAuth();
   return useQuery({
