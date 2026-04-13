@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -9,8 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
-  ExternalLink, Play, ChevronUp, Upload, Download, Shield, FileBadge2,
-  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2, Home,
+  ExternalLink, Play, Pause, SkipBack, SkipForward, ChevronUp, Upload, Download, Shield, FileBadge2,
+  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2, Home, X,
 } from "lucide-react";
 import { SiX, SiWhatsapp, SiFacebook, SiTelegram } from "react-icons/si";
 import type { GZMusicTrack } from "@shared/schema";
@@ -435,6 +435,7 @@ function TrackCard({
   ratingPending,
   expanded,
   onToggleExpand,
+  onJukeboxPlay,
   highlighted,
   userId,
   navigate,
@@ -449,6 +450,7 @@ function TrackCard({
   ratingPending: boolean;
   expanded: boolean;
   onToggleExpand: () => void;
+  onJukeboxPlay?: () => void;
   highlighted: boolean;
   userId: number | undefined;
   navigate: (to: string) => void;
@@ -544,7 +546,17 @@ function TrackCard({
 
           {/* Play controls */}
           <div className="flex items-center gap-3 mt-1">
-            {(track.audioUrl || hasFile) && (
+            {hasFile && onJukeboxPlay && (
+              <button
+                onClick={onJukeboxPlay}
+                className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
+                style={{ color: ORANGE }}
+                data-testid={`button-jukebox-play-${track.id}`}
+              >
+                <Play className="h-2.5 w-2.5" fill={ORANGE} /> Play
+              </button>
+            )}
+            {!hasFile && track.audioUrl && (
               <button
                 onClick={onToggleExpand}
                 className="flex items-center gap-1 text-[10px] font-semibold transition-colors"
@@ -721,6 +733,13 @@ function extractYouTubeId(url: string): string {
   return m ? m[1] : "";
 }
 
+function formatTime(secs: number): string {
+  if (!isFinite(secs) || secs < 0) return "0:00";
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GZMusicPage() {
@@ -730,6 +749,16 @@ export default function GZMusicPage() {
   const queryClient = useQueryClient();
   const [expandedTrackId, setExpandedTrackId] = useState<number | null>(null);
   const [highlightedTrackId, setHighlightedTrackId] = useState<number | null>(null);
+
+  // ── Jukebox ─────────────────────────────────────────────────────────────────
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [jukeboxInfo, setJukeboxInfo] = useState<{
+    track: TrackWithRating; rank: number; fileIdx: number;
+  } | null>(null);
+  const [jkPlaying, setJkPlaying]     = useState(false);
+  const [jkProgress, setJkProgress]   = useState(0);   // 0–1
+  const [jkTimeSec, setJkTimeSec]     = useState(0);
+  const [jkDurSec, setJkDurSec]       = useState(0);
 
   const { data: tracks = [], isLoading } = useQuery<TrackWithRating[]>({
     queryKey: ["/api/gz-music/tracks"],
@@ -756,6 +785,43 @@ export default function GZMusicPage() {
   const userId = (user as any)?.user?.id as number | undefined;
   const userRole = (user as any)?.user?.role as string | undefined;
   const isAdmin = ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(userRole ?? "");
+
+  // ── Jukebox helpers ──────────────────────────────────────────────────────────
+  const fileTracks = tracks.filter((t) => !!(t as any).fileUrl);
+
+  const jukeboxPlay = useCallback((track: TrackWithRating, rank: number) => {
+    const fileUrl = (track as any).fileUrl as string;
+    if (!fileUrl || !audioRef.current) return;
+    const fileIdx = fileTracks.findIndex((t) => t.id === track.id);
+    audioRef.current.src = fileUrl;
+    audioRef.current.currentTime = 0;
+    setJukeboxInfo({ track, rank, fileIdx });
+    setJkProgress(0);
+    setJkTimeSec(0);
+    audioRef.current.play().catch(() => {});
+  }, [fileTracks]);
+
+  const jukeboxPrev = useCallback(() => {
+    if (!jukeboxInfo) return;
+    const prevIdx = jukeboxInfo.fileIdx - 1;
+    if (prevIdx >= 0) {
+      const t = fileTracks[prevIdx];
+      const r = tracks.findIndex((x) => x.id === t.id) + 1;
+      jukeboxPlay(t, r);
+    }
+  }, [jukeboxInfo, fileTracks, tracks, jukeboxPlay]);
+
+  const jukeboxNext = useCallback(() => {
+    if (!jukeboxInfo) return;
+    const nextIdx = jukeboxInfo.fileIdx + 1;
+    if (nextIdx < fileTracks.length) {
+      const t = fileTracks[nextIdx];
+      const r = tracks.findIndex((x) => x.id === t.id) + 1;
+      jukeboxPlay(t, r);
+    } else {
+      setJkPlaying(false);
+    }
+  }, [jukeboxInfo, fileTracks, tracks, jukeboxPlay]);
 
   const { data: likedMap = {} } = useQuery<Record<number, boolean>>({
     queryKey: ["/api/gz-music/likes/batch", tracks.map((t) => t.id).join(",")],
@@ -851,6 +917,167 @@ export default function GZMusicPage() {
 
   return (
     <div className="min-h-screen bg-black">
+      {/* Hidden audio element for jukebox */}
+      <audio
+        ref={audioRef}
+        onTimeUpdate={() => {
+          const a = audioRef.current;
+          if (!a || !a.duration) return;
+          setJkTimeSec(a.currentTime);
+          setJkProgress(a.currentTime / a.duration);
+        }}
+        onLoadedMetadata={() => {
+          const a = audioRef.current;
+          if (a) setJkDurSec(a.duration || 0);
+        }}
+        onEnded={jukeboxNext}
+        onPause={() => setJkPlaying(false)}
+        onPlay={() => setJkPlaying(true)}
+      />
+
+      {/* ── Jukebox bar ─────────────────────────────────────────────────────── */}
+      {jukeboxInfo && (
+        <div
+          data-testid="jukebox-bar"
+          style={{
+            position: "fixed",
+            bottom: 62,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 24px)",
+            maxWidth: 680,
+            zIndex: 1000,
+            background: "linear-gradient(135deg, #0f0800 0%, #1c1000 100%)",
+            border: `1px solid ${ORANGE_BORDER}`,
+            borderRadius: 16,
+            padding: "10px 14px",
+            boxShadow: "0 8px 40px rgba(255,122,0,0.28)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            {/* Cover art */}
+            <div
+              style={{
+                width: 46, height: 46, borderRadius: 8, overflow: "hidden",
+                background: "#111", border: `1px solid ${ORANGE_BORDER}`,
+                flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              {(jukeboxInfo.track as any).coverUrl ? (
+                <img
+                  src={(jukeboxInfo.track as any).coverUrl}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <Headphones style={{ color: ORANGE, width: 20, height: 20 }} />
+              )}
+            </div>
+
+            {/* Track info + progress */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p
+                style={{
+                  color: "#fff", fontWeight: 700, fontSize: 12,
+                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", margin: 0,
+                }}
+              >
+                #{jukeboxInfo.rank} {jukeboxInfo.track.title}
+              </p>
+              <p
+                style={{
+                  color: "#888", fontSize: 11,
+                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", margin: 0,
+                }}
+              >
+                {jukeboxInfo.track.artist}
+              </p>
+
+              {/* Seek bar */}
+              <div
+                data-testid="jukebox-seek"
+                style={{ height: 4, background: "#222", borderRadius: 2, marginTop: 5, cursor: "pointer" }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const fraction = (e.clientX - rect.left) / rect.width;
+                  const a = audioRef.current;
+                  if (a && a.duration) a.currentTime = fraction * a.duration;
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%", width: `${jkProgress * 100}%`,
+                    background: `linear-gradient(90deg, ${ORANGE}, #ff9a40)`,
+                    borderRadius: 2, transition: "width 0.2s linear",
+                  }}
+                />
+              </div>
+
+              {/* Time */}
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+                <span style={{ fontSize: 9, color: "#444" }}>{formatTime(jkTimeSec)}</span>
+                <span style={{ fontSize: 9, color: "#444" }}>{formatTime(jkDurSec)}</span>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <button
+                data-testid="jukebox-prev"
+                onClick={jukeboxPrev}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: jukeboxInfo.fileIdx === 0 ? 0.3 : 1 }}
+              >
+                <SkipBack style={{ color: "#bbb", width: 17, height: 17 }} />
+              </button>
+
+              <button
+                data-testid="jukebox-playpause"
+                onClick={() => {
+                  const a = audioRef.current;
+                  if (!a) return;
+                  if (jkPlaying) a.pause();
+                  else a.play().catch(() => {});
+                }}
+                style={{
+                  width: 38, height: 38, borderRadius: "50%",
+                  background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
+                  border: "none", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 2px 12px rgba(255,122,0,0.4)",
+                }}
+              >
+                {jkPlaying
+                  ? <Pause style={{ color: "#fff", width: 17, height: 17 }} />
+                  : <Play  style={{ color: "#fff", width: 17, height: 17, marginLeft: 2 }} />
+                }
+              </button>
+
+              <button
+                data-testid="jukebox-next"
+                onClick={jukeboxNext}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: jukeboxInfo.fileIdx >= fileTracks.length - 1 ? 0.3 : 1 }}
+              >
+                <SkipForward style={{ color: "#bbb", width: 17, height: 17 }} />
+              </button>
+
+              <button
+                data-testid="jukebox-close"
+                onClick={() => {
+                  audioRef.current?.pause();
+                  setJukeboxInfo(null);
+                  setJkPlaying(false);
+                  setJkProgress(0);
+                  setJkTimeSec(0);
+                }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
+              >
+                <X style={{ color: "#444", width: 14, height: 14 }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-6">
 
@@ -956,9 +1183,31 @@ export default function GZMusicPage() {
             <h2 className="text-lg font-black text-white">The GZ100</h2>
             <p className="text-xs text-[#555]">Ranked by star ratings + community likes</p>
           </div>
-          <div className="ml-auto text-right">
-            <p className="text-lg font-black" style={{ color: ORANGE }}>{tracks.length}</p>
-            <p className="text-[10px] text-[#444] uppercase tracking-widest">tracks</p>
+          <div className="ml-auto flex items-center gap-3">
+            {fileTracks.length > 0 && (
+              <button
+                data-testid="button-play-all"
+                onClick={() => {
+                  const first = fileTracks[0];
+                  const rank = tracks.findIndex((t) => t.id === first.id) + 1;
+                  jukeboxPlay(first, rank);
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
+                  border: "none", borderRadius: 8, padding: "7px 13px",
+                  cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700,
+                  boxShadow: "0 2px 10px rgba(255,122,0,0.3)",
+                }}
+              >
+                <Play style={{ width: 12, height: 12 }} fill="#fff" />
+                Play All
+              </button>
+            )}
+            <div className="text-right">
+              <p className="text-lg font-black" style={{ color: ORANGE }}>{tracks.length}</p>
+              <p className="text-[10px] text-[#444] uppercase tracking-widest">tracks</p>
+            </div>
           </div>
         </div>
 
@@ -1019,6 +1268,11 @@ export default function GZMusicPage() {
                 expanded={expandedTrackId === track.id}
                 onToggleExpand={() =>
                   setExpandedTrackId((prev) => (prev === track.id ? null : track.id))
+                }
+                onJukeboxPlay={
+                  (track as any).fileUrl
+                    ? () => jukeboxPlay(track, index + 1)
+                    : undefined
                 }
                 highlighted={highlightedTrackId === track.id}
                 userId={userId}
