@@ -88,9 +88,11 @@ type Props = {
   isActive: boolean;
   muted: boolean;
   onMuteToggle: () => void;
+  cardHeight?: number;
 };
 
-export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
+export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Props) {
+  const cardH = cardHeight ?? SH;
   const { token } = useAuth();
   const { mutate: toggleLike } = useToggleLike(item.id);
 
@@ -323,7 +325,7 @@ export function FeedCard({ item, isActive, muted, onMuteToggle }: Props) {
     : null;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { height: cardH }]}>
       {/* Background layer priority:
           1. YouTube iframe embed (web only, when we have a YT video ID)
           2. expo-video player (gigzito mp4 uploads)

@@ -15,13 +15,11 @@ import { useListings } from "@/hooks/useApi";
 import { FeedCard } from "@/components/FeedCard";
 import Colors from "@/constants/colors";
 
-// Global muted state lives here so ALL cards share one consistent toggle.
+const { width: SW, height: SH } = Dimensions.get("window");
 
-const { height: SH } = Dimensions.get("window");
-
-function EmptyFeed() {
+function EmptyFeed({ height }: { height: number }) {
   return (
-    <View style={styles.empty}>
+    <View style={[styles.empty, { height }]}>
       <Text style={styles.emptyIcon}>🎬</Text>
       <Text style={styles.emptyTitle}>No listings yet</Text>
       <Text style={styles.emptySubtitle}>Check back soon for new content</Text>
@@ -40,9 +38,11 @@ function LoadingFeed() {
 export default function FeedScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTabFocused, setIsTabFocused] = useState(true);
-  // On native (iOS/Android) videos play with sound by default.
-  // On web the browser blocks unmuted autoplay, so we start muted there.
   const [muted, setMuted] = useState(Platform.OS === "web");
+  // Actual rendered height of the FlatList — starts at SH as a safe default,
+  // then gets corrected by onLayout on the first render.
+  const [listHeight, setListHeight] = useState(SH);
+
   const { data: listings, isLoading, refetch, isRefetching } = useListings();
   const handleMuteToggle = useCallback(() => setMuted((m) => !m), []);
 
@@ -69,7 +69,13 @@ export default function FeedScreen() {
   const items = listings ?? [];
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0) setListHeight(h);
+      }}
+    >
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
@@ -79,14 +85,19 @@ export default function FeedScreen() {
             isActive={index === activeIndex && isTabFocused}
             muted={muted}
             onMuteToggle={handleMuteToggle}
+            cardHeight={listHeight}
           />
         )}
         pagingEnabled
-        snapToInterval={SH}
+        snapToInterval={listHeight}
         snapToAlignment="start"
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
-        getItemLayout={(_, index) => ({ length: SH, offset: SH * index, index })}
+        getItemLayout={(_, index) => ({
+          length: listHeight,
+          offset: listHeight * index,
+          index,
+        })}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         refreshControl={
@@ -97,7 +108,7 @@ export default function FeedScreen() {
             colors={[Colors.accent]}
           />
         }
-        ListEmptyComponent={<EmptyFeed />}
+        ListEmptyComponent={<EmptyFeed height={listHeight} />}
         windowSize={3}
         maxToRenderPerBatch={2}
         initialNumToRender={1}
@@ -118,7 +129,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   empty: {
-    height: SH,
+    width: SW,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
