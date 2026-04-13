@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Edit3, Printer, QrCode, Lock, Users, Radio } from "lucide-react";
+import { Sparkles, Edit3, Printer, QrCode, Lock, Users, Radio, CreditCard } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ProviderProfile } from "@shared/schema";
@@ -261,6 +261,24 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
       {tab === "digital" && (
         <div className="space-y-3">
           <GeeZeeCardPreview card={card} />
+
+          {hasCard && (
+            <Button
+              size="sm"
+              onClick={() => navigate(`/geezee/${profile.userId}`)}
+              className="w-full h-10 text-xs font-bold rounded-xl"
+              style={{
+                background: "linear-gradient(135deg, rgba(139,92,246,0.25) 0%, rgba(168,85,247,0.15) 100%)",
+                color: "#c4b5fd",
+                border: "1px solid rgba(139,92,246,0.45)",
+                letterSpacing: "0.03em",
+              }}
+              data-testid="button-view-my-geezee-card"
+            >
+              <CreditCard style={{ width: 13, height: 13, marginRight: 6 }} />
+              My GeeZee Card
+            </Button>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <Button
