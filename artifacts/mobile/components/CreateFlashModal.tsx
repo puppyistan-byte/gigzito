@@ -141,7 +141,7 @@ export function CreateFlashModal({ visible, onClose }: Props) {
       onError: (e: any) => {
         const raw = e?.message ?? "";
         if (raw.toLowerCase().includes("unauthorized") || raw.includes("401")) {
-          setError("GZBusiness or higher tier required to post GZFlash ads. Upgrade your plan on gigzito.com.");
+          setError("Not authorized. The gigzito.com server rejected this request — ensure your account has GZMarketerPro, GZBusiness, or GZEnterprise tier, or contact support.");
         } else {
           setError(raw || "Failed to launch deal. Please try again.");
         }
