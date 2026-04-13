@@ -704,8 +704,11 @@ const styles = StyleSheet.create({
     left: SW / 2 - 50,
     width: 100,
     height: 100,
+    borderRadius: 50,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+    opacity: 0.3,
   },
   gzPlayPauseCircle: {
     position: "absolute",
@@ -717,18 +720,17 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    opacity: 0.4,
   },
   gzRailLogoBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
     overflow: "hidden",
+    opacity: 0.3,
   },
   gzRailLogo: {
     width: 44,
     height: 44,
-    borderRadius: 22,
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
