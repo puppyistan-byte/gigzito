@@ -68,7 +68,7 @@ function ProfilePic({ uri, name, size }: { uri?: string | null; name: string; si
   const resolved = resolveUrl(uri);
   const initials = name.split(" ").map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2);
   return (
-    <View style={[s.picWrap, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={[s.picWrap, { width: size, height: size, borderRadius: 12 }]}>
       {resolved ? (
         <Image source={{ uri: resolved }} style={{ width: size, height: size }} resizeMode="cover" />
       ) : (
