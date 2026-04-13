@@ -589,7 +589,7 @@ export default function ProfileScreen() {
         <View style={styles.menuCard}>
           <MenuItem icon="video" label="My Listings" value={String(myListings?.length ?? 0)} onPress={() => router.push("/profile/my-listings")} />
           <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} onPress={() => router.push("/profile/my-geemotions")} />
-          <MenuItem icon="credit-card" label="My GZCard" onPress={() => router.push("/profile/my-gzcard")} />
+          <MenuItem icon="credit-card" label="My GeeZee Card" onPress={() => router.push("/profile/my-gzcard")} />
           <MenuItem icon="edit-2" label="Edit GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
         </View>
       </View>
