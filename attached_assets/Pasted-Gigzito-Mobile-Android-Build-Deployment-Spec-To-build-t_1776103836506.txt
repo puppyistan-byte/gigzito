@@ -1,0 +1,47 @@
+Gigzito Mobile: Android Build & Deployment Spec
+To build the Android APK locally and host it for OTA (Over-The-Air) downloads on the Hills server, the following environment configuration is required.
+
+1. Core System Dependencies
+The build engine requires modern versions of Node and Java to handle the Expo 54 framework.
+
+Node.js: v20.0.0 or higher (Current ZimaBoard: v24.14.1).
+
+Java JDK: OpenJDK 17 (Required for Gradle assembly).
+
+Android SDK: Command Line Tools must be installed in /opt/android-sdk.
+
+Utilities: unzip, pnpm, and eas-cli.
+
+2. Environment Configuration
+The following exports must be present in the user’s .bashrc or profile to avoid "Command Not Found" or "SDK Not Found" errors:
+
+Bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME=/opt/android-sdk
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+3. Build Execution (Local Station)
+The build is executed locally to bypass Expo Cloud queues and Apple Developer account restrictions for Android.
+
+Bash
+cd /opt/gigzito-mobile/artifacts/mobile
+pnpm install
+eas build --platform android --profile preview --local
+4. Hills Server Hosting Structure
+The Hills server (gigzito.com) needs a dedicated "Landing Zone" for the binary files.
+
+Primary Directory: /var/www/ota-dist/android/
+
+Permissions: Ownership should be set to the web user/group to allow public downloads.
+
+Public URL: https://gigzito.com/ota-dist/android/gigzito.apk
+
+5. Deployment Workflow (The "Post-Build" Step)
+Once the ZimaBoard completes a local build, the resulting .apk should be transferred and renamed for a clean user experience:
+
+Locate APK: Found in the root of /artifacts/mobile/ after a successful build.
+
+Transfer: scp [build-filename].apk skullabore@hills:/var/www/ota-dist/android/gigzito.apk
+
+Update Website: Ensure the "Get the Beta" button on gigzito.com points to that static path.
+
+Status Update for Rip: The ZimaBoard is currently fully configured with Node v24, Java 17, and the Android SDK. The Gradle daemon is warmed up. We are presently running the local build to produce the first gigzito.apk.
