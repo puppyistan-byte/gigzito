@@ -467,7 +467,15 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
 
       {/* Right rail buttons */}
       <View style={[styles.rightRail, { bottom: 200 + insets.bottom }]}>
-        {/* GZFlash — above GeeZee */}
+        {/* GZGroups — top of rail */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/groups" as any); }}
+          style={styles.gzGroupsRailBtn}
+        >
+          <Feather name="users" size={22} color="#60a5fa" />
+        </Pressable>
+
+        {/* GZFlash */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/gzflash" as any); }}
           style={styles.gzRailLogoBtn}
@@ -487,18 +495,6 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
           <Image
             source={require("@/assets/images/gz-logo.png")}
             style={styles.gzRailLogo}
-            resizeMode="cover"
-          />
-        </Pressable>
-
-        {/* GZGroups */}
-        <Pressable
-          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/groups" as any); }}
-          style={styles.gzGroupsRailBtn}
-        >
-          <Image
-            source={require("@/assets/images/gz-logo.png")}
-            style={styles.gzGroupsRailLogo}
             resizeMode="cover"
           />
         </Pressable>
@@ -798,13 +794,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    overflow: "hidden",
-    opacity: 0.3,
-  },
-  gzGroupsRailLogo: {
-    width: 44,
-    height: 44,
-    tintColor: "#60a5fa",
+    backgroundColor: "rgba(96,165,250,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(96,165,250,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
