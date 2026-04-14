@@ -789,3 +789,421 @@ export function useGZSubscriberCount() {
     enabled: !!token,
   });
 }
+
+// ─── GZGroups ────────────────────────────────────────────────────────────────
+
+export function useGroupInvites() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["groups", "invites"],
+    queryFn: () => apiRequest<any[]>("/api/groups/invites"),
+    enabled: !!token,
+    staleTime: 0,
+  });
+}
+
+export function useFeaturedGroups() {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["groups", "featured"],
+    queryFn: () => apiRequest<any[]>("/api/groups/featured"),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useGroup(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id],
+    queryFn: () => apiRequest<any>(`/api/groups/${id}`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupMembers(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "members"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/members`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupWall(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "wall"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/wall`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupWallComments(groupId: number | string, postId: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", groupId, "wall", postId, "comments"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${groupId}/wall/${postId}/comments`),
+    enabled: !!groupId && !!postId,
+    staleTime: 0,
+  });
+}
+
+export function useGroupKanban(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "kanban"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/kanban`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupEvents(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "events"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/events`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupEndeavors(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "endeavors"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/endeavors`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupRetrospectives(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "retrospectives"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/retrospectives`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupWallets(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", id, "wallets"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${id}/wallets`),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useGroupWalletBalance(groupId: number | string, walletId: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", groupId, "wallet", walletId, "balance"],
+    queryFn: () => apiRequest<any>(`/api/groups/${groupId}/wallets/${walletId}/balance`),
+    enabled: !!groupId && !!walletId,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useGroupWalletContributions(groupId: number | string, walletId: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", groupId, "wallet", walletId, "contributions"],
+    queryFn: () => apiRequest<any[]>(`/api/groups/${groupId}/wallets/${walletId}/contributions`),
+    enabled: !!groupId && !!walletId,
+    staleTime: 0,
+  });
+}
+
+export function useSearchGroupUsers(q: string, groupId: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["group", groupId, "search-users", q],
+    queryFn: () => apiRequest<any[]>(`/api/groups/search-users?q=${encodeURIComponent(q)}&groupId=${groupId}`),
+    enabled: q.length >= 2 && !!groupId,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateGroup() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string; coverUrl?: string; isPrivate?: boolean }) =>
+      apiRequest<any>("/api/groups", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups", "mine"] }),
+  });
+}
+
+export function useUpdateGroup(id: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name?: string; description?: string; coverUrl?: string; isPrivate?: boolean }) =>
+      apiRequest<any>(`/api/groups/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["group", id] });
+      qc.invalidateQueries({ queryKey: ["groups", "mine"] });
+    },
+  });
+}
+
+export function useDeleteGroup() {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) =>
+      apiRequest<any>(`/api/groups/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups", "mine"] }),
+  });
+}
+
+export function useInviteToGroup(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inviteeUserId: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/invite`, {
+        method: "POST",
+        body: JSON.stringify({ inviteeUserId }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "members"] }),
+  });
+}
+
+export function useInviteEmailToGroup(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: (email: string) =>
+      apiRequest<any>(`/api/groups/${groupId}/invite/email`, {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
+  });
+}
+
+export function useRespondToGroupInvite(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (accept: boolean) =>
+      apiRequest<any>(`/api/groups/${groupId}/invite/respond`, {
+        method: "POST",
+        body: JSON.stringify({ accept }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups", "invites"] });
+      qc.invalidateQueries({ queryKey: ["groups", "mine"] });
+    },
+  });
+}
+
+export function useJoinRequestGroup(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  return useMutation({
+    mutationFn: (message: string) =>
+      apiRequest<any>(`/api/groups/${groupId}/join-request`, {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      }),
+  });
+}
+
+export function useRemoveGroupMember(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (uid: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/members/${uid}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "members"] }),
+  });
+}
+
+export function usePostToGroupWall(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) =>
+      apiRequest<any>(`/api/groups/${groupId}/wall`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "wall"] }),
+  });
+}
+
+export function useDeleteGroupWallPost(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/wall/${postId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "wall"] }),
+  });
+}
+
+export function useCommentOnWallPost(groupId: number | string, postId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) =>
+      apiRequest<any>(`/api/groups/${groupId}/wall/${postId}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "wall", postId, "comments"] }),
+  });
+}
+
+export function useCreateKanbanCard(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/kanban`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "kanban"] }),
+  });
+}
+
+export function useUpdateKanbanCard(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cid, ...body }: { cid: number; status?: string; priority?: string; title?: string; description?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/kanban/${cid}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "kanban"] }),
+  });
+}
+
+export function useDeleteKanbanCard(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (cid: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/kanban/${cid}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "kanban"] }),
+  });
+}
+
+export function useCreateGroupEvent(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { title: string; startAt: string; endAt?: string; allDay?: boolean; description?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/events`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "events"] }),
+  });
+}
+
+export function useDeleteGroupEvent(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (eid: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/events/${eid}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "events"] }),
+  });
+}
+
+export function useCreateEndeavor(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { title: string; description?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/endeavors`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "endeavors"] }),
+  });
+}
+
+export function useUpdateEndeavor(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ eid, ...body }: { eid: number; goalProgress?: number; title?: string; description?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/endeavors/${eid}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "endeavors"] }),
+  });
+}
+
+export function useDeleteEndeavor(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (eid: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/endeavors/${eid}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "endeavors"] }),
+  });
+}
+
+export function useSubmitRetrospective(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { win: string; roadblock: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/retrospectives`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "retrospectives"] }),
+  });
+}
+
+export function useCreateGroupWallet(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { label: string; network: string; address: string; link?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/wallets`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "wallets"] }),
+  });
+}
+
+export function useDeleteGroupWallet(groupId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (wid: number) =>
+      apiRequest<any>(`/api/groups/${groupId}/wallets/${wid}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["group", groupId, "wallets"] }),
+  });
+}
+
+export function useLogContribution(groupId: number | string, walletId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { amount: number; currency?: string; txHash?: string; note?: string }) =>
+      apiRequest<any>(`/api/groups/${groupId}/wallets/${walletId}/contributions`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["group", groupId, "wallet", walletId, "contributions"] });
+      qc.invalidateQueries({ queryKey: ["group", groupId, "wallet", walletId, "balance"] });
+    },
+  });
+}

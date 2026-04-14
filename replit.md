@@ -111,6 +111,31 @@ Fully integrated music module. Base URL: `https://www.gigzito.com/api/gz-music`.
 
 **Navigation:** "GZMusic" entry added to hamburger drawer with orange accent; `gzmusic` registered in `app/(tabs)/_layout.tsx` and stack routes in `app/_layout.tsx`.
 
+### `artifacts/mobile` — GZGroups Module
+
+Full GZGroups feature. Entitlement-gated to `unlocks.hasGroups` from `/api/user/dashboard`.
+
+**Screens:**
+- `app/(tabs)/groups.tsx` — Groups tab: pending invites (accept/decline), My Groups list, Featured Groups discovery, upgrade prompt for users without `hasGroups`
+- `app/groups/[id].tsx` — Group detail with 7 sub-tabs: Wall, Members, Kanban, Events, Endeavors, Retros, Wallets
+- `app/groups/create.tsx` — Create group form (name, description, cover URL, private toggle)
+
+**Sub-tab capabilities:**
+- **Wall:** Post, delete (own or admin deletes any), live list
+- **Members:** List with role badges, admin can remove members
+- **Kanban:** Cards in todo/in_progress/done columns; tap to advance status; add/delete cards
+- **Events:** Chronological list with date box; admin can delete
+- **Endeavors:** Goal cards with progress counter; admin can bump progress
+- **Retros:** Win + Roadblock form; historical retro cards
+- **Wallets:** Expandable cards with live on-chain balance, contribution ledger (verified badge), log contribution form
+
+**Private groups:** Non-members see a join-request screen with 50-char minimum message.
+
+**Hooks added to `hooks/useApi.ts`:**
+`useGroupInvites`, `useFeaturedGroups`, `useGroup`, `useGroupMembers`, `useGroupWall`, `useGroupWallComments`, `useGroupKanban`, `useGroupEvents`, `useGroupEndeavors`, `useGroupRetrospectives`, `useGroupWallets`, `useGroupWalletBalance`, `useGroupWalletContributions`, `useSearchGroupUsers`, `useCreateGroup`, `useUpdateGroup`, `useDeleteGroup`, `useInviteToGroup`, `useInviteEmailToGroup`, `useRespondToGroupInvite`, `useJoinRequestGroup`, `useRemoveGroupMember`, `usePostToGroupWall`, `useDeleteGroupWallPost`, `useCommentOnWallPost`, `useCreateKanbanCard`, `useUpdateKanbanCard`, `useDeleteKanbanCard`, `useCreateGroupEvent`, `useDeleteGroupEvent`, `useCreateEndeavor`, `useUpdateEndeavor`, `useDeleteEndeavor`, `useSubmitRetrospective`, `useCreateGroupWallet`, `useDeleteGroupWallet`, `useLogContribution`
+
+**Navigation:** "Groups" entry added to hamburger drawer with purple (`#9933FF`) accent; `groups` registered in `app/(tabs)/_layout.tsx`.
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
