@@ -70,18 +70,19 @@ export default function ProviderProfileScreen() {
   const [wallText, setWallText] = useState("");
 
   const { data: profile, isLoading } = useProviderProfile(id!);
-  const { data: followStatus } = useFollowStatus(Number(profile?.userId));
-  const { mutate: toggleFollow, isPending: followPending } = useToggleFollow(Number(profile?.userId));
+  const profileUserId = profile?.userId ?? profile?.user?.id;
+  const { data: followStatus } = useFollowStatus(Number(profileUserId));
+  const { mutate: toggleFollow, isPending: followPending } = useToggleFollow(Number(profileUserId));
   const { data: loveStatus } = useProviderLoveStatus(id!);
   const { mutate: toggleLove, isPending: lovePending } = useToggleLoveProvider(id!);
   const { data: wallPosts = [], isLoading: wallLoading, refetch: refetchWall } = useProviderWall(id!);
   const { mutate: postToWall, isPending: postingWall } = usePostToProviderWall(id!);
   const { data: listings = [] } = useProviderListings(id!);
 
-  const isOwn = user && profile?.userId && String(user.id) === String(profile.userId);
+  const isOwn = user && profileUserId && String(user.id) === String(profileUserId);
   const isFollowing = followStatus?.following ?? false;
-  const isLoved = loveStatus?.loved ?? false;
-  const loveCount = loveStatus?.loveCount ?? profile?.loveCount ?? 0;
+  const isLoved = loveStatus?.hasVoted ?? false;
+  const loveCount = loveStatus?.voteCount ?? 0;
 
   const handleBack = () => {
     if (router.canGoBack()) router.back();
@@ -147,10 +148,10 @@ export default function ProviderProfileScreen() {
   const avatarUri = resolveUrl(profile.avatarUrl ?? profile.profilePic);
   const displayName = profile.displayName ?? profile.username ?? "Unknown";
   const username = profile.username ? `@${profile.username}` : "";
-  const tier = profile.subscriptionTier ?? profile.userTier;
+  const tier = profile.user?.subscriptionTier ?? profile.subscriptionTier ?? profile.userTier;
   const tColor = tierColor(tier);
   const followerCount = followStatus?.followerCount ?? profile.followerCount ?? 0;
-  const followingCount = profile.followingCount ?? 0;
+  const followingCount = followStatus?.followingCount ?? profile.followingCount ?? 0;
 
   const hasSocials = profile.instagramUrl || profile.tiktokUrl || profile.youtubeUrl || profile.twitterUrl;
 
@@ -594,7 +595,7 @@ function WallTab({
                     <Text style={styles.wallPostTime}>{formatRelativeTime(post.createdAt)}</Text>
                   </View>
                 </View>
-                <Text style={styles.wallPostContent}>{post.content}</Text>
+                <Text style={styles.wallPostContent}>{post.message ?? post.content}</Text>
               </View>
             );
           })}

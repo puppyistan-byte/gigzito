@@ -1,0 +1,147 @@
+The user wants an API reference document for the mobile developer covering the profile and wall endpoints. Let me pull all the relevant routes together.
+
+
+33 actions
+Now I have everything. Let me write the complete mobile API reference document:
+
+
+3 actions
+Good, I have everything needed. Here is the complete API reference for your mobile developer, covering everything shown in that screen:
+
+Gigzito — Mobile API Reference
+Base URL: https://gigzito.com
+All requests that require auth need a session cookie (connect.sid) from POST /api/auth/login.
+
+🔐 Authentication
+Method	Endpoint	Body	Notes
+POST	/api/auth/login	{ username, password }	Returns session cookie
+POST	/api/auth/logout	—	Clears session
+GET	/api/auth/me	—	Returns current user or 401
+👤 Profile (Public — no auth needed)
+Fetch a creator profile:
+
+GET /api/profile/:id
+
+:id can be either a numeric profile ID (e.g. 19) or a @username (e.g. livingtree).
+
+Response:
+
+{
+  "id": 19,
+  "userId": 42,
+  "username": "livingtree",
+  "displayName": "Living free",
+  "bio": "I am a mindset mentor...",
+  "avatarUrl": "https://...",
+  "bannerUrl": "https://...",
+  "location": "Florida",
+  "primaryCategory": "COACHING",
+  "websiteUrl": null,
+  "instagramUrl": null,
+  "youtubeUrl": null,
+  "tiktokUrl": null,
+  "contactEmail": null,
+  "contactPhone": null,
+  "contactTelegram": null,
+  "user": {
+    "id": 42,
+    "subscriptionTier": "GZMarketerPro",
+    "role": "USER"
+  }
+}
+
+Fetch the creator's service listings:
+
+GET /api/profile/:id/listings
+
+Returns array of listing objects with title, description, price, tags, images.
+
+❤️ Show Love (vote)
+GET /api/love/:providerId/status
+
+:providerId = the profile's numeric id (not userId)
+
+Response: { voteCount: 5, hasVoted: false }
+
+POST /api/love/:providerId
+
+Requires auth. Casts a love vote for this month. Returns 409 if already voted.
+
+👥 Follow / Unfollow (GeeZee Follows)
+GET /api/geezee-follows/counts/:userId
+
+No auth needed. :userId = the user's userId (from the user.id field in profile response).
+
+Response: { followerCount: 12, followingCount: 4 }
+
+GET /api/geezee-follows/status/:userId
+
+Requires auth. Returns whether the current user follows this person.
+
+Response: { following: true, followerCount: 12, followingCount: 4 }
+
+POST /api/geezee-follows/:userId
+
+Requires auth. Follow the user.
+
+DELETE /api/geezee-follows/:userId
+
+Requires auth. Unfollow the user.
+
+📝 Profile Wall
+Get wall posts (public):
+
+GET /api/profile/:id/wall
+
+:id = numeric profile ID or username. Returns newest first (max 100).
+
+Response:
+
+[
+  {
+    "id": 1,
+    "profileId": 19,
+    "authorUserId": 7,
+    "authorName": "Josh",
+    "authorAvatar": "https://...",
+    "message": "hello friend",
+    "createdAt": "2026-04-14T10:00:00.000Z"
+  }
+]
+
+Post a wall message:
+
+POST /api/profile/:id/wall
+Content-Type: application/json
+{ "message": "hello friend" }
+
+Auth is optional — logged-in users get their name/avatar attached automatically; guests post as "Anonymous" (or pass a guest name via the frontend UI). Max 500 chars.
+
+Delete a wall post:
+
+DELETE /api/profile/wall/:postId
+
+Requires auth. Only the post author or an admin can delete.
+
+💳 GeeZee Card (public card)
+GET /api/gigness-cards/user/:userId
+
+:userId = the user's userId. Returns the public GeeZee card if isPublic: true.
+
+🎵 GZMusic Tracks
+GET /api/gz-music/tracks/by-user/:userId
+
+Returns all tracks uploaded by this creator.
+
+GET /api/gz-music/chart
+
+Top tracks globally.
+
+🔗 Share URL pattern
+Profile share links follow this format:
+
+https://gigzito.com/provider/:id
+
+Works with either numeric ID or username (both resolve the same profile).
+
+That's the full set of endpoints needed to build the profile + wall view seen in the screenshot. The wall endpoints work today on the VPS once you've run the deploy + SQL table commands from the previous message.

@@ -274,7 +274,7 @@ export function useFollowStatus(userId: number) {
   const { apiRequest, token } = useAuth();
   return useQuery({
     queryKey: ["follow-status", userId],
-    queryFn: () => apiRequest<{ following: boolean; followerCount: number }>(`/api/geezee-follows/status/${userId}`),
+    queryFn: () => apiRequest<{ following: boolean; followerCount: number; followingCount: number }>(`/api/geezee-follows/status/${userId}`),
     enabled: !!userId && !!token,
   });
 }
@@ -357,10 +357,10 @@ export function usePostToProviderWall(id: number | string) {
   const { apiRequest } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (content: string) =>
+    mutationFn: (message: string) =>
       apiRequest<any>(`/api/profile/${id}/wall`, {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ message }),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["provider-wall", id] }),
   });
@@ -370,7 +370,7 @@ export function useProviderLoveStatus(providerId: number | string) {
   const { apiRequest, token } = useAuth();
   return useQuery({
     queryKey: ["provider-love-status", providerId],
-    queryFn: () => apiRequest<{ loved: boolean; loveCount: number }>(`/api/love/${providerId}/status`),
+    queryFn: () => apiRequest<{ hasVoted: boolean; voteCount: number }>(`/api/love/${providerId}/status`),
     enabled: !!providerId && !!token,
   });
 }
@@ -391,7 +391,7 @@ export function useProviderListings(id: number | string) {
   const { apiRequest } = useAuth();
   return useQuery({
     queryKey: ["provider-listings", id],
-    queryFn: () => apiRequest<any[]>(`/api/listings?providerId=${id}`),
+    queryFn: () => apiRequest<any[]>(`/api/profile/${id}/listings`),
     enabled: !!id,
   });
 }
