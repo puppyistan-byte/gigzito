@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gigzito",
     "slug": "mobile",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -25,7 +25,7 @@
     "android": {
       "backgroundColor": "#0A0A0F",
       "package": "com.gigzito.app",
-      "versionCode": 1,
+      "versionCode": 3,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"

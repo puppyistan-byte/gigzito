@@ -731,6 +731,8 @@ export default function ProfileScreen() {
           <MenuItem icon="log-out" label="Sign Out" onPress={handleLogout} danger />
         </View>
       </View>
+
+      <Text style={styles.versionLabel}>Gigzito v1.0.2 (build 3)</Text>
     </ScrollView>
     <NavigationMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
@@ -738,6 +740,13 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  versionLabel: {
+    textAlign: "center",
+    color: "rgba(255,255,255,0.2)",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    paddingVertical: 20,
+  },
   container: { flex: 1, backgroundColor: Colors.dark },
   content: { gap: 0 },
   hamburger: {
