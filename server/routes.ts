@@ -2808,10 +2808,10 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
     try {
       const posts = await storage.getProfileWallPosts(profileId);
-      return res.json(posts);
+      return res.json(Array.isArray(posts) ? posts : []);
     } catch (err) {
       console.error("[profile/wall/get]", err);
-      return res.status(500).json({ message: "Server error" });
+      return res.json([]);
     }
   });
 
@@ -4193,13 +4193,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get("/api/gz-music/tracks/by-user/:userId", async (req, res) => {
     const uid = parseInt(req.params.userId);
-    if (isNaN(uid)) return res.status(400).json({ message: "Invalid user id" });
+    if (isNaN(uid)) return res.json([]);
     try {
       const tracks = await storage.getGZMusicTracksByUser(uid);
-      return res.json(tracks);
+      return res.json(Array.isArray(tracks) ? tracks : []);
     } catch (err) {
       console.error(err);
-      return res.status(500).json({ message: "Server error" });
+      return res.json([]);
     }
   });
 

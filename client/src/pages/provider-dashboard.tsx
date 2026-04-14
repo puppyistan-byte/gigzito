@@ -575,11 +575,12 @@ function ProviderDashboardInner() {
   // ── My Wall ─────────────────────────────────────────────────────────────────
   const [wallUpdateText, setWallUpdateText] = useState("");
   const profileId = (profile as ProviderProfile | undefined)?.id;
-  const { data: myWallPosts = [], isLoading: wallPostsLoading } = useQuery<ProfileWallPost[]>({
+  const { data: myWallPostsRaw = [], isLoading: wallPostsLoading } = useQuery<ProfileWallPost[]>({
     queryKey: ["/api/profile", profileId, "wall"],
-    queryFn: () => fetch(`/api/profile/${profileId}/wall`).then((r) => r.json()),
+    queryFn: () => fetch(`/api/profile/${profileId}/wall`).then((r) => r.ok ? r.json() : []),
     enabled: !!profileId,
   });
+  const myWallPosts = Array.isArray(myWallPostsRaw) ? myWallPostsRaw : [];
   const postWallMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/profile/${profileId}/wall`, {

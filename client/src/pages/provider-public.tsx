@@ -65,7 +65,7 @@ export default function ProviderPublicPage() {
 
   const { data: listings = [], isLoading: listingsLoading } = useQuery<ListingWithProvider[]>({
     queryKey: ["/api/profile", id, "listings"],
-    queryFn: () => fetch(`/api/profile/${id}/listings`).then((r) => r.json()),
+    queryFn: () => fetch(`/api/profile/${id}/listings`).then((r) => r.ok ? r.json() : []),
     enabled: !!id,
   });
 
@@ -118,18 +118,20 @@ export default function ProviderPublicPage() {
     staleTime: 60_000,
   });
 
-  const { data: wallPosts = [], isLoading: wallLoading } = useQuery<WallPost[]>({
+  const { data: wallPostsRaw = [], isLoading: wallLoading } = useQuery<WallPost[]>({
     queryKey: ["/api/profile", id, "wall"],
-    queryFn: () => fetch(`/api/profile/${id}/wall`).then((r) => r.json()),
+    queryFn: () => fetch(`/api/profile/${id}/wall`).then((r) => r.ok ? r.json() : []),
     enabled: !!id && activeTab === "wall",
   });
+  const wallPosts = Array.isArray(wallPostsRaw) ? wallPostsRaw : [];
 
-  const { data: gzTracks = [], isLoading: gzTracksLoading } = useQuery<GZMusicTrack[]>({
+  const { data: gzTracksRaw = [], isLoading: gzTracksLoading } = useQuery<GZMusicTrack[]>({
     queryKey: ["/api/gz-music/tracks/by-user", profileUserId],
-    queryFn: () => fetch(`/api/gz-music/tracks/by-user/${profileUserId}`).then((r) => r.json()),
+    queryFn: () => fetch(`/api/gz-music/tracks/by-user/${profileUserId}`).then((r) => r.ok ? r.json() : []),
     enabled: !!profileUserId && activeTab === "music",
     staleTime: 30_000,
   });
+  const gzTracks = Array.isArray(gzTracksRaw) ? gzTracksRaw : [];
 
   const loveMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/love/${id}`),
