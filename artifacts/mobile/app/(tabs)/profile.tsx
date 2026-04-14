@@ -16,7 +16,7 @@ import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useAuth, getEffectiveTier, isAdminUser } from "@/contexts/AuthContext";
-import { useMyProfile, useMyTotalLikes, useProfileCompletion, useMyListings, useMyGeemotions, useGeeZeeInbox, useMyFlash, useDeleteFlash } from "@/hooks/useApi";
+import { useMyProfile, useMyTotalLikes, useProfileCompletion, useMyListings, useMyGeemotions, useGeeZeeInbox, useMyFlash, useDeleteFlash, useUserDashboard, useFollowCounts, useMyGroups } from "@/hooks/useApi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
@@ -276,7 +276,7 @@ function getZone(score: number) {
 function useAdCountdown(expiresAt: string) {
   const calc = () => Math.max(0, new Date(expiresAt).getTime() - Date.now());
   const [ms, setMs] = useState(calc);
-  const ref = useRef<ReturnType<typeof setInterval>>();
+  const ref = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   useEffect(() => {
     ref.current = setInterval(() => setMs(calc()), 1000);
     return () => clearInterval(ref.current);
@@ -482,6 +482,9 @@ export default function ProfileScreen() {
   const { data: inbox } = useGeeZeeInbox();
   const { data: myFlash } = useMyFlash();
   const { mutateAsync: deleteFlash } = useDeleteFlash();
+  const { data: dashboard } = useUserDashboard();
+  const { data: followCounts } = useFollowCounts();
+  const { data: myGroups } = useMyGroups();
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -492,6 +495,14 @@ export default function ProfileScreen() {
   const displayName = displayProfile?.displayName || user?.email || "User";
   const username = displayProfile?.username;
   const tier = getEffectiveTier(user);
+
+  const unlocks = dashboard?.unlocks ?? {};
+  const dashStats = dashboard?.stats ?? {};
+
+  const totalLikes = dashStats.totalLikes ?? likesData?.total ?? likesData?.count ?? 0;
+  const followerCount = dashStats.followerCount ?? followCounts?.followerCount ?? 0;
+  const totalListings = dashStats.totalListings ?? myListings?.length ?? 0;
+  const activeListings = dashStats.activeListings ?? (myListings?.filter((l: any) => l.status === "ACTIVE").length ?? 0);
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -514,7 +525,9 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const flashUnlocked = GZ_FLASH_TIERS.includes(tier);
+  const flashUnlocked = isAdminUser(user) || (unlocks.canFlash ?? GZ_FLASH_TIERS.includes(tier));
+  const geeZeeUnlocked = isAdminUser(user) || (unlocks.hasGeeZeeCard ?? GZ_CARD_TIERS.includes(tier));
+  const groupsUnlocked = isAdminUser(user) || (unlocks.hasGroups ?? false);
 
   const tierColor = TIER_COLORS[tier] ?? "#71717a";
 
@@ -564,10 +577,10 @@ export default function ProfileScreen() {
         ) : null}
 
         <View style={styles.statsRow}>
-          <StatBox label="Likes" value={likesData?.total ?? likesData?.count ?? 0} />
-          <StatBox label="Listings" value={myListings?.length ?? 0} />
-          <StatBox label="Posts" value={myGeemotions?.length ?? 0} />
-          <StatBox label="Messages" value={inbox?.length ?? 0} />
+          <StatBox label="Likes" value={totalLikes} />
+          <StatBox label="Followers" value={followerCount} />
+          <StatBox label="Listings" value={totalListings} />
+          <StatBox label="Active" value={activeListings} />
         </View>
       </View>
 
@@ -587,12 +600,53 @@ export default function ProfileScreen() {
       <View style={styles.menuSection}>
         <Text style={styles.menuHeader}>Content</Text>
         <View style={styles.menuCard}>
-          <MenuItem icon="video" label="My Listings" value={String(myListings?.length ?? 0)} onPress={() => router.push("/profile/my-listings")} />
+          <MenuItem icon="video" label="My Listings" value={String(totalListings)} onPress={() => router.push("/profile/my-listings")} />
           <MenuItem icon="zap" label="My Geemotions" value={String(myGeemotions?.length ?? 0)} onPress={() => router.push("/profile/my-geemotions")} />
-          <MenuItem icon="credit-card" label="My GeeZee Card" onPress={() => router.push("/profile/my-gzcard")} />
-          <MenuItem icon="edit-2" label="Edit GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
+          {geeZeeUnlocked ? (
+            <>
+              <MenuItem icon="credit-card" label="My GeeZee Card" onPress={() => router.push("/profile/my-gzcard")} />
+              <MenuItem icon="edit-2" label="Edit GeeZee Card" onPress={() => router.push("/profile/edit-geezee")} />
+            </>
+          ) : (
+            <MenuItem
+              icon="credit-card"
+              label="GeeZee Card"
+              value="GZMarketer+"
+              accent={Colors.textMuted}
+              onPress={() => Alert.alert("GeeZee Card", "Upgrade to GZMarketer or higher to create your GeeZee card.")}
+            />
+          )}
         </View>
       </View>
+
+      {/* ── Groups ── */}
+      {groupsUnlocked ? (
+        <View style={styles.menuSection}>
+          <Text style={styles.menuHeader}>Groups</Text>
+          <View style={styles.menuCard}>
+            {myGroups && myGroups.length > 0 ? (
+              myGroups.slice(0, 5).map((g: any, i: number) => (
+                <View key={g.id} style={[fStyles.row, i === 0 && { borderTopWidth: 0 }]}>
+                  <View style={[styles.groupIconWrap, g.isPrivate && { backgroundColor: "#9933FF22" }]}>
+                    <Feather name={g.isPrivate ? "lock" : "users"} size={14} color={g.isPrivate ? Colors.purple : Colors.accent} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.groupName}>{g.name}</Text>
+                    <Text style={styles.groupMeta}>{g.memberCount ?? 0} members{g.isPrivate ? " · Private" : ""}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={14} color={Colors.textMuted} />
+                </View>
+              ))
+            ) : (
+              <View style={styles.gzFlashEmpty}>
+                <Feather name="users" size={22} color={Colors.textMuted} style={{ opacity: 0.5 }} />
+                <Text style={styles.gzFlashEmptyText}>No groups yet.</Text>
+                <Text style={styles.gzFlashEmptySub}>Join or create a group to collaborate with others.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      ) : null}
 
       {/* ── ZitoTV Banner ── */}
       <View style={styles.menuSection}>
@@ -1015,6 +1069,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.6,
+  },
+  groupIconWrap: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: `${Colors.accent}18`,
+    alignItems: "center", justifyContent: "center",
+  },
+  groupName: {
+    color: Colors.textPrimary,
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+  },
+  groupMeta: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
   },
 });
 

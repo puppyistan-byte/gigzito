@@ -731,6 +731,47 @@ export function useGZAnnounceMailing() {
   });
 }
 
+export function useUserDashboard() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["user-dashboard"],
+    queryFn: () => apiRequest<any>("/api/user/dashboard"),
+    enabled: !!token,
+    staleTime: 60_000,
+    retry: 1,
+  });
+}
+
+export function useFollowCounts() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["follow-counts"],
+    queryFn: () => apiRequest<{ followerCount: number; followingCount: number }>("/api/follow/counts"),
+    enabled: !!token,
+    staleTime: 60_000,
+  });
+}
+
+export function useMyGroups() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["groups", "mine"],
+    queryFn: () => apiRequest<any[]>("/api/groups"),
+    enabled: !!token,
+    staleTime: 60_000,
+  });
+}
+
+export function useMyComments() {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["comments", "mine"],
+    queryFn: () => apiRequest<any[]>("/api/listings/comments/mine"),
+    enabled: !!token,
+    staleTime: 60_000,
+  });
+}
+
 export function useGZSubscriberCount() {
   const { apiRequest, token } = useAuth();
   return useQuery({
