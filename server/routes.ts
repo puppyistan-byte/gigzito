@@ -2536,6 +2536,133 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ totalLikes: total });
   });
 
+  // ─── USER DASHBOARD ──────────────────────────────────────────────────────────
+  // GET /api/user/dashboard  — Single-call snapshot for the mobile home screen.
+  // Returns user info, profile, tier unlocks, stats, GeeZee card, recent listings,
+  // and groups — all filtered to what the session user's tier actually has access to.
+  app.get("/api/user/dashboard", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const [user, profile] = await Promise.all([
+        storage.getUserById(userId),
+        storage.getProfileByUserId(userId),
+      ]);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const tier = user.subscriptionTier ?? "GZLurker";
+
+      // Tier hierarchy helpers
+      const atLeast = (t: string) => {
+        const order = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
+        return order.indexOf(tier) >= order.indexOf(t);
+      };
+
+      const unlocks = {
+        canBrowse:       true,                           // everyone
+        canLike:         true,                           // everyone
+        canComment:      true,                           // everyone
+        canMessage:      true,                           // everyone
+        canPost:         atLeast("GZMarketer"),          // GZMarketer+
+        canPresent:      atLeast("GZMarketer"),          // Preemptive Marketing geo push
+        canBroadcast:    atLeast("GZMarketer"),          // broadcast to followers
+        hasGeeZeeCard:   atLeast("GZMarketer"),          // GeeZee card + Geemotion
+        hasGroups:       atLeast("GZGroups"),            // GZGroups workspace
+        canFlash:        atLeast("GZMarketerPro"),       // GigJack flash events
+        hasAdCenter:     atLeast("GZBusiness"),          // GZBusiness Ad Center
+        hasEnterprise:   atLeast("GZEnterprise"),        // GZEnterprise perks
+      };
+
+      // Parallel fetches gated by what the tier unlocks
+      const [totalLikes, followerCount, listings, geeZeeCard, groups] = await Promise.all([
+        profile ? storage.getProviderTotalLikes(profile.id) : Promise.resolve(0),
+        storage.getFollowerCount(userId),
+        profile ? storage.getListingsByProvider(profile.id) : Promise.resolve([]),
+        unlocks.hasGeeZeeCard ? storage.getGignessCardByUserId(userId) : Promise.resolve(undefined),
+        unlocks.hasGroups     ? storage.getMyGroups(userId)            : Promise.resolve([]),
+      ]);
+
+      const activeListings = listings.filter((l: any) => l.status === "ACTIVE");
+
+      return res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          subscriptionTier: tier,
+          emailVerified: user.emailVerified ?? false,
+          disclaimerAccepted: user.disclaimerAccepted ?? false,
+        },
+        profile: profile
+          ? {
+              id: profile.id,
+              displayName: profile.displayName,
+              username: profile.username,
+              bio: profile.bio,
+              avatarUrl: profile.avatarUrl,
+              thumbUrl: profile.thumbUrl,
+              location: profile.location,
+              primaryCategory: profile.primaryCategory,
+              websiteUrl: profile.websiteUrl,
+              contactEmail: profile.contactEmail,
+              contactPhone: profile.contactPhone,
+              contactTelegram: profile.contactTelegram,
+              instagramUrl: profile.instagramUrl,
+              youtubeUrl: profile.youtubeUrl,
+              tiktokUrl: profile.tiktokUrl,
+            }
+          : null,
+        stats: {
+          totalLikes,
+          followerCount,
+          totalListings: listings.length,
+          activeListings: activeListings.length,
+        },
+        unlocks,
+        // GeeZee card — only present when hasGeeZeeCard is true
+        geeZeeCard: unlocks.hasGeeZeeCard && geeZeeCard
+          ? {
+              id: geeZeeCard.id,
+              slogan: (geeZeeCard as any).slogan ?? null,
+              profilePic: (geeZeeCard as any).profilePic ?? null,
+              ageBracket: (geeZeeCard as any).ageBracket ?? null,
+              gender: (geeZeeCard as any).gender ?? null,
+              intent: (geeZeeCard as any).intent ?? null,
+              qrUuid: (geeZeeCard as any).qrUuid ?? null,
+              engageCount: (geeZeeCard as any).engageCount ?? 0,
+            }
+          : null,
+        // Recent active listings (latest 5)
+        recentListings: unlocks.canPost
+          ? activeListings.slice(0, 5).map((l: any) => ({
+              id: l.id,
+              title: l.title,
+              vertical: l.vertical,
+              videoUrl: l.videoUrl,
+              status: l.status,
+              likeCount: l.likeCount ?? 0,
+              dropDate: l.dropDate,
+            }))
+          : [],
+        // Groups — only present when hasGroups is true
+        groups: unlocks.hasGroups
+          ? (groups as any[]).slice(0, 10).map((g) => ({
+              id: g.id,
+              name: g.name,
+              description: g.description,
+              coverUrl: g.coverUrl,
+              isPrivate: g.isPrivate,
+              memberCount: g.memberCount ?? null,
+            }))
+          : [],
+      });
+    } catch (err) {
+      console.error("[user/dashboard]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // === LOVE VOTES ===
   const currentMonthKey = () => {
     const now = new Date();
