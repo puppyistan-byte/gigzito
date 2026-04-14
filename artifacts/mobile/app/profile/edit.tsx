@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
+  ActionSheetIOS,
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,7 +16,8 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@/contexts/AuthContext";
+import * as ImagePicker from "expo-image-picker";
+import { useAuth, BASE_URL } from "@/contexts/AuthContext";
 import { useFullProfile, useUpdateProfile, useUpdateAccount } from "@/hooks/useApi";
 import { TextInput } from "@/components/ui/TextInput";
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
@@ -63,13 +67,15 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
 }
 
 export default function EditProfileScreen() {
-  const { refreshMe } = useAuth();
+  const { refreshMe, token } = useAuth();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const { data: fullData, isLoading } = useFullProfile();
   const { mutateAsync: updateProfile, isPending: savingProfile } = useUpdateProfile();
   const { mutateAsync: updateAccount, isPending: savingAccount } = useUpdateAccount();
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const p = fullData?.profile;
   const acc = fullData?.account;
@@ -123,6 +129,65 @@ export default function EditProfileScreen() {
   }, [p, acc]);
 
   const saving = savingProfile || savingAccount;
+
+  const uploadPhoto = async (uri: string, mimeType = "image/jpeg") => {
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        name: "avatar.jpg",
+        type: mimeType,
+      } as any);
+      const res = await fetch(`${BASE_URL}/api/upload/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      setAvatarUrl(data.url ?? data.fileUrl ?? data.avatarUrl ?? uri);
+    } catch (e: any) {
+      Alert.alert("Upload Failed", e.message || "Could not upload photo. Try pasting a URL instead.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const launchPicker = async (useCamera: boolean) => {
+    const perm = useCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission Required", useCamera ? "Camera access is needed." : "Photo library access is needed.");
+      return;
+    }
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.85 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: "images", allowsEditing: true, aspect: [1, 1], quality: 0.85 });
+    if (!result.canceled && result.assets?.length > 0) {
+      const asset = result.assets[0];
+      await uploadPhoto(asset.uri, asset.mimeType ?? "image/jpeg");
+    }
+  };
+
+  const handlePickPhoto = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ["Cancel", "Take Photo", "Choose from Library", "Enter URL"], cancelButtonIndex: 0 },
+        (idx) => {
+          if (idx === 1) launchPicker(true);
+          else if (idx === 2) launchPicker(false);
+        }
+      );
+    } else {
+      Alert.alert("Profile Photo", "How would you like to set your photo?", [
+        { text: "Take Photo", onPress: () => launchPicker(true) },
+        { text: "Choose from Library", onPress: () => launchPicker(false) },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
+  };
 
   const handleSave = async () => {
     setError("");
@@ -188,19 +253,23 @@ export default function EditProfileScreen() {
       >
         {/* Avatar editor */}
         <View style={s.avatarSection}>
-          <View style={s.avatarWrap}>
+          <Pressable onPress={handlePickPhoto} style={s.avatarWrap} disabled={uploadingPhoto}>
             <Avatar uri={avatarUrl} name={displayName || "?"} size={86} />
             <View style={s.cameraBadge}>
-              <Feather name="camera" size={14} color="#fff" />
+              {uploadingPhoto
+                ? <ActivityIndicator size={12} color="#fff" />
+                : <Feather name="camera" size={14} color="#fff" />
+              }
             </View>
-          </View>
-          <View style={s.avatarUrlRow}>
+          </Pressable>
+          <View style={s.avatarRight}>
+            <Text style={s.avatarHint}>Tap photo to take or choose from library</Text>
             <TextInput
-              label="Photo URL"
-              icon="image"
+              label="Or paste a URL"
+              icon="link"
               value={avatarUrl}
               onChangeText={setAvatarUrl}
-              placeholder="https://your-photo-url.com/pic.jpg"
+              placeholder="https://example.com/photo.jpg"
               keyboardType="url"
               autoCapitalize="none"
               autoCorrect={false}
@@ -363,7 +432,12 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     borderWidth: 2, borderColor: Colors.dark,
   },
-  avatarUrlRow: { flex: 1 },
+  avatarRight: { flex: 1, gap: 6 },
+  avatarHint: {
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+  },
   avatarUrlInput: { flex: 1 },
   section: {
     backgroundColor: Colors.surface, borderRadius: 16,
