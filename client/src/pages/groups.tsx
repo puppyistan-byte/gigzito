@@ -270,7 +270,7 @@ export default function GroupsPage() {
             </button>
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Users className="w-6 h-6 text-red-500" /> GZGroups
+                <Users className="w-6 h-6 text-blue-400" /> GZGroups
               </h1>
               <p className="text-sm text-muted-foreground mt-1">Private clubhouses for your team, crew, or community</p>
             </div>
@@ -328,10 +328,10 @@ export default function GroupsPage() {
         </div>
 
         {/* ── Marketing Hero ── */}
-        <div className="mb-8 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #1a0a0a 0%, #0f0f0f 50%, #0a0a1a 100%)", border: "1px solid rgba(220,38,38,0.35)" }}>
+        <div className="mb-8 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(135deg, #0a0f1a 0%, #0f0f0f 50%, #0a0a1a 100%)", border: "1px solid rgba(59,130,246,0.35)" }}>
           <div className="px-5 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="flex items-center gap-2 mb-2">
-              <span style={{ background: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.4)", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: "#f87171" }}>GZGroups</span>
+              <span style={{ background: "rgba(59,130,246,0.2)", border: "1px solid rgba(59,130,246,0.4)", borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: "#60a5fa" }}>GZGroups</span>
             </div>
             <h2 className="text-xl font-extrabold leading-tight" style={{ color: "#ffffff" }}>Build Your Tribe. Not Your Monthly Bill.</h2>
             <p className="text-sm mt-2 leading-relaxed" style={{ color: "#a1a1aa" }}>

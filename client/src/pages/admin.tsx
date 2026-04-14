@@ -588,8 +588,8 @@ export default function AdminPage() {
   const GZ_TIERS = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"] as const;
   const GZ_TIER_COLORS: Record<string, string> = {
     GZLurker:     "bg-zinc-500/20 text-zinc-400",
-    GZGroups:     "bg-green-500/20 text-green-400",
-    GZMarketer:   "bg-blue-500/20 text-blue-400",
+    GZGroups:     "bg-blue-500/20 text-blue-400",
+    GZMarketer:   "bg-violet-500/20 text-violet-400",
     GZMarketerPro:"bg-purple-500/20 text-purple-400",
     GZBusiness:   "bg-amber-500/20 text-amber-400",
   };
@@ -1239,7 +1239,7 @@ export default function AdminPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className={`h-7 px-2 text-xs border ${u.groupsEnabled ? "border-green-500/40 text-green-400 bg-green-500/10 hover:bg-green-500/20" : "border-[#2a2a2a] text-[#555] hover:text-green-400 hover:border-green-500/30"}`}
+                      className={`h-7 px-2 text-xs border ${u.groupsEnabled ? "border-blue-500/40 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-[#2a2a2a] text-[#555] hover:text-blue-400 hover:border-blue-500/30"}`}
                       onClick={() => groupsEnabledMutation.mutate({ id: u.id, enabled: !u.groupsEnabled })}
                       disabled={groupsEnabledMutation.isPending}
                       data-testid={`button-groups-toggle-${u.id}`}

@@ -783,16 +783,16 @@ export default function ProviderProfilePage() {
             const hasGroups = groupsEnabled || ["GZGroups", "GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(tier) ||
               ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(role);
             return hasGroups ? (
-              <div className="rounded-xl border border-green-700/40 bg-green-950/10 p-4 space-y-3" data-testid="section-gzgroups-profile">
+              <div className="rounded-xl border border-blue-700/40 bg-blue-950/10 p-4 space-y-3" data-testid="section-gzgroups-profile">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-green-900/40 border border-green-700/40 flex items-center justify-center shrink-0">
-                    <Users className="h-3.5 w-3.5 text-green-400" />
+                  <div className="w-7 h-7 rounded-lg bg-blue-900/40 border border-blue-700/40 flex items-center justify-center shrink-0">
+                    <Users className="h-3.5 w-3.5 text-blue-400" />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white">GZGroups</p>
                     <p className="text-[11px] text-[#666]">Your private community clubhouses</p>
                   </div>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded border border-green-700/50 text-green-300 bg-green-900/30 uppercase tracking-widest">
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded border border-blue-700/50 text-blue-300 bg-blue-900/30 uppercase tracking-widest">
                     {tier}
                   </span>
                 </div>
@@ -802,20 +802,20 @@ export default function ProviderProfilePage() {
                   <div className="space-y-1.5" data-testid="list-my-groups">
                     {myGroups.map((g) => (
                       <a key={g.id} href={`/groups/${g.id}`} data-testid={`link-group-${g.id}`}
-                        className="flex items-center gap-3 rounded-lg border border-green-800/30 bg-green-900/20 hover:bg-green-900/40 transition-colors px-3 py-2 group">
+                        className="flex items-center gap-3 rounded-lg border border-blue-800/30 bg-blue-900/20 hover:bg-blue-900/40 transition-colors px-3 py-2 group">
                         {g.coverUrl ? (
                           <img src={g.coverUrl} alt={g.name} className="w-8 h-8 rounded-md object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-8 h-8 rounded-md bg-green-800/50 flex items-center justify-center flex-shrink-0">
-                            <Users className="w-3.5 h-3.5 text-green-400" />
+                          <div className="w-8 h-8 rounded-md bg-blue-800/50 flex items-center justify-center flex-shrink-0">
+                            <Users className="w-3.5 h-3.5 text-blue-400" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate group-hover:text-green-300 transition-colors">{g.name}</p>
+                          <p className="text-sm font-semibold text-white truncate group-hover:text-blue-300 transition-colors">{g.name}</p>
                           <p className="text-[10px] text-[#666]">{g.memberCount} member{g.memberCount !== 1 ? "s" : ""}</p>
                         </div>
                         <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 ${
-                          g.myRole === "admin" ? "bg-amber-900/40 text-amber-400 border border-amber-700/40" : "bg-green-900/40 text-green-400 border border-green-700/40"
+                          g.myRole === "admin" ? "bg-amber-900/40 text-amber-400 border border-amber-700/40" : "bg-blue-900/40 text-blue-400 border border-blue-700/40"
                         }`}>{g.myRole}</span>
                       </a>
                     ))}
@@ -855,10 +855,10 @@ export default function ProviderProfilePage() {
                   <span className="ml-auto text-[9px] font-semibold text-[#444] uppercase tracking-wider">Locked</span>
                 </div>
                 <p className="text-xs text-[#444] leading-relaxed">
-                  Community groups are available to <span className="text-green-500">GZGroups</span> ($8/mo) and above. Create your tribe — unlimited members, no extra cost.
+                  Community groups are available to <span className="text-blue-400">GZGroups</span> ($8/mo) and above. Create your tribe — unlimited members, no extra cost.
                 </p>
                 <a href="/pricing" data-testid="btn-upgrade-for-groups">
-                  <Button type="button" variant="ghost" className="w-full border border-[#2a2a2a] text-[#555] hover:text-white hover:border-green-700/50 text-xs rounded-xl h-9">
+                  <Button type="button" variant="ghost" className="w-full border border-[#2a2a2a] text-[#555] hover:text-white hover:border-blue-700/50 text-xs rounded-xl h-9">
                     View Upgrade Plans
                   </Button>
                 </a>

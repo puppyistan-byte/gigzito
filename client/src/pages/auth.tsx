@@ -14,7 +14,7 @@ import logoImg from "@assets/gigzito-logo-tight_1772926617316.png";
 
 const VALID_TIERS = ["GZLurker", "GZGroups", "GZMarketer", "GZMarketerPro", "GZBusiness"];
 const TIER_COLORS: Record<string, string> = {
-  GZLurker: "#6b7280", GZGroups: "#22c55e", GZMarketer: "#7c3aed",
+  GZLurker: "#6b7280", GZGroups: "#60a5fa", GZMarketer: "#7c3aed",
   GZMarketerPro: "#ff2b2b", GZBusiness: "#f59e0b",
 };
 
