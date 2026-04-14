@@ -61,56 +61,21 @@ const TIER_FEATURES: {
 ];
 
 function TierDashboard({ tier }: { tier: string }) {
-  const tierIndex = TIER_ORDER.indexOf(tier);
   const color = TIER_COLORS[tier] ?? "#71717a";
   const label = TIER_LABELS[tier] ?? tier;
 
   return (
     <View style={tierStyles.wrapper}>
-      <View style={tierStyles.headerRow}>
-        <View style={tierStyles.headerLeft}>
-          <View style={[tierStyles.tierDot, { backgroundColor: color }]} />
-          <Text style={tierStyles.headerTitle}>Your Plan</Text>
-        </View>
-        <View style={[tierStyles.tierBadge, { backgroundColor: `${color}22`, borderColor: `${color}55` }]}>
-          <Text style={[tierStyles.tierBadgeText, { color }]}>{label.toUpperCase()}</Text>
-        </View>
-      </View>
-
-      <View style={tierStyles.card}>
-        {TIER_FEATURES.map((feature, i) => {
-          const featureIndex = TIER_ORDER.indexOf(feature.minTier);
-          const unlocked = tierIndex >= featureIndex;
-          return (
-            <View key={feature.label} style={[tierStyles.featureRow, i < TIER_FEATURES.length - 1 && tierStyles.featureRowBorder]}>
-              <View style={[tierStyles.featureIconWrap, { backgroundColor: unlocked ? `${feature.accentColor}22` : "#1A1A1A" }]}>
-                <Feather name={feature.icon} size={14} color={unlocked ? feature.accentColor : Colors.textMuted} />
-              </View>
-              <View style={tierStyles.featureText}>
-                <Text style={[tierStyles.featureLabel, !unlocked && tierStyles.featureLabelLocked]}>{feature.label}</Text>
-                <Text style={tierStyles.featureDesc}>{feature.desc}</Text>
-              </View>
-              <View style={[tierStyles.featureStatus, { backgroundColor: unlocked ? "#00D9A522" : "#1A1A1A" }]}>
-                {unlocked
-                  ? <Feather name="check" size={12} color="#00D9A5" />
-                  : <Feather name="lock" size={12} color={Colors.textMuted} />
-                }
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
-      {tier === "GZLurker" || tier === "GZMarketer" ? (
-        <View style={tierStyles.upgradeRow}>
-          <Feather name="arrow-up-circle" size={14} color={Colors.purple} />
-          <Text style={tierStyles.upgradeText}>
-            {tier === "GZLurker"
-              ? "Upgrade to GZMarketer to unlock GeeZee Cards and more"
-              : "Upgrade to GZMarketerPro to unlock GZFlash Ad Center"}
-          </Text>
-        </View>
-      ) : null}
+      <Pressable
+        style={[tierStyles.planBtn, { backgroundColor: `${color}20`, borderColor: `${color}60` }]}
+        onPress={() => Linking.openURL("https://www.gigzito.com/pricing")}
+      >
+        <View style={[tierStyles.planDot, { backgroundColor: color }]} />
+        <Text style={[tierStyles.planLabel, { color }]}>
+          {label.toUpperCase()}
+        </Text>
+        <Feather name="external-link" size={13} color={color} style={{ marginLeft: "auto" }} />
+      </Pressable>
     </View>
   );
 }
@@ -119,102 +84,25 @@ const tierStyles = StyleSheet.create({
   wrapper: {
     marginHorizontal: 20,
     marginBottom: 8,
-    gap: 8,
   },
-  headerRow: {
+  planBtn: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  tierDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  headerTitle: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-  },
-  tierBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  tierBadgeText: {
-    fontSize: 10,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.5,
-  },
-  card: {
-    backgroundColor: Colors.surface,
+    gap: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.surfaceBorder,
-    overflow: "hidden",
   },
-  featureRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    gap: 12,
+  planDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
   },
-  featureRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceBorder,
-  },
-  featureIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  featureText: {
-    flex: 1,
-    gap: 1,
-  },
-  featureLabel: {
-    color: Colors.textPrimary,
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-  },
-  featureLabelLocked: {
-    color: Colors.textMuted,
-  },
-  featureDesc: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-  },
-  featureStatus: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  upgradeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 4,
-  },
-  upgradeText: {
-    color: Colors.purple,
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    flex: 1,
+  planLabel: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.6,
   },
 });
 

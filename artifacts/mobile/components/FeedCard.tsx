@@ -170,12 +170,9 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
         setLikeCount(prevCount);
       },
       onSuccess: (data: any) => {
-        // Only override if the API explicitly returns typed values
-        // Never let an API 0 or undefined wipe out a valid optimistic count
         if (typeof data?.liked === "boolean") setLiked(data.liked);
-        if (typeof data?.likeCount === "number" && data.likeCount > 0) {
-          setLikeCount(data.likeCount);
-        }
+        const count = data?.likeCount ?? data?.totalLikes;
+        if (typeof count === "number") setLikeCount(count);
       },
     });
   }, [liked, likeCount, token, toggleLike]);
@@ -472,9 +469,13 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
         {/* GZGroups — top of rail */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/groups" as any); }}
-          style={styles.gzGroupsRailBtn}
+          style={styles.gzRailLogoBtn}
         >
-          <Feather name="users" size={22} color="#60a5fa" />
+          <Image
+            source={require("@/assets/images/gz-logo.png")}
+            style={[styles.gzRailLogo, { tintColor: "#60a5fa" }]}
+            resizeMode="contain"
+          />
         </Pressable>
 
         {/* GZFlash */}

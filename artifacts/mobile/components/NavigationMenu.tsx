@@ -141,7 +141,13 @@ export function NavigationMenu({ open, onClose }: Props) {
 
   return (
     <View style={styles.overlay}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View
+        style={styles.backdrop}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+      >
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+      </View>
       <Animated.View
         style={[
           styles.drawer,
@@ -158,7 +164,8 @@ export function NavigationMenu({ open, onClose }: Props) {
 
         <View style={styles.divider} />
 
-        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} nestedScrollEnabled>
+
           <View style={styles.navList}>
             {NAV_ITEMS.map((item) => {
               const active = item.route ? isActive(item.route) : false;

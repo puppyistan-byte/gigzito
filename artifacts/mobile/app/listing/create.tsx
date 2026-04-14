@@ -113,7 +113,7 @@ export default function CreateListingScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
       allowsEditing: false,
-      videoMaxDuration: 60,
+      videoMaxDuration: 180,
     });
     if (result.canceled || !result.assets?.length) return;
 

@@ -49,8 +49,9 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       setIsTabFocused(true);
+      refetch();
       return () => setIsTabFocused(false);
-    }, [])
+    }, [refetch])
   );
 
   const onViewableItemsChanged = useCallback(
