@@ -44,7 +44,7 @@ import { InviteCard } from "@/components/invite-card";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCardSection } from "@/components/gig-card-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
-import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion, GZMusicTrack, GzFlashAd } from "@shared/schema";
+import type { ListingWithProvider, ProfileCompletionStatus, ProviderProfile, Lead, GigJackWithProvider, CardMessage, ListingComment, AdInquiry, AudienceBroadcast, GeoTargetCampaign, ZeeMotion, GZMusicTrack, GzFlashAd, ProfileWallPost } from "@shared/schema";
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE:  "bg-green-500/15 text-green-400 border border-green-500/25",
@@ -571,6 +571,40 @@ function ProviderDashboardInner() {
   const unreadComments = videoComments.filter((c) => !c.isRead).length;
   const unreadInquiries = adInquiries.filter((i) => !i.isRead).length;
   const totalUnread = unreadGeezees + unreadComments + unreadInquiries;
+
+  // ── My Wall ─────────────────────────────────────────────────────────────────
+  const [wallUpdateText, setWallUpdateText] = useState("");
+  const profileId = (profile as ProviderProfile | undefined)?.id;
+  const { data: myWallPosts = [], isLoading: wallPostsLoading } = useQuery<ProfileWallPost[]>({
+    queryKey: ["/api/profile", profileId, "wall"],
+    queryFn: () => fetch(`/api/profile/${profileId}/wall`).then((r) => r.json()),
+    enabled: !!profileId,
+  });
+  const postWallMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/profile/${profileId}/wall`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: wallUpdateText }),
+      });
+      if (!res.ok) throw new Error("Failed to post");
+      return res.json();
+    },
+    onSuccess: () => {
+      setWallUpdateText("");
+      queryClient.invalidateQueries({ queryKey: ["/api/profile", profileId, "wall"] });
+      toast({ title: "Update posted!", description: "Your wall update is now live on your public profile." });
+    },
+    onError: () => toast({ title: "Failed to post", variant: "destructive" }),
+  });
+  const deleteWallPostMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      const res = await fetch(`/api/profile/wall/${postId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/profile", profileId, "wall"] }),
+    onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+  });
 
   const [replyingId, setReplyingId] = useState<string | null>(null); // "geezee-5" | "comment-3" | "inquiry-7"
   const [replyText, setReplyText] = useState("");
@@ -2108,6 +2142,93 @@ function ProviderDashboardInner() {
             </div>
           </div>
         )}
+
+        {/* ── My Wall section ───────────────────────────────────────────────────── */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2" data-testid="text-wall-title">
+              <MessageSquare className="h-4 w-4 text-red-500" /> My Wall
+            </h2>
+            {profile && (
+              <a
+                href={`/provider/${profile.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#888] hover:text-white transition-colors flex items-center gap-1"
+                data-testid="link-view-public-wall"
+              >
+                View public wall <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+
+          {/* Post an update */}
+          <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4 space-y-3 mb-3">
+            <p className="text-[10px] font-bold text-[#444] uppercase tracking-widest">Post an Update</p>
+            <Textarea
+              placeholder="Share an update with your visitors…"
+              value={wallUpdateText}
+              onChange={(e) => setWallUpdateText(e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] text-sm resize-none focus:border-[#ff2b2b]"
+              data-testid="textarea-wall-update"
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[#333]">{wallUpdateText.length}/500</span>
+              <Button
+                size="sm"
+                onClick={() => postWallMutation.mutate()}
+                disabled={!wallUpdateText.trim() || postWallMutation.isPending}
+                className="bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] rounded-xl h-8 px-4 text-xs font-bold transition-colors"
+                data-testid="button-post-wall-update"
+              >
+                {postWallMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Send className="h-3.5 w-3.5 mr-1" />Post</>}
+              </Button>
+            </div>
+          </div>
+
+          {/* Wall post list */}
+          {wallPostsLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full bg-[#111] rounded-xl" />)}
+            </div>
+          ) : myWallPosts.length === 0 ? (
+            <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-wall-posts">
+              <Inbox className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-sm">No wall posts yet.</p>
+              <p className="text-[#333] text-xs mt-1">Post an update above, or visitors will leave messages on your public profile wall.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {myWallPosts.map((post) => (
+                <div key={post.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-3 flex items-start gap-3" data-testid={`wall-post-row-${post.id}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold text-white">{post.authorName}</span>
+                      {post.authorUserId === (user as any)?.user?.id && (
+                        <span className="text-[9px] font-bold bg-[#ff2b2b]/15 text-[#ff2b2b] border border-[#ff2b2b]/30 rounded px-1.5 py-0.5 uppercase tracking-wider">You</span>
+                      )}
+                      <span className="text-[10px] text-[#444] ml-auto">
+                        {new Date(post.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#aaa] leading-relaxed">{post.message}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteWallPostMutation.mutate(post.id)}
+                    disabled={deleteWallPostMutation.isPending}
+                    className="shrink-0 p-1.5 rounded-lg text-[#333] hover:text-[#ff2b2b] hover:bg-[#ff2b2b]/10 transition-colors mt-0.5"
+                    title="Delete"
+                    data-testid={`button-delete-wall-post-${post.id}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* CTA Leads section */}
         <div>

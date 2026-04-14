@@ -1137,7 +1137,7 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
             </div>
 
             {/* Tags */}
-            {listing.tags && listing.tags.length > 0 && (
+            {Array.isArray(listing.tags) && listing.tags.length > 0 && (
               <div className="flex gap-2 text-[11px] text-white/50 flex-wrap" style={{ paddingRight: "64px" }}>
                 {listing.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}
               </div>

@@ -607,7 +607,7 @@ export default function ProviderPublicPage() {
                                       <ExternalLink className="h-2.5 w-2.5" /> {l.ctaLabel}
                                     </span>
                                   )}
-                                  {l.tags?.slice(0, 2).map((tag) => (
+                                  {Array.isArray(l.tags) && l.tags.slice(0, 2).map((tag) => (
                                     <span key={tag} className="flex items-center gap-0.5 text-[10px] text-[#444]">
                                       <Tag className="h-2.5 w-2.5" />#{tag}
                                     </span>
