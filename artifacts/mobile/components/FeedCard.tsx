@@ -318,11 +318,32 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
     }
   }, [paused, ytVideoId, player, effectiveVideoUri, ytCommand]);
 
-  // YouTube embed URL — autoplay, looped, no controls, no related videos.
-  // muted=1 is required for autoplay policy; we apply the desired mute state
-  // via postMessage after the player is ready (handled by the iframe itself).
+  // YouTube embed URL — for web iframe only.
   const ytEmbedSrc = ytVideoId
     ? `https://www.youtube.com/embed/${ytVideoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytVideoId}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1`
+    : null;
+
+  // For native WebView we inject a full HTML page so YouTube can't detect
+  // the Android WebView user-agent and block playback.
+  const ytWebViewHtml = ytVideoId
+    ? `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{width:100%;height:100%;background:#000;overflow:hidden;}
+    iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
+  </style>
+</head>
+<body>
+  <iframe
+    src="https://www.youtube.com/embed/${ytVideoId}?autoplay=1&mute=${muted ? 1 : 0}&loop=1&playlist=${ytVideoId}&playsinline=1&controls=0&rel=0&modestbranding=1&enablejsapi=1"
+    allow="autoplay;fullscreen;encrypted-media"
+    allowfullscreen
+  ></iframe>
+</body>
+</html>`
     : null;
 
   return (
@@ -355,11 +376,14 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
               <WebView
                 ref={ytWebViewRef}
                 key={ytVideoId}
-                source={{ uri: ytEmbedSrc }}
+                source={{ html: ytWebViewHtml!, baseUrl: "https://www.youtube.com" }}
                 style={styles.bg}
+                originWhitelist={["*"]}
                 allowsInlineMediaPlayback
                 mediaPlaybackRequiresUserAction={false}
                 javaScriptEnabled
+                domStorageEnabled
+                thirdPartyCookiesEnabled
                 scrollEnabled={false}
                 bounces={false}
                 overScrollMode="never"
