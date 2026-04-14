@@ -197,8 +197,10 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
   };
 
   const handleAvatar = () => {
-    if (item.provider?.id) {
-      router.push({ pathname: "/listing/[id]", params: { id: item.id } });
+    const providerId = item.provider?.id ?? item.providerId;
+    if (providerId) {
+      Haptics.selectionAsync();
+      router.push({ pathname: "/provider/[id]", params: { id: providerId } });
     }
   };
 

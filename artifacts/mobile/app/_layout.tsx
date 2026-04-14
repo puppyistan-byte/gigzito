@@ -58,6 +58,7 @@ function RootLayoutNav() {
       <Stack.Screen name="gzmusic/upload" options={{ headerShown: false, animation: "slide_from_bottom" }} />
       <Stack.Screen name="groups/[id]" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen name="groups/create" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+      <Stack.Screen name="provider/[id]" options={{ headerShown: false, animation: "slide_from_right" }} />
     </Stack>
   );
 }

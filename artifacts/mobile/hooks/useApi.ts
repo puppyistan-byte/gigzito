@@ -335,6 +335,67 @@ export function useWhoLovedMe() {
   });
 }
 
+export function useProviderProfile(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["provider-profile", id],
+    queryFn: () => apiRequest<any>(`/api/profile/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useProviderWall(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["provider-wall", id],
+    queryFn: () => apiRequest<any[]>(`/api/profile/${id}/wall`),
+    enabled: !!id,
+  });
+}
+
+export function usePostToProviderWall(id: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) =>
+      apiRequest<any>(`/api/profile/${id}/wall`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["provider-wall", id] }),
+  });
+}
+
+export function useProviderLoveStatus(providerId: number | string) {
+  const { apiRequest, token } = useAuth();
+  return useQuery({
+    queryKey: ["provider-love-status", providerId],
+    queryFn: () => apiRequest<{ loved: boolean; loveCount: number }>(`/api/love/${providerId}/status`),
+    enabled: !!providerId && !!token,
+  });
+}
+
+export function useToggleLoveProvider(providerId: number | string) {
+  const { apiRequest } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiRequest<any>(`/api/love/${providerId}`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["provider-love-status", providerId] });
+      qc.invalidateQueries({ queryKey: ["provider-profile", providerId] });
+    },
+  });
+}
+
+export function useProviderListings(id: number | string) {
+  const { apiRequest } = useAuth();
+  return useQuery({
+    queryKey: ["provider-listings", id],
+    queryFn: () => apiRequest<any[]>(`/api/listings?providerId=${id}`),
+    enabled: !!id,
+  });
+}
+
 export function useGeeZeeInbox() {
   const { apiRequest, token } = useAuth();
   return useQuery({
