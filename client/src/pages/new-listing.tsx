@@ -244,8 +244,8 @@ export default function NewListingPage() {
       v.onerror = () => { clearTimeout(timer); cleanup(0); };
       v.src = objectUrl;
     });
-    if (duration > 0 && duration > 61) {
-      toast({ title: "Video too long", description: `Your video is ${Math.ceil(duration)}s. Maximum is 60 seconds.`, variant: "destructive" });
+    if (duration > 0 && duration > 181) {
+      toast({ title: "Video too long", description: `Your video is ${Math.ceil(duration)}s. Maximum is 3 minutes (180 seconds).`, variant: "destructive" });
       return;
     }
     setUploadedFileName(file.name);
@@ -487,7 +487,7 @@ export default function NewListingPage() {
                       <Film className="h-8 w-8 mx-auto mb-3" style={{ color: "#333" }} />
                       <p className="text-sm font-semibold text-[#555]">Drop your video here</p>
                       <p className="text-xs text-[#333] mt-1">or click to browse</p>
-                      <p className="text-[10px] text-[#2a2a2a] mt-3">MP4 · MOV · WebM · Max 60s · Max 200MB</p>
+                      <p className="text-[10px] text-[#2a2a2a] mt-3">MP4 · MOV · WebM · Max 3 min · Max 200MB</p>
                     </div>
                   )}
 

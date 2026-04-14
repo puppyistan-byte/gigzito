@@ -1145,7 +1145,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       title: z.string().min(1).max(200),
       postType: z.enum(["VIDEO", "TEXT"]).optional().default("VIDEO"),
       videoUrl: z.union([z.string().url(), z.string().startsWith("/uploads/"), z.literal("")]).optional(),
-      durationSeconds: z.coerce.number().int().min(1).max(60).optional(),
+      durationSeconds: z.coerce.number().int().min(1).max(180).optional(),
       description: z.string().max(1000).optional(),
       tags: z.array(z.string()).max(10).optional(),
       ctaLabel: z.string().max(60).optional(),
@@ -1170,7 +1170,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const listing = await storage.createListing({
         ...data,
         videoUrl: data.videoUrl || null,
-        durationSeconds: data.durationSeconds ?? (postType === "VIDEO" ? 60 : null),
+        durationSeconds: data.durationSeconds ?? (postType === "VIDEO" ? 180 : null),
         postType,
         ctaLabel: data.ctaLabel || null,
         ctaUrl: data.ctaUrl || null,
