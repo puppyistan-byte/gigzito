@@ -12,7 +12,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Constants from "expo-constants";
-import { File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
 import Colors from "@/constants/colors";
 
@@ -66,20 +66,22 @@ export function BetaLaunchModal() {
     setDlState("downloading");
 
     try {
-      const destFile = new File(Paths.cache, "gigzito-update.apk");
-      if (destFile.exists) {
-        destFile.delete();
-      }
+      const dest = (FileSystem.cacheDirectory ?? "") + "gigzito-update.apk";
 
-      const downloaded = await File.downloadFileAsync(apkUrl, destFile);
+      const { uri } = await FileSystem.downloadAsync(apkUrl, dest);
 
       setDlState("installing");
 
-      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
-        data: downloaded.uri,
-        flags: 1,
-        type: "application/vnd.android.package-archive",
-      });
+      const contentUri = await FileSystem.getContentUriAsync(uri);
+
+      await IntentLauncher.startActivityAsync(
+        "android.intent.action.INSTALL_PACKAGE",
+        {
+          data: contentUri,
+          flags: 1,
+          type: "application/vnd.android.package-archive",
+        }
+      );
 
       setDlState("idle");
       setVisible(false);
