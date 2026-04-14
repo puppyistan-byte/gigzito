@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import jwt from "jsonwebtoken";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -109,6 +110,24 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// ── Global JWT middleware ─────────────────────────────────────────────────────
+// Populates req.session from a Bearer token on every /api request so that
+// ALL route handlers (whether they use requireAuth or check session directly)
+// automatically support mobile JWT auth — no per-route changes needed.
+app.use("/api", (req: any, _res: Response, next: NextFunction) => {
+  if (req.session?.userId) { next(); return; } // already authed via cookie
+  const auth = (req.headers["authorization"] as string) ?? "";
+  if (!auth.startsWith("Bearer ")) { next(); return; }
+  try {
+    const secret = process.env.SESSION_SECRET ?? "gigzito-dev-secret";
+    const payload = jwt.verify(auth.slice(7), secret) as any;
+    req.session = req.session ?? {};
+    req.session.userId = payload.userId;
+    req.session.role = payload.role;
+    req.session.subscriptionTier = payload.subscriptionTier;
+  } catch { /* invalid / expired token — leave session empty, routes will 401 */ }
+  next();
+});
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
