@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   gzGroupsRailLogo: {
     width: 44,
     height: 44,
-    tintColor: "#2563EB",
+    tintColor: "#60a5fa",
   },
   gzPlayPauseIconWrap: {
     position: "absolute",

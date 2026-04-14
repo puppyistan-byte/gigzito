@@ -44,7 +44,7 @@ import {
 } from "@/hooks/useApi";
 import Colors from "@/constants/colors";
 
-const PURPLE = Colors.purple;
+const PURPLE = "#60a5fa";
 
 const SUB_TABS = ["Wall", "Members", "Kanban", "Events", "Endeavors", "Retros", "Wallets"] as const;
 type SubTab = typeof SUB_TABS[number];

@@ -19,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useCreateGroup } from "@/hooks/useApi";
 import Colors from "@/constants/colors";
 
-const PURPLE = Colors.purple;
+const PURPLE = "#60a5fa";
 
 export default function CreateGroupScreen() {
   const insets = useSafeAreaInsets();
