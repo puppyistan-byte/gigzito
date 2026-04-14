@@ -60,6 +60,7 @@ import KeepingItGeezeePage from "@/pages/keeping-it-geezee";
 import WhatIsGigJackPage from "@/pages/what-is-gigjack";
 import PreemptiveMarketingPage from "@/pages/preemptive-marketing";
 import GeeZeeProfilePage from "@/pages/geezee-profile";
+import QrRedirectPage from "@/pages/qr-redirect";
 import GzBusinessPage from "@/pages/gz-business";
 import OfferCenterPage from "@/pages/offer-center";
 import InviteLandingPage from "@/pages/invite-landing";
@@ -111,6 +112,7 @@ function Router() {
       <Route path="/groups" component={GroupsPage} />
       <Route path="/groups/:id" component={GroupDetailPage} />
       <Route path="/join-group/:token" component={JoinGroupPage} />
+      <Route path="/qr/:uuid" component={QrRedirectPage} />
       <Route component={NotFound} />
     </Switch>
   );
