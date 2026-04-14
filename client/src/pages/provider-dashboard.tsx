@@ -739,6 +739,19 @@ function ProviderDashboardInner() {
     onError: () => toast({ title: "Error updating listing", variant: "destructive" }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/listings/${id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error("Failed to delete listing");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listings/mine"] });
+      toast({ title: "Video deleted", description: "Your video and all its data have been permanently removed." });
+    },
+    onError: () => toast({ title: "Error deleting video", description: "Could not delete. Please try again.", variant: "destructive" }),
+  });
+
   const appealMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("POST", `/api/listings/${id}/appeal`, {});
@@ -2298,9 +2311,9 @@ function ProviderDashboardInner() {
       {confirmRemoveListing && (
         <DeleteConfirmDialog
           title={confirmRemoveListing.title}
-          isPending={statusMutation.isPending}
+          isPending={deleteMutation.isPending}
           onConfirm={() => {
-            statusMutation.mutate({ id: confirmRemoveListing.id, status: "REMOVED" });
+            deleteMutation.mutate(confirmRemoveListing.id);
             setConfirmRemoveListing(null);
           }}
           onCancel={() => setConfirmRemoveListing(null)}

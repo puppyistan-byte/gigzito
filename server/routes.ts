@@ -1240,6 +1240,39 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(updated);
   });
 
+  // Helper: permanently delete an uploaded video file from disk
+  function deleteUploadedFile(videoUrl: string | null | undefined) {
+    if (!videoUrl) return;
+    if (!videoUrl.startsWith("/uploads/videos/")) return;
+    try {
+      const filePath = path.join(process.cwd(), videoUrl.slice(1));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (err) {
+      console.error("[deleteUploadedFile] failed to remove file:", videoUrl, err);
+    }
+  }
+
+  // User: permanently delete own listing + video file
+  app.delete("/api/listings/:id", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const profile = await storage.getProfileByUserId(userId);
+    if (!profile) return res.status(403).json({ message: "Provider profile not found" });
+    try {
+      const listing = await storage.getListingById(id);
+      if (!listing) return res.status(404).json({ message: "Listing not found" });
+      if (listing.providerId !== profile.id) return res.status(403).json({ message: "Not your listing" });
+      deleteUploadedFile(listing.videoUrl);
+      await storage.deleteListing(id);
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("[delete listing]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   // === BIF SCAN ROUTES ===
   // Bif webhook callback — called by the VPS bot after scanning
   app.post("/api/scan/callback", async (req, res) => {
@@ -2341,20 +2374,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid id" });
     const { reason, sendEmail } = req.body ?? {};
-    // Look up listing before deleting so we can send the notification
+    // Look up listing before deleting (need videoUrl for file cleanup + email notification)
     let contactEmail: string | null = null;
     let displayName = "Provider";
     let listingTitle = "Your listing";
-    if (sendEmail && reason) {
-      try {
-        const fullListing = await storage.getListingById(id);
-        if (fullListing) {
-          listingTitle = fullListing.title;
-          contactEmail = fullListing.provider?.contactEmail ?? null;
-          displayName = fullListing.provider?.displayName || "Provider";
-        }
-      } catch {}
-    }
+    let videoUrlToDelete: string | null = null;
+    try {
+      const fullListing = await storage.getListingById(id);
+      if (fullListing) {
+        listingTitle = fullListing.title;
+        contactEmail = fullListing.provider?.contactEmail ?? null;
+        displayName = fullListing.provider?.displayName || "Provider";
+        videoUrlToDelete = fullListing.videoUrl ?? null;
+      }
+    } catch {}
+    deleteUploadedFile(videoUrlToDelete);
     await storage.deleteListing(id);
     if (sendEmail && reason && contactEmail) {
       try {
