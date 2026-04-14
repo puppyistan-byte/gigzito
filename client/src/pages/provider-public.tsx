@@ -14,6 +14,7 @@ import {
   Megaphone, CreditCard, LayoutGrid, User, Image, ShoppingBag, MessageSquare,
   Clock, Store, ExternalLink, Play, Tag, Loader2, Trash2, Send,
   Music, Upload, Headphones, Download, FileBadge2, Shield, UserPlus, UserCheck,
+  Share2, Copy, Check, X,
 } from "lucide-react";
 import { SiTiktok, SiFacebook, SiDiscord, SiX } from "react-icons/si";
 import { apiRequest } from "@/lib/queryClient";
@@ -56,6 +57,8 @@ export default function ProviderPublicPage() {
   const [wallMessage, setWallMessage] = useState("");
   const [guestName, setGuestName] = useState("");
   const [expandedTrackId, setExpandedTrackId] = useState<number | null>(null);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery<ProviderProfile & { user?: { subscriptionTier?: string; role?: string } }>({
     queryKey: ["/api/profile", id],
@@ -339,14 +342,145 @@ export default function ProviderPublicPage() {
                       {hasVoted ? "Love shown!" : "Show Love"}
                     </button>
 
-                    <Link href={`/advertise?ref=${profile?.username ?? id}`}>
-                      <a
-                        className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-[#ff2b2b]/40 bg-[#ff2b2b]/10 text-[#ff2b2b] hover:bg-[#ff2b2b]/20 hover:border-[#ff2b2b]/70 transition-all active:scale-95"
-                        data-testid="link-promote-business"
-                      >
-                        <Megaphone className="h-3.5 w-3.5" /> Promote My Business
-                      </a>
-                    </Link>
+                    {myUserId === profileUserId ? (
+                      /* Owner: keep the Promote My Business link */
+                      <Link href={`/advertise?ref=${profile?.username ?? id}`}>
+                        <a
+                          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-[#ff2b2b]/40 bg-[#ff2b2b]/10 text-[#ff2b2b] hover:bg-[#ff2b2b]/20 hover:border-[#ff2b2b]/70 transition-all active:scale-95"
+                          data-testid="link-promote-business"
+                        >
+                          <Megaphone className="h-3.5 w-3.5" /> Promote My Business
+                        </a>
+                      </Link>
+                    ) : (
+                      /* Visitor: Share Creator button with dropdown panel */
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowSharePanel((v) => !v)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border border-[#2a2a2a] bg-[#111] text-white hover:border-[#ff2b2b]/50 hover:bg-[#ff2b2b]/8 hover:text-[#ff6060] transition-all active:scale-95"
+                          data-testid="button-share-creator"
+                        >
+                          <Share2 className="h-3.5 w-3.5" /> Share Creator
+                        </button>
+
+                        {showSharePanel && (() => {
+                          const profileUrl = typeof window !== "undefined"
+                            ? `${window.location.origin}/provider/${id}`
+                            : `/provider/${id}`;
+                          const displayName = profile?.displayName ?? "this creator";
+                          const shareText = `Check out ${displayName} on Gigzito!`;
+                          const enc = encodeURIComponent;
+
+                          const PLATFORMS = [
+                            {
+                              label: "WhatsApp",
+                              color: "#25d366",
+                              href: `https://wa.me/?text=${enc(shareText + " " + profileUrl)}`,
+                              icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>,
+                            },
+                            {
+                              label: "X / Twitter",
+                              color: "#e7e7e7",
+                              href: `https://twitter.com/intent/tweet?text=${enc(shareText)}&url=${enc(profileUrl)}`,
+                              icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>,
+                            },
+                            {
+                              label: "Facebook",
+                              color: "#1877f2",
+                              href: `https://www.facebook.com/sharer/sharer.php?u=${enc(profileUrl)}`,
+                              icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>,
+                            },
+                            {
+                              label: "Telegram",
+                              color: "#2aabee",
+                              href: `https://t.me/share/url?url=${enc(profileUrl)}&text=${enc(shareText)}`,
+                              icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>,
+                            },
+                            {
+                              label: "Email",
+                              color: "#a78bfa",
+                              href: `mailto:?subject=${enc(shareText)}&body=${enc(shareText + "\n\nVisit their profile: " + profileUrl)}`,
+                              icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>,
+                            },
+                          ];
+
+                          const handleCopy = () => {
+                            navigator.clipboard.writeText(profileUrl).then(() => {
+                              setLinkCopied(true);
+                              setTimeout(() => setLinkCopied(false), 2000);
+                            });
+                          };
+
+                          return (
+                            <div
+                              style={{
+                                position: "absolute", top: "calc(100% + 8px)", left: 0,
+                                background: "rgba(10,10,10,0.98)", backdropFilter: "blur(16px)",
+                                border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16,
+                                padding: 14, minWidth: 240, zIndex: 100,
+                                boxShadow: "0 12px 40px rgba(0,0,0,0.8)",
+                              }}
+                              data-testid="share-creator-panel"
+                            >
+                              {/* Header */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                                  Share {displayName}
+                                </span>
+                                <button onClick={() => setShowSharePanel(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.3)", padding: 0 }}>
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* URL preview */}
+                              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "5px 10px", marginBottom: 10, fontSize: 10, color: "rgba(255,255,255,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {profileUrl}
+                              </div>
+
+                              {/* Copy + Native share row */}
+                              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                                {typeof navigator !== "undefined" && (navigator as any).share && (
+                                  <button
+                                    onClick={() => { (navigator as any).share({ title: shareText, url: profileUrl }).catch(() => {}); }}
+                                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 8, padding: "7px 0", cursor: "pointer" }}
+                                    data-testid="btn-native-share-creator"
+                                  >
+                                    <Share2 className="w-3 h-3" style={{ color: "#a78bfa" }} />
+                                    <span style={{ fontSize: 10, color: "#a78bfa", fontWeight: 600 }}>Share…</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={handleCopy}
+                                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: linkCopied ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.06)", border: linkCopied ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "7px 0", cursor: "pointer", transition: "all 0.2s" }}
+                                  data-testid="btn-copy-creator-link"
+                                >
+                                  {linkCopied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" style={{ color: "rgba(255,255,255,0.5)" }} />}
+                                  <span style={{ fontSize: 10, color: linkCopied ? "#4ade80" : "rgba(255,255,255,0.55)", fontWeight: 600 }}>{linkCopied ? "Copied!" : "Copy link"}</span>
+                                </button>
+                              </div>
+
+                              {/* Platform grid */}
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+                                {PLATFORMS.map(({ label, color, href, icon }) => (
+                                  <a
+                                    key={label}
+                                    href={href}
+                                    target={label === "Email" ? "_self" : "_blank"}
+                                    rel="noopener noreferrer"
+                                    onClick={() => setShowSharePanel(false)}
+                                    style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: "8px 4px", borderRadius: 10, textDecoration: "none", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", transition: "background 0.15s" }}
+                                    data-testid={`btn-share-${label.toLowerCase().replace(/\//g, "-").replace(/\s/g, "-")}`}
+                                  >
+                                    <span style={{ color }}>{icon}</span>
+                                    <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>{label}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                     <button
                       onClick={() => setActiveTab("wall")}
