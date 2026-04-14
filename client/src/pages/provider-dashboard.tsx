@@ -460,6 +460,29 @@ function ProviderDashboardInner() {
   const [editTags, setEditTags] = useState("");
   const [editCtaLabel, setEditCtaLabel] = useState("");
   const [editCtaUrl, setEditCtaUrl] = useState("");
+  const [editVertical, setEditVertical] = useState("");
+
+  const EDIT_CATEGORIES = [
+    { value: "MARKETING",      label: "Marketing" },
+    { value: "COACHING",       label: "Coaching" },
+    { value: "COURSES",        label: "Courses" },
+    { value: "MUSIC",          label: "Music" },
+    { value: "GZ_MUSIC",       label: "GZMusic" },
+    { value: "MUSIC_GIGS",     label: "Music Gigs" },
+    { value: "INFLUENCER",     label: "Influencer" },
+    { value: "PRODUCTS",       label: "Products" },
+    { value: "EVENTS",         label: "Events" },
+    { value: "CRYPTO",         label: "Crypto" },
+    { value: "ARTISTS",        label: "Artists" },
+    { value: "BUSINESS",       label: "Business" },
+    { value: "HEALTH",         label: "Health" },
+    { value: "SCIENCE",        label: "Science" },
+    { value: "RANTS",          label: "Rants" },
+    { value: "RANDOMNESS",     label: "Randomness" },
+    { value: "FOR_SALE",       label: "For Sale" },
+    { value: "CORPORATE_DEALS",label: "Corporate Deals" },
+    { value: "LAIH",           label: "LAIH" },
+  ];
 
   const openEditListing = (listing: ListingWithProvider) => {
     setEditingListing(listing);
@@ -468,6 +491,7 @@ function ProviderDashboardInner() {
     setEditTags((listing.tags ?? []).join(", "));
     setEditCtaLabel(listing.ctaLabel ?? "");
     setEditCtaUrl(listing.ctaUrl ?? "");
+    setEditVertical(listing.vertical ?? "");
   };
   const closeEditListing = () => setEditingListing(null);
 
@@ -841,6 +865,25 @@ function ProviderDashboardInner() {
                   data-testid="input-edit-tags"
                 />
               </div>
+              <div>
+                <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">Category</label>
+                <select
+                  value={editVertical}
+                  onChange={(e) => setEditVertical(e.target.value)}
+                  className="w-full rounded-md border border-[#2a2a2a] bg-[#111] text-white text-sm px-3 py-2"
+                  data-testid="select-edit-vertical"
+                >
+                  {EDIT_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                {editVertical === "GZ_MUSIC" && (
+                  <p className="text-[10px] text-orange-400 mt-1.5 leading-relaxed">
+                    GZMusic posts show a <strong>Download Now</strong> button automatically — if the track title matches a track in the GZMusic library.{" "}
+                    <a href="/gz-music" target="_blank" className="underline">Check your GZMusic listing →</a>
+                  </p>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] font-semibold text-[#666] uppercase tracking-wider block mb-1">CTA Button Label</label>
@@ -883,6 +926,7 @@ function ProviderDashboardInner() {
                       tags,
                       ctaLabel: editCtaLabel.trim() || null,
                       ctaUrl: editCtaUrl.trim() || null,
+                      vertical: editVertical || undefined,
                     },
                   });
                 }}

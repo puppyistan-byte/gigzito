@@ -1169,7 +1169,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const profile = await storage.getProfileByUserId(userId);
     if (!profile) return res.status(403).json({ message: "Provider profile not found" });
 
-    const { title, description, tags, ctaLabel, ctaUrl, ctaType } = req.body;
+    const { title, description, tags, ctaLabel, ctaUrl, ctaType, vertical } = req.body;
     if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
       return res.status(400).json({ message: "Title cannot be empty" });
     }
@@ -1181,6 +1181,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       ...(ctaLabel !== undefined && { ctaLabel: ctaLabel || null }),
       ...(ctaUrl !== undefined && { ctaUrl: ctaUrl || null }),
       ...(ctaType !== undefined && { ctaType: ctaType || null }),
+      ...(vertical !== undefined && { vertical }),
     });
     if (!updated) return res.status(404).json({ message: "Listing not found or not yours" });
     return res.json(updated);
@@ -3752,6 +3753,24 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       return res.json(track);
     } catch (err) {
       console.error("[gz-music/tracks/:id]", err);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // Find a GZMusic track by title (fuzzy) — used by GZ_MUSIC video cards to show Download Now
+  app.get("/api/gz-music/find-by-title", async (req, res) => {
+    const q = ((req.query.title as string) ?? "").toLowerCase().trim();
+    if (!q) return res.json(null);
+    try {
+      const tracks = await storage.getGZMusicTracks();
+      const match = tracks.find(
+        (t) => t.title.toLowerCase() === q ||
+               t.title.toLowerCase().includes(q) ||
+               q.includes(t.title.toLowerCase())
+      );
+      return res.json(match ?? null);
+    } catch (err) {
+      console.error("[gz-music/find-by-title]", err);
       return res.status(500).json({ message: "Server error" });
     }
   });

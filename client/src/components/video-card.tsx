@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle, UserPlus, UserCheck, Loader2 } from "lucide-react";
+import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle, UserPlus, UserCheck, Loader2, Download } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
@@ -42,6 +42,7 @@ const BADGE: Record<string, { bg: string; label: string }> = {
   FLASH_COUPON:    { bg: "bg-emerald-600",            label: "Flash Coupon" },
   MUSIC_GIGS:      { bg: "bg-pink-500",               label: "Music Gigs" },
   MUSIC:           { bg: "bg-pink-500",               label: "Music" },
+  GZ_MUSIC:        { bg: "bg-orange-500",             label: "GZMusic" },
   EVENTS:          { bg: "bg-yellow-500 text-black",  label: "Events" },
   CRYPTO:          { bg: "bg-yellow-600",             label: "Crypto" },
   CORPORATE_DEALS: { bg: "bg-blue-900",               label: "Corporate Deals" },
@@ -374,6 +375,16 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
   const ctaUrl  = listing.ctaUrl ?? null;
   const isShopProduct = ctaType === "Shop Product";
   const ctaButtonLabel = ctaType ? (CTA_LABELS[ctaType] ?? ctaType) : "Inquire";
+
+  const isGzMusic = listing.vertical === "GZ_MUSIC";
+  const { data: gzMusicTrack } = useQuery<{ fileUrl?: string | null } | null>({
+    queryKey: ["/api/gz-music/find-by-title", listing.title],
+    queryFn: () =>
+      fetch(`/api/gz-music/find-by-title?title=${encodeURIComponent(listing.title)}`)
+        .then((r) => r.json()),
+    enabled: isGzMusic,
+    staleTime: 120_000,
+  });
 
   const handleCtaClick = () => {
     if (isShopProduct && ctaUrl) {
@@ -922,14 +933,27 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
 
             {/* Action Row: CTA · Share */}
             <div className="flex items-center gap-2" style={{ paddingRight: "64px", position: "relative" }}>
-              <button
-                onClick={handleCtaClick}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 border border-[#ff2b2b]/70 hover:border-[#ff2b2b] text-white h-8 rounded-full font-bold text-xs transition-colors backdrop-blur-sm"
-                data-testid={`button-inquire-${listing.id}`}
-              >
-                {isShopProduct ? <ShoppingCart className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
-                {ctaButtonLabel}
-              </button>
+              {isGzMusic && gzMusicTrack?.fileUrl ? (
+                <a
+                  href={gzMusicTrack.fileUrl}
+                  download
+                  className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-full font-bold text-xs transition-colors backdrop-blur-sm text-white"
+                  style={{ background: "rgba(255,122,0,0.22)", border: "1px solid rgba(255,122,0,0.7)" }}
+                  data-testid={`button-download-now-${listing.id}`}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Now
+                </a>
+              ) : isGzMusic && !gzMusicTrack ? null : (
+                <button
+                  onClick={handleCtaClick}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 border border-[#ff2b2b]/70 hover:border-[#ff2b2b] text-white h-8 rounded-full font-bold text-xs transition-colors backdrop-blur-sm"
+                  data-testid={`button-inquire-${listing.id}`}
+                >
+                  {isShopProduct ? <ShoppingCart className="w-3.5 h-3.5" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                  {ctaButtonLabel}
+                </button>
+              )}
 
               {/* Share button + dropdown */}
               <div style={{ position: "relative", flexShrink: 0 }}>

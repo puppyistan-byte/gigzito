@@ -12,6 +12,7 @@ export const verticalEnum = pgEnum("vertical", [
   "MUSIC_GIGS", "EVENTS", "CORPORATE_DEALS", "ARTISTS", "BUSINESS",
   "FOR_SALE", "LAIH", "RANDOMNESS",
   "HEALTH", "SCIENCE", "RANTS",
+  "GZ_MUSIC",
 ]);
 export const listingStatusEnum = pgEnum("listing_status", ["PENDING", "ACTIVE", "PAUSED", "REMOVED", "TRIAGED"]);
 export const gigJackStatusEnum = pgEnum("gig_jack_status", ["PENDING_REVIEW", "APPROVED", "REJECTED", "NEEDS_IMPROVEMENT", "DENIED"]);
