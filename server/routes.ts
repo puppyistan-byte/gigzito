@@ -305,8 +305,8 @@ async function ensureAdminUser() {
     if (!existingProfile) {
       await storage.createProfile({
         userId: adminUser.id,
-        username: "admin",
-        displayName: "Admin",
+        username: "gzadmin",
+        displayName: "Gigzito Admin",
         bio: "",
         avatarUrl: "",
         thumbUrl: "",
@@ -321,10 +321,56 @@ async function ensureAdminUser() {
         tiktokUrl: null,
       });
       console.log("Admin profile created");
+    } else if (existingProfile.username === "admin") {
+      // Migrate legacy "admin" username to non-reserved "gzadmin"
+      await storage.updateProfile(adminUser.id, { username: "gzadmin", displayName: "Gigzito Admin" });
+      console.log("Admin username migrated from 'admin' to 'gzadmin'");
     }
   } catch (err) {
     console.error("ensureAdminUser error:", err);
   }
+}
+
+async function ensureJoshProfile() {
+  try {
+    const joshUser = await storage.getUserByEmail("josh@gigzito.com");
+    if (!joshUser) return;
+    const existingProfile = await storage.getProfileByUserId(joshUser.id);
+    if (!existingProfile) {
+      await storage.createProfile({
+        userId: joshUser.id,
+        username: "josh",
+        displayName: "Josh",
+        bio: "",
+        avatarUrl: "",
+        thumbUrl: "",
+        contactEmail: null,
+        contactPhone: null,
+        contactTelegram: null,
+        websiteUrl: null,
+        primaryCategory: null,
+        location: null,
+        instagramUrl: null,
+        youtubeUrl: null,
+        tiktokUrl: null,
+      });
+      console.log("Josh profile created");
+    }
+  } catch (err) {
+    console.error("ensureJoshProfile error:", err);
+  }
+}
+
+// Usernames that are reserved and can never be claimed by regular users
+const RESERVED_USERNAMES = new Set([
+  "admin", "gzadmin", "gigzito", "zito", "root", "support", "help",
+  "api", "www", "mail", "static", "assets", "cdn", "app", "dev",
+  "staff", "mod", "moderator", "system", "official", "gigzito_admin",
+  "me", "new", "profile", "provider", "settings", "dashboard",
+]);
+
+function isReservedUsername(username: string): boolean {
+  return RESERVED_USERNAMES.has(username.toLowerCase().trim());
 }
 
 async function seedDatabase() {
@@ -400,6 +446,7 @@ async function seedDatabase() {
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   await seedDatabase();
   await ensureAdminUser();
+  await ensureJoshProfile();
 
   // === AUTH ===
   const verifyEmailLimiter = rateLimit({
@@ -780,6 +827,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (Object.keys(filtered).length === 0) {
         return res.status(400).json({ message: "No valid profile fields provided" });
       }
+      if (filtered.username && isReservedUsername(filtered.username)) {
+        return res.status(400).json({ message: `"${filtered.username}" is a reserved username and cannot be used.` });
+      }
 
       const profile = await storage.updateProfile(userId, filtered);
       if (!profile) return res.status(404).json({ message: "Profile not found — create one via the web app first" });
@@ -963,6 +1013,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId;
     try {
+      if (req.body.username && isReservedUsername(req.body.username)) {
+        return res.status(400).json({ message: `"${req.body.username}" is a reserved username and cannot be used.` });
+      }
       const profile = await storage.updateProfile(userId, req.body);
       return res.json(profile);
     } catch (err) {
