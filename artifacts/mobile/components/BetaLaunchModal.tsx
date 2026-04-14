@@ -12,6 +12,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Constants from "expo-constants";
+import { File, Paths } from "expo-file-system";
+import * as IntentLauncher from "expo-intent-launcher";
 import Colors from "@/constants/colors";
 
 const VERSION_URL = "https://gigzito.com/ota-dist/android/version.json";
@@ -24,10 +26,13 @@ type VersionInfo = {
   releaseNotes?: string;
 };
 
+type DownloadState = "idle" | "downloading" | "installing" | "error";
+
 export function BetaLaunchModal() {
   const [visible, setVisible] = useState(false);
   const [info, setInfo] = useState<VersionInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
+  const [dlState, setDlState] = useState<DownloadState>("idle");
   const shownThisSession = useRef(false);
 
   const currentCode: number =
@@ -42,26 +47,55 @@ export function BetaLaunchModal() {
       .then((r) => r.json())
       .then((data: VersionInfo) => {
         setInfo(data);
-        setLoading(false);
+        setFetching(false);
         shownThisSession.current = true;
         setVisible(true);
       })
       .catch(() => {
-        setLoading(false);
+        setFetching(false);
         shownThisSession.current = true;
         setVisible(true);
       });
   }, []);
 
   const hasUpdate = info ? info.versionCode > currentCode : false;
+  const apkUrl = info?.downloadUrl ?? APK_URL;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Linking.openURL(info?.downloadUrl ?? APK_URL);
+    setDlState("downloading");
+
+    try {
+      const destFile = new File(Paths.cache, "gigzito-update.apk");
+      if (destFile.exists) {
+        destFile.delete();
+      }
+
+      const downloaded = await File.downloadFileAsync(apkUrl, destFile);
+
+      setDlState("installing");
+
+      await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+        data: downloaded.uri,
+        flags: 1,
+        type: "application/vnd.android.package-archive",
+      });
+
+      setDlState("idle");
+      setVisible(false);
+    } catch {
+      setDlState("error");
+    }
+  };
+
+  const handleFallback = () => {
+    Linking.openURL(apkUrl);
+    setDlState("idle");
   };
 
   const handleDismiss = () => {
     Haptics.selectionAsync();
+    setDlState("idle");
     setVisible(false);
   };
 
@@ -81,8 +115,11 @@ export function BetaLaunchModal() {
             <Text style={styles.betaBadgeText}>BETA BUILD</Text>
           </View>
 
-          {loading ? (
-            <ActivityIndicator color={Colors.accent} style={{ marginVertical: 24 }} />
+          {fetching ? (
+            <ActivityIndicator
+              color={Colors.accent}
+              style={{ marginVertical: 24 }}
+            />
           ) : hasUpdate ? (
             <>
               <View style={styles.updateIconWrap}>
@@ -113,24 +150,66 @@ export function BetaLaunchModal() {
 
           <View style={styles.divider} />
 
-          <Text style={styles.instructionsLabel}>How to update</Text>
-          <View style={styles.steps}>
-            <Step n={1} text="Tap Download Below" />
-            <Step n={2} text='When prompted, tap "Open" or "Install"' />
-            <Step n={3} text="Allow install from unknown sources if asked" />
-            <Step n={4} text="Open the app after install completes" />
-          </View>
+          {dlState === "idle" || dlState === "error" ? (
+            <>
+              <Text style={styles.instructionsLabel}>How to install</Text>
+              <View style={styles.steps}>
+                <Step n={1} text="Tap Download — the APK downloads right inside the app" />
+                <Step n={2} text='When the installer opens, tap "Install"' />
+                <Step n={3} text="Allow installs from unknown sources if asked" />
+                <Step n={4} text="Open the app once install finishes" />
+              </View>
 
-          <Pressable style={styles.downloadBtn} onPress={handleDownload}>
-            <Feather name="download" size={18} color="#fff" />
-            <Text style={styles.downloadBtnText}>
-              Download Latest APK
-            </Text>
-          </Pressable>
+              {dlState === "error" && (
+                <View style={styles.errorBox}>
+                  <Feather name="alert-circle" size={14} color="#f87171" />
+                  <Text style={styles.errorText}>
+                    Download failed.{" "}
+                    <Text style={styles.errorLink} onPress={handleFallback}>
+                      Open in browser instead
+                    </Text>
+                  </Text>
+                </View>
+              )}
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.downloadBtn,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={handleDownload}
+              >
+                <Feather name="download" size={18} color="#fff" />
+                <Text style={styles.downloadBtnText}>
+                  {hasUpdate ? "Download & Install Update" : "Download Latest APK"}
+                </Text>
+              </Pressable>
+            </>
+          ) : dlState === "downloading" ? (
+            <View style={styles.statusWrap}>
+              <ActivityIndicator color={Colors.accent} size="large" />
+              <Text style={styles.statusTitle}>Downloading APK…</Text>
+              <Text style={styles.statusSub}>
+                This may take a moment depending on your connection
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.statusWrap}>
+              <ActivityIndicator color={Colors.accent} size="large" />
+              <Text style={styles.statusTitle}>Opening Installer…</Text>
+              <Text style={styles.statusSub}>
+                Tap Install when the system prompt appears
+              </Text>
+            </View>
+          )}
 
           <Pressable style={styles.dismissBtn} onPress={handleDismiss}>
             <Text style={styles.dismissBtnText}>
-              {hasUpdate ? "Skip for Now" : "Continue to App"}
+              {dlState !== "idle"
+                ? "Cancel"
+                : hasUpdate
+                ? "Skip for Now"
+                : "Continue to App"}
             </Text>
           </Pressable>
         </View>
@@ -258,7 +337,7 @@ const styles = StyleSheet.create({
   },
   step: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
   stepNum: {
@@ -270,6 +349,8 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.accent}50`,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 1,
+    flexShrink: 0,
   },
   stepNumText: {
     color: Colors.accent,
@@ -281,6 +362,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     flex: 1,
+    lineHeight: 20,
+  },
+  errorBox: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#f871711a",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#f8717140",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  errorText: {
+    color: "#f87171",
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    flex: 1,
+  },
+  errorLink: {
+    fontFamily: "Inter_600SemiBold",
+    textDecorationLine: "underline",
   },
   downloadBtn: {
     width: "100%",
@@ -291,12 +395,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     borderRadius: 14,
     paddingVertical: 16,
-    marginTop: 8,
+    marginTop: 4,
   },
   downloadBtnText: {
     color: "#fff",
     fontSize: 16,
     fontFamily: "Inter_700Bold",
+  },
+  statusWrap: {
+    width: "100%",
+    alignItems: "center",
+    paddingVertical: 16,
+    gap: 12,
+  },
+  statusTitle: {
+    color: Colors.textPrimary,
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
+  },
+  statusSub: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
   },
   dismissBtn: {
     width: "100%",
