@@ -27,6 +27,7 @@ export function useMyListings() {
   return useQuery({
     queryKey: ["listings", "mine"],
     queryFn: () => apiRequest<any[]>("/api/listings/mine"),
+    staleTime: 0,
   });
 }
 
@@ -70,6 +71,7 @@ export function useMyGeeZeeCard() {
   return useQuery({
     queryKey: ["geezee-card", "mine"],
     queryFn: () => apiRequest<any>("/api/gigness-cards/mine"),
+    staleTime: 0,
   });
 }
 
@@ -108,6 +110,7 @@ export function useMyGeemotions() {
   return useQuery({
     queryKey: ["geemotions", "mine"],
     queryFn: () => apiRequest<any[]>("/api/zee-motions/mine"),
+    staleTime: 0,
   });
 }
 
@@ -245,6 +248,7 @@ export function useMyProfile() {
   return useQuery({
     queryKey: ["profile", "me"],
     queryFn: () => apiRequest<any>("/api/profile/me"),
+    staleTime: 0,
   });
 }
 
@@ -253,6 +257,7 @@ export function useProfileCompletion() {
   return useQuery({
     queryKey: ["profile", "completion"],
     queryFn: () => apiRequest<any>("/api/profile/me/completion"),
+    staleTime: 0,
   });
 }
 
@@ -261,6 +266,7 @@ export function useMyTotalLikes() {
   return useQuery({
     queryKey: ["profile", "total-likes"],
     queryFn: () => apiRequest<any>("/api/profile/me/total-likes"),
+    staleTime: 0,
   });
 }
 
@@ -335,6 +341,7 @@ export function useGeeZeeInbox() {
     queryKey: ["geezee-inbox"],
     queryFn: () => apiRequest<any[]>("/api/gigness-cards/inbox"),
     enabled: !!token,
+    staleTime: 0,
   });
 }
 
@@ -457,6 +464,7 @@ export function useFullProfile() {
     queryKey: ["full-profile"],
     queryFn: () => apiRequest<any>("/api/mobile/me"),
     enabled: !!token,
+    staleTime: 0,
   });
 }
 
@@ -509,6 +517,7 @@ export function useMyFlash() {
     queryKey: ["gz-flash-mine"],
     queryFn: () => apiRequest<any[]>("/api/gz-flash/mine"),
     enabled: !!token,
+    staleTime: 0,
     refetchInterval: 60000,
   });
 }
@@ -737,7 +746,7 @@ export function useUserDashboard() {
     queryKey: ["user-dashboard"],
     queryFn: () => apiRequest<any>("/api/user/dashboard"),
     enabled: !!token,
-    staleTime: 60_000,
+    staleTime: 0,
     retry: 1,
   });
 }
