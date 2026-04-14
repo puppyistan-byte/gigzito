@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useGeeZeeCards, useEngageLeaderboard, useLoveLeaderboard } from "@/hooks/useApi";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, getEffectiveTier, isAdminUser } from "@/contexts/AuthContext";
 import { GeeZeeCardItem } from "@/components/GeeZeeCardItem";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSpinner } from "@/components/ui/LoadingScreen";
@@ -38,7 +38,7 @@ export default function GeeZeeScreen() {
   const { data: loveBoard, isLoading: loveLoading, refetch: refetchLove } = useLoveLeaderboard();
   const { data: engageBoard, isLoading: engageLoading, refetch: refetchEngage } = useEngageLeaderboard();
 
-  const canCreateCard = !!token && !!user && GZ_CARD_ELIGIBLE_TIERS.includes(user.subscriptionTier);
+  const canCreateCard = !!token && !!user && (isAdminUser(user) || GZ_CARD_ELIGIBLE_TIERS.includes(getEffectiveTier(user)));
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;

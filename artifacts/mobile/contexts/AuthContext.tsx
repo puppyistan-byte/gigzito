@@ -282,4 +282,17 @@ export function useAuth() {
   return ctx;
 }
 
+const ADMIN_ROLES = ["ADMIN", "SUPERADMIN", "SUPER_ADMIN", "SUPERUSER"];
+
+export function getEffectiveTier(user: User | null): string {
+  if (!user) return "GZLurker";
+  if (ADMIN_ROLES.includes(user.role)) return "GZEnterprise";
+  return user.subscriptionTier || "GZLurker";
+}
+
+export function isAdminUser(user: User | null): boolean {
+  if (!user) return false;
+  return ADMIN_ROLES.includes(user.role);
+}
+
 export { BASE_URL };

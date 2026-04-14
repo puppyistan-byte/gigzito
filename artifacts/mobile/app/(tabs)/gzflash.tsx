@@ -15,7 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useGZFlash, useClaimFlash } from "@/hooks/useApi";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, getEffectiveTier, isAdminUser } from "@/contexts/AuthContext";
 import { GZFlashCard, CardSize } from "@/components/GZFlashCard";
 import { CreateFlashModal } from "@/components/CreateFlashModal";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -43,8 +43,8 @@ export default function GZFlashScreen() {
   const { token, user } = useAuth();
   // GZFlash ad creation requires GZBusiness tier or higher (mirrors backend requireAuth check)
   const canCreate = !!token && !!user && (
-    ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(user.subscriptionTier) ||
-    ["ADMIN", "SUPER_ADMIN", "SUPERUSER"].includes(user.role)
+    isAdminUser(user) ||
+    ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(getEffectiveTier(user))
   );
 
   const { data: raw, isLoading, refetch, isRefetching } = useGZFlash();

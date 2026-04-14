@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useMyGeeZeeCard } from "@/hooks/useApi";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, getEffectiveTier } from "@/contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/LoadingScreen";
 import Colors from "@/constants/colors";
 
@@ -87,7 +87,7 @@ export default function MyGZCardScreen() {
   const name       = card?.displayName || user?.displayName || user?.username || "My GZCard";
   const handle     = card?.username    || user?.username    || null;
   const slogan     = card?.slogan      || null;
-  const tier       = card?.userTier    || user?.subscriptionTier || "GZLurker";
+  const tier       = card?.userTier    || getEffectiveTier(user);
   const tierColor  = TIER_COLORS[tier]  ?? "#71717a";
   const intent     = INTENT_LABEL[card?.intent] ?? null;
   const ageBracket = card?.ageBracket  ?? null;

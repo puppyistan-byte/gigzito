@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, getEffectiveTier, isAdminUser } from "@/contexts/AuthContext";
 import { useMyProfile, useMyTotalLikes, useProfileCompletion, useMyListings, useMyGeemotions, useGeeZeeInbox, useMyFlash, useDeleteFlash } from "@/hooks/useApi";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -491,7 +491,7 @@ export default function ProfileScreen() {
   const displayProfile = myProfile || profile;
   const displayName = displayProfile?.displayName || user?.email || "User";
   const username = displayProfile?.username;
-  const tier = user?.subscriptionTier || "GZLurker";
+  const tier = getEffectiveTier(user);
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -695,7 +695,7 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {(user?.role === "ADMIN" || user?.role === "SUPER_ADMIN" || user?.role === "SUPERUSER") ? (
+      {isAdminUser(user) ? (
         <View style={styles.menuSection}>
           <View style={styles.adminHeaderRow}>
             <View style={styles.adminBadge}>
