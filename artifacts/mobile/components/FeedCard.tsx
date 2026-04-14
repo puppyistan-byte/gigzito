@@ -491,6 +491,17 @@ export function FeedCard({ item, isActive, muted, onMuteToggle, cardHeight }: Pr
           />
         </Pressable>
 
+        {/* GZGroups */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); router.push("/(tabs)/groups" as any); }}
+          style={styles.gzGroupsRailBtn}
+        >
+          <View style={styles.gzGroupsRailInner}>
+            <Feather name="users" size={18} color="#fff" />
+            <Text style={styles.gzGroupsRailLabel}>GZ</Text>
+          </View>
+        </Pressable>
+
         {/* Mute */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); onMuteToggle(); }}
@@ -781,6 +792,27 @@ const styles = StyleSheet.create({
   gzRailLogo: {
     width: 44,
     height: 44,
+  },
+  gzGroupsRailBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    opacity: 0.3,
+  },
+  gzGroupsRailInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 1,
+  },
+  gzGroupsRailLabel: {
+    color: "#fff",
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
   },
   gzPlayPauseIconWrap: {
     position: "absolute",
