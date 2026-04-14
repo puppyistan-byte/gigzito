@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { BetaLaunchModal } from "@/components/BetaLaunchModal";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -55,6 +56,8 @@ function RootLayoutNav() {
       <Stack.Screen name="profile/my-gzcard" options={{ headerShown: false, animation: "slide_from_right" }} />
       <Stack.Screen name="gzmusic/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="gzmusic/upload" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+      <Stack.Screen name="groups/[id]" options={{ headerShown: false, animation: "slide_from_right" }} />
+      <Stack.Screen name="groups/create" options={{ headerShown: false, animation: "slide_from_bottom" }} />
     </Stack>
   );
 }
@@ -84,6 +87,7 @@ export default function RootLayout() {
               <KeyboardProvider>
                 <RootLayoutNav />
                 <UpdateBanner />
+                <BetaLaunchModal />
               </KeyboardProvider>
             </GestureHandlerRootView>
           </QueryClientProvider>
