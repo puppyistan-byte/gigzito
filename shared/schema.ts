@@ -916,6 +916,8 @@ export const gzFlashAds = pgTable("gz_flash_ads", {
   potencyScore: real("potency_score").notNull().default(0),
   status: text("status").notNull().default("active"),
   displayMode: text("display_mode").notNull().default("countdown"),
+  couponCode: text("coupon_code"),
+  couponExpiryHours: integer("coupon_expiry_hours").notNull().default(48),
   adminNote: text("admin_note"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -924,6 +926,16 @@ export const gzFlashAds = pgTable("gz_flash_ads", {
 export type GzFlashAd = typeof gzFlashAds.$inferSelect;
 export const insertGzFlashAdSchema = createInsertSchema(gzFlashAds).omit({ id: true, claimedCount: true, potencyScore: true, status: true, expiresAt: true, createdAt: true });
 export type InsertGzFlashAd = z.infer<typeof insertGzFlashAdSchema>;
+
+export const gzFlashClaims = pgTable("gz_flash_claims", {
+  id: serial("id").primaryKey(),
+  flashAdId: integer("flash_ad_id").notNull().references(() => gzFlashAds.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  couponCode: text("coupon_code"),
+  claimedAt: timestamp("claimed_at").defaultNow().notNull(),
+});
+
+export type GzFlashClaim = typeof gzFlashClaims.$inferSelect;
 
 export type GzFlashAdWithOwner = GzFlashAd & {
   displayName: string | null;

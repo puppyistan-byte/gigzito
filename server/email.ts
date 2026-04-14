@@ -659,3 +659,100 @@ p{margin:12px 0;font-size:14px;line-height:1.6;color:#aaa}
 </body></html>`;
   return sendEmail({ toEmail, subject: `${inviterName} invited you to ${groupName} on Gigzito`, html });
 }
+
+export async function sendGZFlashCoupon(opts: {
+  toEmail: string;
+  adTitle: string;
+  providerName: string;
+  couponCode: string;
+  salePrice: string;
+  originalPrice: string;
+  discountPercent: number;
+  couponExpiresAt: Date;
+}): Promise<{ devMode: boolean }> {
+  const expiryStr = opts.couponExpiresAt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { background: #050505; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 32px 16px; }
+  .card { background: #0a0f1a; border: 1px solid #1e3a5f; border-radius: 16px; overflow: hidden; }
+  .header { background: linear-gradient(135deg, #0d1f3c 0%, #0a0f1a 100%); padding: 24px 28px; border-bottom: 1px solid #1e3a5f; }
+  .logo { height: 28px; margin-bottom: 12px; }
+  .badge { display: inline-block; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.4); border-radius: 999px; padding: 3px 12px; color: #60a5fa; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 10px; }
+  .title { color: #ffffff; font-size: 20px; font-weight: 800; margin: 0 0 4px; line-height: 1.3; }
+  .sub { color: #888; font-size: 13px; margin: 0; }
+  .body { padding: 28px; }
+  .coupon-box { background: #060c1a; border: 2px dashed #3b82f6; border-radius: 12px; padding: 20px; text-align: center; margin: 0 0 24px; }
+  .coupon-label { color: #6b7280; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+  .coupon-code { color: #60a5fa; font-size: 28px; font-weight: 900; font-family: 'Courier New', monospace; letter-spacing: .08em; margin: 0 0 8px; }
+  .prices { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+  .sale-price { color: #4ade80; font-size: 22px; font-weight: 800; }
+  .orig-price { color: #444; font-size: 14px; text-decoration: line-through; }
+  .discount-pill { background: #14532d; border: 1px solid #166534; border-radius: 6px; padding: 2px 8px; color: #4ade80; font-size: 11px; font-weight: 700; }
+  .expiry-row { display: flex; align-items: flex-start; gap: 10px; background: #0f1a2e; border: 1px solid #1e3a5f; border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+  .expiry-icon { color: #f59e0b; font-size: 18px; line-height: 1; }
+  .expiry-label { color: #6b7280; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+  .expiry-value { color: #fbbf24; font-size: 12px; font-weight: 600; }
+  .disclaimer { background: #111; border: 1px solid #1f1f1f; border-radius: 10px; padding: 14px; margin-bottom: 0; }
+  .disclaimer p { color: #4b5563; font-size: 10px; line-height: 1.7; margin: 0; }
+  .footer { text-align: center; padding: 20px 28px; color: #333; font-size: 10px; border-top: 1px solid #111; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" class="logo" />
+      <div class="badge">⚡ GZFlash Offer</div>
+      <p class="title">${opts.adTitle}</p>
+      <p class="sub">From ${opts.providerName}</p>
+    </div>
+    <div class="body">
+      <div class="coupon-box">
+        <div class="coupon-label">Your Coupon Code</div>
+        <div class="coupon-code">${opts.couponCode}</div>
+        <div class="prices">
+          <span class="sale-price">$${opts.salePrice}</span>
+          <span class="orig-price">$${opts.originalPrice}</span>
+          <span class="discount-pill">${opts.discountPercent}% OFF</span>
+        </div>
+      </div>
+      <div class="expiry-row">
+        <div class="expiry-icon">⏰</div>
+        <div>
+          <div class="expiry-label">Coupon Expires</div>
+          <div class="expiry-value">${expiryStr}</div>
+        </div>
+      </div>
+      <div class="disclaimer">
+        <p><strong style="color:#6b7280">Important Disclosure:</strong> This offer is exclusively between you and ${opts.providerName}, an independent business operating on the Gigzito platform. Gigzito is a technology platform that facilitates connections between buyers and independent service providers. Gigzito bears no liability whatsoever with respect to this transaction, the quality of goods or services, fulfillment, pricing, or any dispute arising from this offer. By redeeming this coupon, you agree that any claims, disputes, or warranty issues are solely between you and the provider.</p>
+      </div>
+    </div>
+    <div class="footer">
+      You received this because you claimed an offer on Gigzito. You've also been added to ${opts.providerName}'s subscriber list — reply "unsubscribe" to opt out of their messages.
+    </div>
+  </div>
+</div>
+</body></html>`;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] GZFlash coupon email to:", opts.toEmail);
+    console.log("  Offer:", opts.adTitle, "| Code:", opts.couponCode);
+    console.log("  Expires:", expiryStr);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  await getTransporter().sendMail({
+    from: SMTP_FROM,
+    to: opts.toEmail,
+    subject: `Your GZFlash coupon for "${opts.adTitle}" — ${opts.discountPercent}% OFF`,
+    html,
+    text: `Your coupon code: ${opts.couponCode}\nOffer: ${opts.adTitle}\nFlash price: $${opts.salePrice} (was $${opts.originalPrice}, ${opts.discountPercent}% off)\nExpires: ${expiryStr}\n\nDisclaimer: This offer is between you and ${opts.providerName}. Gigzito bears no liability for this transaction.`,
+  });
+  return { devMode: false };
+}

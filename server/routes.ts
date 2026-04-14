@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement, sendGroupInviteEmail } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement, sendGroupInviteEmail, sendGZFlashCoupon } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -3711,6 +3711,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     quantity: z.coerce.number().int().min(1).max(9999),
     durationMinutes: z.coerce.number().int().min(5).max(43200),
     displayMode: z.enum(["countdown", "slots"]).default("countdown"),
+    couponCode: z.string().max(60).nullable().optional(),
+    couponExpiryHours: z.coerce.number().int().min(1).max(720).default(48),
   });
 
   app.get("/api/gz-flash", async (req, res) => {
@@ -3796,8 +3798,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/gz-flash/:id/claim", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const ad = await storage.claimGzFlashAd(id);
-      return res.json(ad);
+      const { email } = z.object({ email: z.string().email("Valid email required") }).parse(req.body);
+      const { ad, couponCode, couponExpiresAt } = await storage.claimGzFlashAd(id, email);
+      const adWithOwner = (await storage.getActiveGzFlashAds()).find((a) => a.id === id) ??
+        { displayName: null, username: null } as any;
+      const providerName = (adWithOwner as any).displayName ?? (adWithOwner as any).username ?? "the provider";
+      const salePrice = ((ad.retailPriceCents * (1 - ad.discountPercent / 100)) / 100).toFixed(2);
+      const originalPrice = (ad.retailPriceCents / 100).toFixed(2);
+      if (couponCode) {
+        sendGZFlashCoupon({
+          toEmail: email,
+          adTitle: ad.title,
+          providerName,
+          couponCode,
+          salePrice,
+          originalPrice,
+          discountPercent: ad.discountPercent,
+          couponExpiresAt,
+        }).catch((e) => console.warn("GZFlash coupon email failed:", e.message));
+      }
+      return res.json({ ad, couponCode, couponExpiresAt });
     } catch (e: any) {
       return res.status(400).json({ message: e.message ?? "Failed to claim" });
     }

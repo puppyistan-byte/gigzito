@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Flame, Clock, Users, Zap, RefreshCw, CheckCircle2, Plus, Home, Tag } from "lucide-react";
+import { Flame, Clock, Users, Zap, RefreshCw, CheckCircle2, Plus, Home, Tag, X, Mail, Copy, ShieldAlert } from "lucide-react";
 import type { GzFlashAdWithOwner } from "@shared/schema";
 
 function useCountdown(expiresAt: string) {
@@ -79,11 +80,10 @@ const ZONE_CONFIG: Record<HeatZone, {
   },
 };
 
-function AdCard({ ad, rank, onClaim, isClaiming }: {
+function AdCard({ ad, rank, onClaim }: {
   ad: GzFlashAdWithOwner;
   rank: number;
   onClaim: () => void;
-  isClaiming: boolean;
 }) {
   const countdown = useCountdown(ad.expiresAt.toString());
   const zone = heatZone(ad.potencyScore);
@@ -204,7 +204,7 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
       <div className="mt-auto">
         <Button
           onClick={onClaim}
-          disabled={soldOut || isClaiming}
+          disabled={soldOut}
           size="sm"
           className={`w-full h-9 text-xs font-bold rounded-xl ${
             soldOut
@@ -215,9 +215,7 @@ function AdCard({ ad, rank, onClaim, isClaiming }: {
           }`}
           data-testid={`btn-claim-${ad.id}`}
         >
-          {isClaiming ? (
-            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-          ) : soldOut ? (
+          {soldOut ? (
             <><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Sold Out</>
           ) : (
             <><Zap className="h-3.5 w-3.5 mr-1" />Claim This Deal</>
@@ -232,8 +230,11 @@ export default function OfferCenterPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const [claimingId, setClaimingId] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
+  const [claimAd, setClaimAd] = useState<GzFlashAdWithOwner | null>(null);
+  const [claimEmail, setClaimEmail] = useState("");
+  const [claimResult, setClaimResult] = useState<{ couponCode: string | null; couponExpiresAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { data: ads = [], isLoading, refetch } = useQuery<GzFlashAdWithOwner[]>({
     queryKey: ["/api/gz-flash"],
@@ -249,17 +250,44 @@ export default function OfferCenterPage() {
   }, [refetch]);
 
   const claimMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("POST", `/api/gz-flash/${id}/claim`, {}),
-    onMutate: (id) => setClaimingId(id),
-    onSettled: () => setClaimingId(null),
-    onSuccess: () => {
+    mutationFn: ({ id, email }: { id: number; email: string }) =>
+      apiRequest("POST", `/api/gz-flash/${id}/claim`, { email }),
+    onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ["/api/gz-flash"] });
-      toast({ title: "Deal claimed!", description: "You locked in this offer. Scores are updating." });
+      setClaimResult({ couponCode: data.couponCode, couponExpiresAt: data.couponExpiresAt });
     },
     onError: (e: any) => {
       toast({ title: "Couldn't claim", description: e.message ?? "Already sold out or expired", variant: "destructive" });
     },
   });
+
+  function openClaimModal(ad: GzFlashAdWithOwner) {
+    setClaimAd(ad);
+    setClaimEmail("");
+    setClaimResult(null);
+    setCopied(false);
+  }
+  function closeClaimModal() {
+    setClaimAd(null);
+    setClaimResult(null);
+    setClaimEmail("");
+    setCopied(false);
+  }
+  function submitClaim() {
+    if (!claimAd) return;
+    if (!claimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(claimEmail)) {
+      toast({ title: "Enter a valid email address", variant: "destructive" });
+      return;
+    }
+    claimMutation.mutate({ id: claimAd.id, email: claimEmail });
+  }
+  function copyCode() {
+    if (claimResult?.couponCode) {
+      navigator.clipboard.writeText(claimResult.couponCode).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
 
   const userRole = (user as any)?.user?.role ?? "";
   const userTier = (user as any)?.user?.subscriptionTier ?? "";
@@ -427,13 +455,146 @@ export default function OfferCenterPage() {
                 key={ad.id}
                 ad={ad}
                 rank={i + 1}
-                onClaim={() => claimMutation.mutate(ad.id)}
-                isClaiming={claimingId === ad.id}
+                onClaim={() => openClaimModal(ad)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Claim Modal */}
+      {claimAd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={closeClaimModal}>
+          <div
+            className="bg-[#060c1a] border border-blue-800/60 rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="modal-claim"
+          >
+            {!claimResult ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-blue-400" />
+                    <h3 className="text-white font-bold text-sm">Claim This Deal</h3>
+                  </div>
+                  <button onClick={closeClaimModal} className="text-[#555] hover:text-white" data-testid="close-claim-modal">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl p-3 mb-4">
+                  <p className="text-white font-semibold text-sm line-clamp-2">{claimAd.title}</p>
+                  {(claimAd.displayName || claimAd.username) && (
+                    <p className="text-[#555] text-[10px] mt-0.5">{claimAd.displayName ?? claimAd.username}</p>
+                  )}
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span className="text-green-400 font-black text-lg">
+                      ${((claimAd.retailPriceCents * (1 - claimAd.discountPercent / 100)) / 100).toFixed(2)}
+                    </span>
+                    <span className="text-[#444] line-through text-xs">${(claimAd.retailPriceCents / 100).toFixed(2)}</span>
+                    <span className="ml-auto bg-green-900/40 border border-green-800/40 text-green-400 text-[10px] font-bold rounded px-1.5 py-0.5">
+                      {claimAd.discountPercent}% OFF
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-[#888] text-xs font-semibold mb-1.5 block flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5" /> Your Email Address
+                  </label>
+                  <Input
+                    type="email"
+                    value={claimEmail}
+                    onChange={(e) => setClaimEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitClaim()}
+                    placeholder="you@example.com"
+                    className="bg-[#0a1020] border-blue-900/50 text-white placeholder-[#444] text-sm"
+                    data-testid="input-claim-email"
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-[#444] mt-1.5 leading-relaxed">
+                    Your coupon code will be shown here and sent to this address. You'll also be added to the provider's subscriber list.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={submitClaim}
+                  disabled={claimMutation.isPending}
+                  className="w-full h-10 bg-blue-700 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                  data-testid="btn-submit-claim"
+                >
+                  {claimMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <><Zap className="h-4 w-4 mr-1.5" /> Get My Coupon</>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <h3 className="text-white font-bold text-sm">Deal Claimed!</h3>
+                  </div>
+                  <button onClick={closeClaimModal} className="text-[#555] hover:text-white" data-testid="close-claim-success">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {claimResult.couponCode ? (
+                  <>
+                    <p className="text-[#888] text-xs mb-3 leading-relaxed">
+                      Your coupon code is below. We also sent it to <span className="text-blue-300">{claimEmail}</span>.
+                    </p>
+                    <div className="bg-[#060c1a] border-2 border-dashed border-blue-600/60 rounded-xl p-4 text-center mb-4">
+                      <p className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Your Coupon Code</p>
+                      <p className="text-2xl font-black font-mono text-blue-300 tracking-widest mb-3" data-testid="text-coupon-code">
+                        {claimResult.couponCode}
+                      </p>
+                      <Button
+                        onClick={copyCode}
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-3 text-[10px] border border-blue-800/50 text-blue-400 hover:bg-blue-900/20 font-semibold"
+                        data-testid="btn-copy-coupon"
+                      >
+                        <Copy className="h-3 w-3 mr-1.5" />
+                        {copied ? "Copied!" : "Copy Code"}
+                      </Button>
+                    </div>
+                    {claimResult.couponExpiresAt && (
+                      <div className="flex items-center gap-2 bg-amber-950/20 border border-amber-800/30 rounded-lg px-3 py-2 mb-4 text-xs">
+                        <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                        <span className="text-amber-300 font-semibold">
+                          Expires: {new Date(claimResult.couponExpiresAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl p-4 text-center mb-4">
+                    <CheckCircle2 className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                    <p className="text-white font-semibold text-sm">Offer claimed!</p>
+                    <p className="text-[#555] text-xs mt-1">
+                      Contact {claimAd.displayName ?? claimAd.username ?? "the provider"} to redeem your deal.
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl p-3">
+                  <div className="flex items-start gap-2">
+                    <ShieldAlert className="h-3.5 w-3.5 text-[#444] shrink-0 mt-0.5" />
+                    <p className="text-[9px] text-[#3a3a3a] leading-relaxed">
+                      This offer is exclusively between you and {claimAd.displayName ?? claimAd.username ?? "the provider"}, an independent business. Gigzito is a technology platform and bears no liability for this transaction, the quality of goods or services, fulfillment, or any disputes arising from this offer.
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

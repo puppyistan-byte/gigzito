@@ -387,6 +387,10 @@ export function GzFlashForm({
   const [displayMode, setDisplayMode] = useState<"countdown" | "slots">(
     (existing?.displayMode as "countdown" | "slots") ?? "countdown",
   );
+  const [couponCode, setCouponCode] = useState(existing?.couponCode ?? "");
+  const [couponExpiryHours, setCouponExpiryHours] = useState(
+    existing?.couponExpiryHours?.toString() ?? "48",
+  );
   const [showReport, setShowReport] = useState(false);
 
   const retailDollars = parseFloat(retailStr || "0");
@@ -458,6 +462,8 @@ export function GzFlashForm({
       quantity: qtyNum,
       durationMinutes,
       displayMode,
+      couponCode: couponCode.trim() || null,
+      couponExpiryHours: parseInt(couponExpiryHours || "48"),
     });
   };
 
@@ -739,6 +745,46 @@ export function GzFlashForm({
               <span className="text-[9px] opacity-70 text-center">Shows slots remaining — drives scarcity</span>
             </button>
           </div>
+        </div>
+
+        {/* Coupon Code */}
+        <div className="rounded-xl border border-blue-900/40 bg-blue-950/10 p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-0.5">
+            <Tag className="h-3.5 w-3.5 text-blue-400" />
+            <Label className="text-xs font-semibold text-blue-300">Coupon Code (optional)</Label>
+          </div>
+          <p className="text-[10px] text-[#555] -mt-1 leading-relaxed">
+            When a buyer claims this offer, they'll enter their email and receive this code instantly — along with a liability disclosure. They'll also be added to your mailing list.
+          </p>
+          <Input
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            placeholder="e.g. FLASH50 or SUMMER2026"
+            maxLength={60}
+            className="bg-[#0a1020] border-blue-900/50 text-blue-200 placeholder-[#444] text-sm font-mono tracking-widest"
+            data-testid="input-coupon-code"
+          />
+          {couponCode.trim() && (
+            <div>
+              <Label className="text-[#aaa] text-xs mb-1.5 block">Coupon Valid For (hours after claim)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="1"
+                  max="720"
+                  value={couponExpiryHours}
+                  onChange={(e) => setCouponExpiryHours(e.target.value)}
+                  className="bg-[#0a1020] border-blue-900/50 text-white placeholder-[#444] text-sm w-28"
+                  data-testid="input-coupon-expiry"
+                />
+                <span className="text-[#555] text-xs">
+                  {parseInt(couponExpiryHours || "0") >= 24
+                    ? `${Math.round(parseInt(couponExpiryHours || "0") / 24)} day(s)`
+                    : `${couponExpiryHours} hour(s)`} after claiming
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Live Score Preview */}

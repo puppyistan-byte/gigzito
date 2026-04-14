@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, gzFlashClaims, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -115,12 +115,12 @@ export interface IStorage {
   getFollowingCount(userId: number): Promise<number>;
 
   // GZFlash Ads
-  createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd>;
+  createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string; couponCode?: string | null; couponExpiryHours?: number }): Promise<GzFlashAd>;
   getActiveGzFlashAds(): Promise<GzFlashAdWithOwner[]>;
   getMyGzFlashAds(userId: number): Promise<GzFlashAd[]>;
-  updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd>;
+  updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string; couponCode?: string | null; couponExpiryHours?: number }): Promise<GzFlashAd>;
   deleteGzFlashAd(id: number, userId: number): Promise<void>;
-  claimGzFlashAd(id: number): Promise<GzFlashAd>;
+  claimGzFlashAd(id: number, email: string): Promise<{ ad: GzFlashAd; couponCode: string | null; couponExpiresAt: Date }>;
   recalculateGzFlashScores(): Promise<void>;
   // Admin GZFlash
   adminGetAllGzFlashAds(): Promise<GzFlashAdAdmin[]>;
@@ -2147,7 +2147,7 @@ export class DatabaseStorage implements IStorage {
     return Math.min(100, rawScore * 100);
   }
 
-  async createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd> {
+  async createGzFlashAd(userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string; couponCode?: string | null; couponExpiryHours?: number }): Promise<GzFlashAd> {
     const expiresAt = new Date(Date.now() + data.durationMinutes * 60 * 1000);
     const potencyScore = this.computePotency(data.retailPriceCents, data.discountPercent, data.quantity, 0, data.durationMinutes, expiresAt);
     const [ad] = await db.insert(gzFlashAds).values({
@@ -2159,6 +2159,8 @@ export class DatabaseStorage implements IStorage {
       quantity: data.quantity,
       durationMinutes: data.durationMinutes,
       displayMode: data.displayMode ?? "countdown",
+      couponCode: data.couponCode ?? null,
+      couponExpiryHours: data.couponExpiryHours ?? 48,
       claimedCount: 0,
       potencyScore,
       status: "active",
@@ -2187,12 +2189,12 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(gzFlashAds).where(eq(gzFlashAds.userId, userId)).orderBy(desc(gzFlashAds.createdAt));
   }
 
-  async updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string }): Promise<GzFlashAd> {
+  async updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string; couponCode?: string | null; couponExpiryHours?: number }): Promise<GzFlashAd> {
     const [existing] = await db.select().from(gzFlashAds).where(and(eq(gzFlashAds.id, id), eq(gzFlashAds.userId, userId)));
     if (!existing) throw new Error("Ad not found");
     const expiresAt = new Date(Date.now() + data.durationMinutes * 60 * 1000);
     const potencyScore = this.computePotency(data.retailPriceCents, data.discountPercent, data.quantity, 0, data.durationMinutes, expiresAt);
-    const [updated] = await db.update(gzFlashAds).set({ ...data, artworkUrl: data.artworkUrl ?? null, displayMode: data.displayMode ?? "countdown", claimedCount: 0, potencyScore, status: "active", expiresAt }).where(eq(gzFlashAds.id, id)).returning();
+    const [updated] = await db.update(gzFlashAds).set({ ...data, artworkUrl: data.artworkUrl ?? null, displayMode: data.displayMode ?? "countdown", couponCode: data.couponCode ?? null, couponExpiryHours: data.couponExpiryHours ?? 48, claimedCount: 0, potencyScore, status: "active", expiresAt }).where(eq(gzFlashAds.id, id)).returning();
     return updated;
   }
 
@@ -2200,14 +2202,18 @@ export class DatabaseStorage implements IStorage {
     await db.delete(gzFlashAds).where(and(eq(gzFlashAds.id, id), eq(gzFlashAds.userId, userId)));
   }
 
-  async claimGzFlashAd(id: number): Promise<GzFlashAd> {
+  async claimGzFlashAd(id: number, email: string): Promise<{ ad: GzFlashAd; couponCode: string | null; couponExpiresAt: Date }> {
     const [existing] = await db.select().from(gzFlashAds).where(and(eq(gzFlashAds.id, id), eq(gzFlashAds.status, "active")));
     if (!existing) throw new Error("Ad not available");
     const newClaimed = existing.claimedCount + 1;
     const newStatus = newClaimed >= existing.quantity ? "expired" : "active";
     const potencyScore = newStatus === "active" ? this.computePotency(existing.retailPriceCents, existing.discountPercent, existing.quantity, newClaimed, existing.durationMinutes, existing.expiresAt) : 0;
     const [updated] = await db.update(gzFlashAds).set({ claimedCount: newClaimed, status: newStatus, potencyScore }).where(eq(gzFlashAds.id, id)).returning();
-    return updated;
+    const couponExpiryHours = existing.couponExpiryHours ?? 48;
+    const couponExpiresAt = new Date(Date.now() + couponExpiryHours * 60 * 60 * 1000);
+    await db.insert(gzFlashClaims).values({ flashAdId: id, email: email.toLowerCase().trim(), couponCode: existing.couponCode ?? null });
+    await this.upsertMarketerAudience({ providerUserId: existing.userId, leadName: email.split("@")[0], leadEmail: email.toLowerCase().trim() });
+    return { ad: updated, couponCode: existing.couponCode ?? null, couponExpiresAt };
   }
 
   async recalculateGzFlashScores(): Promise<void> {
