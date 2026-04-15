@@ -3805,8 +3805,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const ad = await storage.createGzFlashAd(session.userId, data);
       return res.status(201).json(ad);
     } catch (err) {
-      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
-      return res.status(500).json({ message: "Failed to create GZFlash ad" });
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message, fields: err.errors });
+      console.error("[gz-flash/create]", err);
+      return res.status(500).json({ message: "Failed to create GZFlash ad", detail: (err as any)?.message });
     }
   });
 
