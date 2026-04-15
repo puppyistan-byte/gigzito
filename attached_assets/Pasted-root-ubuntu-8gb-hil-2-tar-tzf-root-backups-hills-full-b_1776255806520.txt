@@ -1,0 +1,178 @@
+root@ubuntu-8gb-hil-2:~# tar -tzf /root/backups/hills_full_backup_2026-04-15.tar.gz | grep -iE "smtp|mail|2525|postfix|sendmail|haraka|nodemailer" 2>/dev/null | he                                 ad -20
+./client/src/pages/verify-email.tsx
+./server/email.ts
+./attached_assets/Pasted-Step-1-make-a-separate-SMTP-folder-SSH-into-the-VPS-and_1773177659454.txt
+./attached_assets/Pasted-The-SMTP-infrastructure-is-now-fully-operational-and-te_1773185951947.txt
+./node_modules/@types/nodemailer/
+./node_modules/@types/nodemailer/index.d.ts
+./node_modules/@types/nodemailer/LICENSE
+./node_modules/@types/nodemailer/lib/
+./node_modules/@types/nodemailer/lib/smtp-connection/
+./node_modules/@types/nodemailer/lib/smtp-connection/data-stream.d.ts
+./node_modules/@types/nodemailer/lib/smtp-connection/index.d.ts
+./node_modules/@types/nodemailer/lib/smtp-connection/http-proxy-client.d.ts
+./node_modules/@types/nodemailer/lib/well-known/
+./node_modules/@types/nodemailer/lib/well-known/index.d.ts
+./node_modules/@types/nodemailer/lib/mime-node/
+./node_modules/@types/nodemailer/lib/mime-node/index.d.ts
+./node_modules/@types/nodemailer/lib/mime-node/last-newline.d.ts
+./node_modules/@types/nodemailer/lib/mime-funcs/
+./node_modules/@types/nodemailer/lib/mime-funcs/index.d.ts
+./node_modules/@types/nodemailer/lib/mime-funcs/mime-types.d.ts
+root@ubuntu-8gb-hil-2:~# # Extract the setup instructions from the backup
+tar -xzf /root/backups/hills_full_backup_2026-04-15.tar.gz -O \
+  "./attached_assets/Pasted-Step-1-make-a-separate-SMTP-folder-SSH-into-the-VPS-and_1773177659454.txt" 2>/dev/null
+
+# Also look for the SMTP folder/service anywhere on the server
+find /opt /home /srv -maxdepth 3 -name "*.js" -o -name "package.json" 2>/dev/null | grep -iv "gigzito\|node_modules" | head -20
+Step 1: make a separate SMTP folder
+
+SSH into the VPS and run:
+
+mkdir -p /opt/gigzito-smtp
+cd /opt/gigzito-smtp
+Step 2: create the Docker files
+
+Create docker-compose.yml:
+
+cat > /opt/gigzito-smtp/docker-compose.yml <<'EOF'
+services:
+  smtp:
+    build: .
+    container_name: gigzito-smtp
+    restart: unless-stopped
+    hostname: smtp.gigzito.com
+    ports:
+      - "127.0.0.1:2525:25"
+    environment:
+      - MAIL_DOMAIN=gigzito.com
+      - SMTP_HOSTNAME=smtp.gigzito.com
+    volumes:
+      - ./data/spool:/var/spool/postfix
+      - ./data/log:/var/log
+EOF
+
+Create Dockerfile:
+
+cat > /opt/gigzito-smtp/Dockerfile <<'EOF'
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y postfix rsyslog ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY main.cf /etc/postfix/main.cf
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
+EOF
+
+Create main.cf:
+
+cat > /opt/gigzito-smtp/main.cf <<'EOF'
+compatibility_level = 3.6
+
+myhostname = smtp.gigzito.com
+mydomain = gigzito.com
+myorigin = $mydomain
+
+inet_interfaces = all
+inet_protocols = ipv4
+
+mydestination =
+local_recipient_maps =
+
+mynetworks = 127.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+relay_domains =
+home_mailbox = Maildir/
+
+smtpd_banner = $myhostname ESMTP
+biff = no
+append_dot_mydomain = no
+readme_directory = no
+
+smtpd_helo_required = yes
+disable_vrfy_command = yes
+
+smtpd_recipient_restrictions =
+    permit_mynetworks,
+    reject_unauth_destination
+
+smtp_tls_security_level = may
+smtp_tls_loglevel = 1
+smtpd_tls_security_level = none
+
+maillog_file = /var/log/postfix.log
+EOF
+
+Create start.sh:
+
+cat > /opt/gigzito-smtp/start.sh <<'EOF'
+#!/bin/bash
+set -e
+
+mkdir -p /var/spool/postfix /var/log
+touch /var/log/postfix.log
+
+service rsyslog start
+postfix start-fg
+EOF
+Step 3: build and start it
+
+Run:
+
+cd /opt/gigzito-smtp
+docker compose up -d --build
+
+Check it:
+
+docker ps
+docker logs gigzito-smtp --tail 50
+ss -tulpn | grep 2525
+
+You want to see it listening on:
+
+127.0.0.1:2525
+
+That is the part that keeps it from messing with your website.
+
+Step 4: test locally from the VPS
+
+Install a quick mail test tool:
+
+apt-get update && apt-get install -y swaks
+
+Then send a test:
+
+swaks --server 127.0.0.1:2525 --to you@example.com --from noreply@gigzito.com --header "Subject: Gigzito SMTP Test" --body "SMTP relay test from Gigzito VPS"
+
+If mail leaves successfully, the container is working.
+
+Step 5: point Gigzito app at the local relay
+
+Your app should use:
+
+SMTP host: 127.0.0.1
+SMTP port: 2525
+Encryption: none on the local hop
+From: noreply@gigzito.com
+
+For Node/Nodemailer, it looks like this:
+
+const transporter = nodemailer.createTransport({
+  host: "127.0.0.1",
+  port: 2525,
+  secure: false,
+  tls: { rejectUnauthorized: false }
+});
+
+That means your app talks only to the local SMTP relay, not out to the internet directly.
+
+Why this won’t affect Gigzito/opt/openclaw-director/app/server.js
+/opt/openclaw-director/app/package.json
+/opt/openclaw-ted/app/ted.js
+/opt/openclaw-ted/app/package.json
+root@ubuntu-8gb-hil-2:~#
