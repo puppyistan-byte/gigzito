@@ -13,7 +13,7 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 import jwt from "jsonwebtoken";
-import { inspectFileSync, moveToFinalDest, destroyContraband } from "./inspector";
+import { inspectFileSync, roccoScan, moveToFinalDest, destroyContraband } from "./inspector";
 
 // ── Safe Haven directories — created at startup, never wiped by Rocco ─────────
 const SAFE_HAVENS = ["uploads", "uploads/videos", "uploads/gz-music", "ads", "quarantine"];
@@ -1036,10 +1036,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/upload/image", upload.single("file"), async (req, res) => {
     if (!requireAuth(req, res)) return;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const inspection = runInspector(req, res, path.join(process.cwd(), "uploads"), "file", "image");
-    if (!inspection.ok) return;
-    const url = `/uploads/${inspection.filename}`;
-    return res.json({ url });
+    // Layer 1 — magic bytes + contraband signatures
+    const layer1 = inspectFileSync(req.file.path, req.file.mimetype);
+    if (!layer1.pass) {
+      destroyContraband(req.file.path, layer1.reason ?? "failed layer-1 inspection");
+      return res.status(422).json({ message: `Upload declined: ${layer1.reason}` });
+    }
+    // Layer 2 — Rocco AI Vision scan
+    const layer2 = await roccoScan(req.file.path, req.file.mimetype);
+    if (!layer2.pass) {
+      destroyContraband(req.file.path, layer2.reason ?? "failed Rocco AI scan");
+      console.warn(`[Rocco] Blocked upload from userId=${(req.session as any)?.userId} — ${layer2.reason}`);
+      return res.status(422).json({ message: layer2.reason ?? "Content not permitted on Gigzito" });
+    }
+    // Both layers passed — move from quarantine to safe haven
+    const filename = req.file.filename;
+    moveToFinalDest(req.file.path, path.join(process.cwd(), "uploads"), filename);
+    return res.json({ url: `/uploads/${filename}` });
   });
 
   app.post("/api/upload/video", videoUpload.single("file"), async (req, res) => {
