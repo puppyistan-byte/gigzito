@@ -8,6 +8,11 @@ vite.config.ts.*
 .env.bak*
 .env
 
-# Uploaded media — never commit actual files, but keep the directory structure
+# ── Safe Havens — Rocco cannot touch these ───────────────────────────────────
+# Uploaded media, ads, and logs: never commit actual files, keep dir structure
 uploads/**/*
 !uploads/**/.gitkeep
+ads/**/*
+!ads/.gitkeep
+logs/**/*
+!logs/.gitkeep
