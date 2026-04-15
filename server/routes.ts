@@ -556,9 +556,16 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
       await storage.deleteOldMfaCodes(user.id);
       await storage.createMfaCode(user.id, code, expiresAt);
-      const emailResult = await sendMfaCode(user.email, code);
       const resp: any = { mfaRequired: true, email: user.email };
-      if (emailResult.devMode) resp.devCode = emailResult.previewCode;
+      try {
+        const emailResult = await sendMfaCode(user.email, code);
+        if (emailResult.devMode) resp.devCode = emailResult.previewCode;
+      } catch (emailErr: any) {
+        console.error("[MFA] Email send failed:", emailErr?.message ?? emailErr);
+        // Log the code to server logs as fallback so admins can retrieve it
+        console.warn(`[MFA FALLBACK] Code for ${user.email}: ${code}`);
+        resp.emailError = true;
+      }
       return res.json(resp);
     } catch (err) {
       console.error(err);
