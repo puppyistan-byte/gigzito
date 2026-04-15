@@ -1,0 +1,31 @@
+Found all three bugs. Let me check the custom TextInput component too:
+
+
+2 actions
+All three bugs are crystal clear now:
+
+user doesn't exist — Line 84 only destructures token from useAuth(). Line 170 then uses user?.username which crashes.
+Tags errors — The custom TextInput has a hardcoded height: 52 on the wrapper. When the style prop with minHeight is spread from the description field above it, it conflicts and the component gets into a broken state. The tags field needs to be a proper chip/tag input, not a plain text field.
+Custom category — Hardcoded list with no way to type your own.
+Fixing all three right now:
+
+
+2 actions
+All three bugs fixed in one complete rewrite of the screen. Here's exactly what was wrong and what's now fixed:
+
+1. Property 'user' doesn't exist — crash
+The screen was only pulling token from the auth context, but then tried to use user on the Profile CTA line. Added user to the destructuring — crash is gone.
+
+2. Tags errors out
+Replaced the broken text field with a proper chip-style tag input. Type a tag → press space or comma → it snaps into a blue chip. Tap the X on any chip to remove it. No more errors.
+
+3. Custom category
+Added a text input below the preset category pills with a checkmark button. Type "Pets", "Real Estate", or anything you want and hit the check — it creates a custom category chip. The preset pills still work the same way.
+
+This needs a new build to get onto the device. Run on Hills when ready:
+
+cd /opt/gigzito-mobile && git reset --hard HEAD && git clean -fd && git pull origin mobile-app && cd artifacts/mobile && eas build --platform android --profile preview --non-interactive
+
+Also — still need that DB tier fix for GZFlash. Run this first so the admin account can create flash ads:
+
+cd /opt/gigzito && node -e "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query(\"UPDATE users SET \\\"subscriptionTier\\\"='GZEnterprise' WHERE email='admin@gigzito.com' RETURNING id,email,\\\"subscriptionTier\\\"\").then(r=>{console.log(r.rows);p.end();})"

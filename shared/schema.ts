@@ -97,6 +97,7 @@ export const videoListings = pgTable("video_listings", {
   likeCount: integer("like_count").notNull().default(0),
   bgMusicTrackId: integer("bg_music_track_id"),
   bgMusicVolume: integer("bg_music_volume").notNull().default(70),
+  customVertical: text("custom_vertical"),
   revealUrl: boolean("reveal_url").notNull().default(true),
   revealEmail: boolean("reveal_email").notNull().default(false),
   revealName: boolean("reveal_name").notNull().default(false),

@@ -1158,6 +1158,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       productStock: z.string().max(50).optional().nullable(),
       bgMusicTrackId: z.coerce.number().int().positive().optional().nullable(),
       bgMusicVolume: z.coerce.number().int().min(0).max(100).optional(),
+      customVertical: z.string().max(60).optional().nullable(),
     });
 
     try {
@@ -1177,10 +1178,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         ctaType: data.ctaType ?? null,
         bgMusicTrackId: data.bgMusicTrackId ?? null,
         bgMusicVolume: data.bgMusicVolume ?? 70,
+        customVertical: data.customVertical ?? null,
         providerId: profile.id,
         dropDate: getTodayDate(),
         pricePaidCents: 300,
-      });
+      } as any);
       // Set scan status + kick off Bif asynchronously for uploaded videos
       if (isUploadedVideo && data.videoUrl) {
         await storage.updateScanStatus(listing.id, "SCANNING", null);
@@ -1188,7 +1190,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           console.error("[Bif] async call failed:", err);
         });
       }
-      return res.status(201).json({ success: true, listingId: listing.id, scanStatus: isUploadedVideo ? "SCANNING" : "CLEAN" });
+      return res.status(201).json({
+        success: true,
+        listingId: listing.id,
+        scanStatus: isUploadedVideo ? "SCANNING" : "CLEAN",
+        user: { id: currentUser!.id, email: currentUser!.email, role: currentUser!.role, subscriptionTier: currentUser!.subscriptionTier ?? "GZLurker" },
+      });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join(".") });
@@ -2132,15 +2139,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!profile) return res.status(400).json({ message: "Provider profile not found" });
 
     const schema = z.object({
-      artworkUrl: z.string().url(),
+      artworkUrl: z.union([z.string().url(), z.string().startsWith("/uploads/")]),
       offerTitle: z.string().min(5).max(120),
-      ctaLink: z.string().url(),
+      ctaLink: z.union([z.string().url(), z.string().startsWith("/uploads/")]),
       scheduledAt: z.string().datetime({ message: "A valid date and time is required" }),
       tagline: z.string().max(120).optional().nullable(),
       category: z.string().max(60).optional().nullable(),
       flashDurationSeconds: z.coerce.number().int().min(5).max(60).optional().nullable(),
       offerDurationMinutes: z.coerce.number().int().min(10).max(1440).optional().nullable(),
-      companyUrl: z.string().url().optional().or(z.literal("")),
+      companyUrl: z.union([z.string().url(), z.string().startsWith("/uploads/"), z.literal("")]).optional().nullable(),
       description: z.string().optional(),
       countdownMinutes: z.coerce.number().int().optional(),
       couponCode: z.string().max(40).optional().nullable(),
