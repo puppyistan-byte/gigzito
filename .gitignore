@@ -7,3 +7,7 @@ vite.config.ts.*
 *.tar.gz.env
 .env.bak*
 .env
+
+# Uploaded media — never commit actual files, but keep the directory structure
+uploads/**/*
+!uploads/**/.gitkeep
