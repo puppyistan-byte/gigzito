@@ -9,10 +9,12 @@ vite.config.ts.*
 .env
 
 # ── Safe Havens — Rocco cannot touch these ───────────────────────────────────
-# Uploaded media, ads, and logs: never commit actual files, keep dir structure
+# Uploaded media, ads, logs, and quarantine: never commit actual files
 uploads/**/*
 !uploads/**/.gitkeep
 ads/**/*
 !ads/.gitkeep
 logs/**/*
 !logs/.gitkeep
+quarantine/**/*
+!quarantine/.gitkeep

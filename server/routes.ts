@@ -13,26 +13,50 @@ import fs from "fs";
 import path from "path";
 import multer from "multer";
 import jwt from "jsonwebtoken";
+import { inspectFileSync, moveToFinalDest, destroyContraband } from "./inspector";
 
-// Pre-create all upload directories at startup
-["uploads", "uploads/videos", "uploads/gz-music"].forEach((d) => {
+// ── Safe Haven directories — created at startup, never wiped by Rocco ─────────
+const SAFE_HAVENS = ["uploads", "uploads/videos", "uploads/gz-music", "ads", "quarantine"];
+SAFE_HAVENS.forEach((d) => {
   const dir = path.join(process.cwd(), d);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-const uploadStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
+// ── Quarantine storage — ALL disk uploads land here first ──────────────────────
+const quarantineDir = path.join(process.cwd(), "quarantine");
+const quarantineStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, quarantineDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
-    cb(null, `${Date.now()}-${randomBytes(6).toString("hex")}${ext}`);
+    const ext = path.extname(file.originalname).toLowerCase() || ".bin";
+    cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
   },
 });
+
+// ── Inspector helper — run after multer saves to quarantine ───────────────────
+function runInspector(
+  req: any, res: any,
+  finalDir: string,
+  fileField: string = "file",
+  expectedCategory: "image" | "video" | "audio" | "any" = "any"
+): { ok: true; finalPath: string; filename: string } | { ok: false } {
+  const file: Express.Multer.File | undefined = req.file ?? req.files?.[fileField]?.[0] ?? req.files?.[fileField];
+  if (!file) { res.status(400).json({ message: "No file received" }); return { ok: false }; }
+
+  const result = inspectFileSync(file.path, file.mimetype);
+  if (!result.pass) {
+    destroyContraband(file.path, result.reason ?? "failed inspection");
+    console.warn(`[Inspector] Upload DECLINED for user ${req.session?.userId ?? "unknown"}: ${result.reason}`);
+    res.status(422).json({ message: `Upload declined: ${result.reason}` });
+    return { ok: false };
+  }
+
+  const finalPath = moveToFinalDest(file.path, finalDir, file.filename);
+  console.log(`[Inspector] PASS → ${finalPath} (${result.detectedType})`);
+  return { ok: true, finalPath, filename: file.filename };
+}
+
 const upload = multer({
-  storage: uploadStorage,
+  storage: quarantineStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
@@ -49,19 +73,8 @@ const adImageUpload = multer({
   },
 });
 
-const videoUploadStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(process.cwd(), "uploads", "videos");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || ".mp4";
-    cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
-  },
-});
 const videoUpload = multer({
-  storage: videoUploadStorage,
+  storage: quarantineStorage,
   limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/ogg", "video/3gpp", "video/mpeg", "video/x-m4v"];
@@ -70,20 +83,8 @@ const videoUpload = multer({
   },
 });
 
-// GZMusic audio + license upload
-const gzMusicAudioStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(process.cwd(), "uploads", "gz-music");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || ".mp3";
-    cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
-  },
-});
 const gzMusicUpload = multer({
-  storage: gzMusicAudioStorage,
+  storage: quarantineStorage,
   limits: { fileSize: 60 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (
@@ -1035,14 +1036,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/upload/image", upload.single("file"), async (req, res) => {
     if (!requireAuth(req, res)) return;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const url = `/uploads/${req.file.filename}`;
+    const inspection = runInspector(req, res, path.join(process.cwd(), "uploads"), "file", "image");
+    if (!inspection.ok) return;
+    const url = `/uploads/${inspection.filename}`;
     return res.json({ url });
   });
 
   app.post("/api/upload/video", videoUpload.single("file"), async (req, res) => {
     if (!requireAuth(req, res)) return;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const url = `/uploads/videos/${req.file.filename}`;
+    const inspection = runInspector(req, res, path.join(process.cwd(), "uploads", "videos"), "file", "video");
+    if (!inspection.ok) return;
+    const url = `/uploads/videos/${inspection.filename}`;
     return res.json({ url, size: req.file.size, originalName: req.file.originalname });
   });
 
@@ -4089,9 +4094,40 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!genre?.trim()) return res.status(400).json({ message: "Genre is required." });
       if (authenticityConfirmed !== "true") return res.status(400).json({ message: "Certificate of authenticity must be confirmed." });
 
-      const fileUrl = `/uploads/gz-music/${audioFile.filename}`;
+      const gzMusicFinalDir = path.join(process.cwd(), "uploads", "gz-music");
+
+      // Inspector: audio
+      const audioInspection = inspectFileSync(audioFile.path, audioFile.mimetype);
+      if (!audioInspection.pass) {
+        destroyContraband(audioFile.path, audioInspection.reason ?? "failed audio inspection");
+        return res.status(422).json({ message: `Audio upload declined: ${audioInspection.reason}` });
+      }
+      moveToFinalDest(audioFile.path, gzMusicFinalDir, audioFile.filename);
+
       const licenseFile = files?.["license"]?.[0];
       const coverFile = files?.["cover"]?.[0];
+
+      // Inspector: license (optional)
+      if (licenseFile) {
+        const licInspection = inspectFileSync(licenseFile.path, licenseFile.mimetype);
+        if (!licInspection.pass) {
+          destroyContraband(licenseFile.path, licInspection.reason ?? "failed license inspection");
+          return res.status(422).json({ message: `License upload declined: ${licInspection.reason}` });
+        }
+        moveToFinalDest(licenseFile.path, gzMusicFinalDir, licenseFile.filename);
+      }
+
+      // Inspector: cover image (optional)
+      if (coverFile) {
+        const covInspection = inspectFileSync(coverFile.path, coverFile.mimetype);
+        if (!covInspection.pass) {
+          destroyContraband(coverFile.path, covInspection.reason ?? "failed cover inspection");
+          return res.status(422).json({ message: `Cover image declined: ${covInspection.reason}` });
+        }
+        moveToFinalDest(coverFile.path, gzMusicFinalDir, coverFile.filename);
+      }
+
+      const fileUrl = `/uploads/gz-music/${audioFile.filename}`;
       const licenseFileUrl = licenseFile ? `/uploads/gz-music/${licenseFile.filename}` : null;
       const coverUrl = coverFile ? `/uploads/gz-music/${coverFile.filename}` : null;
 
