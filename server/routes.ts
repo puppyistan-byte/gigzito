@@ -985,7 +985,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // =====================================================================
 
-  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+  app.post("/api/auth/change-password", async (req, res) => {
+    if (!requireAuth(req, res)) return;
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ message: "Both current and new password are required." });
     if (newPassword.length < 8) return res.status(400).json({ message: "New password must be at least 8 characters." });
