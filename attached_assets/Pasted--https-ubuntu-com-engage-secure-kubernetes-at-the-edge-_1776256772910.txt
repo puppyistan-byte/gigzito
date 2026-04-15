@@ -1,0 +1,133 @@
+ https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+17 updates can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+3 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+New release '24.04.4 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+Last login: Wed Apr 15 12:26:20 2026 from 79.127.229.246
+root@ubuntu-8gb-hil-2:~# cd /opt/gigzito-smtp && docker compose up -d
+unknown shorthand flag: 'd' in -d
+
+Usage:  docker [OPTIONS] COMMAND [ARG...]
+
+Run 'docker --help' for more information
+root@ubuntu-8gb-hil-2:/opt/gigzito-smtp# cd /opt/gigzito-smtp && docker-compose up -d
+Creating network "gigzito-smtp_default" with the default driver
+Building smtp
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/anvil to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/bounce to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/bsmtp to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/defer to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/discard to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/error to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/ifmail to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/lmtp to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/local to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/maildrop to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/mailman to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/proxymap to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/proxywrite to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/relay to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/retry to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/rewrite to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/scache to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/scalemail-backend to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/smtp to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/tlsmgr to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/trace to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/uucp to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/verify to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/private/virtual to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/public/cleanup to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/public/flush to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/public/pickup to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/public/postlog to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/public/qmgr to tar: archive/tar: sockets not supported"
+time="2026-04-15T12:39:10Z" level=error msg="Can't add file /opt/gigzito-smtp/data/spool/public/showq to tar: archive/tar: sockets not supported"
+Sending build context to Docker daemon  17.75MB
+Step 1/5 : FROM boky/postfix:latest
+latest: Pulling from boky/postfix
+02d7611c4eae: Pulling fs layer
+fe0a434f567e: Pulling fs layer
+0a0c3c5a8780: Pulling fs layer
+d462d3ea6d84: Pulling fs layer
+11d2a89b4467: Pulling fs layer
+ad0e1b353d8b: Pulling fs layer
+ae9a9f5d7a16: Pulling fs layer
+46d5c0ee8f6a: Pulling fs layer
+8d634f0343db: Pulling fs layer
+715cb57b8e59: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+d462d3ea6d84: Waiting
+11d2a89b4467: Waiting
+46d5c0ee8f6a: Waiting
+8d634f0343db: Waiting
+ad0e1b353d8b: Waiting
+ae9a9f5d7a16: Waiting
+715cb57b8e59: Waiting
+4f4fb700ef54: Waiting
+0a0c3c5a8780: Verifying Checksum
+0a0c3c5a8780: Download complete
+02d7611c4eae: Verifying Checksum
+02d7611c4eae: Download complete
+fe0a434f567e: Verifying Checksum
+fe0a434f567e: Download complete
+d462d3ea6d84: Verifying Checksum
+d462d3ea6d84: Download complete
+11d2a89b4467: Verifying Checksum
+11d2a89b4467: Download complete
+ad0e1b353d8b: Download complete
+ae9a9f5d7a16: Verifying Checksum
+ae9a9f5d7a16: Download complete
+8d634f0343db: Verifying Checksum
+8d634f0343db: Download complete
+46d5c0ee8f6a: Verifying Checksum
+46d5c0ee8f6a: Download complete
+715cb57b8e59: Download complete
+4f4fb700ef54: Verifying Checksum
+4f4fb700ef54: Download complete
+02d7611c4eae: Pull complete
+fe0a434f567e: Pull complete
+0a0c3c5a8780: Pull complete
+d462d3ea6d84: Pull complete
+11d2a89b4467: Pull complete
+ad0e1b353d8b: Pull complete
+ae9a9f5d7a16: Pull complete
+46d5c0ee8f6a: Pull complete
+8d634f0343db: Pull complete
+715cb57b8e59: Pull complete
+4f4fb700ef54: Pull complete
+Digest: sha256:aafc772384232497bed875e1eb66b4d3e54ba1ebc86e2e185a6dc1dbc48182ef
+Status: Downloaded newer image for boky/postfix:latest
+ ---> 20c2e2e5ebf8
+Step 2/5 : USER root
+ ---> Running in 60670a4e3c62
+ ---> Removed intermediate container 60670a4e3c62
+ ---> 2aaa7394dde4
+Step 3/5 : COPY start.sh /start.sh
+ ---> 31797c7631f3
+Step 4/5 : RUN chmod +x /start.sh
+ ---> Running in f8ccc090b6b1
+ ---> Removed intermediate container f8ccc090b6b1
+ ---> af67afcc5df0
+Step 5/5 : ENTRYPOINT ["/start.sh"]
+ ---> Running in 92a61f051c2f
+ ---> Removed intermediate container 92a61f051c2f
+ ---> cf5350ebcdfd
+Successfully built cf5350ebcdfd
+Successfully tagged gigzito-smtp_smtp:latest
+WARNING: Image for service smtp was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
+Creating gigzito-smtp ... done
+root@ubuntu-8gb-hil-2:/opt/gigzito-smtp#
