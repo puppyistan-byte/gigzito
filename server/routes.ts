@@ -5312,6 +5312,46 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Band go-live toggle
+  // ── Band Roster ────────────────────────────────────────────────────────────
+  app.get("/api/bands/:id/roster", async (req, res) => {
+    return res.json(await storage.getGzBandRoster(parseInt(req.params.id)));
+  });
+
+  app.post("/api/bands/:id/roster", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
+    const roster = await storage.getGzBandRoster(bandId);
+    if (roster.length >= 8) return res.status(400).json({ message: "Maximum 8 band mates allowed" });
+    const { name, thumbUrl, bio, role } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
+    const entry = await storage.addGzBandRosterMember(bandId, { name, thumbUrl: thumbUrl || null, bio: bio || null, role: role || null, sortOrder: roster.length });
+    return res.status(201).json(entry);
+  });
+
+  app.put("/api/bands/:id/roster/:rid", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
+    const { name, thumbUrl, bio, role } = req.body;
+    const updated = await storage.updateGzBandRosterMember(parseInt(req.params.rid), { name, thumbUrl: thumbUrl ?? null, bio: bio ?? null, role: role ?? null });
+    return res.json(updated);
+  });
+
+  app.delete("/api/bands/:id/roster/:rid", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
+    await storage.deleteGzBandRosterMember(parseInt(req.params.rid));
+    return res.json({ ok: true });
+  });
+
   app.post("/api/bands/:id/live", async (req, res) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId as number;

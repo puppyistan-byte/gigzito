@@ -10,10 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Music, Users, Calendar, Image, Tv2, Radio, Plus, Trash2, ExternalLink,
   Play, Pause, SkipBack, SkipForward, ChevronLeft, Send, Globe, Instagram,
-  LogIn, LogOut, Settings, MapPin, Mic2, Video, Clock,
+  LogIn, LogOut, Settings, MapPin, Mic2, Video, Clock, Pencil, UserPlus, X,
 } from "lucide-react";
 import { SiTiktok, SiYoutube, SiInstagram } from "react-icons/si";
-import type { GzBandWithMeta, GzBandWallPostWithAuthor, GzBandWallCommentWithAuthor, GzBandMemberWithProfile, GzBandEvent, GzBandPhoto, GzBandTvShow } from "@shared/schema";
+import type { GzBandWithMeta, GzBandWallPostWithAuthor, GzBandWallCommentWithAuthor, GzBandMemberWithProfile, GzBandEvent, GzBandPhoto, GzBandTvShow, GzBandRosterMember } from "@shared/schema";
 import type { GZMusicTrack } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
@@ -51,6 +51,199 @@ function timeAgo(d: string | Date) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+// ── Band Roster ───────────────────────────────────────────────────────────────
+type RosterForm = { name: string; thumbUrl: string; bio: string; role: string };
+const EMPTY_ROSTER: RosterForm = { name: "", thumbUrl: "", bio: "", role: "" };
+
+function RosterSection({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const thumbRef = useRef<HTMLInputElement>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<GzBandRosterMember | null>(null);
+  const [form, setForm] = useState<RosterForm>(EMPTY_ROSTER);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
+
+  const { data: roster = [], isLoading } = useQuery<GzBandRosterMember[]>({
+    queryKey: ["/api/bands", bandId, "roster"],
+    queryFn: () => fetch(`/api/bands/${bandId}/roster`).then(r => r.json()),
+  });
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY_ROSTER); setShowForm(true); };
+  const openEdit = (m: GzBandRosterMember) => {
+    setEditing(m);
+    setForm({ name: m.name, thumbUrl: m.thumbUrl ?? "", bio: m.bio ?? "", role: m.role ?? "" });
+    setShowForm(true);
+  };
+  const closeForm = () => { setShowForm(false); setEditing(null); setForm(EMPTY_ROSTER); };
+
+  const uploadThumb = async (file: File) => {
+    setUploadingThumb(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await fetch("/api/upload-image", { method: "POST", body: fd, credentials: "include" });
+      if (!r.ok) throw new Error((await r.json()).message);
+      const { url } = await r.json();
+      setForm(f => ({ ...f, thumbUrl: url }));
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingThumb(false);
+    }
+  };
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/bands/${bandId}/roster`, { name: form.name, thumbUrl: form.thumbUrl || null, bio: form.bio || null, role: form.role || null });
+      return res.json();
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "roster"] }); closeForm(); toast({ title: "Band mate added!" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PUT", `/api/bands/${bandId}/roster/${editing!.id}`, { name: form.name, thumbUrl: form.thumbUrl || null, bio: form.bio || null, role: form.role || null });
+      return res.json();
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "roster"] }); closeForm(); toast({ title: "Updated!" }); },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/bands/${bandId}/roster/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "roster"] }),
+  });
+
+  if (!isAdmin && roster.length === 0) return null;
+
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#555]">Meet the Band</p>
+        {isAdmin && roster.length < 8 && (
+          <button onClick={openAdd} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg text-white" style={{ background: ORANGE }} data-testid="add-roster-btn">
+            <UserPlus className="h-3 w-3" /> Add
+          </button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="flex gap-3 overflow-x-auto pb-1">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="w-24 h-32 rounded-xl shrink-0" />)}</div>
+      ) : roster.length === 0 ? (
+        isAdmin && (
+          <button onClick={openAdd} className="w-full rounded-xl border border-dashed border-[#222] py-6 text-xs text-[#444] hover:border-[#333] hover:text-[#666] transition-colors flex flex-col items-center gap-1" data-testid="roster-empty-add">
+            <UserPlus className="h-5 w-5" />
+            Add your band mates (up to 8)
+          </button>
+        )
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {roster.map(m => (
+            <div key={m.id} className="relative shrink-0 w-28 rounded-xl overflow-hidden group" style={{ background: "#0f0f0f", border: `1px solid ${BORDER}` }} data-testid={`roster-${m.id}`}>
+              {/* Thumb */}
+              <div className="w-full aspect-square bg-[#1a1a1a] overflow-hidden">
+                {m.thumbUrl
+                  ? <img src={m.thumbUrl} alt={m.name} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center text-2xl font-black text-[#333]">{m.name[0]}</div>}
+              </div>
+              {/* Info */}
+              <div className="p-2">
+                <p className="text-xs font-bold text-white truncate">{m.name}</p>
+                {m.role && <p className="text-[10px] font-semibold mt-0.5 truncate" style={{ color: ORANGE }}>{m.role}</p>}
+                {m.bio && <p className="text-[10px] text-[#555] mt-1 line-clamp-2 leading-relaxed">{m.bio}</p>}
+              </div>
+              {/* Admin controls */}
+              {isAdmin && (
+                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => openEdit(m)} className="bg-black/70 rounded p-0.5 text-[#aaa] hover:text-white" data-testid={`roster-edit-${m.id}`}><Pencil className="h-3 w-3" /></button>
+                  <button onClick={() => deleteMutation.mutate(m.id)} className="bg-black/70 rounded p-0.5 text-[#aaa] hover:text-red-400" data-testid={`roster-delete-${m.id}`}><Trash2 className="h-3 w-3" /></button>
+                </div>
+              )}
+            </div>
+          ))}
+          {isAdmin && roster.length < 8 && (
+            <button onClick={openAdd} className="shrink-0 w-28 aspect-square rounded-xl flex flex-col items-center justify-center gap-1 text-[#333] hover:text-[#555] transition-colors border border-dashed border-[#1e1e1e] hover:border-[#2a2a2a]" data-testid="roster-add-tile">
+              <Plus className="h-5 w-5" />
+              <span className="text-[10px]">Add</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Add / Edit modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4" onClick={closeForm}>
+          <div className="w-full max-w-sm rounded-2xl p-5 space-y-3" style={{ background: "#111", border: `1px solid ${BORDER}` }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="text-base font-black text-white">{editing ? "Edit Band Mate" : "Add Band Mate"}</p>
+              <button onClick={closeForm} className="text-[#555] hover:text-white"><X className="h-4 w-4" /></button>
+            </div>
+
+            {/* Thumb upload */}
+            <div className="flex gap-3 items-center">
+              <div
+                className="w-16 h-16 rounded-xl overflow-hidden cursor-pointer shrink-0 flex items-center justify-center border border-dashed"
+                style={{ background: "#1a1a1a", borderColor: "#2a2a2a" }}
+                onClick={() => thumbRef.current?.click()}
+                data-testid="roster-thumb-upload"
+              >
+                {form.thumbUrl
+                  ? <img src={form.thumbUrl} alt="" className="w-full h-full object-cover" />
+                  : uploadingThumb
+                    ? <div className="h-4 w-4 rounded-full border-2 border-[#555] border-t-transparent animate-spin" />
+                    : <UserPlus className="h-5 w-5 text-[#444]" />}
+              </div>
+              <div className="flex-1 space-y-1.5">
+                <p className="text-[10px] text-[#555]">Tap photo to upload</p>
+                <button onClick={() => thumbRef.current?.click()} className="text-xs px-3 py-1 rounded-lg border border-[#222] text-[#888] hover:text-white hover:border-[#333] transition-colors">
+                  {uploadingThumb ? "Uploading…" : form.thumbUrl ? "Change Photo" : "Upload Photo"}
+                </button>
+              </div>
+              <input ref={thumbRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadThumb(e.target.files[0])} data-testid="roster-thumb-input" />
+            </div>
+
+            <input
+              className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#333]"
+              placeholder="Full name *"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              data-testid="roster-name"
+            />
+            <input
+              className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#333]"
+              placeholder="Role — e.g. Lead Guitar, Drums, Vocals…"
+              value={form.role}
+              onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+              data-testid="roster-role"
+            />
+            <textarea
+              className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#333] resize-none min-h-[70px]"
+              placeholder="Brief bio (optional)"
+              value={form.bio}
+              onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+              data-testid="roster-bio"
+            />
+            <div className="flex gap-3">
+              <button onClick={closeForm} className="flex-1 py-2 rounded-xl text-sm text-[#888] border border-[#222]">Cancel</button>
+              <button
+                onClick={() => editing ? editMutation.mutate() : addMutation.mutate()}
+                disabled={(editing ? editMutation.isPending : addMutation.isPending) || !form.name.trim()}
+                className="flex-1 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+                style={{ background: ORANGE }}
+                data-testid="roster-save"
+              >
+                {(editing ? editMutation.isPending : addMutation.isPending) ? "Saving…" : editing ? "Save Changes" : "Add Band Mate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Jukebox ───────────────────────────────────────────────────────────────────
@@ -832,6 +1025,9 @@ export default function BandClubbousePage() {
             ))}
           </div>
         )}
+
+        {/* Band Roster */}
+        <RosterSection bandId={bandId} isAdmin={isAdmin} />
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 overflow-x-auto pb-1">

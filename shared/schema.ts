@@ -1278,6 +1278,17 @@ export const gzBandTvShows = pgTable("gz_band_tv_shows", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const gzBandRoster = pgTable("gz_band_roster", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  thumbUrl: text("thumb_url"),
+  bio: text("bio"),
+  role: text("role"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type GzBand = typeof gzBands.$inferSelect;
 export type GzBandMember = typeof gzBandMembers.$inferSelect;
 export type GzBandWallPost = typeof gzBandWallPosts.$inferSelect;
@@ -1285,6 +1296,7 @@ export type GzBandWallComment = typeof gzBandWallComments.$inferSelect;
 export type GzBandEvent = typeof gzBandEvents.$inferSelect;
 export type GzBandPhoto = typeof gzBandPhotos.$inferSelect;
 export type GzBandTvShow = typeof gzBandTvShows.$inferSelect;
+export type GzBandRosterMember = typeof gzBandRoster.$inferSelect;
 
 export const insertGzBandSchema = createInsertSchema(gzBands).omit({ id: true, createdBy: true, createdAt: true, isLive: true });
 export const insertGzBandEventSchema = createInsertSchema(gzBandEvents).omit({ id: true, bandId: true, createdBy: true, createdAt: true });
