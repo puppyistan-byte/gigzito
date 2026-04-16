@@ -1125,7 +1125,7 @@ function ProviderDashboardInner() {
             <div className="space-y-3">
               {[1, 2].map((i) => <Skeleton key={i} className="h-20 w-full bg-[#111] rounded-xl" />)}
             </div>
-          ) : listings.length === 0 ? (
+          ) : listings.filter(l => l.status !== "REMOVED").length === 0 ? (
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-8 text-center">
               <p className="text-[#555] text-sm mb-3">No listings yet.</p>
               <Button
@@ -1140,7 +1140,7 @@ function ProviderDashboardInner() {
             </div>
           ) : (
             <div className="space-y-3">
-              {listings.map((listing) => (
+              {listings.filter(l => l.status !== "REMOVED").map((listing) => (
                 <div key={listing.id} className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4" data-testid={`card-listing-${listing.id}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -1165,7 +1165,6 @@ function ProviderDashboardInner() {
                       </div>
                       <p className="font-semibold text-sm text-white truncate">{listing.title}</p>
                       <p className="text-xs text-[#555] mt-0.5 flex items-center gap-2">
-                        <span>{listing.durationSeconds}s · $3.00 paid</span>
                         <span className="flex items-center gap-0.5 text-red-400" data-testid={`text-likes-listing-${listing.id}`}>
                           <Heart className="w-3 h-3 fill-red-400" />
                           {(listing.likeCount ?? 0).toLocaleString()} {(listing.likeCount ?? 0) === 1 ? "like" : "likes"}
