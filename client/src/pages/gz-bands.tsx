@@ -212,12 +212,12 @@ export default function GzBandsPage() {
                 onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
                 data-testid="band-bio"
               />
-              {/* Square Avatar Upload */}
+              {/* Profile Image Upload */}
               <div className="col-span-1 space-y-1.5">
-                <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">Square Image</p>
+                <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">Profile Image</p>
                 <div
                   className="relative flex items-center justify-center rounded-xl cursor-pointer border border-dashed transition-colors hover:border-[#444]"
-                  style={{ borderColor: avatarPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", aspectRatio: "1", overflow: "hidden" }}
+                  style={{ borderColor: avatarPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", height: "80px", overflow: "hidden" }}
                   onClick={() => avatarRef.current?.click()}
                   data-testid="band-avatar-upload"
                 >
@@ -234,7 +234,7 @@ export default function GzBandsPage() {
                     </>
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-[#444]">
-                      {uploadingAvatar ? <div className="h-4 w-4 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-5 w-5" />}
+                      {uploadingAvatar ? <div className="h-3.5 w-3.5 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
                       <span className="text-[10px]">{uploadingAvatar ? "Uploading…" : "Upload"}</span>
                     </div>
                   )}
@@ -242,12 +242,12 @@ export default function GzBandsPage() {
                 <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0], "avatar")} data-testid="band-avatar-input" />
               </div>
 
-              {/* Wide Banner Upload */}
+              {/* Banner Image Upload */}
               <div className="col-span-1 space-y-1.5">
                 <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">Banner Image</p>
                 <div
                   className="relative flex items-center justify-center rounded-xl cursor-pointer border border-dashed transition-colors hover:border-[#444]"
-                  style={{ borderColor: bannerPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", aspectRatio: "1", overflow: "hidden" }}
+                  style={{ borderColor: bannerPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", height: "80px", overflow: "hidden" }}
                   onClick={() => bannerRef.current?.click()}
                   data-testid="band-banner-upload"
                 >
@@ -264,7 +264,7 @@ export default function GzBandsPage() {
                     </>
                   ) : (
                     <div className="flex flex-col items-center gap-1 text-[#444]">
-                      {uploadingBanner ? <div className="h-4 w-4 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-5 w-5" />}
+                      {uploadingBanner ? <div className="h-3.5 w-3.5 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
                       <span className="text-[10px]">{uploadingBanner ? "Uploading…" : "Upload"}</span>
                     </div>
                   )}
