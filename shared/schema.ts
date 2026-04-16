@@ -1290,6 +1290,8 @@ export const gzBandRoster = pgTable("gz_band_roster", {
   thumbUrl: text("thumb_url"),
   bio: text("bio"),
   role: text("role"),
+  hometown: text("hometown"),
+  age: text("age"),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

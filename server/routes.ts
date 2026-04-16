@@ -5430,9 +5430,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
     const roster = await storage.getGzBandRoster(bandId);
     if (roster.length >= 8) return res.status(400).json({ message: "Maximum 8 band mates allowed" });
-    const { name, thumbUrl, bio, role } = req.body;
+    const { name, thumbUrl, bio, role, hometown, age } = req.body;
     if (!name?.trim()) return res.status(400).json({ message: "Name is required" });
-    const entry = await storage.addGzBandRosterMember(bandId, { name, thumbUrl: thumbUrl || null, bio: bio || null, role: role || null, sortOrder: roster.length });
+    const entry = await storage.addGzBandRosterMember(bandId, { name, thumbUrl: thumbUrl || null, bio: bio || null, role: role || null, hometown: hometown || null, age: age || null, sortOrder: roster.length });
     return res.status(201).json(entry);
   });
 
@@ -5442,8 +5442,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const bandId = parseInt(req.params.id);
     const member = await storage.getGzBandMember(bandId, userId);
     if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
-    const { name, thumbUrl, bio, role } = req.body;
-    const updated = await storage.updateGzBandRosterMember(parseInt(req.params.rid), { name, thumbUrl: thumbUrl ?? null, bio: bio ?? null, role: role ?? null });
+    const { name, thumbUrl, bio, role, hometown, age } = req.body;
+    const updated = await storage.updateGzBandRosterMember(parseInt(req.params.rid), { name, thumbUrl: thumbUrl ?? null, bio: bio ?? null, role: role ?? null, hometown: hometown ?? null, age: age ?? null });
     return res.json(updated);
   });
 

@@ -3361,12 +3361,12 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(gzBandRoster).where(eq(gzBandRoster.bandId, bandId)).orderBy(gzBandRoster.sortOrder, gzBandRoster.createdAt);
   }
 
-  async addGzBandRosterMember(bandId: number, data: { name: string; thumbUrl?: string; bio?: string; role?: string; sortOrder?: number }): Promise<GzBandRosterMember> {
-    const [member] = await db.insert(gzBandRoster).values({ bandId, name: data.name, thumbUrl: data.thumbUrl ?? null, bio: data.bio ?? null, role: data.role ?? null, sortOrder: data.sortOrder ?? 0 }).returning();
+  async addGzBandRosterMember(bandId: number, data: { name: string; thumbUrl?: string; bio?: string; role?: string; hometown?: string; age?: string; sortOrder?: number }): Promise<GzBandRosterMember> {
+    const [member] = await db.insert(gzBandRoster).values({ bandId, name: data.name, thumbUrl: data.thumbUrl ?? null, bio: data.bio ?? null, role: data.role ?? null, hometown: data.hometown ?? null, age: data.age ?? null, sortOrder: data.sortOrder ?? 0 }).returning();
     return member;
   }
 
-  async updateGzBandRosterMember(id: number, data: { name?: string; thumbUrl?: string | null; bio?: string | null; role?: string | null; sortOrder?: number }): Promise<GzBandRosterMember> {
+  async updateGzBandRosterMember(id: number, data: { name?: string; thumbUrl?: string | null; bio?: string | null; role?: string | null; hometown?: string | null; age?: string | null; sortOrder?: number }): Promise<GzBandRosterMember> {
     const [updated] = await db.update(gzBandRoster).set(data).where(eq(gzBandRoster.id, id)).returning();
     return updated;
   }

@@ -517,7 +517,11 @@ function TrackCard({
         {/* Title + artist — flex grow */}
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <p className="font-bold text-[12px] leading-tight text-white truncate" data-testid={`track-title-${track.id}`}>{track.title}</p>
-          <p className="text-[10px] leading-tight text-[#666] truncate">{track.artist}</p>
+          {(track as any).bandId ? (
+            <a href={`/gz-music/bands/${(track as any).bandId}`} onClick={e => { e.stopPropagation(); }} className="text-[10px] leading-tight text-[#ff7a00] truncate hover:underline" data-testid={`track-artist-link-${track.id}`}>{track.artist}</a>
+          ) : (
+            <p className="text-[10px] leading-tight text-[#666] truncate">{track.artist}</p>
+          )}
         </div>
 
         {/* Genre — fixed narrow col, hidden on very small */}
@@ -922,14 +926,20 @@ export default function GZMusicPage() {
               >
                 #{jukeboxInfo.rank} {jukeboxInfo.track.title}
               </p>
-              <p
-                style={{
-                  color: "#888", fontSize: 11,
-                  overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", margin: 0,
-                }}
-              >
-                {jukeboxInfo.track.artist}
-              </p>
+              {(jukeboxInfo.track as any).bandId ? (
+                <a
+                  href={`/gz-music/bands/${(jukeboxInfo.track as any).bandId}`}
+                  style={{ color: "#ff7a00", fontSize: 11, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", margin: 0, display: "block", textDecoration: "none" }}
+                  onMouseEnter={e => (e.currentTarget.style.textDecoration = "underline")}
+                  onMouseLeave={e => (e.currentTarget.style.textDecoration = "none")}
+                >
+                  {jukeboxInfo.track.artist}
+                </a>
+              ) : (
+                <p style={{ color: "#888", fontSize: 11, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", margin: 0 }}>
+                  {jukeboxInfo.track.artist}
+                </p>
+              )}
 
               {/* Seek bar */}
               <div
