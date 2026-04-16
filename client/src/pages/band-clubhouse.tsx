@@ -9,10 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Music, Users, Calendar, Image, Tv2, Radio, Plus, Trash2, ExternalLink,
-  Play, Pause, SkipBack, SkipForward, ChevronLeft, Send, Globe, Instagram,
-  LogIn, LogOut, Settings, MapPin, Mic2, Video, Clock, Pencil, UserPlus, X,
+  Play, Pause, SkipBack, SkipForward, ChevronLeft, ChevronRight, Send, Globe,
+  LogIn, LogOut, Settings, MapPin, Mic2, Video, Clock, Pencil, UserPlus, X, Check,
 } from "lucide-react";
 import { SiTiktok, SiYoutube, SiInstagram } from "react-icons/si";
+import {
+  format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval,
+  getDay, isSameDay, parseISO,
+} from "date-fns";
 import type { GzBandWithMeta, GzBandWallPostWithAuthor, GzBandWallCommentWithAuthor, GzBandMemberWithProfile, GzBandEvent, GzBandPhoto, GzBandTvShow, GzBandRosterMember } from "@shared/schema";
 import type { GZMusicTrack } from "@shared/schema";
 
@@ -21,7 +25,7 @@ const DARK = "#0a0a0a";
 const CARD = "#111";
 const BORDER = "#1e1e1e";
 
-type Tab = "wall" | "calendar" | "gallery" | "jukebox" | "tv";
+type Tab = "wall" | "gallery" | "jukebox" | "tv";
 
 const EVENT_COLORS: Record<string, string> = {
   show: "#ff7a00",
@@ -68,7 +72,7 @@ function RosterSection({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }
 
   const { data: roster = [], isLoading } = useQuery<GzBandRosterMember[]>({
     queryKey: ["/api/bands", bandId, "roster"],
-    queryFn: () => fetch(`/api/bands/${bandId}/roster`).then(r => r.json()),
+    queryFn: () => fetch(`/api/bands/${bandId}/roster`).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
   });
 
   const openAdd = () => { setEditing(null); setForm(EMPTY_ROSTER); setShowForm(true); };
@@ -484,7 +488,7 @@ function CalendarTab({ bandId, isMember, currentUserId }: { bandId: number; isMe
 
   const { data: events = [], isLoading } = useQuery<GzBandEvent[]>({
     queryKey: ["/api/bands", bandId, "events"],
-    queryFn: () => fetch(`/api/bands/${bandId}/events`).then(r => r.json()),
+    queryFn: () => fetch(`/api/bands/${bandId}/events`).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
   });
 
   const createMutation = useMutation({
@@ -601,6 +605,214 @@ function EventCard({ event, isMember, onDelete }: { event: GzBandEvent; isMember
           )}
         </div>
         {event.description && <p className="text-xs text-[#666] mt-1">{event.description}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Calendar Sidebar ──────────────────────────────────────────────────────────
+function CalendarSidebar({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [month, setMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({ title: "", venue: "", city: "", startAt: "", endAt: "", ticketUrl: "", type: "show" });
+
+  const { data: events = [] } = useQuery<GzBandEvent[]>({
+    queryKey: ["/api/bands", bandId, "events"],
+    queryFn: () => fetch(`/api/bands/${bandId}/events`).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
+  });
+
+  const createMut = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/bands/${bandId}/events`, form).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "events"] });
+      setAddOpen(false);
+      setForm({ title: "", venue: "", city: "", startAt: "", endAt: "", ticketUrl: "", type: "show" });
+      toast({ title: "Event added!" });
+    },
+    onError: () => toast({ title: "Error", description: "Could not save event", variant: "destructive" }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/bands/${bandId}/events/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "events"] }),
+  });
+
+  const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
+  const startPad = getDay(startOfMonth(month));
+  const eventsOnDay = (d: Date) => events.filter(e => isSameDay(parseISO(e.startAt), d));
+  const dayEvents = selectedDate ? eventsOnDay(selectedDate) : [];
+  const upcoming = events
+    .filter(e => new Date(e.startAt) >= new Date())
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+    .slice(0, 4);
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      {/* Header */}
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between" style={{ borderBottom: `1px solid ${BORDER}` }}>
+        <div className="flex items-center gap-1.5">
+          <Calendar className="w-4 h-4" style={{ color: ORANGE }} />
+          <span className="text-sm font-semibold text-white">Events</span>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => { setAddOpen(v => !v); setSelectedDate(null); }}
+            className="text-[#555] hover:text-white transition-colors"
+            data-testid="sidebar-add-event-btn"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Add form (admin only) */}
+      {isAdmin && addOpen && (
+        <div className="px-3 py-3 space-y-2" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <p className="text-xs font-bold text-white">New Event</p>
+          <input
+            className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]"
+            placeholder="Title *"
+            value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            data-testid="sidebar-event-title"
+          />
+          <select
+            className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]"
+            value={form.type}
+            onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+            data-testid="sidebar-event-type"
+          >
+            <option value="show">Live Show</option>
+            <option value="rehearsal">Rehearsal</option>
+            <option value="livestream">Livestream</option>
+            <option value="other">Other</option>
+          </select>
+          <div className="grid grid-cols-2 gap-2">
+            <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]" placeholder="Venue" value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} data-testid="sidebar-event-venue" />
+            <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]" placeholder="City" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} data-testid="sidebar-event-city" />
+          </div>
+          <input type="datetime-local" className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]" value={form.startAt} onChange={e => setForm(f => ({ ...f, startAt: e.target.value }))} data-testid="sidebar-event-start" />
+          <input type="datetime-local" className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]" value={form.endAt} onChange={e => setForm(f => ({ ...f, endAt: e.target.value }))} data-testid="sidebar-event-end" />
+          <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white outline-none border border-[#222]" placeholder="Ticket URL (optional)" value={form.ticketUrl} onChange={e => setForm(f => ({ ...f, ticketUrl: e.target.value }))} data-testid="sidebar-event-tickets" />
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 text-xs text-[#888] hover:text-white">Cancel</button>
+            <button
+              onClick={() => createMut.mutate()}
+              disabled={createMut.isPending || !form.title.trim() || !form.startAt}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
+              style={{ background: ORANGE }}
+              data-testid="sidebar-event-save"
+            >
+              {createMut.isPending ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="p-3">
+        {/* Month nav */}
+        <div className="flex items-center justify-between mb-2">
+          <button onClick={() => setMonth(m => subMonths(m, 1))} className="p-1 rounded hover:bg-[#1a1a1a] transition-colors text-[#666] hover:text-white"><ChevronLeft className="w-3.5 h-3.5" /></button>
+          <span className="text-xs font-semibold text-white">{format(month, "MMMM yyyy")}</span>
+          <button onClick={() => setMonth(m => addMonths(m, 1))} className="p-1 rounded hover:bg-[#1a1a1a] transition-colors text-[#666] hover:text-white"><ChevronRight className="w-3.5 h-3.5" /></button>
+        </div>
+
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-0.5">
+          {["S","M","T","W","T","F","S"].map((d, i) => (
+            <div key={i} className="text-center text-[10px] text-[#444] py-0.5 font-medium">{d}</div>
+          ))}
+        </div>
+
+        {/* Days grid */}
+        <div className="grid grid-cols-7 gap-px">
+          {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
+          {days.map(day => {
+            const hasEvents = eventsOnDay(day).length > 0;
+            const isSelected = !!selectedDate && isSameDay(day, selectedDate);
+            const isToday = isSameDay(day, new Date());
+            return (
+              <button
+                key={day.toISOString()}
+                onClick={() => setSelectedDate(isSelected ? null : day)}
+                className="relative flex flex-col items-center rounded py-1 text-[11px] transition-colors"
+                style={isSelected
+                  ? { background: ORANGE, color: "#fff" }
+                  : isToday
+                  ? { color: ORANGE, fontWeight: "bold" }
+                  : { color: "#888" }
+                }
+                data-testid={`cal-day-${format(day, "yyyy-MM-dd")}`}
+              >
+                {format(day, "d")}
+                {hasEvents && <span className="w-1 h-1 rounded-full" style={{ background: isSelected ? "#fff" : ORANGE }} />}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected day events */}
+        {selectedDate && (
+          <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-white">{format(selectedDate, "EEE, MMM d")}</span>
+              {isAdmin && (
+                <button
+                  onClick={() => { setForm(f => ({ ...f, startAt: format(selectedDate, "yyyy-MM-dd") + "T20:00" })); setAddOpen(true); }}
+                  className="text-xs flex items-center gap-0.5 hover:underline"
+                  style={{ color: ORANGE }}
+                >
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              )}
+            </div>
+            {dayEvents.length === 0 ? (
+              <p className="text-xs text-[#444] italic">No events on this day</p>
+            ) : (
+              <div className="space-y-1.5">
+                {dayEvents.map(ev => (
+                  <div key={ev.id} className="flex items-start gap-2 group">
+                    <div className="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style={{ background: EVENT_COLORS[ev.type] ?? "#6b7280" }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-white leading-snug">{ev.title}</p>
+                      <p className="text-[10px] text-[#555]">{format(parseISO(ev.startAt), "h:mm a")}{ev.venue ? ` · ${ev.venue}` : ""}</p>
+                    </div>
+                    {isAdmin && (
+                      <button onClick={() => deleteMut.mutate(ev.id)} className="opacity-0 group-hover:opacity-100 text-[#444] hover:text-red-500 transition-all">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Upcoming (when no date selected) */}
+        {!selectedDate && upcoming.length > 0 && (
+          <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${BORDER}` }}>
+            <p className="text-[10px] font-semibold text-[#444] uppercase tracking-wide mb-1.5">Upcoming</p>
+            <div className="space-y-1.5">
+              {upcoming.map(ev => (
+                <div key={ev.id} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style={{ background: EVENT_COLORS[ev.type] ?? "#6b7280" }} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-white leading-snug truncate">{ev.title}</p>
+                    <p className="text-[10px] text-[#555]">{format(parseISO(ev.startAt), "MMM d")}{ev.city ? ` · ${ev.city}` : ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!selectedDate && events.length === 0 && (
+          <p className="text-[11px] text-[#444] text-center mt-3 italic">No events yet</p>
+        )}
       </div>
     </div>
   );
@@ -876,6 +1088,8 @@ export default function BandClubbousePage() {
   const [tab, setTab] = useState<Tab>("wall");
   const [joinInstrument, setJoinInstrument] = useState("");
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", bio: "", genre: "", city: "", state: "", avatarUrl: "", bannerUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", websiteUrl: "" });
 
   const { data: band, isLoading } = useQuery<GzBandWithMeta>({
     queryKey: ["/api/bands", bandId],
@@ -908,16 +1122,43 @@ export default function BandClubbousePage() {
     onError: (e: any) => toast({ title: "Error", description: e.message ?? "Could not leave", variant: "destructive" }),
   });
 
+  const editMutation = useMutation({
+    mutationFn: () => apiRequest("PATCH", `/api/bands/${bandId}`, editForm).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId] });
+      setShowEditModal(false);
+      toast({ title: "Band updated!" });
+    },
+    onError: () => toast({ title: "Error", description: "Could not save changes", variant: "destructive" }),
+  });
+
   const isMember = !!band?.isMember;
   const isAdmin = band?.memberRole === "admin";
 
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: "wall", label: "Wall", icon: Mic2 },
-    { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "gallery", label: "Gallery", icon: Image },
     { id: "jukebox", label: "Jukebox", icon: Music },
     { id: "tv", label: "Zito TV", icon: Tv2 },
   ];
+
+  function openEdit() {
+    if (!band) return;
+    setEditForm({
+      name: band.name ?? "",
+      bio: band.bio ?? "",
+      genre: band.genre ?? "",
+      city: band.city ?? "",
+      state: band.state ?? "",
+      avatarUrl: band.avatarUrl ?? "",
+      bannerUrl: band.bannerUrl ?? "",
+      instagramUrl: band.instagramUrl ?? "",
+      tiktokUrl: band.tiktokUrl ?? "",
+      youtubeUrl: band.youtubeUrl ?? "",
+      websiteUrl: band.websiteUrl ?? "",
+    });
+    setShowEditModal(true);
+  }
 
   if (isLoading) return (
     <div style={{ background: DARK, minHeight: "100vh" }}>
@@ -944,13 +1185,13 @@ export default function BandClubbousePage() {
     <div style={{ background: DARK, minHeight: "100vh" }}>
       <Navbar />
 
-      {/* Banner */}
+      {/* Banner — shorter so it doesn't swallow the header */}
       <div className="relative">
         <div
-          className="w-full h-44 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
+          className="w-full h-32 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
           style={band.bannerUrl ? { backgroundImage: `url(${band.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
         <button onClick={() => setLocation("/gz-music?tab=bands")} className="absolute top-3 left-3 flex items-center gap-1.5 text-xs text-[#aaa] hover:text-white bg-black/50 rounded-lg px-2.5 py-1.5 backdrop-blur-sm" data-testid="back-to-bands">
           <ChevronLeft className="h-3 w-3" /> All Bands
         </button>
@@ -962,9 +1203,11 @@ export default function BandClubbousePage() {
         )}
       </div>
 
-      {/* Band header */}
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="flex items-end gap-4 -mt-12 mb-4">
+      {/* Outer container — wide for two-column layout */}
+      <div className="max-w-5xl mx-auto px-4">
+
+        {/* Band header */}
+        <div className="flex items-end gap-4 -mt-8 mb-4">
           <div className="w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0" style={{ borderColor: ORANGE, background: "#1a1a1a" }}>
             {band.avatarUrl ? (
               <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -993,7 +1236,7 @@ export default function BandClubbousePage() {
               </button>
             )}
             {isAdmin && (
-              <button onClick={() => setLocation(`/gz-music/bands/${bandId}/edit`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#888] border border-[#222] hover:border-[#444] hover:text-white transition-colors" data-testid="edit-band-btn">
+              <button onClick={openEdit} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#888] border border-[#222] hover:border-[#444] hover:text-white transition-colors" data-testid="edit-band-btn">
                 <Settings className="h-4 w-4" />
               </button>
             )}
@@ -1029,29 +1272,36 @@ export default function BandClubbousePage() {
         {/* Band Roster */}
         <RosterSection bandId={bandId} isAdmin={isAdmin} />
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all shrink-0"
-              style={tab === t.id ? { background: ORANGE, color: "#fff" } : { background: "#111", color: "#555", border: `1px solid ${BORDER}` }}
-              data-testid={`tab-${t.id}`}
-            >
-              <t.icon className="h-3.5 w-3.5" />
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {/* Two-column: main content + calendar sidebar */}
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] gap-6 pb-20">
 
-        {/* Tab content */}
-        <div className="pb-20">
-          {tab === "wall" && <WallTab bandId={bandId} isMember={isMember} currentUserId={user?.id} />}
-          {tab === "calendar" && <CalendarTab bandId={bandId} isMember={isMember} currentUserId={user?.id} />}
-          {tab === "gallery" && <GalleryTab bandId={bandId} isMember={isMember} />}
-          {tab === "jukebox" && <Jukebox bandId={bandId} />}
-          {tab === "tv" && <ZitoTVTab bandId={bandId} isMember={isMember} band={band} />}
+          {/* Left: tabs + content */}
+          <div>
+            <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
+              {TABS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all shrink-0"
+                  style={tab === t.id ? { background: ORANGE, color: "#fff" } : { background: "#111", color: "#555", border: `1px solid ${BORDER}` }}
+                  data-testid={`tab-${t.id}`}
+                >
+                  <t.icon className="h-3.5 w-3.5" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {tab === "wall" && <WallTab bandId={bandId} isMember={isMember} currentUserId={user?.id} />}
+            {tab === "gallery" && <GalleryTab bandId={bandId} isMember={isMember} />}
+            {tab === "jukebox" && <Jukebox bandId={bandId} />}
+            {tab === "tv" && <ZitoTVTab bandId={bandId} isMember={isMember} band={band} />}
+          </div>
+
+          {/* Right: calendar sidebar — always visible */}
+          <div className="lg:sticky lg:top-20">
+            <CalendarSidebar bandId={bandId} isAdmin={isAdmin} />
+          </div>
         </div>
       </div>
 
@@ -1072,6 +1322,61 @@ export default function BandClubbousePage() {
               <button onClick={() => setShowJoinModal(false)} className="flex-1 py-2 rounded-xl text-sm text-[#888] border border-[#222]" data-testid="join-cancel">Cancel</button>
               <button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending} className="flex-1 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40" style={{ background: ORANGE }} data-testid="join-confirm">
                 {joinMutation.isPending ? "Joining..." : "Join Band"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit band modal (admin only) */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4" onClick={() => setShowEditModal(false)}>
+          <div className="w-full max-w-lg rounded-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={{ background: "#111", border: `1px solid ${BORDER}` }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-black text-white">Edit Band</p>
+              <button onClick={() => setShowEditModal(false)} className="text-[#555] hover:text-white transition-colors"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Band Name *</label>
+                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} data-testid="edit-band-name" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Bio</label>
+                <textarea className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444] resize-none min-h-[70px]" value={editForm.bio} onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))} data-testid="edit-band-bio" />
+              </div>
+              <div>
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Genre</label>
+                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" value={editForm.genre} onChange={e => setEditForm(f => ({ ...f, genre: e.target.value }))} data-testid="edit-band-genre" />
+              </div>
+              <div>
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">City</label>
+                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" value={editForm.city} onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))} data-testid="edit-band-city" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">State</label>
+                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="e.g. Arizona" value={editForm.state} onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))} data-testid="edit-band-state" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Avatar URL</label>
+                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="https://..." value={editForm.avatarUrl} onChange={e => setEditForm(f => ({ ...f, avatarUrl: e.target.value }))} data-testid="edit-band-avatar" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Banner URL</label>
+                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="https://..." value={editForm.bannerUrl} onChange={e => setEditForm(f => ({ ...f, bannerUrl: e.target.value }))} data-testid="edit-band-banner" />
+              </div>
+            </div>
+            <p className="text-xs text-[#444] uppercase tracking-wide pt-1">Social Links</p>
+            <div className="grid grid-cols-2 gap-3">
+              <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="Instagram URL" value={editForm.instagramUrl} onChange={e => setEditForm(f => ({ ...f, instagramUrl: e.target.value }))} data-testid="edit-band-instagram" />
+              <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="TikTok URL" value={editForm.tiktokUrl} onChange={e => setEditForm(f => ({ ...f, tiktokUrl: e.target.value }))} data-testid="edit-band-tiktok" />
+              <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="YouTube URL" value={editForm.youtubeUrl} onChange={e => setEditForm(f => ({ ...f, youtubeUrl: e.target.value }))} data-testid="edit-band-youtube" />
+              <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="Website URL" value={editForm.websiteUrl} onChange={e => setEditForm(f => ({ ...f, websiteUrl: e.target.value }))} data-testid="edit-band-website" />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setShowEditModal(false)} className="flex-1 py-2 rounded-xl text-sm text-[#888] border border-[#222]" data-testid="edit-band-cancel">Cancel</button>
+              <button onClick={() => editMutation.mutate()} disabled={editMutation.isPending || !editForm.name.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40 flex items-center justify-center gap-2" style={{ background: ORANGE }} data-testid="edit-band-save">
+                {editMutation.isPending ? "Saving…" : <><Check className="h-4 w-4" /> Save Changes</>}
               </button>
             </div>
           </div>
