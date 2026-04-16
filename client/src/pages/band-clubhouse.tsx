@@ -11,7 +11,7 @@ import {
   Music, Users, Calendar, Image, Tv2, Radio, Plus, Trash2, ExternalLink,
   Play, Pause, SkipBack, SkipForward, ChevronLeft, ChevronRight, Send, Globe,
   LogIn, LogOut, Settings, MapPin, Mic2, Video, Clock, Pencil, UserPlus, X, Check,
-  Heart, Bell, BellOff,
+  Heart, Bell, BellOff, Upload, Search,
 } from "lucide-react";
 import { SiTiktok, SiYoutube, SiInstagram } from "react-icons/si";
 import {
@@ -26,7 +26,7 @@ const DARK = "#0a0a0a";
 const CARD = "#111";
 const BORDER = "#1e1e1e";
 
-type Tab = "wall" | "gallery" | "jukebox" | "tv";
+type Tab = "wall" | "gallery" | "tracks" | "tv";
 
 const EVENT_COLORS: Record<string, string> = {
   show: "#ff7a00",
@@ -105,7 +105,7 @@ function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin:
       const res = await apiRequest("POST", `/api/bands/${bandId}/roster`, { name: form.name, thumbUrl: form.thumbUrl || null, bio: form.bio || null, role: form.role || null });
       return res.json();
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "roster"] }); closeForm(); toast({ title: "Band mate added!" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "roster"] }); closeForm(); toast({ title: "Member added!" }); },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
@@ -131,7 +131,7 @@ function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin:
         <p className="text-xs font-bold uppercase tracking-widest text-[#555]">{bandType === "artist" ? "About the Artist" : "Meet the Band"}</p>
         {isAdmin && roster.length < 8 && (
           <button onClick={openAdd} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg text-white" style={{ background: ORANGE }} data-testid="add-roster-btn">
-            <UserPlus className="h-3 w-3" /> Add
+            <UserPlus className="h-3 w-3" /> Add Member
           </button>
         )}
       </div>
@@ -140,9 +140,9 @@ function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin:
         <div className="flex gap-3 overflow-x-auto pb-1">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="w-24 h-32 rounded-xl shrink-0" />)}</div>
       ) : roster.length === 0 ? (
         isAdmin && (
-          <button onClick={openAdd} className="w-full rounded-xl border border-dashed border-[#222] py-6 text-xs text-[#444] hover:border-[#333] hover:text-[#666] transition-colors flex flex-col items-center gap-1" data-testid="roster-empty-add">
-            <UserPlus className="h-5 w-5" />
-            Add your band mates (up to 8)
+          <button onClick={openAdd} className="w-full rounded-lg border border-dashed border-[#222] py-2.5 text-xs text-[#444] hover:border-[#333] hover:text-[#666] transition-colors flex items-center justify-center gap-2" data-testid="roster-empty-add">
+            <UserPlus className="h-3.5 w-3.5" />
+            Add members (up to 8)
           </button>
         )
       ) : (
@@ -184,7 +184,7 @@ function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin:
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4" onClick={closeForm}>
           <div className="w-full max-w-sm rounded-2xl p-5 space-y-3" style={{ background: "#111", border: `1px solid ${BORDER}` }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <p className="text-base font-black text-white">{editing ? "Edit Band Mate" : "Add Band Mate"}</p>
+              <p className="text-base font-black text-white">{editing ? "Edit Member" : "Add Member"}</p>
               <button onClick={closeForm} className="text-[#555] hover:text-white"><X className="h-4 w-4" /></button>
             </div>
 
@@ -241,7 +241,7 @@ function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin:
                 style={{ background: ORANGE }}
                 data-testid="roster-save"
               >
-                {(editing ? editMutation.isPending : addMutation.isPending) ? "Saving…" : editing ? "Save Changes" : "Add Band Mate"}
+                {(editing ? editMutation.isPending : addMutation.isPending) ? "Saving…" : editing ? "Save Changes" : "Add Member"}
               </button>
             </div>
           </div>
@@ -251,15 +251,44 @@ function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin:
   );
 }
 
-// ── Jukebox ───────────────────────────────────────────────────────────────────
-function Jukebox({ bandId }: { bandId: number }) {
+// ── Tracks Tab ────────────────────────────────────────────────────────────────
+function TracksTab({ bandId, isAdmin, bandName }: { bandId: number; isAdmin: boolean; bandName: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showClaim, setShowClaim] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(bandName);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const { data: tracks = [], isLoading } = useQuery<GZMusicTrack[]>({
     queryKey: ["/api/bands", bandId, "tracks"],
     queryFn: () => fetch(`/api/bands/${bandId}/tracks`).then(r => r.json()),
+  });
+
+  const { data: searchResults = [], isLoading: isSearching, refetch: doSearch } = useQuery<GZMusicTrack[]>({
+    queryKey: ["/api/bands", bandId, "tracks/search", searchQuery],
+    queryFn: () => fetch(`/api/bands/${bandId}/tracks/search?artist=${encodeURIComponent(searchQuery)}`, { credentials: "include" }).then(r => r.json()),
+    enabled: false,
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: (trackId: number) => apiRequest("POST", `/api/bands/${bandId}/claim-track/${trackId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "tracks"] });
+      toast({ title: "Track claimed!", description: "Track is now in your Tracks tab." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const unclaimMutation = useMutation({
+    mutationFn: (trackId: number) => apiRequest("POST", `/api/bands/${bandId}/unclaim-track/${trackId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "tracks"] });
+      toast({ title: "Track removed from band" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const current = tracks[currentIdx];
@@ -282,63 +311,157 @@ function Jukebox({ bandId }: { bandId: number }) {
   const prev = () => setCurrentIdx(i => Math.max(0, i - 1));
   const next = () => setCurrentIdx(i => Math.min(tracks.length - 1, i + 1));
 
+  const claimedIds = new Set(tracks.map(t => t.id));
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+    setHasSearched(true);
+    doSearch();
+  };
+
   if (isLoading) return <Skeleton className="h-40 rounded-xl" />;
-  if (tracks.length === 0) return (
-    <div className="text-center py-16 text-[#444]">
-      <Music className="mx-auto mb-3 h-10 w-10" />
-      <p className="text-sm">No tracks linked to this band yet.</p>
-      <p className="text-xs mt-1">Upload tracks and tag this band from the GZMusic upload page.</p>
-    </div>
-  );
 
   return (
     <div className="space-y-4">
-      {/* Now playing */}
-      <div className="rounded-xl p-5" style={{ background: "#0d0d0d", border: `1px solid ${BORDER}` }}>
-        <div className="flex gap-4 items-center">
-          <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-[#1a1a1a] flex items-center justify-center">
-            {current.coverUrl ? (
-              <img src={current.coverUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <Music className="h-7 w-7 text-[#333]" />
-            )}
+      {/* Admin claim panel */}
+      {isAdmin && (
+        <div className="rounded-xl p-4" style={{ background: "#0d0d0d", border: `1px solid ${BORDER}` }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#555]">Claim Your Tracks</p>
+            <button
+              onClick={() => setShowClaim(v => !v)}
+              className="text-xs px-2.5 py-1 rounded-lg font-semibold text-white transition-colors"
+              style={{ background: showClaim ? "#333" : ORANGE }}
+              data-testid="tracks-claim-toggle"
+            >
+              {showClaim ? "Close" : "Search & Claim"}
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-white truncate">{current.title}</p>
-            <p className="text-sm text-[#888] truncate">{current.artist}</p>
-            {current.genre && <Badge className="mt-1 text-[10px]" style={{ background: "#1a1a1a", color: ORANGE, border: `1px solid ${ORANGE}22` }}>{current.genre}</Badge>}
+          {showClaim && (
+            <div className="space-y-3">
+              <p className="text-xs text-[#555]">Search for tracks you uploaded where the artist name exactly matches your band name.</p>
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]"
+                  placeholder="Artist name (exact match)"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()}
+                  data-testid="tracks-search-input"
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                  className="px-3 py-2 rounded-lg text-white transition-colors flex items-center gap-1.5"
+                  style={{ background: ORANGE }}
+                  data-testid="tracks-search-btn"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+              {isSearching && <Skeleton className="h-16 rounded-lg" />}
+              {hasSearched && !isSearching && searchResults.length === 0 && (
+                <p className="text-xs text-[#444] text-center py-2">No tracks found. Artist name must match exactly.</p>
+              )}
+              {searchResults.length > 0 && (
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {searchResults.map(t => (
+                    <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2" style={{ background: "#1a1a1a" }} data-testid={`search-result-${t.id}`}>
+                      <div className="w-8 h-8 rounded overflow-hidden shrink-0 bg-[#222] flex items-center justify-center">
+                        {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="h-3.5 w-3.5 text-[#444]" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{t.title}</p>
+                        <p className="text-xs text-[#666] truncate">{t.artist}</p>
+                      </div>
+                      {claimedIds.has(t.id) ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: "#1e3a1e", color: "#22c55e" }}>Claimed</span>
+                      ) : (
+                        <button
+                          onClick={() => claimMutation.mutate(t.id)}
+                          disabled={claimMutation.isPending}
+                          className="text-xs px-2.5 py-1 rounded-lg font-semibold text-white transition-colors"
+                          style={{ background: ORANGE }}
+                          data-testid={`claim-track-${t.id}`}
+                        >
+                          Claim
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Track player */}
+      {tracks.length === 0 ? (
+        <div className="text-center py-16 text-[#444]">
+          <Music className="mx-auto mb-3 h-10 w-10" />
+          <p className="text-sm">No tracks claimed yet.</p>
+          {isAdmin && <p className="text-xs mt-1">Use "Search & Claim" above to add your tracks.</p>}
+        </div>
+      ) : (
+        <>
+          {/* Now playing */}
+          <div className="rounded-xl p-5" style={{ background: "#0d0d0d", border: `1px solid ${BORDER}` }}>
+            <div className="flex gap-4 items-center">
+              <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-[#1a1a1a] flex items-center justify-center">
+                {current?.coverUrl ? (
+                  <img src={current.coverUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <Music className="h-7 w-7 text-[#333]" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-white truncate">{current?.title}</p>
+                <p className="text-sm text-[#888] truncate">{current?.artist}</p>
+                {current?.genre && <Badge className="mt-1 text-[10px]" style={{ background: "#1a1a1a", color: ORANGE, border: `1px solid ${ORANGE}22` }}>{current.genre}</Badge>}
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-6 mt-5">
+              <button onClick={prev} disabled={currentIdx === 0} className="text-[#555] hover:text-white disabled:opacity-30 transition-colors" data-testid="tracks-prev"><SkipBack className="h-5 w-5" /></button>
+              <button onClick={togglePlay} className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95" style={{ background: ORANGE }} data-testid="tracks-play">
+                {playing ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white ml-0.5" />}
+              </button>
+              <button onClick={next} disabled={currentIdx === tracks.length - 1} className="text-[#555] hover:text-white disabled:opacity-30 transition-colors" data-testid="tracks-next"><SkipForward className="h-5 w-5" /></button>
+            </div>
+            <audio ref={audioRef} onEnded={next} />
           </div>
-        </div>
-        <div className="flex items-center justify-center gap-6 mt-5">
-          <button onClick={prev} disabled={currentIdx === 0} className="text-[#555] hover:text-white disabled:opacity-30 transition-colors" data-testid="jukebox-prev"><SkipBack className="h-5 w-5" /></button>
-          <button onClick={togglePlay} className="w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95" style={{ background: ORANGE }} data-testid="jukebox-play">
-            {playing ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white ml-0.5" />}
-          </button>
-          <button onClick={next} disabled={currentIdx === tracks.length - 1} className="text-[#555] hover:text-white disabled:opacity-30 transition-colors" data-testid="jukebox-next"><SkipForward className="h-5 w-5" /></button>
-        </div>
-        <audio ref={audioRef} onEnded={next} />
-      </div>
-      {/* Track list */}
-      <div className="space-y-1">
-        {tracks.map((t, i) => (
-          <button
-            key={t.id}
-            onClick={() => { setCurrentIdx(i); setPlaying(true); setTimeout(() => audioRef.current?.play(), 50); }}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[#1a1a1a]"
-            style={{ background: i === currentIdx ? "#1a1a1a" : "transparent", borderLeft: i === currentIdx ? `2px solid ${ORANGE}` : "2px solid transparent" }}
-            data-testid={`jukebox-track-${t.id}`}
-          >
-            <div className="w-8 h-8 rounded overflow-hidden shrink-0 bg-[#222] flex items-center justify-center">
-              {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="h-3.5 w-3.5 text-[#444]" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{t.title}</p>
-              <p className="text-xs text-[#666] truncate">{t.artist}</p>
-            </div>
-            {i === currentIdx && playing && <Radio className="h-3.5 w-3.5 shrink-0" style={{ color: ORANGE }} />}
-          </button>
-        ))}
-      </div>
+          {/* Track list */}
+          <div className="space-y-1">
+            {tracks.map((t, i) => (
+              <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#1a1a1a] group" style={{ background: i === currentIdx ? "#1a1a1a" : "transparent", borderLeft: i === currentIdx ? `2px solid ${ORANGE}` : "2px solid transparent" }} data-testid={`tracks-track-${t.id}`}>
+                <button
+                  className="flex-1 flex items-center gap-3 text-left min-w-0"
+                  onClick={() => { setCurrentIdx(i); setPlaying(true); setTimeout(() => audioRef.current?.play(), 50); }}
+                >
+                  <div className="w-8 h-8 rounded overflow-hidden shrink-0 bg-[#222] flex items-center justify-center">
+                    {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="h-3.5 w-3.5 text-[#444]" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{t.title}</p>
+                    <p className="text-xs text-[#666] truncate">{t.artist}</p>
+                  </div>
+                  {i === currentIdx && playing && <Radio className="h-3.5 w-3.5 shrink-0" style={{ color: ORANGE }} />}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => unclaimMutation.mutate(t.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[#444] hover:text-red-400 shrink-0"
+                    data-testid={`unclaim-track-${t.id}`}
+                    title="Remove from band"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1167,6 +1290,30 @@ export default function BandClubbousePage() {
   const [followEmail, setFollowEmail] = useState("");
   const [followName, setFollowName] = useState("");
   const [editForm, setEditForm] = useState({ name: "", bio: "", genre: "", city: "", state: "", avatarUrl: "", bannerUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", websiteUrl: "", bandType: "band", allowGuestPosts: false });
+  const [editAvatarPreview, setEditAvatarPreview] = useState("");
+  const [editBannerPreview, setEditBannerPreview] = useState("");
+  const [uploadingEditAvatar, setUploadingEditAvatar] = useState(false);
+  const [uploadingEditBanner, setUploadingEditBanner] = useState(false);
+  const editAvatarRef = useRef<HTMLInputElement>(null);
+  const editBannerRef = useRef<HTMLInputElement>(null);
+
+  const uploadEditImage = async (file: File, kind: "avatar" | "banner") => {
+    const setUploading = kind === "avatar" ? setUploadingEditAvatar : setUploadingEditBanner;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await fetch("/api/upload-image", { method: "POST", body: fd, credentials: "include" });
+      if (!r.ok) throw new Error((await r.json()).message);
+      const { url } = await r.json();
+      if (kind === "avatar") { setEditAvatarPreview(url); setEditForm(f => ({ ...f, avatarUrl: url })); }
+      else { setEditBannerPreview(url); setEditForm(f => ({ ...f, bannerUrl: url })); }
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const { data: band, isLoading } = useQuery<GzBandWithMeta>({
     queryKey: ["/api/bands", bandId],
@@ -1238,7 +1385,7 @@ export default function BandClubbousePage() {
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: "wall", label: "Wall", icon: Mic2 },
     { id: "gallery", label: "Gallery", icon: Image },
-    { id: "jukebox", label: "Jukebox", icon: Music },
+    { id: "tracks", label: "Tracks", icon: Music },
     { id: "tv", label: "Zito TV", icon: Tv2 },
   ];
 
@@ -1259,6 +1406,8 @@ export default function BandClubbousePage() {
       bandType: (band as any).bandType ?? "band",
       allowGuestPosts: !!(band as any).allowGuestPosts,
     });
+    setEditAvatarPreview(band.avatarUrl ?? "");
+    setEditBannerPreview(band.bannerUrl ?? "");
     setShowEditModal(true);
   }
 
@@ -1429,7 +1578,7 @@ export default function BandClubbousePage() {
 
             {tab === "wall" && <WallTab bandId={bandId} isMember={isMember} isAdmin={isAdmin} currentUserId={user?.id} allowGuestPosts={(band as any).allowGuestPosts} />}
             {tab === "gallery" && <GalleryTab bandId={bandId} isMember={isMember} />}
-            {tab === "jukebox" && <Jukebox bandId={bandId} />}
+            {tab === "tracks" && <TracksTab bandId={bandId} isAdmin={isAdmin} bandName={band?.name ?? ""} />}
             {tab === "tv" && <ZitoTVTab bandId={bandId} isMember={isMember} band={band} />}
           </div>
 
@@ -1553,13 +1702,59 @@ export default function BandClubbousePage() {
                 <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">State</label>
                 <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="e.g. Arizona" value={editForm.state} onChange={e => setEditForm(f => ({ ...f, state: e.target.value }))} data-testid="edit-band-state" />
               </div>
-              <div className="col-span-2">
-                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Avatar URL</label>
-                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="https://..." value={editForm.avatarUrl} onChange={e => setEditForm(f => ({ ...f, avatarUrl: e.target.value }))} data-testid="edit-band-avatar" />
+              {/* Profile Image Upload */}
+              <div className="col-span-1">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Profile Image</label>
+                <div
+                  className="relative flex items-center justify-center rounded-xl cursor-pointer border border-dashed transition-colors hover:border-[#444]"
+                  style={{ borderColor: editAvatarPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", height: "80px", overflow: "hidden" }}
+                  onClick={() => editAvatarRef.current?.click()}
+                  data-testid="edit-band-avatar-upload"
+                >
+                  {editAvatarPreview ? (
+                    <>
+                      <img src={editAvatarPreview} alt="" className="w-full h-full object-cover" />
+                      <button
+                        className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 text-white hover:text-red-400 transition-colors"
+                        onClick={e => { e.stopPropagation(); setEditAvatarPreview(""); setEditForm(f => ({ ...f, avatarUrl: "" })); }}
+                        data-testid="edit-band-avatar-clear"
+                      ><X className="h-3 w-3" /></button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-[#444]">
+                      {uploadingEditAvatar ? <div className="h-3.5 w-3.5 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
+                      <span className="text-[10px]">{uploadingEditAvatar ? "Uploading…" : "Upload"}</span>
+                    </div>
+                  )}
+                </div>
+                <input ref={editAvatarRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadEditImage(e.target.files[0], "avatar")} data-testid="edit-band-avatar" />
               </div>
-              <div className="col-span-2">
-                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Banner URL</label>
-                <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="https://..." value={editForm.bannerUrl} onChange={e => setEditForm(f => ({ ...f, bannerUrl: e.target.value }))} data-testid="edit-band-banner" />
+              {/* Banner Image Upload */}
+              <div className="col-span-1">
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Banner Image</label>
+                <div
+                  className="relative flex items-center justify-center rounded-xl cursor-pointer border border-dashed transition-colors hover:border-[#444]"
+                  style={{ borderColor: editBannerPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", height: "80px", overflow: "hidden" }}
+                  onClick={() => editBannerRef.current?.click()}
+                  data-testid="edit-band-banner-upload"
+                >
+                  {editBannerPreview ? (
+                    <>
+                      <img src={editBannerPreview} alt="" className="w-full h-full object-cover" />
+                      <button
+                        className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 text-white hover:text-red-400 transition-colors"
+                        onClick={e => { e.stopPropagation(); setEditBannerPreview(""); setEditForm(f => ({ ...f, bannerUrl: "" })); }}
+                        data-testid="edit-band-banner-clear"
+                      ><X className="h-3 w-3" /></button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-[#444]">
+                      {uploadingEditBanner ? <div className="h-3.5 w-3.5 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
+                      <span className="text-[10px]">{uploadingEditBanner ? "Uploading…" : "Upload"}</span>
+                    </div>
+                  )}
+                </div>
+                <input ref={editBannerRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadEditImage(e.target.files[0], "banner")} data-testid="edit-band-banner" />
               </div>
             </div>
             {/* Allow stranger wall posts toggle */}

@@ -5367,9 +5367,53 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ ok: true });
   });
 
-  // Band jukebox tracks
+  // Band tracks (Tracks tab)
   app.get("/api/bands/:id/tracks", async (req, res) => {
     return res.json(await storage.getGzBandTracks(parseInt(req.params.id)));
+  });
+
+  // Search unclaimed tracks by artist name (admin only)
+  app.get("/api/bands/:id/tracks/search", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
+    const artistName = String(req.query.artist ?? "").trim();
+    if (!artistName) return res.json([]);
+    return res.json(await storage.searchTracksByArtistForUser(artistName, userId));
+  });
+
+  // Claim a track for this band (admin only)
+  app.post("/api/bands/:id/claim-track/:trackId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const trackId = parseInt(req.params.trackId);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
+    try {
+      const track = await storage.claimTrackForBand(trackId, bandId, userId);
+      res.json(track);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
+  // Remove a track from band (unclaim, admin only)
+  app.post("/api/bands/:id/unclaim-track/:trackId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const trackId = parseInt(req.params.trackId);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Band admin only" });
+    try {
+      const track = await storage.unclaimTrackFromBand(trackId, bandId, userId);
+      res.json(track);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
   });
 
   // Band go-live toggle
