@@ -618,6 +618,10 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
   const [searchQuery, setSearchQuery] = useState(bandName);
   const [hasSearched, setHasSearched] = useState(false);
   const [, navigate] = useLocation();
+  const [pendingDeleteTrack, setPendingDeleteTrack] = useState<GZMusicTrack | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [isVerifyingPw, setIsVerifyingPw] = useState(false);
 
   const isGuest = !currentUserId && !!allowGuestPosts;
 
@@ -897,7 +901,7 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
                 </button>
                 {isAdmin && (
                   <button
-                    onClick={() => unclaimMutation.mutate(t.id)}
+                    onClick={() => { setPendingDeleteTrack(t); setDeletePassword(""); setDeleteError(""); }}
                     className="text-[#444] hover:text-red-400 transition-colors px-3 py-2.5 shrink-0"
                     title="Remove track from band wall"
                     data-testid={`unclaim-track-${t.id}`}
@@ -910,6 +914,74 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
           </div>
         </div>
       ) : null}
+
+      {/* Delete track confirmation modal */}
+      {pendingDeleteTrack && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-sm space-y-4" style={{ background: "#111", border: `1px solid #2a2a2a` }}>
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(239,68,68,0.12)" }}>
+                <Trash2 className="h-4 w-4 text-red-400" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">Remove this track?</p>
+                <p className="text-xs text-[#666] mt-0.5">
+                  <span className="text-[#aaa] font-medium">{pendingDeleteTrack.title}</span> will be removed from the band wall. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-[#555] uppercase tracking-wider">Confirm your password</label>
+              <input
+                type="password"
+                className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2.5 text-sm text-white outline-none border focus:border-[#444] placeholder-[#333]"
+                style={{ borderColor: deleteError ? "#ef4444" : "#2a2a2a" }}
+                placeholder="Enter your password"
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError(""); }}
+                onKeyDown={e => e.key === "Enter" && deletePassword && !isVerifyingPw && (async () => {
+                  setIsVerifyingPw(true);
+                  try {
+                    const r = await fetch("/api/auth/verify-password", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ password: deletePassword }) });
+                    if (!r.ok) { const d = await r.json(); setDeleteError(d.message ?? "Incorrect password."); }
+                    else { unclaimMutation.mutate(pendingDeleteTrack.id); setPendingDeleteTrack(null); }
+                  } catch { setDeleteError("Something went wrong."); }
+                  finally { setIsVerifyingPw(false); }
+                })()}
+                autoFocus
+                data-testid="delete-track-password"
+              />
+              {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setPendingDeleteTrack(null); setDeletePassword(""); setDeleteError(""); }}
+                className="px-4 py-2 rounded-lg text-sm text-[#555] hover:text-white transition-colors"
+                data-testid="delete-track-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!deletePassword || isVerifyingPw}
+                onClick={async () => {
+                  setIsVerifyingPw(true);
+                  try {
+                    const r = await fetch("/api/auth/verify-password", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ password: deletePassword }) });
+                    if (!r.ok) { const d = await r.json(); setDeleteError(d.message ?? "Incorrect password."); }
+                    else { unclaimMutation.mutate(pendingDeleteTrack.id); setPendingDeleteTrack(null); }
+                  } catch { setDeleteError("Something went wrong."); }
+                  finally { setIsVerifyingPw(false); }
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-all"
+                style={{ background: "#ef4444" }}
+                data-testid="delete-track-confirm"
+              >
+                {isVerifyingPw ? "Verifying…" : "Remove Track"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1001,6 +1001,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ message: "Password updated successfully." });
   });
 
+  app.post("/api/auth/verify-password", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ message: "Password is required." });
+    const userId = (req.session as any).userId;
+    const user = await storage.getUserById(userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const valid = await verifyPassword(password, user.password);
+    if (!valid) return res.status(401).json({ message: "Incorrect password." });
+    return res.json({ ok: true });
+  });
+
   app.get(api.auth.me.path, async (req, res) => {
     const userId = (req.session as any)?.userId;
     if (!userId) return res.json(null);
