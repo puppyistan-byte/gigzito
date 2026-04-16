@@ -5112,6 +5112,205 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json({ ok: true, tier });
   });
 
+  // ── GZ BANDS ─────────────────────────────────────────────────────────────────
+
+  app.get("/api/bands", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    return res.json(await storage.listGzBands(userId));
+  });
+
+  app.post("/api/bands", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const { name, slug, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: "Band name is required" });
+    const autoSlug = (slug || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    try {
+      const band = await storage.createGzBand({ name, slug: autoSlug, bio: bio ?? "", genre: genre ?? "", city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl }, userId);
+      return res.status(201).json(band);
+    } catch (e: any) {
+      if (e?.message?.includes("unique")) return res.status(409).json({ message: "A band with that name/slug already exists" });
+      throw e;
+    }
+  });
+
+  app.get("/api/bands/:id", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    const band = await storage.getGzBand(parseInt(req.params.id), userId);
+    if (!band) return res.status(404).json({ message: "Band not found" });
+    return res.json(band);
+  });
+
+  app.put("/api/bands/:id", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Must be band admin to edit" });
+    const { name, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl, liveStreamUrl } = req.body;
+    const updated = await storage.updateGzBand(bandId, { name, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl, liveStreamUrl });
+    return res.json(updated);
+  });
+
+  app.get("/api/bands/:id/members", async (req, res) => {
+    return res.json(await storage.getGzBandMembers(parseInt(req.params.id)));
+  });
+
+  app.post("/api/bands/:id/join", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.joinGzBand(bandId, userId, req.body.instrument);
+    return res.json(member);
+  });
+
+  app.delete("/api/bands/:id/leave", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const band = await storage.getGzBand(bandId);
+    if (band?.createdBy === userId) return res.status(400).json({ message: "Band creator cannot leave — transfer ownership first" });
+    await storage.leaveGzBand(bandId, userId);
+    return res.json({ ok: true });
+  });
+
+  // Band wall
+  app.get("/api/bands/:id/wall", async (req, res) => {
+    return res.json(await storage.getGzBandWallPosts(parseInt(req.params.id)));
+  });
+
+  app.post("/api/bands/:id/wall", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const { content, imageUrl } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+    const post = await storage.createGzBandWallPost(parseInt(req.params.id), userId, content, imageUrl);
+    return res.status(201).json(post);
+  });
+
+  app.delete("/api/bands/:id/wall/:postId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member" });
+    await storage.deleteGzBandWallPost(parseInt(req.params.postId));
+    return res.json({ ok: true });
+  });
+
+  app.get("/api/bands/:id/wall/:postId/comments", async (req, res) => {
+    return res.json(await storage.getGzBandWallComments(parseInt(req.params.postId)));
+  });
+
+  app.post("/api/bands/:id/wall/:postId/comments", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+    const comment = await storage.createGzBandWallComment(parseInt(req.params.postId), userId, content);
+    return res.status(201).json(comment);
+  });
+
+  // Band events (calendar)
+  app.get("/api/bands/:id/events", async (req, res) => {
+    return res.json(await storage.getGzBandEvents(parseInt(req.params.id)));
+  });
+
+  app.post("/api/bands/:id/events", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member to add events" });
+    const { title, description, venue, city, startAt, endAt, ticketUrl, type } = req.body;
+    if (!title?.trim() || !startAt) return res.status(400).json({ message: "Title and start date required" });
+    const event = await storage.createGzBandEvent(bandId, { title, description: description ?? "", venue, city, startAt: new Date(startAt), endAt: endAt ? new Date(endAt) : undefined, ticketUrl, type: type ?? "show" }, userId);
+    return res.status(201).json(event);
+  });
+
+  app.delete("/api/bands/:id/events/:eid", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const member = await storage.getGzBandMember(parseInt(req.params.id), userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member" });
+    await storage.deleteGzBandEvent(parseInt(req.params.eid));
+    return res.json({ ok: true });
+  });
+
+  // Band photos
+  app.get("/api/bands/:id/photos", async (req, res) => {
+    return res.json(await storage.getGzBandPhotos(parseInt(req.params.id)));
+  });
+
+  app.post("/api/bands/:id/photos", upload.single("file"), async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member to upload photos" });
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const layer1 = inspectFileSync(req.file.path, req.file.mimetype);
+    if (!layer1.pass) { destroyContraband(req.file.path, layer1.reason!); return res.status(422).json({ message: layer1.reason }); }
+    const layer2 = await roccoScan(req.file.path, req.file.mimetype);
+    if (!layer2.pass) { destroyContraband(req.file.path, layer2.reason!); return res.status(422).json({ message: layer2.reason }); }
+    const filename = req.file.filename;
+    moveToFinalDest(req.file.path, path.join(process.cwd(), "uploads"), filename);
+    const photo = await storage.addGzBandPhoto(bandId, `/uploads/${filename}`, req.body.caption ?? null, userId);
+    return res.status(201).json(photo);
+  });
+
+  app.delete("/api/bands/:id/photos/:pid", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const member = await storage.getGzBandMember(parseInt(req.params.id), userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member" });
+    await storage.deleteGzBandPhoto(parseInt(req.params.pid));
+    return res.json({ ok: true });
+  });
+
+  // Band Zito TV
+  app.get("/api/bands/:id/tv", async (req, res) => {
+    return res.json(await storage.getGzBandTvShows(parseInt(req.params.id)));
+  });
+
+  app.post("/api/bands/:id/tv", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member to add shows" });
+    const { title, description, streamUrl, thumbnailUrl, type, scheduledAt, durationSeconds } = req.body;
+    if (!title?.trim()) return res.status(400).json({ message: "Title required" });
+    const show = await storage.createGzBandTvShow(bandId, { title, description: description ?? "", streamUrl, thumbnailUrl, type: type ?? "archived", scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, durationSeconds });
+    return res.status(201).json(show);
+  });
+
+  app.delete("/api/bands/:id/tv/:sid", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const member = await storage.getGzBandMember(parseInt(req.params.id), userId);
+    if (!member) return res.status(403).json({ message: "Must be a band member" });
+    await storage.deleteGzBandTvShow(parseInt(req.params.sid));
+    return res.json({ ok: true });
+  });
+
+  // Band jukebox tracks
+  app.get("/api/bands/:id/tracks", async (req, res) => {
+    return res.json(await storage.getGzBandTracks(parseInt(req.params.id)));
+  });
+
+  // Band go-live toggle
+  app.post("/api/bands/:id/live", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Must be band admin" });
+    const { isLive, streamUrl } = req.body;
+    const band = await storage.setGzBandLive(bandId, !!isLive, streamUrl);
+    return res.json(band);
+  });
+
   // Notification routes
   app.get("/api/notifications", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;

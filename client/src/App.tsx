@@ -67,6 +67,8 @@ import InviteLandingPage from "@/pages/invite-landing";
 import ActivityPage from "@/pages/activity";
 import GZMusicPage from "@/pages/gz-music";
 import GZMusicUploadPage from "@/pages/gz-music-upload";
+import GzBandsPage from "@/pages/gz-bands";
+import BandClubbousePage from "@/pages/band-clubhouse";
 import MostLovedPage from "@/pages/most-loved";
 import GroupsPage from "@/pages/groups";
 import GroupDetailPage from "@/pages/group-detail";
@@ -108,6 +110,8 @@ function Router() {
       <Route path="/activity" component={ActivityPage} />
       <Route path="/gz-music" component={GZMusicPage} />
       <Route path="/gz-music/upload" component={GZMusicUploadPage} />
+      <Route path="/gz-music/bands" component={GzBandsPage} />
+      <Route path="/gz-music/bands/:id" component={BandClubbousePage} />
       <Route path="/most-loved" component={MostLovedPage} />
       <Route path="/groups" component={GroupsPage} />
       <Route path="/groups/:id" component={GroupDetailPage} />

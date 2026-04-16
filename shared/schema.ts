@@ -1003,6 +1003,7 @@ export const gzMusicTracks = pgTable("gz_music_tracks", {
   authenticityConfirmed: boolean("authenticity_confirmed").notNull().default(false),
   uploaderUserId: integer("uploader_user_id").references(() => users.id, { onDelete: "set null" }),
   submittedBy: integer("submitted_by").references(() => users.id, { onDelete: "set null" }),
+  bandId: integer("band_id"), // optional link to gz_bands
   likeCount: integer("like_count").notNull().default(0),
   playCount: integer("play_count").notNull().default(0),
   sharedToLibrary: boolean("shared_to_library").notNull().default(true),
@@ -1191,6 +1192,111 @@ export const groupWalletContributions = pgTable("group_wallet_contributions", {
 export const insertGroupWalletContributionSchema = createInsertSchema(groupWalletContributions).omit({ id: true, walletId: true, groupId: true, userId: true, displayName: true, createdAt: true });
 export type GroupWalletContribution = typeof groupWalletContributions.$inferSelect;
 export type InsertGroupWalletContribution = z.infer<typeof insertGroupWalletContributionSchema>;
+
+// ─── GZ BANDS (Band Clubhouse) ────────────────────────────────────────────────
+export const gzBands = pgTable("gz_bands", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  bio: text("bio").notNull().default(""),
+  genre: text("genre").notNull().default(""),
+  avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
+  city: text("city"),
+  state: text("state"),
+  websiteUrl: text("website_url"),
+  instagramUrl: text("instagram_url"),
+  tiktokUrl: text("tiktok_url"),
+  youtubeUrl: text("youtube_url"),
+  liveStreamUrl: text("live_stream_url"),
+  isLive: boolean("is_live").notNull().default(false),
+  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gzBandMembers = pgTable("gz_band_members", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"), // "admin" | "member"
+  instrument: text("instrument"),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.bandId, t.userId)]);
+
+export const gzBandWallPosts = pgTable("gz_band_wall_posts", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gzBandWallComments = pgTable("gz_band_wall_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => gzBandWallPosts.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gzBandEvents = pgTable("gz_band_events", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  venue: text("venue"),
+  city: text("city"),
+  startAt: timestamp("start_at").notNull(),
+  endAt: timestamp("end_at"),
+  ticketUrl: text("ticket_url"),
+  type: text("type").notNull().default("show"), // "show" | "rehearsal" | "livestream" | "other"
+  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gzBandPhotos = pgTable("gz_band_photos", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  caption: text("caption"),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const gzBandTvShows = pgTable("gz_band_tv_shows", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  streamUrl: text("stream_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  type: text("type").notNull().default("archived"), // "live" | "archived"
+  scheduledAt: timestamp("scheduled_at"),
+  durationSeconds: integer("duration_seconds"),
+  viewCount: integer("view_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type GzBand = typeof gzBands.$inferSelect;
+export type GzBandMember = typeof gzBandMembers.$inferSelect;
+export type GzBandWallPost = typeof gzBandWallPosts.$inferSelect;
+export type GzBandWallComment = typeof gzBandWallComments.$inferSelect;
+export type GzBandEvent = typeof gzBandEvents.$inferSelect;
+export type GzBandPhoto = typeof gzBandPhotos.$inferSelect;
+export type GzBandTvShow = typeof gzBandTvShows.$inferSelect;
+
+export const insertGzBandSchema = createInsertSchema(gzBands).omit({ id: true, createdBy: true, createdAt: true, isLive: true });
+export const insertGzBandEventSchema = createInsertSchema(gzBandEvents).omit({ id: true, bandId: true, createdBy: true, createdAt: true });
+export const insertGzBandTvShowSchema = createInsertSchema(gzBandTvShows).omit({ id: true, bandId: true, viewCount: true, createdAt: true });
+export type InsertGzBand = z.infer<typeof insertGzBandSchema>;
+export type InsertGzBandEvent = z.infer<typeof insertGzBandEventSchema>;
+export type InsertGzBandTvShow = z.infer<typeof insertGzBandTvShowSchema>;
+
+export type GzBandWithMeta = GzBand & { memberCount: number; isMember?: boolean; memberRole?: string };
+export type GzBandWallPostWithAuthor = GzBandWallPost & { displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number };
+export type GzBandWallCommentWithAuthor = GzBandWallComment & { displayName: string | null; avatarUrl: string | null; username: string | null };
+export type GzBandMemberWithProfile = GzBandMember & { displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
 
 // Notifications
 export const notifications = pgTable("notifications", {

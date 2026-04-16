@@ -30,6 +30,20 @@ ALTER TABLE video_listings ADD COLUMN IF NOT EXISTS bg_music_volume INTEGER NOT 
 ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS shared_to_library BOOLEAN NOT NULL DEFAULT true;
 CREATE TABLE IF NOT EXISTS gz_music_comments (id SERIAL PRIMARY KEY, track_id INTEGER NOT NULL REFERENCES gz_music_tracks(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, content TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
 ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS play_count INTEGER NOT NULL DEFAULT 0;
+-- GZ Bands / Band Clubhouse (current session):
+ALTER TABLE gz_music_tracks ADD COLUMN IF NOT EXISTS band_id INTEGER;
+CREATE TABLE IF NOT EXISTS gz_bands (id SERIAL PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, bio TEXT NOT NULL DEFAULT '', genre TEXT NOT NULL DEFAULT '', avatar_url TEXT, banner_url TEXT, city TEXT, state TEXT, website_url TEXT, instagram_url TEXT, tiktok_url TEXT, youtube_url TEXT, live_stream_url TEXT, is_live BOOLEAN NOT NULL DEFAULT FALSE, created_by INTEGER NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+CREATE TABLE IF NOT EXISTS gz_band_members (id SERIAL PRIMARY KEY, band_id INTEGER NOT NULL REFERENCES gz_bands(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, role TEXT NOT NULL DEFAULT 'member', instrument TEXT, joined_at TIMESTAMP DEFAULT NOW() NOT NULL, UNIQUE(band_id, user_id));
+CREATE TABLE IF NOT EXISTS gz_band_wall_posts (id SERIAL PRIMARY KEY, band_id INTEGER NOT NULL REFERENCES gz_bands(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, content TEXT NOT NULL, image_url TEXT, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+CREATE TABLE IF NOT EXISTS gz_band_wall_comments (id SERIAL PRIMARY KEY, post_id INTEGER NOT NULL REFERENCES gz_band_wall_posts(id) ON DELETE CASCADE, user_id INTEGER NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+CREATE TABLE IF NOT EXISTS gz_band_events (id SERIAL PRIMARY KEY, band_id INTEGER NOT NULL REFERENCES gz_bands(id) ON DELETE CASCADE, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', venue TEXT, city TEXT, start_at TIMESTAMP NOT NULL, end_at TIMESTAMP, ticket_url TEXT, type TEXT NOT NULL DEFAULT 'show', created_by INTEGER NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+CREATE TABLE IF NOT EXISTS gz_band_photos (id SERIAL PRIMARY KEY, band_id INTEGER NOT NULL REFERENCES gz_bands(id) ON DELETE CASCADE, url TEXT NOT NULL, caption TEXT, uploaded_by INTEGER NOT NULL, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+CREATE TABLE IF NOT EXISTS gz_band_tv_shows (id SERIAL PRIMARY KEY, band_id INTEGER NOT NULL REFERENCES gz_bands(id) ON DELETE CASCADE, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', stream_url TEXT, thumbnail_url TEXT, type TEXT NOT NULL DEFAULT 'archived', scheduled_at TIMESTAMP, duration_seconds INTEGER, view_count INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT NOW() NOT NULL);
+-- GZFlash missing columns fix:
+ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS display_mode TEXT NOT NULL DEFAULT 'countdown';
+ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS coupon_expiry_hours INTEGER NOT NULL DEFAULT 48;
+ALTER TABLE gz_flash_ads ADD COLUMN IF NOT EXISTS admin_note TEXT;
 ```
 
 ## Overview

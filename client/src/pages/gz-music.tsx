@@ -1130,19 +1130,30 @@ export default function GZMusicPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => navigate(user ? "/gz-music/upload" : "/auth")}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98]"
-              style={{
-                background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
-                color: "#fff",
-                boxShadow: `0 4px 20px rgba(255,122,0,0.4)`,
-              }}
-              data-testid="button-upload-track-hero"
-            >
-              <Upload className="h-4 w-4" />
-              Upload Your Track to the GZ100
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate(user ? "/gz-music/upload" : "/auth")}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98]"
+                style={{
+                  background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
+                  color: "#fff",
+                  boxShadow: `0 4px 20px rgba(255,122,0,0.4)`,
+                }}
+                data-testid="button-upload-track-hero"
+              >
+                <Upload className="h-4 w-4" />
+                Upload Your Track
+              </button>
+              <button
+                onClick={() => navigate("/gz-music/bands")}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-black text-sm transition-all active:scale-[0.98] border"
+                style={{ background: "#1a1a1a", color: ORANGE, borderColor: "#ff7a0035" }}
+                data-testid="button-bands-directory"
+              >
+                <Mic2 className="h-4 w-4" />
+                Bands
+              </button>
+            </div>
 
             <div className="space-y-2 text-sm leading-relaxed text-[#999]">
               <p>
