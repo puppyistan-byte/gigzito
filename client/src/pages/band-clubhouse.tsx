@@ -26,7 +26,7 @@ const DARK = "#0a0a0a";
 const CARD = "#111";
 const BORDER = "#1e1e1e";
 
-type Tab = "wall" | "gallery" | "tv";
+type Tab = "wall" | "gallery" | "events" | "tv";
 
 const EVENT_COLORS: Record<string, string> = {
   show: "#ff7a00",
@@ -1137,6 +1137,187 @@ function EventCard({ event, isMember, onDelete }: { event: GzBandEvent; isMember
   );
 }
 
+// ── Events Tab ────────────────────────────────────────────────────────────────
+function EventsTab({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", venue: "", city: "", startAt: "", endAt: "", ticketUrl: "", type: "show" });
+
+  const { data: events = [], isLoading } = useQuery<GzBandEvent[]>({
+    queryKey: ["/api/bands", bandId, "events"],
+    queryFn: () => fetch(`/api/bands/${bandId}/events`).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/bands/${bandId}/events`, form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "events"] });
+      toast({ title: "Event added!" });
+      setForm({ title: "", description: "", venue: "", city: "", startAt: "", endAt: "", ticketUrl: "", type: "show" });
+      setShowForm(false);
+    },
+    onError: () => toast({ title: "Error", description: "Could not save event", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/bands/${bandId}/events/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "events"] });
+      toast({ title: "Event removed" });
+    },
+  });
+
+  const upcoming = events
+    .filter(e => new Date(e.startAt) >= new Date())
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+  const past = events
+    .filter(e => new Date(e.startAt) < new Date())
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
+
+  return (
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#444]">Events & Shows</p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowForm(f => !f)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white transition-all"
+            style={{ background: showForm ? "#1a1a1a" : ORANGE, border: showForm ? `1px solid #333` : "none" }}
+            data-testid="events-tab-add-btn"
+          >
+            <Plus className="h-4 w-4" />
+            {showForm ? "Cancel" : "Add Event"}
+          </button>
+        )}
+      </div>
+
+      {/* Add event form */}
+      {showForm && isAdmin && (
+        <div className="rounded-xl p-4 space-y-3" style={{ background: CARD, border: `1px solid #2a2a2a` }}>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444] placeholder-[#444]"
+              placeholder="Event title *"
+              value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              data-testid="events-tab-title"
+            />
+            <select
+              className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
+              value={form.type}
+              onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+              data-testid="events-tab-type"
+            >
+              <option value="show">Show</option>
+              <option value="rehearsal">Rehearsal</option>
+              <option value="festival">Festival</option>
+              <option value="tour">Tour Date</option>
+              <option value="livestream">Live Stream</option>
+              <option value="other">Other</option>
+            </select>
+            <input
+              className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] placeholder-[#444]"
+              placeholder="Venue"
+              value={form.venue}
+              onChange={e => setForm(f => ({ ...f, venue: e.target.value }))}
+              data-testid="events-tab-venue"
+            />
+            <input
+              className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] placeholder-[#444]"
+              placeholder="City"
+              value={form.city}
+              onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
+              data-testid="events-tab-city"
+            />
+            <div className="space-y-0.5">
+              <label className="text-[10px] text-[#444] font-semibold uppercase tracking-wider">Start *</label>
+              <input
+                type="datetime-local"
+                className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
+                value={form.startAt}
+                onChange={e => setForm(f => ({ ...f, startAt: e.target.value }))}
+                data-testid="events-tab-start"
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="text-[10px] text-[#444] font-semibold uppercase tracking-wider">End</label>
+              <input
+                type="datetime-local"
+                className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
+                value={form.endAt}
+                onChange={e => setForm(f => ({ ...f, endAt: e.target.value }))}
+                data-testid="events-tab-end"
+              />
+            </div>
+            <input
+              className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] placeholder-[#444]"
+              placeholder="Ticket URL (optional)"
+              value={form.ticketUrl}
+              onChange={e => setForm(f => ({ ...f, ticketUrl: e.target.value }))}
+              data-testid="events-tab-tickets"
+            />
+            <textarea
+              className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] placeholder-[#444] resize-none min-h-[60px]"
+              placeholder="Description (optional)"
+              value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              data-testid="events-tab-desc"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={() => createMutation.mutate()}
+              disabled={createMutation.isPending || !form.title.trim() || !form.startAt}
+              className="px-5 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-all"
+              style={{ background: ORANGE }}
+              data-testid="events-tab-save"
+            >
+              {createMutation.isPending ? "Saving…" : "Save Event"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
+      ) : events.length === 0 ? (
+        <div className="text-center py-16 text-[#444]">
+          <Calendar className="mx-auto mb-3 h-10 w-10" />
+          <p className="text-sm font-medium">No events yet</p>
+          {isAdmin && <p className="text-xs text-[#333] mt-1">Click Add Event to schedule your first show.</p>}
+        </div>
+      ) : (
+        <>
+          {upcoming.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#444]">Upcoming</p>
+              {upcoming.map(ev => (
+                <EventCard key={ev.id} event={ev} isMember={isAdmin} onDelete={() => deleteMutation.mutate(ev.id)} />
+              ))}
+            </div>
+          )}
+          {past.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#333] mt-2">Past</p>
+              {past.map(ev => (
+                <div key={ev.id} className="opacity-50">
+                  <EventCard event={ev} isMember={isAdmin} onDelete={() => deleteMutation.mutate(ev.id)} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Calendar Sidebar ──────────────────────────────────────────────────────────
 function CalendarSidebar({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }) {
   const qc = useQueryClient();
@@ -1693,6 +1874,7 @@ export default function BandClubbousePage() {
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: "wall", label: "Wall", icon: Mic2 },
     { id: "gallery", label: "Gallery", icon: Image },
+    { id: "events", label: "Events", icon: Calendar },
     { id: "tv", label: "Zito TV", icon: Tv2 },
   ];
 
@@ -1874,6 +2056,7 @@ export default function BandClubbousePage() {
 
             {tab === "wall" && <WallTab bandId={bandId} isAdmin={isAdmin} currentUserId={user?.id} allowGuestPosts={(band as any).allowGuestPosts} bandName={band?.name ?? ""} />}
             {tab === "gallery" && <GalleryTab bandId={bandId} isMember={isMember} />}
+            {tab === "events" && <EventsTab bandId={bandId} isAdmin={isAdmin} />}
             {tab === "tv" && <ZitoTVTab bandId={bandId} isMember={isMember} band={band} />}
           </div>
 
