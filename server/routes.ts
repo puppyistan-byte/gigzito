@@ -5153,16 +5153,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(band);
   });
 
-  app.put("/api/bands/:id", async (req, res) => {
+  const updateBandHandler = async (req: any, res: any) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId as number;
     const bandId = parseInt(req.params.id);
     const member = await storage.getGzBandMember(bandId, userId);
     if (!member || member.role !== "admin") return res.status(403).json({ message: "Must be band admin to edit" });
-    const { name, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl, liveStreamUrl } = req.body;
-    const updated = await storage.updateGzBand(bandId, { name, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl, liveStreamUrl });
+    const { name, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl, liveStreamUrl, bandType, allowGuestPosts } = req.body;
+    const updated = await storage.updateGzBand(bandId, { name, bio, genre, city, state, websiteUrl, instagramUrl, tiktokUrl, youtubeUrl, avatarUrl, bannerUrl, liveStreamUrl, bandType, allowGuestPosts: allowGuestPosts === true || allowGuestPosts === "true" });
     return res.json(updated);
-  });
+  };
+  app.put("/api/bands/:id", updateBandHandler);
+  app.patch("/api/bands/:id", updateBandHandler);
 
   app.get("/api/bands/:id/members", async (req, res) => {
     return res.json(await storage.getGzBandMembers(parseInt(req.params.id)));
@@ -5188,15 +5190,25 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // Band wall
   app.get("/api/bands/:id/wall", async (req, res) => {
-    return res.json(await storage.getGzBandWallPosts(parseInt(req.params.id)));
+    const userId = (req.session as any)?.userId as number | undefined;
+    return res.json(await storage.getGzBandWallPosts(parseInt(req.params.id), userId));
   });
 
   app.post("/api/bands/:id/wall", async (req, res) => {
-    if (!requireAuth(req, res)) return;
-    const userId = (req.session as any).userId as number;
-    const { content, imageUrl } = req.body;
+    const userId = (req.session as any)?.userId as number | undefined;
+    const bandId = parseInt(req.params.id);
+    const { content, imageUrl, guestName, guestEmail } = req.body;
     if (!content?.trim()) return res.status(400).json({ message: "Content required" });
-    const post = await storage.createGzBandWallPost(parseInt(req.params.id), userId, content, imageUrl);
+
+    if (!userId) {
+      const band = await storage.getGzBand(bandId);
+      if (!band?.allowGuestPosts) return res.status(403).json({ message: "Sign in to post on this wall" });
+      if (!guestName?.trim()) return res.status(400).json({ message: "Name is required for guest posts" });
+      const post = await storage.createGzBandWallPost(bandId, null, content, imageUrl, guestName.trim(), guestEmail?.trim());
+      return res.status(201).json(post);
+    }
+
+    const post = await storage.createGzBandWallPost(bandId, userId, content, imageUrl);
     return res.status(201).json(post);
   });
 
@@ -5208,6 +5220,55 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!member) return res.status(403).json({ message: "Must be a band member" });
     await storage.deleteGzBandWallPost(parseInt(req.params.postId));
     return res.json({ ok: true });
+  });
+
+  app.post("/api/bands/:id/wall/:postId/like", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    await storage.likeGzBandWallPost(parseInt(req.params.postId), userId);
+    return res.json({ ok: true });
+  });
+
+  app.delete("/api/bands/:id/wall/:postId/like", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    await storage.unlikeGzBandWallPost(parseInt(req.params.postId), userId);
+    return res.json({ ok: true });
+  });
+
+  // Band followers (mailing list)
+  app.post("/api/bands/:id/follow", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    const bandId = parseInt(req.params.id);
+    const { email, displayName } = req.body;
+    if (!userId && !email?.trim()) return res.status(400).json({ message: "Email is required to follow" });
+    let followEmail = email?.trim();
+    let followName = displayName?.trim();
+    if (userId) {
+      const user = await storage.getUser(userId);
+      followEmail = followEmail || user?.email;
+      const profile = await storage.getProviderProfile(userId);
+      followName = followName || profile?.displayName || user?.email;
+    }
+    if (!followEmail) return res.status(400).json({ message: "Email is required" });
+    const follow = await storage.followGzBand(bandId, userId ?? null, followEmail, followName);
+    return res.status(201).json(follow);
+  });
+
+  app.delete("/api/bands/:id/follow", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    await storage.unfollowGzBand(parseInt(req.params.id), userId);
+    return res.json({ ok: true });
+  });
+
+  app.get("/api/bands/:id/followers", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const bandId = parseInt(req.params.id);
+    const member = await storage.getGzBandMember(bandId, userId);
+    if (!member || member.role !== "admin") return res.status(403).json({ message: "Admin only" });
+    return res.json(await storage.getGzBandFollowers(bandId));
   });
 
   app.get("/api/bands/:id/wall/:postId/comments", async (req, res) => {

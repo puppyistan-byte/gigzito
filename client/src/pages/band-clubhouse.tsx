@@ -11,6 +11,7 @@ import {
   Music, Users, Calendar, Image, Tv2, Radio, Plus, Trash2, ExternalLink,
   Play, Pause, SkipBack, SkipForward, ChevronLeft, ChevronRight, Send, Globe,
   LogIn, LogOut, Settings, MapPin, Mic2, Video, Clock, Pencil, UserPlus, X, Check,
+  Heart, Bell, BellOff,
 } from "lucide-react";
 import { SiTiktok, SiYoutube, SiInstagram } from "react-icons/si";
 import {
@@ -343,27 +344,45 @@ function Jukebox({ bandId }: { bandId: number }) {
 }
 
 // ── Wall ──────────────────────────────────────────────────────────────────────
-function WallTab({ bandId, isMember, currentUserId }: { bandId: number; isMember: boolean; currentUserId?: number }) {
+function WallTab({ bandId, isMember, isAdmin, currentUserId, allowGuestPosts }: {
+  bandId: number;
+  isMember: boolean;
+  isAdmin: boolean;
+  currentUserId?: number;
+  allowGuestPosts?: boolean;
+}) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [content, setContent] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [expandedPost, setExpandedPost] = useState<number | null>(null);
   const [commentText, setCommentText] = useState<Record<number, string>>({});
 
+  const canPost = isMember || (allowGuestPosts && !currentUserId);
+  const isGuest = !currentUserId && allowGuestPosts;
+
   const { data: posts = [], isLoading } = useQuery<GzBandWallPostWithAuthor[]>({
     queryKey: ["/api/bands", bandId, "wall"],
-    queryFn: () => fetch(`/api/bands/${bandId}/wall`).then(r => r.json()),
+    queryFn: () => fetch(`/api/bands/${bandId}/wall`).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
   });
 
   const { data: comments = [] } = useQuery<GzBandWallCommentWithAuthor[]>({
     queryKey: ["/api/bands", bandId, "wall", expandedPost, "comments"],
-    queryFn: () => expandedPost ? fetch(`/api/bands/${bandId}/wall/${expandedPost}/comments`).then(r => r.json()) : Promise.resolve([]),
+    queryFn: () => expandedPost ? fetch(`/api/bands/${bandId}/wall/${expandedPost}/comments`).then(r => r.json()).then(d => Array.isArray(d) ? d : []) : Promise.resolve([]),
     enabled: !!expandedPost,
   });
 
   const postMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/bands/${bandId}/wall`, { content }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "wall"] }); setContent(""); },
+    mutationFn: () => apiRequest("POST", `/api/bands/${bandId}/wall`, {
+      content,
+      ...(isGuest ? { guestName: guestName.trim(), guestEmail: guestEmail.trim() } : {}),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "wall"] });
+      setContent("");
+      if (isGuest) { setGuestName(""); setGuestEmail(""); }
+    },
     onError: () => toast({ title: "Error", description: "Could not post", variant: "destructive" }),
   });
 
@@ -380,21 +399,49 @@ function WallTab({ bandId, isMember, currentUserId }: { bandId: number; isMember
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "wall"] }),
   });
 
+  const likeMutation = useMutation({
+    mutationFn: (postId: number) => apiRequest("POST", `/api/bands/${bandId}/wall/${postId}/like`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "wall"] }),
+  });
+
+  const unlikeMutation = useMutation({
+    mutationFn: (postId: number) => apiRequest("DELETE", `/api/bands/${bandId}/wall/${postId}/like`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "wall"] }),
+  });
+
   return (
     <div className="space-y-4">
-      {isMember && (
-        <div className="rounded-xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      {canPost && (
+        <div className="rounded-xl p-4 space-y-2" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          {isGuest && (
+            <div className="flex gap-2">
+              <input
+                className="flex-1 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#333]"
+                placeholder="Your name *"
+                value={guestName}
+                onChange={e => setGuestName(e.target.value)}
+                data-testid="wall-guest-name"
+              />
+              <input
+                className="flex-1 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#333]"
+                placeholder="Email (optional)"
+                value={guestEmail}
+                onChange={e => setGuestEmail(e.target.value)}
+                data-testid="wall-guest-email"
+              />
+            </div>
+          )}
           <textarea
             className="w-full bg-transparent text-white text-sm resize-none outline-none placeholder-[#444] min-h-[80px]"
-            placeholder="Post to the band wall..."
+            placeholder={isGuest ? "Leave a message on the wall…" : "Post to the band wall..."}
             value={content}
             onChange={e => setContent(e.target.value)}
             data-testid="wall-post-input"
           />
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end">
             <button
-              onClick={() => { if (content.trim()) postMutation.mutate(); }}
-              disabled={postMutation.isPending || !content.trim()}
+              onClick={() => { if (content.trim() && (!isGuest || guestName.trim())) postMutation.mutate(); }}
+              disabled={postMutation.isPending || !content.trim() || (isGuest && !guestName.trim())}
               className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-all"
               style={{ background: ORANGE }}
               data-testid="wall-post-submit"
@@ -402,6 +449,12 @@ function WallTab({ bandId, isMember, currentUserId }: { bandId: number; isMember
               {postMutation.isPending ? "Posting..." : "Post"}
             </button>
           </div>
+        </div>
+      )}
+      {!canPost && !currentUserId && (
+        <div className="rounded-xl p-4 text-center text-sm text-[#555]" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <Mic2 className="mx-auto mb-2 h-5 w-5" />
+          Sign in to post on this wall
         </div>
       )}
       {isLoading ? (
@@ -416,14 +469,19 @@ function WallTab({ bandId, isMember, currentUserId }: { bandId: number; isMember
           <div key={post.id} className="rounded-xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-[#222]">
-                {post.avatarUrl ? <img src={post.avatarUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#333] flex items-center justify-center text-[10px] text-[#888]">{(post.displayName ?? "?")[0]}</div>}
+                {post.avatarUrl
+                  ? <img src={post.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  : <div className="w-full h-full bg-[#333] flex items-center justify-center text-[10px] text-[#888]">{(post.displayName ?? "?")[0]?.toUpperCase()}</div>}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-white">{post.displayName ?? "Member"}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-white">{post.displayName ?? "Guest"}</span>
+                    {!post.userId && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase" style={{ background: "#1a1a1a", color: "#555", border: "1px solid #222" }}>Guest</span>}
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-[#444]">{timeAgo(post.createdAt)}</span>
-                    {currentUserId === post.userId && (
+                    {(currentUserId === post.userId || isAdmin) && (
                       <button onClick={() => deleteMutation.mutate(post.id)} className="text-[#444] hover:text-red-500 transition-colors" data-testid={`wall-delete-${post.id}`}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -432,13 +490,29 @@ function WallTab({ bandId, isMember, currentUserId }: { bandId: number; isMember
                 </div>
                 <p className="text-sm text-[#ccc] mt-1 whitespace-pre-wrap">{post.content}</p>
                 {post.imageUrl && <img src={post.imageUrl} alt="" className="mt-2 rounded-lg max-h-64 object-cover" />}
-                <button
-                  onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)}
-                  className="mt-2 text-xs text-[#555] hover:text-[#888] transition-colors"
-                  data-testid={`wall-comments-toggle-${post.id}`}
-                >
-                  {post.commentCount} comment{post.commentCount !== 1 ? "s" : ""} {expandedPost === post.id ? "▲" : "▼"}
-                </button>
+                <div className="flex items-center gap-3 mt-2">
+                  {/* Heart / Like */}
+                  <button
+                    onClick={() => {
+                      if (!currentUserId) { toast({ title: "Sign in to like posts" }); return; }
+                      if (post.hasLiked) unlikeMutation.mutate(post.id);
+                      else likeMutation.mutate(post.id);
+                    }}
+                    className="flex items-center gap-1 text-xs transition-colors"
+                    style={{ color: post.hasLiked ? "#ef4444" : "#555" }}
+                    data-testid={`wall-like-${post.id}`}
+                  >
+                    <Heart className={`h-3.5 w-3.5 ${post.hasLiked ? "fill-red-500" : ""}`} />
+                    <span>{post.likeCount > 0 ? post.likeCount : ""}</span>
+                  </button>
+                  <button
+                    onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)}
+                    className="text-xs text-[#555] hover:text-[#888] transition-colors"
+                    data-testid={`wall-comments-toggle-${post.id}`}
+                  >
+                    {post.commentCount} comment{post.commentCount !== 1 ? "s" : ""} {expandedPost === post.id ? "▲" : "▼"}
+                  </button>
+                </div>
                 {expandedPost === post.id && (
                   <div className="mt-3 space-y-2 pl-3 border-l border-[#1e1e1e]">
                     {comments.map(c => (
@@ -1089,7 +1163,10 @@ export default function BandClubbousePage() {
   const [joinInstrument, setJoinInstrument] = useState("");
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", bio: "", genre: "", city: "", state: "", avatarUrl: "", bannerUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", websiteUrl: "", bandType: "band" });
+  const [showFollowModal, setShowFollowModal] = useState(false);
+  const [followEmail, setFollowEmail] = useState("");
+  const [followName, setFollowName] = useState("");
+  const [editForm, setEditForm] = useState({ name: "", bio: "", genre: "", city: "", state: "", avatarUrl: "", bannerUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", websiteUrl: "", bandType: "band", allowGuestPosts: false });
 
   const { data: band, isLoading } = useQuery<GzBandWithMeta>({
     queryKey: ["/api/bands", bandId],
@@ -1132,8 +1209,31 @@ export default function BandClubbousePage() {
     onError: () => toast({ title: "Error", description: "Could not save changes", variant: "destructive" }),
   });
 
+  const followMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/bands/${bandId}/follow`, {
+      email: followEmail.trim() || undefined,
+      displayName: followName.trim() || undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId] });
+      setShowFollowModal(false);
+      setFollowEmail(""); setFollowName("");
+      toast({ title: "You're now following!", description: "You'll get updates on events and offerings." });
+    },
+    onError: () => toast({ title: "Error", description: "Could not follow band", variant: "destructive" }),
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/bands/${bandId}/follow`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId] });
+      toast({ title: "Unfollowed" });
+    },
+  });
+
   const isMember = !!band?.isMember;
   const isAdmin = band?.memberRole === "admin";
+  const isFollowing = !!band?.isFollowing;
 
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: "wall", label: "Wall", icon: Mic2 },
@@ -1157,6 +1257,7 @@ export default function BandClubbousePage() {
       youtubeUrl: band.youtubeUrl ?? "",
       websiteUrl: band.websiteUrl ?? "",
       bandType: (band as any).bandType ?? "band",
+      allowGuestPosts: !!(band as any).allowGuestPosts,
     });
     setShowEditModal(true);
   }
@@ -1230,12 +1331,35 @@ export default function BandClubbousePage() {
             </div>
             <p className="text-sm text-[#888]">{[band.genre, band.city && band.state ? `${band.city}, ${band.state}` : band.city ?? band.state].filter(Boolean).join(" · ")}</p>
           </div>
-          <div className="pb-1 flex gap-2 items-center">
-            {!user && (
-              <button onClick={() => setLocation("/auth")} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ background: ORANGE }} data-testid="signin-to-join-btn">
-                <LogIn className="h-4 w-4" /> Sign in to Join
-              </button>
+          <div className="pb-1 flex gap-2 items-center flex-wrap">
+            {/* Follow / Unfollow — visible to everyone who isn't the admin */}
+            {!isAdmin && (
+              isFollowing ? (
+                <button
+                  onClick={() => unfollowMutation.mutate()}
+                  disabled={unfollowMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors"
+                  style={{ color: "#22c55e", borderColor: "#22c55e44", background: "#22c55e11" }}
+                  data-testid="unfollow-btn"
+                >
+                  <BellOff className="h-3.5 w-3.5" /> Following
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (user) followMutation.mutate();
+                    else setShowFollowModal(true);
+                  }}
+                  disabled={followMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all"
+                  style={{ background: "#22c55e" }}
+                  data-testid="follow-btn"
+                >
+                  <Bell className="h-3.5 w-3.5" /> Follow
+                </button>
+              )
             )}
+            {/* Join / Leave */}
             {user && !isMember && (
               <button onClick={() => setShowJoinModal(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ background: ORANGE }} data-testid="join-band-btn">
                 <LogIn className="h-4 w-4" /> Join
@@ -1303,7 +1427,7 @@ export default function BandClubbousePage() {
               ))}
             </div>
 
-            {tab === "wall" && <WallTab bandId={bandId} isMember={isMember} currentUserId={user?.id} />}
+            {tab === "wall" && <WallTab bandId={bandId} isMember={isMember} isAdmin={isAdmin} currentUserId={user?.id} allowGuestPosts={(band as any).allowGuestPosts} />}
             {tab === "gallery" && <GalleryTab bandId={bandId} isMember={isMember} />}
             {tab === "jukebox" && <Jukebox bandId={bandId} />}
             {tab === "tv" && <ZitoTVTab bandId={bandId} isMember={isMember} band={band} />}
@@ -1333,6 +1457,52 @@ export default function BandClubbousePage() {
               <button onClick={() => setShowJoinModal(false)} className="flex-1 py-2 rounded-xl text-sm text-[#888] border border-[#222]" data-testid="join-cancel">Cancel</button>
               <button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending} className="flex-1 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-40" style={{ background: ORANGE }} data-testid="join-confirm">
                 {joinMutation.isPending ? "Joining..." : "Join Band"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Follow Modal (for non-logged-in guests) ── */}
+      {showFollowModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.85)" }}>
+          <div className="w-full max-w-sm rounded-2xl p-6 space-y-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Bell className="h-5 w-5" style={{ color: "#22c55e" }} /> Follow {band?.name}
+              </h2>
+              <button onClick={() => setShowFollowModal(false)} className="text-[#555] hover:text-white transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-sm text-[#777]">Get notified about upcoming events and new releases.</p>
+            <div className="space-y-2">
+              <input
+                className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]"
+                placeholder="Your name (optional)"
+                value={followName}
+                onChange={e => setFollowName(e.target.value)}
+                data-testid="follow-modal-name"
+              />
+              <input
+                className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]"
+                placeholder="Email address (optional)"
+                type="email"
+                value={followEmail}
+                onChange={e => setFollowEmail(e.target.value)}
+                data-testid="follow-modal-email"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setShowFollowModal(false)} className="px-4 py-2 rounded-lg text-sm text-[#555] hover:text-white transition-colors">Cancel</button>
+              <button
+                onClick={() => followMutation.mutate()}
+                disabled={followMutation.isPending}
+                className="px-5 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 transition-all"
+                style={{ background: "#22c55e" }}
+                data-testid="follow-modal-submit"
+              >
+                {followMutation.isPending ? "Following…" : "Follow"}
               </button>
             </div>
           </div>
@@ -1391,6 +1561,22 @@ export default function BandClubbousePage() {
                 <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Banner URL</label>
                 <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" placeholder="https://..." value={editForm.bannerUrl} onChange={e => setEditForm(f => ({ ...f, bannerUrl: e.target.value }))} data-testid="edit-band-banner" />
               </div>
+            </div>
+            {/* Allow stranger wall posts toggle */}
+            <div className="flex items-center justify-between py-3 border-t border-[#1e1e1e]">
+              <div>
+                <p className="text-sm font-semibold text-white">Allow stranger posts</p>
+                <p className="text-xs text-[#555] mt-0.5">Let visitors write on the wall without signing in</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditForm(f => ({ ...f, allowGuestPosts: !f.allowGuestPosts }))}
+                className="relative w-10 h-5 rounded-full transition-colors shrink-0"
+                style={{ background: editForm.allowGuestPosts ? ORANGE : "#1e1e1e", border: `1px solid ${editForm.allowGuestPosts ? ORANGE : "#333"}` }}
+                data-testid="edit-allow-guest-posts"
+              >
+                <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all" style={{ left: editForm.allowGuestPosts ? "calc(100% - 1.1rem)" : "2px" }} />
+              </button>
             </div>
             <p className="text-xs text-[#444] uppercase tracking-wide pt-1">Social Links</p>
             <div className="grid grid-cols-2 gap-3">

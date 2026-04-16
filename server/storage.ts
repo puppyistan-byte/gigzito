@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, gzFlashClaims, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, gzBands, gzBandMembers, gzBandWallPosts, gzBandWallComments, gzBandEvents, gzBandPhotos, gzBandTvShows, gzBandRoster, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite, type GzBand, type GzBandMember, type GzBandWallPost, type GzBandWallComment, type GzBandEvent, type GzBandPhoto, type GzBandTvShow, type GzBandRosterMember, type GzBandWithMeta, type GzBandWallPostWithAuthor, type GzBandWallCommentWithAuthor, type GzBandMemberWithProfile, type InsertGzBand, type InsertGzBandEvent, type InsertGzBandTvShow } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, gzFlashClaims, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, gzBands, gzBandMembers, gzBandWallPosts, gzBandWallComments, gzBandEvents, gzBandPhotos, gzBandTvShows, gzBandRoster, gzBandWallPostLikes, gzBandFollowers, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite, type GzBand, type GzBandMember, type GzBandWallPost, type GzBandWallComment, type GzBandEvent, type GzBandPhoto, type GzBandTvShow, type GzBandRosterMember, type GzBandFollower, type GzBandWithMeta, type GzBandWallPostWithAuthor, type GzBandWallCommentWithAuthor, type GzBandMemberWithProfile, type InsertGzBand, type InsertGzBandEvent, type InsertGzBandTvShow } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -3123,20 +3123,25 @@ export class DatabaseStorage implements IStorage {
   async getGzBand(id: number, userId?: number): Promise<GzBandWithMeta | null> {
     const [row] = await db.select({
       band: gzBands,
-      memberCount: sql<number>`cast(count(${gzBandMembers.id}) as int)`,
+      memberCount: sql<number>`cast(count(distinct ${gzBandMembers.id}) as int)`,
+      followerCount: sql<number>`cast(count(distinct ${gzBandFollowers.id}) as int)`,
     }).from(gzBands)
       .leftJoin(gzBandMembers, eq(gzBandMembers.bandId, gzBands.id))
+      .leftJoin(gzBandFollowers, eq(gzBandFollowers.bandId, gzBands.id))
       .where(eq(gzBands.id, id))
       .groupBy(gzBands.id);
     if (!row) return null;
     let isMember = false;
     let memberRole: string | undefined;
+    let isFollowing = false;
     if (userId) {
       const [m] = await db.select().from(gzBandMembers).where(and(eq(gzBandMembers.bandId, id), eq(gzBandMembers.userId, userId)));
       isMember = !!m;
       memberRole = m?.role;
+      const [f] = await db.select().from(gzBandFollowers).where(and(eq(gzBandFollowers.bandId, id), eq(gzBandFollowers.userId, userId)));
+      isFollowing = !!f;
     }
-    return { ...row.band, memberCount: row.memberCount, isMember, memberRole };
+    return { ...row.band, memberCount: row.memberCount, followerCount: row.followerCount, isMember, memberRole, isFollowing };
   }
 
   async createGzBand(data: InsertGzBand, userId: number): Promise<GzBand> {
@@ -3146,8 +3151,8 @@ export class DatabaseStorage implements IStorage {
     return band;
   }
 
-  async updateGzBand(id: number, data: Partial<InsertGzBand>): Promise<GzBand> {
-    const [updated] = await db.update(gzBands).set(data).where(eq(gzBands.id, id)).returning();
+  async updateGzBand(id: number, data: Partial<GzBand>): Promise<GzBand> {
+    const [updated] = await db.update(gzBands).set(data as any).where(eq(gzBands.id, id)).returning();
     return updated;
   }
 
@@ -3182,29 +3187,82 @@ export class DatabaseStorage implements IStorage {
     await db.delete(gzBandMembers).where(and(eq(gzBandMembers.bandId, bandId), eq(gzBandMembers.userId, userId)));
   }
 
-  async getGzBandWallPosts(bandId: number): Promise<GzBandWallPostWithAuthor[]> {
+  async getGzBandWallPosts(bandId: number, userId?: number): Promise<GzBandWallPostWithAuthor[]> {
     const rows = await db.select({
       post: gzBandWallPosts,
       displayName: providerProfiles.displayName,
       avatarUrl: providerProfiles.avatarUrl,
       username: providerProfiles.username,
-      commentCount: sql<number>`cast(count(${gzBandWallComments.id}) as int)`,
+      commentCount: sql<number>`cast(count(distinct ${gzBandWallComments.id}) as int)`,
     }).from(gzBandWallPosts)
       .leftJoin(providerProfiles, eq(providerProfiles.userId, gzBandWallPosts.userId))
       .leftJoin(gzBandWallComments, eq(gzBandWallComments.postId, gzBandWallPosts.id))
       .where(eq(gzBandWallPosts.bandId, bandId))
       .groupBy(gzBandWallPosts.id, providerProfiles.displayName, providerProfiles.avatarUrl, providerProfiles.username)
       .orderBy(desc(gzBandWallPosts.createdAt));
-    return rows.map(r => ({ ...r.post, displayName: r.displayName ?? null, avatarUrl: r.avatarUrl ?? null, username: r.username ?? null, commentCount: r.commentCount }));
+
+    let likedPostIds = new Set<number>();
+    if (userId) {
+      const likes = await db.select({ postId: gzBandWallPostLikes.postId }).from(gzBandWallPostLikes)
+        .where(and(eq(gzBandWallPostLikes.userId, userId), inArray(gzBandWallPostLikes.postId, rows.map(r => r.post.id))));
+      likedPostIds = new Set(likes.map(l => l.postId));
+    }
+
+    return rows.map(r => ({
+      ...r.post,
+      displayName: r.displayName ?? r.post.guestName ?? null,
+      avatarUrl: r.avatarUrl ?? null,
+      username: r.username ?? null,
+      commentCount: r.commentCount,
+      hasLiked: likedPostIds.has(r.post.id),
+    }));
   }
 
-  async createGzBandWallPost(bandId: number, userId: number, content: string, imageUrl?: string): Promise<GzBandWallPost> {
-    const [post] = await db.insert(gzBandWallPosts).values({ bandId, userId, content, imageUrl: imageUrl ?? null }).returning();
+  async createGzBandWallPost(bandId: number, userId: number | null, content: string, imageUrl?: string, guestName?: string, guestEmail?: string): Promise<GzBandWallPost> {
+    const [post] = await db.insert(gzBandWallPosts).values({
+      bandId,
+      userId: userId ?? null,
+      content,
+      imageUrl: imageUrl ?? null,
+      guestName: guestName ?? null,
+      guestEmail: guestEmail ?? null,
+    }).returning();
     return post;
   }
 
   async deleteGzBandWallPost(id: number): Promise<void> {
     await db.delete(gzBandWallPosts).where(eq(gzBandWallPosts.id, id));
+  }
+
+  async likeGzBandWallPost(postId: number, userId: number): Promise<void> {
+    try {
+      await db.insert(gzBandWallPostLikes).values({ postId, userId });
+      await db.update(gzBandWallPosts).set({ likeCount: sql`${gzBandWallPosts.likeCount} + 1` }).where(eq(gzBandWallPosts.id, postId));
+    } catch {
+      // already liked — ignore unique constraint error
+    }
+  }
+
+  async unlikeGzBandWallPost(postId: number, userId: number): Promise<void> {
+    const deleted = await db.delete(gzBandWallPostLikes).where(and(eq(gzBandWallPostLikes.postId, postId), eq(gzBandWallPostLikes.userId, userId))).returning();
+    if (deleted.length > 0) {
+      await db.update(gzBandWallPosts).set({ likeCount: sql`greatest(0, ${gzBandWallPosts.likeCount} - 1)` }).where(eq(gzBandWallPosts.id, postId));
+    }
+  }
+
+  async followGzBand(bandId: number, userId: number | null, email: string, displayName?: string): Promise<GzBandFollower> {
+    const existing = await db.select().from(gzBandFollowers).where(and(eq(gzBandFollowers.bandId, bandId), eq(gzBandFollowers.email, email)));
+    if (existing.length > 0) return existing[0];
+    const [f] = await db.insert(gzBandFollowers).values({ bandId, userId, email, displayName: displayName ?? null }).returning();
+    return f;
+  }
+
+  async unfollowGzBand(bandId: number, userId: number): Promise<void> {
+    await db.delete(gzBandFollowers).where(and(eq(gzBandFollowers.bandId, bandId), eq(gzBandFollowers.userId, userId)));
+  }
+
+  async getGzBandFollowers(bandId: number): Promise<GzBandFollower[]> {
+    return db.select().from(gzBandFollowers).where(eq(gzBandFollowers.bandId, bandId)).orderBy(desc(gzBandFollowers.followedAt));
   }
 
   async getGzBandWallComments(postId: number): Promise<GzBandWallCommentWithAuthor[]> {

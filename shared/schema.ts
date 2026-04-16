@@ -1211,6 +1211,7 @@ export const gzBands = pgTable("gz_bands", {
   youtubeUrl: text("youtube_url"),
   liveStreamUrl: text("live_stream_url"),
   isLive: boolean("is_live").notNull().default(false),
+  allowGuestPosts: boolean("allow_guest_posts").notNull().default(false),
   createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -1227,9 +1228,12 @@ export const gzBandMembers = pgTable("gz_band_members", {
 export const gzBandWallPosts = pgTable("gz_band_wall_posts", {
   id: serial("id").primaryKey(),
   bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  guestName: text("guest_name"),
+  guestEmail: text("guest_email"),
   content: text("content").notNull(),
   imageUrl: text("image_url"),
+  likeCount: integer("like_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1290,6 +1294,22 @@ export const gzBandRoster = pgTable("gz_band_roster", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const gzBandWallPostLikes = pgTable("gz_band_wall_post_likes", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => gzBandWallPosts.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.postId, t.userId)]);
+
+export const gzBandFollowers = pgTable("gz_band_followers", {
+  id: serial("id").primaryKey(),
+  bandId: integer("band_id").notNull().references(() => gzBands.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  email: text("email").notNull(),
+  displayName: text("display_name"),
+  followedAt: timestamp("followed_at").defaultNow().notNull(),
+}, (t) => [unique().on(t.bandId, t.email)]);
+
 export type GzBand = typeof gzBands.$inferSelect;
 export type GzBandMember = typeof gzBandMembers.$inferSelect;
 export type GzBandWallPost = typeof gzBandWallPosts.$inferSelect;
@@ -1298,6 +1318,7 @@ export type GzBandEvent = typeof gzBandEvents.$inferSelect;
 export type GzBandPhoto = typeof gzBandPhotos.$inferSelect;
 export type GzBandTvShow = typeof gzBandTvShows.$inferSelect;
 export type GzBandRosterMember = typeof gzBandRoster.$inferSelect;
+export type GzBandFollower = typeof gzBandFollowers.$inferSelect;
 
 export const insertGzBandSchema = createInsertSchema(gzBands).omit({ id: true, createdBy: true, createdAt: true, isLive: true });
 export const insertGzBandEventSchema = createInsertSchema(gzBandEvents).omit({ id: true, bandId: true, createdBy: true, createdAt: true });
@@ -1306,8 +1327,8 @@ export type InsertGzBand = z.infer<typeof insertGzBandSchema>;
 export type InsertGzBandEvent = z.infer<typeof insertGzBandEventSchema>;
 export type InsertGzBandTvShow = z.infer<typeof insertGzBandTvShowSchema>;
 
-export type GzBandWithMeta = GzBand & { memberCount: number; isMember?: boolean; memberRole?: string };
-export type GzBandWallPostWithAuthor = GzBandWallPost & { displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number };
+export type GzBandWithMeta = GzBand & { memberCount: number; isMember?: boolean; memberRole?: string; isFollowing?: boolean; followerCount?: number };
+export type GzBandWallPostWithAuthor = GzBandWallPost & { displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number; hasLiked?: boolean };
 export type GzBandWallCommentWithAuthor = GzBandWallComment & { displayName: string | null; avatarUrl: string | null; username: string | null };
 export type GzBandMemberWithProfile = GzBandMember & { displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
 
