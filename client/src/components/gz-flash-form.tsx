@@ -367,6 +367,7 @@ export function GzFlashForm({
 
   const [title, setTitle] = useState(existing?.title ?? "");
   const [artworkUrl, setArtworkUrl] = useState(existing?.artworkUrl ?? "");
+  const [artworkUrlError, setArtworkUrlError] = useState("");
 
   const existingRetail = existing ? (existing.retailPriceCents / 100).toFixed(2) : "";
   const existingFlash = existing
@@ -537,17 +538,40 @@ export function GzFlashForm({
             </Button>
             <Input
               value={artworkUrl}
-              onChange={(e) => setArtworkUrl(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.startsWith("file://") || val.startsWith("blob:")) {
+                  setArtworkUrlError("Local file paths can't be used as image URLs. Use the Upload Image button instead.");
+                  setArtworkUrl("");
+                } else {
+                  setArtworkUrlError("");
+                  setArtworkUrl(val);
+                }
+              }}
               placeholder="or paste image URL"
               className="bg-[#0a1020] border-blue-900/50 text-white placeholder-[#444] text-xs flex-1"
               data-testid="input-flash-artwork"
             />
           </div>
-          {artworkUrl && (
+          {artworkUrlError && (
+            <p className="mt-1.5 text-xs text-red-400 flex items-start gap-1">
+              <span className="shrink-0 mt-0.5">⚠</span>
+              {artworkUrlError}
+            </p>
+          )}
+          {artworkUrl && !artworkUrlError && (
             <div className="mt-2 relative w-full h-28 rounded-xl overflow-hidden border border-blue-900/40 bg-[#0a1020]">
-              <img src={artworkUrl} alt="preview" className="w-full h-full object-cover" />
+              <img
+                src={artworkUrl}
+                alt="preview"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  setArtworkUrlError("This URL couldn't be loaded as an image. Try uploading the file instead.");
+                }}
+              />
               <button
-                onClick={() => setArtworkUrl("")}
+                onClick={() => { setArtworkUrl(""); setArtworkUrlError(""); }}
                 className="absolute top-1.5 right-1.5 bg-black/60 rounded-full p-0.5 text-[#888] hover:text-white"
               >
                 <X className="h-3.5 w-3.5" />
