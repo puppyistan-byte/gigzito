@@ -1585,6 +1585,7 @@ export default function BandClubbousePage() {
     mutationFn: () => apiRequest("PATCH", `/api/bands/${bandId}`, editForm).then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/bands", bandId] });
+      qc.invalidateQueries({ queryKey: ["/api/bands"] });
       setShowEditModal(false);
       toast({ title: "Band updated!" });
     },
