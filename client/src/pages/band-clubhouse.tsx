@@ -611,13 +611,15 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
   const { toast } = useToast();
   const qc = useQueryClient();
   const [showComposer, setShowComposer] = useState(false);
+  const [showClaimPanel, setShowClaimPanel] = useState(false);
   const [content, setContent] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [searchQuery, setSearchQuery] = useState(bandName);
+  const [hasSearched, setHasSearched] = useState(false);
   const [, navigate] = useLocation();
 
   const isGuest = !currentUserId && !!allowGuestPosts;
-  const canPost = isAdmin || isGuest;
 
   const { data: posts = [], isLoading: postsLoading } = useQuery<GzBandWallPostWithAuthor[]>({
     queryKey: ["/api/bands", bandId, "wall"],
@@ -629,6 +631,14 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
     queryFn: () => fetch(`/api/bands/${bandId}/tracks`).then(r => r.json()),
   });
 
+  const { data: searchResults = [], isLoading: isSearching, refetch: doSearch } = useQuery<GZMusicTrack[]>({
+    queryKey: ["/api/bands", bandId, "tracks/search", searchQuery],
+    queryFn: () => fetch(`/api/bands/${bandId}/tracks/search?artist=${encodeURIComponent(searchQuery)}`, { credentials: "include" }).then(r => r.json()),
+    enabled: false,
+  });
+
+  const claimedIds = new Set(tracks.map(t => t.id));
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -636,7 +646,7 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
 
   useEffect(() => {
     if (!audioRef.current || !currentTrack) return;
-    const src = currentTrack.fileUrl || currentTrack.audioUrl || "";
+    const src = (currentTrack as any).fileUrl || (currentTrack as any).audioUrl || "";
     if (audioRef.current.src !== window.location.origin + src) {
       audioRef.current.src = src;
       if (playing) audioRef.current.play().catch(() => {});
@@ -662,6 +672,30 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
     onError: () => toast({ title: "Error", description: "Could not post", variant: "destructive" }),
   });
 
+  const claimMutation = useMutation({
+    mutationFn: (trackId: number) => apiRequest("POST", `/api/bands/${bandId}/claim-track/${trackId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "tracks"] });
+      toast({ title: "Track claimed!", description: "It's now on your band wall." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const unclaimMutation = useMutation({
+    mutationFn: (trackId: number) => apiRequest("POST", `/api/bands/${bandId}/unclaim-track/${trackId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "tracks"] });
+      toast({ title: "Track removed from band wall" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+    setHasSearched(true);
+    doSearch();
+  };
+
   const primaryPosts = posts.slice(0, 3);
 
   return (
@@ -685,6 +719,78 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
           >
             <Music className="h-3.5 w-3.5" /> Add Track
           </button>
+          <button
+            onClick={() => setShowClaimPanel(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border transition-colors"
+            style={{ borderColor: showClaimPanel ? ORANGE : BORDER, color: showClaimPanel ? ORANGE : "#888" }}
+            data-testid="wall-claim-tracks-btn"
+          >
+            <Search className="h-3.5 w-3.5" /> Claim Tracks
+          </button>
+        </div>
+      )}
+
+      {/* Claim tracks panel */}
+      {isAdmin && showClaimPanel && (
+        <div className="rounded-xl p-4 space-y-3" style={{ background: "#0d0d0d", border: `1px solid ${ORANGE}44` }}>
+          <div className="flex items-start gap-2">
+            <div className="flex-1">
+              <p className="text-xs font-bold text-white mb-0.5">Claim Your Tracks</p>
+              <p className="text-[11px] text-[#555] leading-relaxed">Uploaded a track before creating your band? Search by artist name to claim it here.</p>
+            </div>
+            <button onClick={() => setShowClaimPanel(false)} className="text-[#444] hover:text-white shrink-0 mt-0.5"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="flex gap-2">
+            <input
+              className="flex-1 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]"
+              placeholder="Artist name (exact match)"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSearch()}
+              data-testid="tracks-search-input"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="px-3 py-2 rounded-lg text-white transition-colors flex items-center gap-1.5"
+              style={{ background: ORANGE }}
+              data-testid="tracks-search-btn"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </div>
+          {isSearching && <Skeleton className="h-12 rounded-lg" />}
+          {hasSearched && !isSearching && searchResults.length === 0 && (
+            <p className="text-xs text-[#444] text-center py-2">No tracks found. The artist name must match exactly.</p>
+          )}
+          {searchResults.length > 0 && (
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {searchResults.map(t => (
+                <div key={t.id} className="flex items-center gap-3 rounded-lg px-3 py-2" style={{ background: "#1a1a1a" }} data-testid={`search-result-${t.id}`}>
+                  <div className="w-8 h-8 rounded overflow-hidden shrink-0 bg-[#222] flex items-center justify-center">
+                    {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="h-3.5 w-3.5 text-[#444]" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{t.title}</p>
+                    <p className="text-xs text-[#555] truncate">{t.artist}</p>
+                  </div>
+                  {claimedIds.has(t.id) ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded" style={{ background: "#1e3a1e", color: "#22c55e" }}>Claimed</span>
+                  ) : (
+                    <button
+                      onClick={() => claimMutation.mutate(t.id)}
+                      disabled={claimMutation.isPending}
+                      className="text-xs px-2.5 py-1 rounded-lg font-semibold text-white transition-colors"
+                      style={{ background: ORANGE }}
+                      data-testid={`claim-track-${t.id}`}
+                    >
+                      Claim
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -731,7 +837,13 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
       {/* Tracks section */}
       {tracksLoading ? (
         <Skeleton className="h-16 rounded-xl" />
-      ) : tracks.length > 0 && (
+      ) : tracks.length === 0 && isAdmin ? (
+        <div className="rounded-xl p-4 text-center space-y-1" style={{ background: "#0d0d0d", border: `1px dashed #222` }}>
+          <Music className="mx-auto h-6 w-6 text-[#333]" />
+          <p className="text-xs text-[#444]">No tracks on this wall yet.</p>
+          <p className="text-[11px] text-[#333]">Upload a new track or click <span className="text-[#666] font-medium">Claim Tracks</span> to add tracks you've already uploaded.</p>
+        </div>
+      ) : tracks.length > 0 ? (
         <div className="rounded-xl overflow-hidden" style={{ background: "#0d0d0d", border: `1px solid ${BORDER}` }}>
           {/* Now playing mini */}
           <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: BORDER }}>
@@ -744,7 +856,9 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={() => setCurrentIdx(i => Math.max(0, i - 1))} disabled={currentIdx === 0} className="text-[#555] hover:text-white disabled:opacity-30"><SkipBack className="h-4 w-4" /></button>
-              <button onClick={togglePlay} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: ORANGE }} data-testid="tracks-play"><span>{playing ? <Pause className="h-3.5 w-3.5 text-white" /> : <Play className="h-3.5 w-3.5 text-white ml-0.5" />}</span></button>
+              <button onClick={togglePlay} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: ORANGE }} data-testid="tracks-play">
+                {playing ? <Pause className="h-3.5 w-3.5 text-white" /> : <Play className="h-3.5 w-3.5 text-white ml-0.5" />}
+              </button>
               <button onClick={() => setCurrentIdx(i => Math.min(tracks.length - 1, i + 1))} disabled={currentIdx === tracks.length - 1} className="text-[#555] hover:text-white disabled:opacity-30"><SkipForward className="h-4 w-4" /></button>
             </div>
             <audio ref={audioRef} onEnded={() => setCurrentIdx(i => Math.min(tracks.length - 1, i + 1))} />
@@ -752,20 +866,36 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
           {/* Track list */}
           <div className="divide-y" style={{ borderColor: BORDER }}>
             {tracks.map((t, i) => (
-              <button key={t.id} onClick={() => { setCurrentIdx(i); setPlaying(true); setTimeout(() => audioRef.current?.play(), 50); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#1a1a1a] transition-colors" style={{ borderLeft: i === currentIdx ? `2px solid ${ORANGE}` : "2px solid transparent" }} data-testid={`tracks-track-${t.id}`}>
-                <div className="w-7 h-7 rounded overflow-hidden shrink-0 bg-[#222] flex items-center justify-center">
-                  {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="h-3 w-3 text-[#444]" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-white truncate">{t.title}</p>
-                  <p className="text-[10px] text-[#555] truncate">{t.artist}</p>
-                </div>
-                {i === currentIdx && playing && <Radio className="h-3 w-3 shrink-0" style={{ color: ORANGE }} />}
-              </button>
+              <div key={t.id} className="flex items-center gap-0 group" style={{ borderLeft: i === currentIdx ? `2px solid ${ORANGE}` : "2px solid transparent" }}>
+                <button
+                  onClick={() => { setCurrentIdx(i); setPlaying(true); setTimeout(() => audioRef.current?.play(), 50); }}
+                  className="flex-1 flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#1a1a1a] transition-colors"
+                  data-testid={`tracks-track-${t.id}`}
+                >
+                  <div className="w-7 h-7 rounded overflow-hidden shrink-0 bg-[#222] flex items-center justify-center">
+                    {t.coverUrl ? <img src={t.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="h-3 w-3 text-[#444]" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white truncate">{t.title}</p>
+                    <p className="text-[10px] text-[#555] truncate">{t.artist}</p>
+                  </div>
+                  {i === currentIdx && playing && <Radio className="h-3 w-3 shrink-0" style={{ color: ORANGE }} />}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => unclaimMutation.mutate(t.id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[#333] hover:text-red-400 px-3 py-2.5"
+                    title="Remove from band wall"
+                    data-testid={`unclaim-track-${t.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Wall posts (first 3 only in center) */}
       {postsLoading ? (
