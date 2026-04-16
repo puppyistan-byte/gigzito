@@ -17,6 +17,13 @@ const BORDER = "#1e1e1e";
 
 const GENRES = ["Rock", "Hip-Hop", "Pop", "Country", "Jazz", "R&B", "Metal", "Electronic", "Folk", "Punk", "Indie", "Classical", "Reggae", "Latin", "Blues", "Other"];
 
+const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY","DC",
+];
+
 export default function GzBandsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -72,7 +79,7 @@ export default function GzBandsPage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/bands", form),
+    mutationFn: async () => { const res = await apiRequest("POST", "/api/bands", form); return res.json(); },
     onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ["/api/bands"] });
       setShowEnroll(false);
@@ -134,7 +141,7 @@ export default function GzBandsPage() {
                 data-testid="band-name"
               />
               <select
-                className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
+                className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
                 value={form.genre}
                 onChange={e => setForm(f => ({ ...f, genre: e.target.value }))}
                 data-testid="band-genre"
@@ -149,6 +156,15 @@ export default function GzBandsPage() {
                 onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                 data-testid="band-city"
               />
+              <select
+                className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
+                value={form.state}
+                onChange={e => setForm(f => ({ ...f, state: e.target.value }))}
+                data-testid="band-state"
+              >
+                <option value="">State</option>
+                {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
               <textarea
                 className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] resize-none min-h-[80px]"
                 placeholder="Bio — tell the world about your sound..."
