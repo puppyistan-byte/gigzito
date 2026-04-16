@@ -1805,6 +1805,7 @@ export default function BandClubbousePage() {
   const [uploadingEditBanner, setUploadingEditBanner] = useState(false);
   const editAvatarRef = useRef<HTMLInputElement>(null);
   const editBannerRef = useRef<HTMLInputElement>(null);
+  const [avatarLightbox, setAvatarLightbox] = useState(false);
 
   const uploadEditImage = async (file: File, kind: "avatar" | "banner") => {
     const setUploading = kind === "avatar" ? setUploadingEditAvatar : setUploadingEditBanner;
@@ -1948,13 +1949,42 @@ export default function BandClubbousePage() {
 
         {/* Band header — sits cleanly below the banner */}
         <div className="flex items-center gap-4 pt-5 pb-4">
-          <div className="w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0" style={{ borderColor: ORANGE, background: "#1a1a1a" }}>
+          <div
+            className={`w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0${band.avatarUrl ? " cursor-zoom-in" : ""}`}
+            style={{ borderColor: ORANGE, background: "#1a1a1a" }}
+            onClick={() => band.avatarUrl && setAvatarLightbox(true)}
+            data-testid="band-avatar-zoom"
+          >
             {band.avatarUrl ? (
               <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center"><Music className="h-8 w-8 text-[#333]" /></div>
             )}
           </div>
+
+          {/* Avatar lightbox */}
+          {avatarLightbox && band.avatarUrl && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center"
+              style={{ background: "rgba(0,0,0,0.92)" }}
+              onClick={() => setAvatarLightbox(false)}
+              data-testid="avatar-lightbox"
+            >
+              <img
+                src={band.avatarUrl}
+                alt={band.name}
+                className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain shadow-2xl"
+                onClick={e => e.stopPropagation()}
+              />
+              <button
+                className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+                onClick={() => setAvatarLightbox(false)}
+                data-testid="avatar-lightbox-close"
+              >
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+          )}
           <div className="flex-1 pb-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-black text-white">{band.name}</h1>
