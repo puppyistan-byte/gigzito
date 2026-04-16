@@ -1186,13 +1186,13 @@ export default function BandClubbousePage() {
     <div style={{ background: DARK, minHeight: "100vh" }}>
       <Navbar />
 
-      {/* Banner — shorter so it doesn't swallow the header */}
+      {/* Banner */}
       <div className="relative">
         <div
-          className="w-full h-32 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
+          className="w-full h-28 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
           style={band.bannerUrl ? { backgroundImage: `url(${band.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]/60" />
         <button onClick={() => setLocation("/gz-music?tab=bands")} className="absolute top-3 left-3 flex items-center gap-1.5 text-xs text-[#aaa] hover:text-white bg-black/50 rounded-lg px-2.5 py-1.5 backdrop-blur-sm" data-testid="back-to-bands">
           <ChevronLeft className="h-3 w-3" /> All Bands
         </button>
@@ -1207,8 +1207,8 @@ export default function BandClubbousePage() {
       {/* Outer container — wide for two-column layout */}
       <div className="max-w-5xl mx-auto px-4">
 
-        {/* Band header */}
-        <div className="flex items-end gap-4 mt-3 mb-4">
+        {/* Band header — sits cleanly below the banner */}
+        <div className="flex items-center gap-4 pt-5 pb-4">
           <div className="w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0" style={{ borderColor: ORANGE, background: "#1a1a1a" }}>
             {band.avatarUrl ? (
               <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" />
