@@ -1198,6 +1198,7 @@ export const gzBands = pgTable("gz_bands", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  bandType: text("band_type").notNull().default("band"), // "band" | "artist"
   bio: text("bio").notNull().default(""),
   genre: text("genre").notNull().default(""),
   avatarUrl: text("avatar_url"),

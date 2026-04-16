@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Music, Plus, Users, ChevronLeft, Radio, Mic2, Upload, X } from "lucide-react";
+import { Music, Plus, Users, ChevronLeft, Radio, Mic2, Upload, X, Guitar, User } from "lucide-react";
 import type { GzBandWithMeta } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
@@ -46,7 +46,7 @@ export default function GzBandsPage() {
   const [form, setForm] = useState({
     name: "", bio: "", genre: "", city: "", state: "",
     websiteUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "",
-    avatarUrl: "", bannerUrl: "",
+    avatarUrl: "", bannerUrl: "", bandType: "band",
   });
 
   const uploadImage = async (file: File, kind: "avatar" | "banner") => {
@@ -73,7 +73,7 @@ export default function GzBandsPage() {
   });
 
   const resetForm = () => {
-    setForm({ name: "", bio: "", genre: "", city: "", state: "", websiteUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", avatarUrl: "", bannerUrl: "" });
+    setForm({ name: "", bio: "", genre: "", city: "", state: "", websiteUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", avatarUrl: "", bannerUrl: "", bandType: "band" });
     setAvatarPreview("");
     setBannerPreview("");
   };
@@ -84,7 +84,8 @@ export default function GzBandsPage() {
       qc.invalidateQueries({ queryKey: ["/api/bands"] });
       setShowEnroll(false);
       resetForm();
-      toast({ title: "Band enrolled!", description: `${data.name} is now on GZMusic.` });
+      const label = data.bandType === "artist" ? "Artist" : "Band";
+      toast({ title: `${label} enrolled!`, description: `${data.name} is now on GZMusic.` });
       setLocation(`/gz-music/bands/${data.id}`);
     },
     onError: (e: any) => toast({ title: "Error", description: e.message ?? "Could not create band", variant: "destructive" }),
@@ -130,12 +131,45 @@ export default function GzBandsPage() {
         {/* Enroll form */}
         {showEnroll && (
           <div className="rounded-2xl p-5 space-y-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-            <p className="text-base font-black text-white">Enroll Your Band</p>
-            <p className="text-xs text-[#666]">You'll automatically become the band admin. Invite your bandmates from the clubhouse.</p>
+            <p className="text-base font-black text-white">
+              {form.bandType === "artist" ? "Enroll as Artist" : "Enroll Your Band"}
+            </p>
+            <p className="text-xs text-[#666]">
+              {form.bandType === "artist"
+                ? "You'll get a solo artist clubhouse. Add collaborators from your profile."
+                : "You'll automatically become the band admin. Invite your bandmates from the clubhouse."}
+            </p>
+
+            {/* Band / Artist toggle */}
+            <div className="flex gap-2 p-1 rounded-xl" style={{ background: "#0f0f0f", border: `1px solid ${BORDER}` }}>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, bandType: "band" }))}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all"
+                style={form.bandType === "band"
+                  ? { background: ORANGE, color: "#fff" }
+                  : { color: "#555" }}
+                data-testid="type-band"
+              >
+                <Guitar className="h-4 w-4" /> Band
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, bandType: "artist" }))}
+                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all"
+                style={form.bandType === "artist"
+                  ? { background: ORANGE, color: "#fff" }
+                  : { color: "#555" }}
+                data-testid="type-artist"
+              >
+                <User className="h-4 w-4" /> Artist
+              </button>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <input
                 className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#333]"
-                placeholder="Band name *"
+                placeholder={form.bandType === "artist" ? "Artist / stage name *" : "Band name *"}
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 data-testid="band-name"
@@ -246,7 +280,7 @@ export default function GzBandsPage() {
                 style={{ background: ORANGE }}
                 data-testid="band-enroll-submit"
               >
-                {createMutation.isPending ? "Enrolling..." : "Enroll Band"}
+                {createMutation.isPending ? "Enrolling..." : form.bandType === "artist" ? "Enroll Artist" : "Enroll Band"}
               </button>
             </div>
           </div>
@@ -335,6 +369,15 @@ function BandCard({ band, onClick }: { band: GzBandWithMeta; onClick: () => void
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="font-black text-white truncate">{band.name}</p>
+          {/* Band / Artist type badge */}
+          <span
+            className="text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-full uppercase shrink-0"
+            style={(band as any).bandType === "artist"
+              ? { background: "rgba(168,85,247,0.12)", color: "#a855f7", border: "1px solid rgba(168,85,247,0.25)" }
+              : { background: "rgba(255,122,0,0.12)", color: ORANGE, border: "1px solid rgba(255,122,0,0.25)" }}
+          >
+            {(band as any).bandType === "artist" ? "Artist" : "Band"}
+          </span>
           {band.isLive && (
             <div className="flex items-center gap-1 shrink-0">
               <Radio className="h-3 w-3 text-green-400" />

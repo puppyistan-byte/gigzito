@@ -61,7 +61,7 @@ function timeAgo(d: string | Date) {
 type RosterForm = { name: string; thumbUrl: string; bio: string; role: string };
 const EMPTY_ROSTER: RosterForm = { name: "", thumbUrl: "", bio: "", role: "" };
 
-function RosterSection({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }) {
+function RosterSection({ bandId, isAdmin, bandType }: { bandId: number; isAdmin: boolean; bandType?: string }) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const thumbRef = useRef<HTMLInputElement>(null);
@@ -127,7 +127,7 @@ function RosterSection({ bandId, isAdmin }: { bandId: number; isAdmin: boolean }
   return (
     <div className="mb-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#555]">Meet the Band</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-[#555]">{bandType === "artist" ? "About the Artist" : "Meet the Band"}</p>
         {isAdmin && roster.length < 8 && (
           <button onClick={openAdd} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg text-white" style={{ background: ORANGE }} data-testid="add-roster-btn">
             <UserPlus className="h-3 w-3" /> Add
@@ -1089,7 +1089,7 @@ export default function BandClubbousePage() {
   const [joinInstrument, setJoinInstrument] = useState("");
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", bio: "", genre: "", city: "", state: "", avatarUrl: "", bannerUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", websiteUrl: "" });
+  const [editForm, setEditForm] = useState({ name: "", bio: "", genre: "", city: "", state: "", avatarUrl: "", bannerUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", websiteUrl: "", bandType: "band" });
 
   const { data: band, isLoading } = useQuery<GzBandWithMeta>({
     queryKey: ["/api/bands", bandId],
@@ -1156,6 +1156,7 @@ export default function BandClubbousePage() {
       tiktokUrl: band.tiktokUrl ?? "",
       youtubeUrl: band.youtubeUrl ?? "",
       websiteUrl: band.websiteUrl ?? "",
+      bandType: (band as any).bandType ?? "band",
     });
     setShowEditModal(true);
   }
@@ -1207,7 +1208,7 @@ export default function BandClubbousePage() {
       <div className="max-w-5xl mx-auto px-4">
 
         {/* Band header */}
-        <div className="flex items-end gap-4 -mt-8 mb-4">
+        <div className="flex items-end gap-4 mt-3 mb-4">
           <div className="w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0" style={{ borderColor: ORANGE, background: "#1a1a1a" }}>
             {band.avatarUrl ? (
               <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -1216,7 +1217,17 @@ export default function BandClubbousePage() {
             )}
           </div>
           <div className="flex-1 pb-1">
-            <h1 className="text-2xl font-black text-white">{band.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-black text-white">{band.name}</h1>
+              <span
+                className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-full uppercase"
+                style={(band as any).bandType === "artist"
+                  ? { background: "rgba(168,85,247,0.15)", color: "#a855f7", border: "1px solid rgba(168,85,247,0.3)" }
+                  : { background: "rgba(255,122,0,0.15)", color: ORANGE, border: `1px solid rgba(255,122,0,0.3)` }}
+              >
+                {(band as any).bandType === "artist" ? "Artist" : "Band"}
+              </span>
+            </div>
             <p className="text-sm text-[#888]">{[band.genre, band.city && band.state ? `${band.city}, ${band.state}` : band.city ?? band.state].filter(Boolean).join(" · ")}</p>
           </div>
           <div className="pb-1 flex gap-2 items-center">
@@ -1270,7 +1281,7 @@ export default function BandClubbousePage() {
         )}
 
         {/* Band Roster */}
-        <RosterSection bandId={bandId} isAdmin={isAdmin} />
+        <RosterSection bandId={bandId} isAdmin={isAdmin} bandType={(band as any).bandType} />
 
         {/* Two-column: main content + calendar sidebar */}
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_280px] gap-6 pb-20">
@@ -1333,12 +1344,27 @@ export default function BandClubbousePage() {
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4" onClick={() => setShowEditModal(false)}>
           <div className="w-full max-w-lg rounded-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" style={{ background: "#111", border: `1px solid ${BORDER}` }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <p className="text-lg font-black text-white">Edit Band</p>
+              <p className="text-lg font-black text-white">Edit {editForm.bandType === "artist" ? "Artist" : "Band"}</p>
               <button onClick={() => setShowEditModal(false)} className="text-[#555] hover:text-white transition-colors"><X className="h-5 w-5" /></button>
+            </div>
+            {/* Band / Artist type toggle */}
+            <div className="flex gap-2 p-1 rounded-xl" style={{ background: "#0a0a0a", border: "1px solid #1e1e1e" }}>
+              <button type="button" onClick={() => setEditForm(f => ({ ...f, bandType: "band" }))}
+                className="flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={editForm.bandType === "band" ? { background: ORANGE, color: "#fff" } : { color: "#555" }}
+                data-testid="edit-type-band">
+                Band
+              </button>
+              <button type="button" onClick={() => setEditForm(f => ({ ...f, bandType: "artist" }))}
+                className="flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all"
+                style={editForm.bandType === "artist" ? { background: "#a855f7", color: "#fff" } : { color: "#555" }}
+                data-testid="edit-type-artist">
+                Artist
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">Band Name *</label>
+                <label className="text-xs text-[#555] uppercase tracking-wide mb-1 block">{editForm.bandType === "artist" ? "Artist / Stage Name *" : "Band Name *"}</label>
                 <input className="w-full bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222] focus:border-[#444]" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} data-testid="edit-band-name" />
               </div>
               <div className="col-span-2">
