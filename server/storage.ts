@@ -3339,7 +3339,6 @@ export class DatabaseStorage implements IStorage {
   async claimTrackForBand(trackId: number, bandId: number, userId: number) {
     const [track] = await db.select().from(gzMusicTracks).where(eq(gzMusicTracks.id, trackId));
     if (!track) throw new Error("Track not found");
-    if (track.uploaderUserId !== userId) throw new Error("You can only claim tracks you uploaded");
     const [updated] = await db.update(gzMusicTracks).set({ bandId }).where(eq(gzMusicTracks.id, trackId)).returning();
     return updated;
   }
@@ -3347,7 +3346,6 @@ export class DatabaseStorage implements IStorage {
   async unclaimTrackFromBand(trackId: number, bandId: number, userId: number) {
     const [track] = await db.select().from(gzMusicTracks).where(and(eq(gzMusicTracks.id, trackId), eq(gzMusicTracks.bandId, bandId)));
     if (!track) throw new Error("Track not found in this band");
-    if (track.uploaderUserId !== userId) throw new Error("You can only remove tracks you uploaded");
     const [updated] = await db.update(gzMusicTracks).set({ bandId: null }).where(eq(gzMusicTracks.id, trackId)).returning();
     return updated;
   }
