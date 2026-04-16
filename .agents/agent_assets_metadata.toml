@@ -36,3 +36,9 @@ id = "09kt-qdKFzviPNLcltXlz"
 uri = "file://public/GZMusic-API-Reference.pdf"
 type = "pdf"
 title = "GZMusic API Reference"
+
+[[outputs]]
+id = "mnI0ifYwdlRupenya4Ovi"
+uri = "file://GZMusic_API_Reference.pdf"
+type = "pdf"
+title = "Gigzito GZMusic + Bands Clubhouse API Reference v2.0"
