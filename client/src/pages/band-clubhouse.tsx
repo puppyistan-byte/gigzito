@@ -784,6 +784,11 @@ export default function BandClubbousePage() {
             <p className="text-sm text-[#888]">{[band.genre, band.city && band.state ? `${band.city}, ${band.state}` : band.city ?? band.state].filter(Boolean).join(" · ")}</p>
           </div>
           <div className="pb-1 flex gap-2 items-center">
+            {!user && (
+              <button onClick={() => setLocation("/auth")} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ background: ORANGE }} data-testid="signin-to-join-btn">
+                <LogIn className="h-4 w-4" /> Sign in to Join
+              </button>
+            )}
             {user && !isMember && (
               <button onClick={() => setShowJoinModal(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white" style={{ background: ORANGE }} data-testid="join-band-btn">
                 <LogIn className="h-4 w-4" /> Join

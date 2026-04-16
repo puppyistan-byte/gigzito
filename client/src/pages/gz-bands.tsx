@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Music, Plus, Users, ChevronLeft, Radio, Mic2 } from "lucide-react";
+import { Music, Plus, Users, ChevronLeft, Radio, Mic2, Upload, X } from "lucide-react";
 import type { GzBandWithMeta } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
@@ -25,6 +25,12 @@ export default function GzBandsPage() {
   const searchParams = useSearch();
   const [showEnroll, setShowEnroll] = useState(false);
   const [search, setSearch] = useState("");
+  const avatarRef = useRef<HTMLInputElement>(null);
+  const bannerRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [bannerPreview, setBannerPreview] = useState<string>("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   // Auto-open enroll form when ?enroll=1 is in URL
   useEffect(() => {
@@ -36,17 +42,41 @@ export default function GzBandsPage() {
     avatarUrl: "", bannerUrl: "",
   });
 
+  const uploadImage = async (file: File, kind: "avatar" | "banner") => {
+    const setter = kind === "avatar" ? setUploadingAvatar : setUploadingBanner;
+    setter(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await fetch("/api/upload-image", { method: "POST", body: fd, credentials: "include" });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.message); }
+      const { url } = await r.json();
+      if (kind === "avatar") { setAvatarPreview(url); setForm(f => ({ ...f, avatarUrl: url })); }
+      else { setBannerPreview(url); setForm(f => ({ ...f, bannerUrl: url })); }
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setter(false);
+    }
+  };
+
   const { data: bands = [], isLoading } = useQuery<GzBandWithMeta[]>({
     queryKey: ["/api/bands"],
     queryFn: () => fetch("/api/bands").then(r => r.json()),
   });
+
+  const resetForm = () => {
+    setForm({ name: "", bio: "", genre: "", city: "", state: "", websiteUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", avatarUrl: "", bannerUrl: "" });
+    setAvatarPreview("");
+    setBannerPreview("");
+  };
 
   const createMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/bands", form),
     onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ["/api/bands"] });
       setShowEnroll(false);
-      setForm({ name: "", bio: "", genre: "", city: "", state: "", websiteUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "", avatarUrl: "", bannerUrl: "" });
+      resetForm();
       toast({ title: "Band enrolled!", description: `${data.name} is now on GZMusic.` });
       setLocation(`/gz-music/bands/${data.id}`);
     },
@@ -126,20 +156,65 @@ export default function GzBandsPage() {
                 onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
                 data-testid="band-bio"
               />
-              <input
-                className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
-                placeholder="Avatar image URL (optional)"
-                value={form.avatarUrl}
-                onChange={e => setForm(f => ({ ...f, avatarUrl: e.target.value }))}
-                data-testid="band-avatar"
-              />
-              <input
-                className="col-span-2 bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]"
-                placeholder="Banner image URL (optional)"
-                value={form.bannerUrl}
-                onChange={e => setForm(f => ({ ...f, bannerUrl: e.target.value }))}
-                data-testid="band-banner"
-              />
+              {/* Square Avatar Upload */}
+              <div className="col-span-1 space-y-1.5">
+                <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">Square Image</p>
+                <div
+                  className="relative flex items-center justify-center rounded-xl cursor-pointer border border-dashed transition-colors hover:border-[#444]"
+                  style={{ borderColor: avatarPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", aspectRatio: "1", overflow: "hidden" }}
+                  onClick={() => avatarRef.current?.click()}
+                  data-testid="band-avatar-upload"
+                >
+                  {avatarPreview ? (
+                    <>
+                      <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
+                      <button
+                        className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 text-white hover:text-red-400 transition-colors"
+                        onClick={e => { e.stopPropagation(); setAvatarPreview(""); setForm(f => ({ ...f, avatarUrl: "" })); }}
+                        data-testid="band-avatar-clear"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-[#444]">
+                      {uploadingAvatar ? <div className="h-4 w-4 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-5 w-5" />}
+                      <span className="text-[10px]">{uploadingAvatar ? "Uploading…" : "Upload"}</span>
+                    </div>
+                  )}
+                </div>
+                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0], "avatar")} data-testid="band-avatar-input" />
+              </div>
+
+              {/* Wide Banner Upload */}
+              <div className="col-span-1 space-y-1.5">
+                <p className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">Banner Image</p>
+                <div
+                  className="relative flex items-center justify-center rounded-xl cursor-pointer border border-dashed transition-colors hover:border-[#444]"
+                  style={{ borderColor: bannerPreview ? "transparent" : "#2a2a2a", background: "#1a1a1a", aspectRatio: "1", overflow: "hidden" }}
+                  onClick={() => bannerRef.current?.click()}
+                  data-testid="band-banner-upload"
+                >
+                  {bannerPreview ? (
+                    <>
+                      <img src={bannerPreview} alt="" className="w-full h-full object-cover" />
+                      <button
+                        className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 text-white hover:text-red-400 transition-colors"
+                        onClick={e => { e.stopPropagation(); setBannerPreview(""); setForm(f => ({ ...f, bannerUrl: "" })); }}
+                        data-testid="band-banner-clear"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-[#444]">
+                      {uploadingBanner ? <div className="h-4 w-4 rounded-full border-2 border-[#555] border-t-transparent animate-spin" /> : <Upload className="h-5 w-5" />}
+                      <span className="text-[10px]">{uploadingBanner ? "Uploading…" : "Upload"}</span>
+                    </div>
+                  )}
+                </div>
+                <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0], "banner")} data-testid="band-banner-input" />
+              </div>
               <p className="col-span-2 text-xs font-semibold text-[#555] uppercase tracking-widest">Social Links (optional)</p>
               <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]" placeholder="Instagram URL" value={form.instagramUrl} onChange={e => setForm(f => ({ ...f, instagramUrl: e.target.value }))} data-testid="band-instagram" />
               <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]" placeholder="TikTok URL" value={form.tiktokUrl} onChange={e => setForm(f => ({ ...f, tiktokUrl: e.target.value }))} data-testid="band-tiktok" />
@@ -147,7 +222,7 @@ export default function GzBandsPage() {
               <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]" placeholder="Website URL" value={form.websiteUrl} onChange={e => setForm(f => ({ ...f, websiteUrl: e.target.value }))} data-testid="band-website" />
             </div>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setShowEnroll(false)} className="px-4 py-2 rounded-xl text-sm text-[#888] hover:text-white border border-[#222]">Cancel</button>
+              <button onClick={() => { setShowEnroll(false); resetForm(); }} className="px-4 py-2 rounded-xl text-sm text-[#888] hover:text-white border border-[#222]">Cancel</button>
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending || !form.name.trim()}

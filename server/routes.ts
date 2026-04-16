@@ -5114,6 +5114,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── GZ BANDS ─────────────────────────────────────────────────────────────────
 
+  // Generic image upload — used by band enrollment form for avatar / banner
+  app.post("/api/upload-image", upload.single("file"), async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const layer1 = inspectFileSync(req.file.path, req.file.mimetype);
+    if (!layer1.pass) { destroyContraband(req.file.path, layer1.reason!); return res.status(422).json({ message: layer1.reason }); }
+    const layer2 = await roccoScan(req.file.path, req.file.mimetype);
+    if (!layer2.pass) { destroyContraband(req.file.path, layer2.reason!); return res.status(422).json({ message: layer2.reason }); }
+    moveToFinalDest(req.file.path, path.join(process.cwd(), "uploads"), req.file.filename);
+    return res.status(201).json({ url: `/uploads/${req.file.filename}` });
+  });
+
   app.get("/api/bands", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
     return res.json(await storage.listGzBands(userId));
