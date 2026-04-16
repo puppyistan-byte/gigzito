@@ -834,6 +834,20 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
         </div>
       )}
 
+      {/* Wall posts (first 3, above tracks) */}
+      {postsLoading ? (
+        Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
+      ) : primaryPosts.length === 0 && !isAdmin ? (
+        <div className="text-center py-8 text-[#444]">
+          <Mic2 className="mx-auto mb-2 h-8 w-8" />
+          <p className="text-sm">No wall posts yet.</p>
+        </div>
+      ) : (
+        primaryPosts.map(post => (
+          <WallPostCard key={post.id} post={post} bandId={bandId} isAdmin={isAdmin} currentUserId={currentUserId} />
+        ))
+      )}
+
       {/* Tracks section */}
       {tracksLoading ? (
         <Skeleton className="h-16 rounded-xl" />
@@ -866,7 +880,7 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
           {/* Track list */}
           <div className="divide-y" style={{ borderColor: BORDER }}>
             {tracks.map((t, i) => (
-              <div key={t.id} className="flex items-center gap-0 group" style={{ borderLeft: i === currentIdx ? `2px solid ${ORANGE}` : "2px solid transparent" }}>
+              <div key={t.id} className="flex items-center" style={{ borderLeft: i === currentIdx ? `2px solid ${ORANGE}` : "2px solid transparent" }}>
                 <button
                   onClick={() => { setCurrentIdx(i); setPlaying(true); setTimeout(() => audioRef.current?.play(), 50); }}
                   className="flex-1 flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#1a1a1a] transition-colors"
@@ -884,11 +898,11 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
                 {isAdmin && (
                   <button
                     onClick={() => unclaimMutation.mutate(t.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[#333] hover:text-red-400 px-3 py-2.5"
-                    title="Remove from band wall"
+                    className="text-[#444] hover:text-red-400 transition-colors px-3 py-2.5 shrink-0"
+                    title="Remove track from band wall"
                     data-testid={`unclaim-track-${t.id}`}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
@@ -896,20 +910,6 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
           </div>
         </div>
       ) : null}
-
-      {/* Wall posts (first 3 only in center) */}
-      {postsLoading ? (
-        Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
-      ) : primaryPosts.length === 0 && !isAdmin ? (
-        <div className="text-center py-8 text-[#444]">
-          <Mic2 className="mx-auto mb-2 h-8 w-8" />
-          <p className="text-sm">No wall posts yet.</p>
-        </div>
-      ) : (
-        primaryPosts.map(post => (
-          <WallPostCard key={post.id} post={post} bandId={bandId} isAdmin={isAdmin} currentUserId={currentUserId} />
-        ))
-      )}
     </div>
   );
 }
