@@ -39,9 +39,14 @@ export default function GzBandsPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false);
+
   // Auto-open enroll form when ?enroll=1 is in URL
   useEffect(() => {
-    if (searchParams.includes("enroll=1") && user) setShowEnroll(true);
+    if (searchParams.includes("enroll=1")) {
+      if (user) setShowEnroll(true);
+      else setShowSignupPrompt(true);
+    }
   }, [searchParams, user]);
   const [form, setForm] = useState({
     name: "", bio: "", genre: "", city: "", state: "",
@@ -116,16 +121,17 @@ export default function GzBandsPage() {
               <p className="text-xs text-[#555]">Enroll your band · Get your clubhouse</p>
             </div>
           </div>
-          {user && (
-            <button
-              onClick={() => setShowEnroll(!showEnroll)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
-              style={{ background: ORANGE }}
-              data-testid="enroll-band-btn"
-            >
-              <Plus className="h-4 w-4" /> Enroll Band
-            </button>
-          )}
+          <button
+            onClick={() => {
+              if (user) setShowEnroll(!showEnroll);
+              else setShowSignupPrompt(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
+            style={{ background: ORANGE }}
+            data-testid="enroll-band-btn"
+          >
+            <Plus className="h-4 w-4" /> Enroll Band
+          </button>
         </div>
 
         {/* Enroll form */}
@@ -331,11 +337,12 @@ export default function GzBandsPage() {
               </button>
             ) : (
               <button
-                onClick={() => setLocation("/auth")}
+                onClick={() => setShowSignupPrompt(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-[0.97]"
                 style={{ background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`, boxShadow: "0 4px 20px rgba(255,122,0,0.35)" }}
+                data-testid="enroll-band-empty-guest"
               >
-                <Plus className="h-4 w-4" /> Sign in to Add Your Band
+                <Plus className="h-4 w-4" /> Add Your Band
               </button>
             )}
           </div>
@@ -345,6 +352,54 @@ export default function GzBandsPage() {
           </div>
         )}
       </div>
+
+      {/* Sign-up prompt for guests hitting Enroll Band */}
+      {showSignupPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.88)" }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: "#111", border: `1px solid #222` }}>
+            {/* Accent bar */}
+            <div className="h-1" style={{ background: `linear-gradient(90deg, ${ORANGE}, #cc5200)` }} />
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,122,0,0.12)", border: "1px solid rgba(255,122,0,0.2)" }}>
+                    <Mic2 className="h-5 w-5" style={{ color: ORANGE }} />
+                  </div>
+                  <p className="text-base font-black text-white">Get Your Clubhouse</p>
+                </div>
+                <button onClick={() => setShowSignupPrompt(false)} className="text-[#444] hover:text-white transition-colors" data-testid="signup-prompt-close">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-sm text-[#888] leading-relaxed">
+                Create a free Gigzito account to enroll your band or artist page, get your clubhouse, and start connecting with fans.
+              </p>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => setLocation("/auth?signup=1")}
+                  className="w-full py-3 rounded-xl text-sm font-black text-white transition-all active:scale-[0.98]"
+                  style={{ background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`, boxShadow: "0 4px 18px rgba(255,122,0,0.3)" }}
+                  data-testid="signup-prompt-create"
+                >
+                  Create Free Account
+                </button>
+                <button
+                  onClick={() => setLocation("/auth")}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{ color: "#888", border: "1px solid #222" }}
+                  data-testid="signup-prompt-signin"
+                >
+                  Already have an account? Sign In
+                </button>
+              </div>
+
+              <p className="text-[10px] text-[#444] text-center">Free to join · No credit card required</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
