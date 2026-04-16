@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import {
-  Music, Heart, Trophy, Flame, Radio, Mic2, Headphones,
+  Music, Heart, Trophy, Flame, Radio, Mic2, Headphones, Plus,
   ExternalLink, Play, Pause, SkipBack, SkipForward, ChevronUp, Upload, Download, Shield, FileBadge2,
   Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2, Home, X,
 } from "lucide-react";
@@ -1092,6 +1092,17 @@ export default function GZMusicPage() {
                 Bands
               </button>
             </div>
+
+            {/* Add Your Band CTA */}
+            <button
+              onClick={() => navigate("/gz-music/bands?enroll=1")}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-black text-sm transition-all active:scale-[0.98] border"
+              style={{ background: "#0d0d0d", color: "#aaa", borderColor: "#1e1e1e", borderStyle: "dashed" }}
+              data-testid="button-add-your-band"
+            >
+              <Plus className="h-4 w-4" style={{ color: ORANGE }} />
+              Add Your Band to GZ Bands
+            </button>
 
             <div className="space-y-2 text-sm leading-relaxed text-[#999]">
               <p>

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Music, Plus, Users, ChevronLeft, MapPin, Radio } from "lucide-react";
+import { Music, Plus, Users, ChevronLeft, Radio, Mic2 } from "lucide-react";
 import type { GzBandWithMeta } from "@shared/schema";
 
 const ORANGE = "#ff7a00";
@@ -22,8 +22,14 @@ export default function GzBandsPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
+  const searchParams = useSearch();
   const [showEnroll, setShowEnroll] = useState(false);
   const [search, setSearch] = useState("");
+
+  // Auto-open enroll form when ?enroll=1 is in URL
+  useEffect(() => {
+    if (searchParams.includes("enroll=1") && user) setShowEnroll(true);
+  }, [searchParams, user]);
   const [form, setForm] = useState({
     name: "", bio: "", genre: "", city: "", state: "",
     websiteUrl: "", instagramUrl: "", tiktokUrl: "", youtubeUrl: "",
@@ -181,12 +187,32 @@ export default function GzBandsPage() {
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
         ) : rest.length === 0 && liveNow.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "#1a1a1a", border: `1px solid ${BORDER}` }}>
-              <Music className="h-7 w-7 text-[#333]" />
+          <div className="rounded-2xl p-10 flex flex-col items-center gap-5 text-center" style={{ background: "#0d0d0d", border: `2px dashed #1e1e1e` }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "#1a1a1a", border: `1px solid ${BORDER}` }}>
+              <Mic2 className="h-7 w-7" style={{ color: ORANGE }} />
             </div>
-            <p className="text-[#555] font-bold">No bands yet</p>
-            <p className="text-xs text-[#333] mt-1">Be the first to enroll your band on Gigzito.</p>
+            <div>
+              <p className="font-black text-white text-lg">No bands yet</p>
+              <p className="text-sm text-[#555] mt-1 max-w-[240px] leading-relaxed">Be the first to claim your Clubhouse on GZ Bands.</p>
+            </div>
+            {user ? (
+              <button
+                onClick={() => setShowEnroll(true)}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-[0.97]"
+                style={{ background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`, boxShadow: "0 4px 20px rgba(255,122,0,0.35)" }}
+                data-testid="enroll-band-empty-cta"
+              >
+                <Plus className="h-4 w-4" /> Add Your Band
+              </button>
+            ) : (
+              <button
+                onClick={() => setLocation("/auth")}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-[0.97]"
+                style={{ background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`, boxShadow: "0 4px 20px rgba(255,122,0,0.35)" }}
+              >
+                <Plus className="h-4 w-4" /> Sign in to Add Your Band
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
