@@ -37,7 +37,7 @@ import {
   Pause, Play, Trash2, Download, Mail, Phone, MessageSquare,
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, ChevronRight, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
   Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
-  Music, Headphones, Upload as UploadIcon, Flame, RefreshCw,
+  Music, Headphones, Upload as UploadIcon, Flame, RefreshCw, Store, Building2, ChevronDown,
 } from "lucide-react";
 import { GzFlashForm } from "@/components/gz-flash-form";
 import { InviteCard } from "@/components/invite-card";
@@ -347,7 +347,7 @@ function GigJackCenter() {
 }
 
 function ProviderDashboardInner() {
-  const { user, logout, isLoading: authLoading } = useAuth();
+  const { user, logout, isLoading: authLoading, refetch } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -420,6 +420,28 @@ function ProviderDashboardInner() {
   // GZFlash state
   const userTier = user?.user?.subscriptionTier ?? "";
   const canUseGzFlash = isAdmin || ["GZMarketerPro", "GZBusiness", "GZEnterprise"].includes(userTier);
+  const isBusinessTier = userTier === "GZBusiness" || userTier === "GZEnterprise";
+
+  // Business profile (for GZBusiness tier users)
+  const { data: myBusinessProfile } = useQuery<{ id: number; businessName: string; userId: number } | null>({
+    queryKey: ["/api/business-profile/me"],
+    enabled: !!user && isBusinessTier,
+  });
+
+  const [showPlanPanel, setShowPlanPanel] = useState(false);
+  const [changingTier, setChangingTier] = useState(false);
+
+  const setTierMutation = useMutation({
+    mutationFn: (tier: string) => apiRequest("POST", "/api/user/set-tier", { tier }).then((r) => r.json()),
+    onSuccess: async () => {
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Plan updated!", description: "Your membership tier has been changed." });
+      setChangingTier(false);
+      setShowPlanPanel(false);
+    },
+    onError: () => toast({ title: "Failed to change plan", variant: "destructive" }),
+  });
   const [showGzFlashForm, setShowGzFlashForm] = useState(false);
   const [editingGzAd, setEditingGzAd] = useState<GzFlashAd | null>(null);
 
@@ -1084,6 +1106,96 @@ function ProviderDashboardInner() {
 
         {/* Invite card — visible to all users */}
         <InviteCard />
+
+        {/* ── My Plan section ────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-[#1a1a1a] bg-[#0b0b0b] overflow-hidden" data-testid="section-my-plan">
+          <button
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#111] transition-colors"
+            onClick={() => setShowPlanPanel((v) => !v)}
+            data-testid="button-toggle-plan"
+          >
+            <div className="flex items-center gap-2">
+              <Flame className="h-4 w-4" style={{ color: userTier === "GZBusiness" ? "#f59e0b" : userTier === "GZMarketerPro" ? "#ff2b2b" : userTier === "GZMarketer" ? "#7c3aed" : userTier === "GZGroups" ? "#60a5fa" : "#6b7280" }} />
+              <span className="text-sm font-semibold text-white">My Plan</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: userTier === "GZBusiness" ? "rgba(245,158,11,0.15)" : "rgba(255,255,255,0.05)", color: userTier === "GZBusiness" ? "#f59e0b" : "#aaa", border: `1px solid ${userTier === "GZBusiness" ? "rgba(245,158,11,0.3)" : "#333"}` }}>
+                {userTier || "GZLurker"}
+              </span>
+              {isBusinessTier && myBusinessProfile && (
+                <span className="text-[10px] text-green-400 flex items-center gap-0.5"><Store className="h-3 w-3" />Storefront active</span>
+              )}
+            </div>
+            <ChevronDown className={`h-4 w-4 text-[#555] transition-transform ${showPlanPanel ? "rotate-180" : ""}`} />
+          </button>
+
+          {showPlanPanel && (
+            <div className="border-t border-[#1a1a1a] px-4 py-3 space-y-3">
+              {/* Business storefront link */}
+              {isBusinessTier && myBusinessProfile && (
+                <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                  <Store className="h-5 w-5 text-amber-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-amber-400">{myBusinessProfile.businessName || "My Storefront"}</p>
+                    <p className="text-[10px] text-[#666]">Your public business wall is live</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 px-3 text-xs border border-amber-900/40 text-amber-400 hover:text-amber-300"
+                    onClick={() => navigate(`/business/${myBusinessProfile.id}`)} data-testid="button-view-storefront">
+                    View <ExternalLink className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
+              )}
+              {isBusinessTier && !myBusinessProfile && (
+                <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                  <Building2 className="h-5 w-5 text-amber-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-amber-600">Set up your storefront</p>
+                    <p className="text-[10px] text-[#555]">You're on GZBusiness — create your business wall</p>
+                  </div>
+                  <Button size="sm" className="h-7 px-3 text-xs"
+                    style={{ background: "#f59e0b", color: "#000" }}
+                    onClick={() => navigate("/business-profile/setup")} data-testid="button-setup-storefront">
+                    Setup
+                  </Button>
+                </div>
+              )}
+
+              {/* Tier switcher */}
+              <div>
+                <p className="text-[10px] text-[#555] uppercase tracking-wider mb-2 font-semibold">Change your plan</p>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {[
+                    { id: "GZLurker", label: "GZ Lurker", color: "#6b7280", price: "Free" },
+                    { id: "GZGroups", label: "GZ Groups", color: "#60a5fa", price: "$8/mo → FREE" },
+                    { id: "GZMarketer", label: "GZ Marketer", color: "#7c3aed", price: "$12/mo → FREE" },
+                    { id: "GZMarketerPro", label: "GZ Marketer Pro", color: "#ff2b2b", price: "$15/mo → FREE" },
+                    { id: "GZBusiness", label: "GZ Business", color: "#f59e0b", price: "$25/mo → FREE" },
+                  ].map((t) => {
+                    const isCurrent = userTier === t.id;
+                    return (
+                      <button key={t.id}
+                        onClick={() => !isCurrent && setTierMutation.mutate(t.id)}
+                        disabled={isCurrent || setTierMutation.isPending}
+                        data-testid={`tier-switch-${t.id}`}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 border transition-all text-left"
+                        style={{
+                          background: isCurrent ? `${t.color}12` : "transparent",
+                          borderColor: isCurrent ? `${t.color}60` : "#1e1e1e",
+                          cursor: isCurrent ? "default" : "pointer",
+                          opacity: setTierMutation.isPending ? 0.6 : 1,
+                        }}>
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
+                        <span className="text-sm text-white flex-1">{t.label}</span>
+                        <span className="text-[10px] text-[#555]">{t.price}</span>
+                        {isCurrent && <span className="text-[10px] font-bold text-green-400">Current</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-[#333] mt-2 text-center">All tiers free during Brand Build promotion</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Stats row */}
         {dailyStats && (

@@ -492,6 +492,26 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         emailVerificationExpiresAt: autoVerified ? null : tokenExpiresAt,
       });
       await storage.createProfile({ userId: user.id, displayName: "", bio: "", avatarUrl: "", thumbUrl: "", contactEmail: null, contactPhone: null, contactTelegram: null, websiteUrl: null, username: null, primaryCategory: null, location: null, instagramUrl: null, youtubeUrl: null, tiktokUrl: null });
+      // Create business profile if GZBusiness tier and data provided
+      const { businessData } = req.body;
+      if (selectedTier === "GZBusiness" && businessData && typeof businessData === "object" && businessData.businessName) {
+        await storage.upsertBusinessProfile(user.id, {
+          businessName: businessData.businessName ?? "",
+          category: businessData.category ?? "",
+          address: businessData.address ?? "",
+          city: businessData.city ?? "",
+          state: businessData.state ?? "",
+          zip: businessData.zip ?? "",
+          country: businessData.country ?? "US",
+          phone: businessData.phone ?? null,
+          website: businessData.website ?? null,
+          description: businessData.description ?? null,
+          logoUrl: null,
+          coverUrl: null,
+          lat: businessData.lat ?? null,
+          lng: businessData.lng ?? null,
+        });
+      }
       if (autoVerified) {
         (req.session as any).userId = user.id;
         (req.session as any).role = user.role;
@@ -5504,6 +5524,93 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     await storage.markAllNotificationsRead(userId);
+    return res.json({ ok: true });
+  });
+
+  // === BUSINESS PROFILES ===
+
+  // Get own business profile
+  app.get("/api/business-profile/me", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const bp = await storage.getBusinessProfileByUserId(userId);
+    return res.json(bp ?? null);
+  });
+
+  // Create or update own business profile
+  app.post("/api/business-profile", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const { businessName, category, address, city, state, zip, country, phone, website, description, logoUrl, coverUrl, lat, lng } = req.body;
+    if (!businessName?.trim()) return res.status(400).json({ message: "Business name is required" });
+    const bp = await storage.upsertBusinessProfile(userId, {
+      businessName: businessName.trim(),
+      category: category?.trim() ?? "",
+      address: address?.trim() ?? "",
+      city: city?.trim() ?? "",
+      state: state?.trim() ?? "",
+      zip: zip?.trim() ?? "",
+      country: country?.trim() ?? "US",
+      phone: phone?.trim() ?? null,
+      website: website?.trim() ?? null,
+      description: description?.trim() ?? null,
+      logoUrl: logoUrl ?? null,
+      coverUrl: coverUrl ?? null,
+      lat: lat ?? null,
+      lng: lng ?? null,
+    });
+    return res.json(bp);
+  });
+
+  // Get business storefront by username
+  app.get("/api/business/by-username/:username", async (req, res) => {
+    const bp = await storage.getBusinessProfileByUsername(req.params.username);
+    if (!bp) return res.status(404).json({ message: "Business not found" });
+    return res.json(bp);
+  });
+
+  // Get business storefront by id
+  app.get("/api/business/:id", async (req, res) => {
+    const bp = await storage.getBusinessProfileById(parseInt(req.params.id));
+    if (!bp) return res.status(404).json({ message: "Business not found" });
+    return res.json(bp);
+  });
+
+  // Business wall posts
+  app.get("/api/business/:id/wall", async (req, res) => {
+    const posts = await storage.getBusinessWallPosts(parseInt(req.params.id));
+    return res.json(posts);
+  });
+
+  app.post("/api/business/:id/wall", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    const { message, guestName } = req.body;
+    if (!message?.trim()) return res.status(400).json({ message: "Message required" });
+    const businessProfileId = parseInt(req.params.id);
+    let authorName = "Anonymous";
+    let authorAvatar: string | undefined;
+    if (userId) {
+      const user = await storage.getUserById(userId);
+      const profile = user ? await storage.getProfileByUserId(userId) : null;
+      authorName = profile?.displayName || user?.email?.split("@")[0] || "Member";
+      authorAvatar = profile?.avatarUrl || undefined;
+    } else if (guestName?.trim()) {
+      authorName = guestName.trim();
+    }
+    const post = await storage.createBusinessWallPost(businessProfileId, userId ?? null, message.trim(), authorName, authorAvatar);
+    return res.status(201).json(post);
+  });
+
+  app.delete("/api/business/:id/wall/:postId", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId as number;
+    const user = await storage.getUserById(userId);
+    const bp = await storage.getBusinessProfileById(parseInt(req.params.id));
+    if (!bp) return res.status(404).json({ message: "Business not found" });
+    const isOwner = bp.userId === userId;
+    const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Forbidden" });
+    await storage.deleteBusinessWallPost(parseInt(req.params.postId));
     return res.json({ ok: true });
   });
 

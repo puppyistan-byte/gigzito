@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { createHash } from "crypto";
-import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, gzFlashClaims, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, gzBands, gzBandMembers, gzBandWallPosts, gzBandWallComments, gzBandEvents, gzBandPhotos, gzBandTvShows, gzBandRoster, gzBandWallPostLikes, gzBandFollowers, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite, type GzBand, type GzBandMember, type GzBandWallPost, type GzBandWallComment, type GzBandEvent, type GzBandPhoto, type GzBandTvShow, type GzBandRosterMember, type GzBandFollower, type GzBandWithMeta, type GzBandWallPostWithAuthor, type GzBandWallCommentWithAuthor, type GzBandMemberWithProfile, type InsertGzBand, type InsertGzBandEvent, type InsertGzBandTvShow } from "@shared/schema";
+import { users, providerProfiles, videoListings, videoLikes, gigJacks, leads, liveSessions, mfaCodes, auditLogs, injectedFeeds, loveVotes, allEyesSlots, zitoTvEvents, sponsorAds, adBookings, adInquiries, marketerAudiences, audienceBroadcasts, geoTargetCampaigns, gignessCards, cardMessages, gignessCardComments, listingComments, zeeMotions, zeeMotionComments, geezeeFollows, presenterContacts, gzFlashAds, gzFlashClaims, profileViews, commentLikes, profileWallPosts, gzMusicTracks, gzMusicLikes, gzMusicRatings, gzMusicComments, groups, groupMembers, groupEndeavors, groupWallPosts, groupWallComments, groupEvents, groupKanbanCards, groupRetrospectives, groupWallets, groupWalletContributions, notifications, groupEmailInvites, gzBands, gzBandMembers, gzBandWallPosts, gzBandWallComments, gzBandEvents, gzBandPhotos, gzBandTvShows, gzBandRoster, gzBandWallPostLikes, gzBandFollowers, businessProfiles, businessWallPosts, type User, type InsertUser, type ProviderProfile, type InsertProfile, type VideoListing, type ListingWithProvider, type UpdateProfileRequest, type CreateListingRequest, type GigJack, type GigJackWithProvider, type CreateGigJackRequest, type GigJackSlot, type TimeSlot, type MfaCode, type AuditLog, type CreateAuditLogRequest, type Lead, type CreateLeadRequest, type LiveSession, type LiveSessionWithProvider, type CreateLiveSessionRequest, type UserWithProfile, type EditGigJackRequest, type EditUserProfileRequest, type GigJackLiveState, type TodayGigJack, type InjectedFeed, type CreateInjectedFeedRequest, type UpdateInjectedFeedRequest, type AllEyesSlot, type AllEyesSlotWithProvider, type BookAllEyesRequest, type ZitoTVEvent, type ZitoTVEventWithHost, type CreateZitoTVEventRequest, type SponsorAd, type InsertSponsorAd, type AdBooking, type AdBookingWithAd, type InsertAdBooking, type MarketerAudience, type AudienceBroadcast, type GeoTargetCampaign, type InsertGeoTargetCampaign, type GignessCard, type CardMessage, type GignessCardComment, type ListingComment, type AdInquiry, type ZeeMotion, type ZeeMotionComment, type GeezeeFollow, type PresenterContact, type GzFlashAd, type GzFlashAdWithOwner, type GzFlashAdAdmin, type ActivityEvent, type ProfileWallPost, type Group, type GroupMember, type GroupEndeavor, type GroupEvent, type GroupWallPost, type GroupWallComment, type GroupKanbanCard, type GroupRetrospective, type GroupWallet, type GroupWalletContribution, type Notification, type GroupEmailInvite, type GzBand, type GzBandMember, type GzBandWallPost, type GzBandWallComment, type GzBandEvent, type GzBandPhoto, type GzBandTvShow, type GzBandRosterMember, type GzBandFollower, type GzBandWithMeta, type GzBandWallPostWithAuthor, type GzBandWallCommentWithAuthor, type GzBandMemberWithProfile, type InsertGzBand, type InsertGzBandEvent, type InsertGzBandTvShow, type BusinessProfile, type BusinessWallPost, type InsertBusinessProfile } from "@shared/schema";
 import { eq, and, sql, inArray, ne, gte, lte, or, between, isNull, desc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
@@ -3371,6 +3371,66 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGzBandRosterMember(id: number): Promise<void> {
     await db.delete(gzBandRoster).where(eq(gzBandRoster.id, id));
+  }
+
+  // === BUSINESS PROFILES ===
+  async getBusinessProfileByUserId(userId: number): Promise<BusinessProfile | null> {
+    const [bp] = await db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId));
+    return bp ?? null;
+  }
+
+  async getBusinessProfileByUsername(username: string): Promise<(BusinessProfile & { username: string; displayName: string; avatarUrl: string }) | null> {
+    const [row] = await db
+      .select({ bp: businessProfiles, username: providerProfiles.username, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl })
+      .from(businessProfiles)
+      .innerJoin(providerProfiles, eq(providerProfiles.userId, businessProfiles.userId))
+      .where(eq(providerProfiles.username, username));
+    if (!row) return null;
+    return { ...row.bp, username: row.username ?? "", displayName: row.displayName, avatarUrl: row.avatarUrl };
+  }
+
+  async getBusinessProfileById(id: number): Promise<(BusinessProfile & { username: string; displayName: string; avatarUrl: string }) | null> {
+    const [row] = await db
+      .select({ bp: businessProfiles, username: providerProfiles.username, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl })
+      .from(businessProfiles)
+      .innerJoin(providerProfiles, eq(providerProfiles.userId, businessProfiles.userId))
+      .where(eq(businessProfiles.id, id));
+    if (!row) return null;
+    return { ...row.bp, username: row.username ?? "", displayName: row.displayName, avatarUrl: row.avatarUrl };
+  }
+
+  async upsertBusinessProfile(userId: number, data: Partial<InsertBusinessProfile>): Promise<BusinessProfile> {
+    const existing = await this.getBusinessProfileByUserId(userId);
+    if (existing) {
+      const [updated] = await db
+        .update(businessProfiles)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(businessProfiles.userId, userId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(businessProfiles)
+        .values({ userId, businessName: "", category: "", address: "", city: "", state: "", zip: "", country: "US", ...data })
+        .returning();
+      return created;
+    }
+  }
+
+  async getBusinessWallPosts(businessProfileId: number): Promise<BusinessWallPost[]> {
+    return db.select().from(businessWallPosts).where(eq(businessWallPosts.businessProfileId, businessProfileId)).orderBy(desc(businessWallPosts.createdAt));
+  }
+
+  async createBusinessWallPost(businessProfileId: number, userId: number | null, message: string, authorName: string, authorAvatar?: string, imageUrl?: string): Promise<BusinessWallPost> {
+    const [post] = await db
+      .insert(businessWallPosts)
+      .values({ businessProfileId, authorUserId: userId, message, authorName, authorAvatar: authorAvatar ?? null, imageUrl: imageUrl ?? null })
+      .returning();
+    return post;
+  }
+
+  async deleteBusinessWallPost(postId: number): Promise<void> {
+    await db.delete(businessWallPosts).where(eq(businessWallPosts.id, postId));
   }
 }
 

@@ -1347,6 +1347,50 @@ export const notifications = pgTable("notifications", {
 });
 export type Notification = typeof notifications.$inferSelect;
 
+// === BUSINESS PROFILES (GZBusiness tier storefront) ===
+export const businessProfiles = pgTable("business_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  businessName: text("business_name").notNull().default(""),
+  category: text("category").notNull().default(""),
+  address: text("address").notNull().default(""),
+  city: text("city").notNull().default(""),
+  state: text("state").notNull().default(""),
+  zip: text("zip").notNull().default(""),
+  country: text("country").notNull().default("US"),
+  phone: text("phone"),
+  website: text("website"),
+  description: text("description"),
+  logoUrl: text("logo_url"),
+  coverUrl: text("cover_url"),
+  lat: real("lat"),
+  lng: real("lng"),
+  hours: json("hours"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertBusinessProfileSchema = createInsertSchema(businessProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertBusinessProfile = z.infer<typeof insertBusinessProfileSchema>;
+export type BusinessProfile = typeof businessProfiles.$inferSelect;
+
+// Business Wall Posts
+export const businessWallPosts = pgTable("business_wall_posts", {
+  id: serial("id").primaryKey(),
+  businessProfileId: integer("business_profile_id").notNull().references(() => businessProfiles.id, { onDelete: "cascade" }),
+  authorUserId: integer("author_user_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull().default("Anonymous"),
+  authorAvatar: text("author_avatar"),
+  message: text("message").notNull(),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type BusinessWallPost = typeof businessWallPosts.$inferSelect;
+
 // Group Email Invites (for non-registered users)
 export const groupEmailInvites = pgTable("group_email_invites", {
   id: serial("id").primaryKey(),
