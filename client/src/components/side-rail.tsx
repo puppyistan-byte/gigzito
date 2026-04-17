@@ -177,9 +177,7 @@ export function SideRail() {
                 width: 46,
                 height: 46,
                 borderRadius: "50%",
-                background: isBusinessLocked
-                  ? "rgba(30,30,30,0.8)"
-                  : btn.bg,
+                background: btn.bg,
                 border: "none",
                 boxShadow: hovered
                   ? `0 0 20px ${btn.glow}, 0 4px 20px rgba(0,0,0,0.6)`
@@ -211,12 +209,33 @@ export function SideRail() {
                   height: "100%",
                   objectFit: "contain",
                   borderRadius: "50%",
-                  filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
-                  opacity: 1,
                   pointerEvents: "none",
                   flexShrink: 0,
                 }}
               />
+              {/* Lock badge — only when business tier is required */}
+              {isBusinessLocked && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 2,
+                    right: 2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.82)",
+                    border: "1.5px solid rgba(255,255,255,0.18)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 9,
+                    lineHeight: 1,
+                    pointerEvents: "none",
+                  }}
+                >
+                  🔒
+                </div>
+              )}
             </button>
           </div>
         );
