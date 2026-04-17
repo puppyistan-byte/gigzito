@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell, Trophy, Users, CheckCheck } from "lucide-react";
+import { LogOut, Settings, Shield, LayoutDashboard, Sparkles, CreditCard, Layers, Flame, Zap, MapPin, Lock, Bell, Trophy, Users, CheckCheck, Store } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { Notification } from "@shared/schema";
@@ -202,6 +202,29 @@ export function Navbar() {
             >
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
+            </DropdownMenuItem>
+          )}
+
+          {user?.user?.subscriptionTier === "GZBusiness" ? (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer hover:bg-emerald-500/10 focus:bg-emerald-500/10 text-emerald-400"
+              onClick={() => navigate("/business-profile/setup")}
+              data-testid="menu-item-business-center"
+            >
+              <Store className="h-4 w-4" />
+              My Business Center
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer hover:bg-emerald-500/10 focus:bg-emerald-500/10 text-emerald-600"
+              onClick={() => navigate("/pricing")}
+              data-testid="menu-item-business-center-upgrade"
+            >
+              <Store className="h-4 w-4" />
+              <div className="flex flex-col gap-0">
+                <span>My Business Center</span>
+                <span className="text-[10px] text-emerald-700/80 font-normal">Create a Business Account →</span>
+              </div>
             </DropdownMenuItem>
           )}
 

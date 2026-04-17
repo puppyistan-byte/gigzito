@@ -5,6 +5,7 @@ import { VideoCard } from "@/components/video-card";
 import { MiniLivePlayer } from "@/components/mini-live-player";
 import { AllEyesBanner } from "@/components/all-eyes-banner";
 import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
+import { SideRail } from "@/components/side-rail";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
@@ -14,7 +15,7 @@ import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_logo_1774147866824.png";
 
 const CATEGORIES = [
-  { key: "ALL",           label: "All Videos" },
+  { key: "ALL",           label: "Menue" },
   { key: "LAIH",         label: "LAIH" },
   { key: "RANDOMNESS",   label: "Randomness" },
   { key: "HEALTH",       label: "Health" },
@@ -435,68 +436,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* GZGroups top-right button */}
-      <button
-        onClick={() => navigate("/groups")}
-        data-testid="button-gzgroups-topbar"
-        style={{
-          position: "fixed",
-          top: 10,
-          right: 168,
-          zIndex: 9997,
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          background: "rgba(0,10,30,0.70)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          border: "1px solid rgba(59,130,246,0.45)",
-          borderRadius: "999px",
-          padding: "6px 12px",
-          cursor: "pointer",
-          color: "#60a5fa",
-          fontSize: "11px",
-          fontWeight: 800,
-          letterSpacing: "0.04em",
-          whiteSpace: "nowrap",
-          boxShadow: "0 2px 10px rgba(59,130,246,0.18)",
-        }}
-      >
-        <Users style={{ width: 12, height: 12 }} />
-        GZGroups
-      </button>
-
-      {/* Most Loved top-right button */}
-      <button
-        onClick={() => navigate("/most-loved")}
-        data-testid="button-most-loved-topbar"
-        style={{
-          position: "fixed",
-          top: 10,
-          right: 60,
-          zIndex: 9997,
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          background: "rgba(10,0,0,0.70)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          border: "1px solid rgba(255,43,43,0.45)",
-          borderRadius: "999px",
-          padding: "6px 12px",
-          cursor: "pointer",
-          color: "#ff2b2b",
-          fontSize: "11px",
-          fontWeight: 800,
-          letterSpacing: "0.04em",
-          whiteSpace: "nowrap",
-          boxShadow: "0 2px 10px rgba(255,43,43,0.18)",
-        }}
-      >
-        <Trophy style={{ width: 12, height: 12 }} />
-        Most Loved
-      </button>
-
       <div className={`category-bg ${activeBgClass}`} aria-hidden="true" />
 
       {showSplash && (
@@ -581,71 +520,6 @@ export default function HomePage() {
             Keeping it Geezee
           </button>
 
-          <button
-            onClick={() => navigate("/geezees")}
-            data-testid="button-topbar-geezee-cards"
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              background: "linear-gradient(135deg, #7c3aed, #4f1eb8)",
-              border: "none",
-              borderRadius: "999px",
-              padding: "7px 13px",
-              cursor: "pointer",
-              color: "#fff",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.03em",
-              whiteSpace: "nowrap",
-              boxShadow: "0 2px 10px rgba(124,58,237,0.45)",
-            }}
-          >
-            <CreditCard style={{ width: 12, height: 12, color: "#fff" }} />
-            GeeZee Cards
-          </button>
-
-          <button
-            onClick={() => navigate("/offer-center")}
-            data-testid="button-topbar-advertise"
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              background: "linear-gradient(135deg, #1d4ed8, #1e40af)",
-              border: "none",
-              borderRadius: "999px",
-              padding: "7px 13px",
-              cursor: "pointer",
-              color: "#fff",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.03em",
-              whiteSpace: "nowrap",
-              boxShadow: "0 2px 10px rgba(29,78,216,0.5)",
-            }}
-          >
-            <Zap style={{ width: 12, height: 12, color: "#fff" }} />
-            GZFlash Sales
-          </button>
-
-          <button
-            onClick={() => navigate("/gz-music")}
-            data-testid="button-topbar-gz-music"
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              background: "linear-gradient(135deg, #ff7a00, #cc5200)",
-              border: "none",
-              borderRadius: "999px",
-              padding: "7px 13px",
-              cursor: "pointer",
-              color: "#fff",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.03em",
-              whiteSpace: "nowrap",
-              boxShadow: "0 2px 10px rgba(255,122,0,0.5)",
-            }}
-          >
-            <Music style={{ width: 12, height: 12, color: "#fff" }} />
-            GZMusic
-          </button>
         </div>
 
         {/* Dropdown panel */}
@@ -736,6 +610,50 @@ export default function HomePage() {
           >
             <Music style={{ width: 13, height: 13, color: "#ff7a00", flexShrink: 0 }} />
             <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff7a00", letterSpacing: "0.01em" }}>GZMusic · GZ100</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/geezees"); }}
+            data-testid="button-menu-geezee-cards"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(124,58,237,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <CreditCard style={{ width: 13, height: 13, color: "#7c3aed", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#7c3aed", letterSpacing: "0.01em" }}>GeeZee Cards</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/offer-center"); }}
+            data-testid="button-menu-gzflash"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(29,78,216,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Zap style={{ width: 13, height: 13, color: "#1d4ed8", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#60a5fa", letterSpacing: "0.01em" }}>GZFlash Sales</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/groups"); }}
+            data-testid="button-menu-gzgroups"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(96,165,250,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Users style={{ width: 13, height: 13, color: "#60a5fa", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#60a5fa", letterSpacing: "0.01em" }}>GZGroups</span>
+          </button>
+
+          <button
+            onClick={() => { setMenuOpen(false); navigate("/most-loved"); }}
+            data-testid="button-menu-most-loved"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+          >
+            <Trophy style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff2b2b", letterSpacing: "0.01em" }}>Most Loved</span>
           </button>
 
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
@@ -984,6 +902,7 @@ export default function HomePage() {
         </span>
       </button>
 
+      <SideRail />
       <RightRailHeroAd />
     </div>
   );
