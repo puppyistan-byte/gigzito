@@ -15,7 +15,7 @@ import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_logo_1774147866824.png";
 
 const CATEGORIES = [
-  { key: "ALL",           label: "Menue" },
+  { key: "ALL",           label: "Menu" },
   { key: "LAIH",         label: "LAIH" },
   { key: "RANDOMNESS",   label: "Randomness" },
   { key: "HEALTH",       label: "Health" },
