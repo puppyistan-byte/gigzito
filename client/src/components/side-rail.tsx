@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_purple_1776386269790.png";
 import geezeeBtn from "@assets/geezee_button_circle.png";
 import mostlovedBtn from "@assets/mostloved_button_circle.png";
+import gzflashBtn from "@assets/gzflash_button_circle.png";
 
 interface GzBtn {
   id: string;
@@ -32,7 +33,7 @@ const GZ_BUTTONS: GzBtn[] = [
     tagline: "⚡ FLASH DEALS · Limited Slots — Act Fast!",
     color: "#1d4ed8",
     glow: "rgba(29,78,216,0.65)",
-    bg: "linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%)",
+    bg: "transparent",
     path: "/offer-center",
   },
   {
@@ -177,7 +178,7 @@ export function SideRail() {
                 background: isBusinessLocked
                   ? "rgba(30,30,30,0.8)"
                   : btn.bg,
-                border: (btn.id === "geezee-cards" || btn.id === "most-loved")
+                border: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash")
                   ? "none"
                   : `2px solid ${btn.color}${isBusinessLocked ? "55" : "cc"}`,
                 boxShadow: hovered
@@ -199,15 +200,16 @@ export function SideRail() {
                 src={
                   btn.id === "geezee-cards" ? geezeeBtn
                   : btn.id === "most-loved" ? mostlovedBtn
+                  : btn.id === "gz-flash" ? gzflashBtn
                   : gzLogo
                 }
                 alt={btn.label}
                 style={{
-                  width: (btn.id === "geezee-cards" || btn.id === "most-loved") ? "100%" : "76%",
-                  height: (btn.id === "geezee-cards" || btn.id === "most-loved") ? "100%" : "76%",
+                  width: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash") ? "100%" : "76%",
+                  height: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash") ? "100%" : "76%",
                   objectFit: "contain",
-                  borderRadius: (btn.id === "geezee-cards" || btn.id === "most-loved") ? "50%" : undefined,
-                  ...((btn.id === "geezee-cards" || btn.id === "most-loved")
+                  borderRadius: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash") ? "50%" : undefined,
+                  ...((btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash")
                     ? {
                         filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
                         opacity: 1,
