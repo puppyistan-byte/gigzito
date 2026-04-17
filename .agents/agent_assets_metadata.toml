@@ -42,3 +42,9 @@ id = "mnI0ifYwdlRupenya4Ovi"
 uri = "file://GZMusic_API_Reference.pdf"
 type = "pdf"
 title = "Gigzito GZMusic + Bands Clubhouse API Reference v2.0"
+
+[[outputs]]
+id = "Neb4uLGgWIXB69RI-6qog"
+uri = "file://docs/gzbusiness-directory-mobile-dev.md"
+type = "text"
+title = "GZBusiness Directory — Mobile Dev Spec"
