@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_purple_1776386269790.png";
-import gzPurpleLogo from "@assets/image_1776387204100.png";
+import geezeeBtn from "@assets/geezee_button_circle.png";
 
 interface GzBtn {
   id: string;
@@ -40,7 +40,7 @@ const GZ_BUTTONS: GzBtn[] = [
     tagline: "💎 Your Digital Identity · Stand Out Now",
     color: "#7c3aed",
     glow: "rgba(124,58,237,0.75)",
-    bg: "radial-gradient(circle at 40% 40%, #1a0a2e 0%, #0a0012 100%)",
+    bg: "transparent",
     path: "/geezees",
   },
   {
@@ -176,7 +176,9 @@ export function SideRail() {
                 background: isBusinessLocked
                   ? "rgba(30,30,30,0.8)"
                   : btn.bg,
-                border: `2px solid ${btn.color}${isBusinessLocked ? "55" : "cc"}`,
+                border: btn.id === "geezee-cards"
+                  ? "none"
+                  : `2px solid ${btn.color}${isBusinessLocked ? "55" : "cc"}`,
                 boxShadow: hovered
                   ? `0 0 20px ${btn.glow}, 0 4px 20px rgba(0,0,0,0.6)`
                   : `0 2px 10px rgba(0,0,0,0.5)`,
@@ -193,16 +195,16 @@ export function SideRail() {
               }}
             >
               <img
-                src={btn.id === "geezee-cards" ? gzPurpleLogo : gzLogo}
+                src={btn.id === "geezee-cards" ? geezeeBtn : gzLogo}
                 alt={btn.label}
                 style={{
-                  width: btn.id === "geezee-cards" ? "90%" : "76%",
-                  height: btn.id === "geezee-cards" ? "90%" : "76%",
+                  width: btn.id === "geezee-cards" ? "100%" : "76%",
+                  height: btn.id === "geezee-cards" ? "100%" : "76%",
                   objectFit: "contain",
+                  borderRadius: btn.id === "geezee-cards" ? "50%" : undefined,
                   ...(btn.id === "geezee-cards"
                     ? {
-                        mixBlendMode: "screen" as const,
-                        filter: isBusinessLocked ? "opacity(0.35)" : "none",
+                        filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
                         opacity: 1,
                       }
                     : {
