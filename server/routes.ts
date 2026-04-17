@@ -1648,6 +1648,18 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // === CUSTOMER LIST ===
+  app.get("/api/my-customers", async (req, res) => {
+    if (!requireAuth(req, res)) return;
+    const userId = (req.session as any).userId;
+    try {
+      const customers = await storage.getProviderCustomers(userId);
+      return res.json(customers);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch customer list" });
+    }
+  });
+
   // === GEO TARGET CAMPAIGNS ===
 
   app.post("/api/geo-campaigns", async (req, res) => {

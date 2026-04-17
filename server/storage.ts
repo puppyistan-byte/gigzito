@@ -121,6 +121,7 @@ export interface IStorage {
   updateGzFlashAd(id: number, userId: number, data: { title: string; artworkUrl?: string | null; retailPriceCents: number; discountPercent: number; quantity: number; durationMinutes: number; displayMode?: string; couponCode?: string | null; couponExpiryHours?: number }): Promise<GzFlashAd>;
   deleteGzFlashAd(id: number, userId: number): Promise<void>;
   claimGzFlashAd(id: number, email: string): Promise<{ ad: GzFlashAd; couponCode: string | null; couponExpiresAt: Date }>;
+  getProviderCustomers(userId: number): Promise<{ email: string; name: string | null; phone: string | null; sources: string[]; firstSeen: string; lastActivity: string; note: string | null }[]>;
   recalculateGzFlashScores(): Promise<void>;
   // Admin GZFlash
   adminGetAllGzFlashAds(): Promise<GzFlashAdAdmin[]>;
@@ -2214,6 +2215,61 @@ export class DatabaseStorage implements IStorage {
     await db.insert(gzFlashClaims).values({ flashAdId: id, email: email.toLowerCase().trim(), couponCode: existing.couponCode ?? null });
     await this.upsertMarketerAudience({ providerUserId: existing.userId, leadName: email.split("@")[0], leadEmail: email.toLowerCase().trim() });
     return { ad: updated, couponCode: existing.couponCode ?? null, couponExpiresAt };
+  }
+
+  async getProviderCustomers(userId: number): Promise<{ email: string; name: string | null; phone: string | null; sources: string[]; firstSeen: string; lastActivity: string; note: string | null }[]> {
+    type CustomerMap = Map<string, { email: string; name: string | null; phone: string | null; sources: Set<string>; firstSeen: Date; lastActivity: Date; notes: string[] }>;
+    const map: CustomerMap = new Map();
+
+    const upsert = (email: string, opts: { name?: string | null; phone?: string | null; source: string; date: Date; note?: string }) => {
+      const key = email.toLowerCase().trim();
+      if (!key) return;
+      const existing = map.get(key);
+      if (existing) {
+        existing.sources.add(opts.source);
+        if (opts.date < existing.firstSeen) existing.firstSeen = opts.date;
+        if (opts.date > existing.lastActivity) existing.lastActivity = opts.date;
+        if (opts.name && !existing.name) existing.name = opts.name;
+        if (opts.phone && !existing.phone) existing.phone = opts.phone;
+        if (opts.note) existing.notes.push(opts.note);
+      } else {
+        map.set(key, { email: key, name: opts.name ?? null, phone: opts.phone ?? null, sources: new Set([opts.source]), firstSeen: opts.date, lastActivity: opts.date, notes: opts.note ? [opts.note] : [] });
+      }
+    };
+
+    // Flash claims
+    const flashClaims = await db.select({ email: gzFlashClaims.email, couponCode: gzFlashClaims.couponCode, claimedAt: gzFlashClaims.claimedAt, title: gzFlashAds.title })
+      .from(gzFlashClaims)
+      .innerJoin(gzFlashAds, eq(gzFlashClaims.flashAdId, gzFlashAds.id))
+      .where(eq(gzFlashAds.userId, userId));
+    for (const c of flashClaims) {
+      upsert(c.email, { source: "GZFlash", date: c.claimedAt, note: `Claimed "${c.title}"${c.couponCode ? ` · Code: ${c.couponCode}` : ""}` });
+    }
+
+    // Leads
+    const providerLeads = await db.select().from(leads).where(eq(leads.creatorUserId, userId));
+    for (const l of providerLeads) {
+      if (!l.email) continue;
+      upsert(l.email, { name: l.firstName || null, phone: l.phone || null, source: "Lead", date: l.createdAt, note: l.videoTitle ? `Inquiry on "${l.videoTitle}"` : "Listing inquiry" });
+    }
+
+    // Marketer audiences
+    const audience = await db.select().from(marketerAudiences).where(eq(marketerAudiences.providerUserId, userId));
+    for (const a of audience) {
+      upsert(a.leadEmail, { name: a.leadName || null, phone: a.leadPhone || null, source: "Audience", date: a.createdAt });
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime())
+      .map((c) => ({
+        email: c.email,
+        name: c.name,
+        phone: c.phone,
+        sources: Array.from(c.sources),
+        firstSeen: c.firstSeen.toISOString(),
+        lastActivity: c.lastActivity.toISOString(),
+        note: c.notes.length > 0 ? c.notes[c.notes.length - 1] : null,
+      }));
   }
 
   async recalculateGzFlashScores(): Promise<void> {

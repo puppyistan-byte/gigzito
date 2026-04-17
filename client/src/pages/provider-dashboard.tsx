@@ -394,6 +394,12 @@ function ProviderDashboardInner() {
     enabled: !!user,
   });
 
+  type CustomerEntry = { email: string; name: string | null; phone: string | null; sources: string[]; firstSeen: string; lastActivity: string; note: string | null };
+  const { data: customerList = [], isLoading: customersLoading } = useQuery<CustomerEntry[]>({
+    queryKey: ["/api/my-customers"],
+    enabled: !!user,
+  });
+
   const myUserId = (user as any)?.user?.id;
   const { data: myMusicTracksRaw, isLoading: musicLoading } = useQuery<GZMusicTrack[]>({
     queryKey: ["/api/gz-music/tracks/by-user", myUserId],
@@ -1601,6 +1607,80 @@ function ProviderDashboardInner() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* ─── Customer List ─── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-emerald-400" />
+              <h2 className="text-sm font-semibold text-white" data-testid="text-customer-list-title">Customer List</h2>
+              {customerList.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#10b98122", color: "#34d399", border: "1px solid #10b98144" }}>
+                  {customerList.length}
+                </span>
+              )}
+            </div>
+            {customerList.length > 0 && (
+              <button
+                onClick={() => {
+                  const rows = [["Email", "Name", "Phone", "Sources", "Note", "First Seen", "Last Activity"]];
+                  customerList.forEach((c) => rows.push([
+                    c.email, c.name ?? "", c.phone ?? "", c.sources.join(" | "), c.note ?? "",
+                    new Date(c.firstSeen).toLocaleDateString(), new Date(c.lastActivity).toLocaleDateString()
+                  ]));
+                  const csv = rows.map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
+                  const a = document.createElement("a"); a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv); a.download = "customer-list.csv"; a.click();
+                }}
+                className="text-[10px] text-[#555] hover:text-white flex items-center gap-1 transition-colors"
+                data-testid="btn-export-customers"
+              >
+                <Download className="h-3 w-3" /> Export CSV
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-[#555] mb-3">Everyone who has engaged with your services — flash claims, listing inquiries, and audience subscribers — all in one place.</p>
+
+          {customersLoading ? (
+            <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl bg-[#111]" />)}</div>
+          ) : customerList.length === 0 ? (
+            <div className="rounded-xl bg-[#070707] border border-[#181818] p-6 text-center" data-testid="card-no-customers">
+              <Users className="h-6 w-6 text-[#333] mx-auto mb-2" />
+              <p className="text-[#555] text-xs">No customers yet. When someone claims a GZFlash offer, submits an inquiry, or joins your audience, they'll appear here.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-[#070707] border border-[#181818] p-3" data-testid="card-customer-list">
+              <div className="space-y-1 max-h-80 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#2a2a2a transparent" }}>
+                {customerList.slice(0, 100).map((c, i) => (
+                  <div key={c.email} className="flex items-start gap-2.5 py-2 border-b border-[#111] last:border-0" data-testid={`row-customer-${i}`}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ background: "linear-gradient(135deg,#10b98133,#065f4633)", border: "1px solid #10b98122" }}>
+                      <span className="text-[10px] font-bold text-emerald-400">{(c.name ?? c.email)[0]?.toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-[11px] text-white font-medium truncate">{c.name ?? c.email}</p>
+                        {c.sources.map((s) => (
+                          <span key={s} className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{
+                              background: s === "GZFlash" ? "#1d4ed822" : s === "Lead" ? "#92400e22" : "#065f4622",
+                              color: s === "GZFlash" ? "#60a5fa" : s === "Lead" ? "#fbbf24" : "#34d399",
+                              border: `1px solid ${s === "GZFlash" ? "#1d4ed844" : s === "Lead" ? "#92400e44" : "#065f4644"}`,
+                            }}>{s}</span>
+                        ))}
+                      </div>
+                      {c.name && <p className="text-[10px] text-[#555] truncate">{c.email}</p>}
+                      {c.note && <p className="text-[10px] text-[#666] truncate italic mt-0.5">{c.note}</p>}
+                    </div>
+                    <span className="text-[9px] text-[#444] shrink-0 pt-0.5">{new Date(c.lastActivity).toLocaleDateString()}</span>
+                  </div>
+                ))}
+                {customerList.length > 100 && (
+                  <p className="text-center text-[10px] text-[#444] pt-1">+{customerList.length - 100} more · export CSV for full list</p>
+                )}
+              </div>
             </div>
           )}
         </div>

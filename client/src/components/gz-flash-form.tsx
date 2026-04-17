@@ -455,6 +455,7 @@ export function GzFlashForm({
     if (!discountNum || discountNum < 1) return toast({ title: "Discount must be at least 1%", variant: "destructive" });
     if (!qtyNum || qtyNum < 1) return toast({ title: "Quantity must be at least 1", variant: "destructive" });
     if (!durationMinutes || durationMinutes < 5) return toast({ title: "Duration must be at least 5 minutes", variant: "destructive" });
+    if (!couponCode.trim()) return toast({ title: "Coupon code required", description: "Add a coupon code so claimants receive their deal via email.", variant: "destructive" });
     saveMutation.mutate({
       title: title.trim(),
       artworkUrl: artworkUrl.trim() || null,
@@ -775,10 +776,10 @@ export function GzFlashForm({
         <div className="rounded-xl border border-blue-900/40 bg-blue-950/10 p-4 space-y-3">
           <div className="flex items-center gap-2 mb-0.5">
             <Tag className="h-3.5 w-3.5 text-blue-400" />
-            <Label className="text-xs font-semibold text-blue-300">Coupon Code (optional)</Label>
+            <Label className="text-xs font-semibold text-blue-300">Coupon Code <span className="text-red-400">*</span></Label>
           </div>
           <p className="text-[10px] text-[#555] -mt-1 leading-relaxed">
-            When a buyer claims this offer, they'll enter their email and receive this code instantly — along with a liability disclosure. They'll also be added to your mailing list.
+            Required. When a buyer claims this offer, they'll enter their email and receive this code instantly — along with the full offer summary. They'll also be added to your Customer List.
           </p>
           <Input
             value={couponCode}
@@ -788,27 +789,25 @@ export function GzFlashForm({
             className="bg-[#0a1020] border-blue-900/50 text-blue-200 placeholder-[#444] text-sm font-mono tracking-widest"
             data-testid="input-coupon-code"
           />
-          {couponCode.trim() && (
-            <div>
-              <Label className="text-[#aaa] text-xs mb-1.5 block">Coupon Valid For (hours after claim)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min="1"
-                  max="720"
-                  value={couponExpiryHours}
-                  onChange={(e) => setCouponExpiryHours(e.target.value)}
-                  className="bg-[#0a1020] border-blue-900/50 text-white placeholder-[#444] text-sm w-28"
-                  data-testid="input-coupon-expiry"
-                />
-                <span className="text-[#555] text-xs">
-                  {parseInt(couponExpiryHours || "0") >= 24
-                    ? `${Math.round(parseInt(couponExpiryHours || "0") / 24)} day(s)`
-                    : `${couponExpiryHours} hour(s)`} after claiming
-                </span>
-              </div>
+          <div>
+            <Label className="text-[#aaa] text-xs mb-1.5 block">Coupon Valid For (hours after claim)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="1"
+                max="720"
+                value={couponExpiryHours}
+                onChange={(e) => setCouponExpiryHours(e.target.value)}
+                className="bg-[#0a1020] border-blue-900/50 text-white placeholder-[#444] text-sm w-28"
+                data-testid="input-coupon-expiry"
+              />
+              <span className="text-[#555] text-xs">
+                {parseInt(couponExpiryHours || "0") >= 24
+                  ? `${Math.round(parseInt(couponExpiryHours || "0") / 24)} day(s)`
+                  : `${couponExpiryHours} hour(s)`} after claiming
+              </span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Live Score Preview */}
