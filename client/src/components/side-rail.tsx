@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_purple_1776386269790.png";
 import geezeeBtn from "@assets/geezee_button_circle.png";
+import mostlovedBtn from "@assets/mostloved_button_circle.png";
 
 interface GzBtn {
   id: string;
@@ -68,7 +69,7 @@ const GZ_BUTTONS: GzBtn[] = [
     tagline: "❤️ What's HOTTEST Right Now · Top Picks",
     color: "#ff2b2b",
     glow: "rgba(255,43,43,0.65)",
-    bg: "linear-gradient(135deg, #ff2b2b 0%, #cc0000 100%)",
+    bg: "transparent",
     path: "/most-loved",
   },
 ];
@@ -176,7 +177,7 @@ export function SideRail() {
                 background: isBusinessLocked
                   ? "rgba(30,30,30,0.8)"
                   : btn.bg,
-                border: btn.id === "geezee-cards"
+                border: (btn.id === "geezee-cards" || btn.id === "most-loved")
                   ? "none"
                   : `2px solid ${btn.color}${isBusinessLocked ? "55" : "cc"}`,
                 boxShadow: hovered
@@ -195,14 +196,18 @@ export function SideRail() {
               }}
             >
               <img
-                src={btn.id === "geezee-cards" ? geezeeBtn : gzLogo}
+                src={
+                  btn.id === "geezee-cards" ? geezeeBtn
+                  : btn.id === "most-loved" ? mostlovedBtn
+                  : gzLogo
+                }
                 alt={btn.label}
                 style={{
-                  width: btn.id === "geezee-cards" ? "100%" : "76%",
-                  height: btn.id === "geezee-cards" ? "100%" : "76%",
+                  width: (btn.id === "geezee-cards" || btn.id === "most-loved") ? "100%" : "76%",
+                  height: (btn.id === "geezee-cards" || btn.id === "most-loved") ? "100%" : "76%",
                   objectFit: "contain",
-                  borderRadius: btn.id === "geezee-cards" ? "50%" : undefined,
-                  ...(btn.id === "geezee-cards"
+                  borderRadius: (btn.id === "geezee-cards" || btn.id === "most-loved") ? "50%" : undefined,
+                  ...((btn.id === "geezee-cards" || btn.id === "most-loved")
                     ? {
                         filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
                         opacity: 1,
