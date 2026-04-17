@@ -9,23 +9,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   MapPin, Phone, Globe, Store, Trash2, Clock, ChevronLeft,
-  Send, Building2, Edit, ImageIcon, ExternalLink
+  Send, Building2, Edit, ExternalLink, Mail, User, Zap, Video, Radio, Tag,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+
+type PointOfContact = { title: string; name: string; phone?: string; email?: string };
 
 type BusinessProfile = {
   id: number;
   userId: number;
   businessName: string;
   category: string;
+  industry?: string | null;
   address: string;
   city: string;
   state: string;
   zip: string;
   country: string;
   phone?: string | null;
+  email?: string | null;
   website?: string | null;
   description?: string | null;
+  pointsOfContact?: PointOfContact[] | null;
   logoUrl?: string | null;
   coverUrl?: string | null;
   lat?: number | null;
@@ -126,12 +131,10 @@ function WallPostCard({ post, canDelete, onDelete }: { post: WallPost; canDelete
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
   return (
-    <div className="rounded-xl border border-[#1a1a1a] bg-[#0b0b0b] p-3"
-      data-testid={`biz-wall-post-${post.id}`}>
+    <div className="rounded-xl border border-[#1a1a1a] bg-[#0b0b0b] p-3" data-testid={`biz-wall-post-${post.id}`}>
       <div className="flex items-start gap-2.5">
         {post.authorAvatar ? (
-          <img src={post.authorAvatar} alt={post.authorName}
-            className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#222]" />
+          <img src={post.authorAvatar} alt={post.authorName} className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#222]" />
         ) : (
           <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#222] flex items-center justify-center text-xs font-bold text-amber-400 shrink-0">
             {initial}
@@ -213,24 +216,24 @@ export default function BusinessStorefrontPage() {
     );
   }
 
-  const isOwner = user?.id === business.userId;
-  const isAdmin = (user as any)?.role === "ADMIN" || (user as any)?.role === "SUPER_ADMIN";
+  const isOwner = (user as any)?.user?.id === business.userId || user?.id === business.userId;
+  const isAdmin = (user as any)?.role === "ADMIN" || (user as any)?.role === "SUPER_ADMIN" ||
+    (user as any)?.user?.role === "ADMIN" || (user as any)?.user?.role === "SUPER_ADMIN";
   const hasAddress = business.address || business.city;
   const fullAddress = [business.address, business.city, business.state, business.zip].filter(Boolean).join(", ");
+  const validContacts = (business.pointsOfContact ?? []).filter((c) => c.title || c.name);
 
   return (
-    <div className="min-h-screen bg-[#050505] pb-20">
-      {/* Back */}
+    <div className="min-h-screen bg-[#050505] pb-24">
+      {/* Back nav */}
       <div className="sticky top-0 z-20 bg-[#050505]/90 backdrop-blur-sm border-b border-[#111] px-4 py-2.5 flex items-center gap-3">
-        <button onClick={() => navigate(-1 as any)} className="text-[#666] hover:text-white transition-colors"
-          data-testid="button-biz-back">
+        <button onClick={() => navigate(-1 as any)} className="text-[#666] hover:text-white transition-colors" data-testid="button-biz-back">
           <ChevronLeft className="h-5 w-5" />
         </button>
         <span className="text-sm font-semibold text-white truncate">{business.businessName}</span>
         {isOwner && (
           <button onClick={() => navigate("/business-profile/settings")}
-            className="ml-auto text-[#555] hover:text-amber-400 transition-colors"
-            data-testid="button-biz-edit">
+            className="ml-auto text-[#555] hover:text-amber-400 transition-colors" data-testid="button-biz-edit">
             <Edit className="h-4 w-4" />
           </button>
         )}
@@ -257,9 +260,16 @@ export default function BusinessStorefrontPage() {
           </div>
           <div className="flex-1 pb-1">
             <h1 className="text-xl font-bold text-white leading-tight" data-testid="biz-name">{business.businessName}</h1>
-            {business.category && (
-              <span className="text-xs text-amber-400/80 font-medium">{business.category}</span>
-            )}
+            <div className="flex flex-wrap gap-1.5 mt-0.5">
+              {business.category && (
+                <span className="text-[10px] font-medium text-amber-400/80" data-testid="biz-category">{business.category}</span>
+              )}
+              {business.industry && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.1)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.2)" }} data-testid="biz-industry">
+                  <Tag className="inline h-2.5 w-2.5 mr-0.5" />{business.industry}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -270,6 +280,13 @@ export default function BusinessStorefrontPage() {
               className="flex items-center gap-1.5 text-xs text-[#999] hover:text-white bg-[#111] border border-[#1e1e1e] rounded-full px-3 py-1 transition-colors"
               data-testid="biz-phone">
               <Phone className="h-3 w-3" />{business.phone}
+            </a>
+          )}
+          {business.email && (
+            <a href={`mailto:${business.email}`}
+              className="flex items-center gap-1.5 text-xs text-[#999] hover:text-white bg-[#111] border border-[#1e1e1e] rounded-full px-3 py-1 transition-colors"
+              data-testid="biz-email">
+              <Mail className="h-3 w-3" />{business.email}
             </a>
           )}
           {business.website && (
@@ -299,6 +316,92 @@ export default function BusinessStorefrontPage() {
           </div>
         )}
 
+        {/* Points of Contact */}
+        {validContacts.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1 h-4 rounded-full bg-amber-400" />
+              <h2 className="text-sm font-bold text-white">Points of Contact</h2>
+            </div>
+            <div className="space-y-2">
+              {validContacts.map((c, i) => (
+                <div key={i} className="rounded-xl border border-[#1a1a1a] bg-[#0b0b0b] p-3 flex items-start gap-3"
+                  data-testid={`biz-contact-${i}`}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                    style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                    <User className="h-4 w-4 text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {c.title && <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">{c.title}</p>}
+                    {c.name && <p className="text-sm text-white font-medium">{c.name}</p>}
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {c.phone && (
+                        <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-[11px] text-[#666] hover:text-white transition-colors">
+                          <Phone className="h-2.5 w-2.5" />{c.phone}
+                        </a>
+                      )}
+                      {c.email && (
+                        <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-[11px] text-[#666] hover:text-white transition-colors">
+                          <Mail className="h-2.5 w-2.5" />{c.email}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Owner: Marketing Tools panel */}
+        {isOwner && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1 h-4 rounded-full bg-blue-400" />
+              <h2 className="text-sm font-bold text-white">Marketing Tools</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <button onClick={() => navigate("/gz-business")}
+                className="flex items-center gap-3 rounded-xl border border-blue-900/30 bg-blue-950/10 p-3 text-left hover:border-blue-700/50 transition-all"
+                data-testid="btn-storefront-flash-ad">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(59,130,246,0.12)" }}>
+                  <Zap className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">Flash AD Creator</p>
+                  <p className="text-[10px] text-[#555]">GZFlash limited-time offers → Offer Center</p>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-[#444]" />
+              </button>
+
+              <button onClick={() => navigate("/provider/new")}
+                className="flex items-center gap-3 rounded-xl border border-emerald-900/30 bg-emerald-950/10 p-3 text-left hover:border-emerald-700/50 transition-all"
+                data-testid="btn-storefront-video-ad">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(16,185,129,0.12)" }}>
+                  <Video className="h-4 w-4 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white">Video AD Creator</p>
+                  <p className="text-[10px] text-[#555]">Upload a video listing for the main feed</p>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-[#444]" />
+              </button>
+
+              <div className="flex items-center gap-3 rounded-xl border border-[#1e1e1e] bg-[#0b0b0b] p-3 opacity-50"
+                data-testid="btn-storefront-preemptive-ad">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(245,158,11,0.08)" }}>
+                  <Radio className="h-4 w-4 text-amber-400/50" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-[#666]">Preemptive AD Creator</p>
+                  <p className="text-[10px] text-[#444]">GPS proximity push-pin ads — coming soon</p>
+                </div>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }}>SOON</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Wall */}
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -318,7 +421,7 @@ export default function BusinessStorefrontPage() {
               <WallPostCard
                 key={post.id}
                 post={post}
-                canDelete={isOwner || isAdmin || user?.id === post.authorUserId}
+                canDelete={isOwner || isAdmin || (user as any)?.user?.id === post.authorUserId || user?.id === post.authorUserId}
                 onDelete={() => deleteMutation.mutate(post.id)}
               />
             ))}

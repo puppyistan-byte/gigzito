@@ -5553,25 +5553,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/business-profile", async (req, res) => {
     if (!requireAuth(req, res)) return;
     const userId = (req.session as any).userId as number;
-    const { businessName, category, address, city, state, zip, country, phone, website, description, logoUrl, coverUrl, lat, lng } = req.body;
+    const { businessName, category, industry, address, city, state, zip, country, phone, email, website, description, pointsOfContact, logoUrl, coverUrl, lat, lng } = req.body;
     if (!businessName?.trim()) return res.status(400).json({ message: "Business name is required" });
     const bp = await storage.upsertBusinessProfile(userId, {
       businessName: businessName.trim(),
       category: category?.trim() ?? "",
+      industry: industry?.trim() ?? null,
       address: address?.trim() ?? "",
       city: city?.trim() ?? "",
       state: state?.trim() ?? "",
       zip: zip?.trim() ?? "",
       country: country?.trim() ?? "US",
       phone: phone?.trim() ?? null,
+      email: email?.trim() ?? null,
       website: website?.trim() ?? null,
       description: description?.trim() ?? null,
+      pointsOfContact: Array.isArray(pointsOfContact) ? pointsOfContact : null,
       logoUrl: logoUrl ?? null,
       coverUrl: coverUrl ?? null,
       lat: lat ?? null,
       lng: lng ?? null,
     });
     return res.json(bp);
+  });
+
+  // GZBusiness Global Directory
+  app.get("/api/businesses/directory", async (req, res) => {
+    try {
+      const businesses = await storage.getAllBusinessProfiles();
+      return res.json(businesses);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to fetch business directory" });
+    }
   });
 
   // Get business storefront by username

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  MapPin, Phone, Globe, Store, Building2, ChevronLeft, Loader2, Check, ExternalLink
+  MapPin, Phone, Globe, Store, Building2, ChevronLeft, Loader2, Check,
+  ExternalLink, Mail, PlusCircle, Trash2, User, Zap, Video, Radio,
 } from "lucide-react";
 
 const BIZ_CATEGORIES = [
@@ -19,19 +20,24 @@ const BIZ_CATEGORIES = [
   "Education / Tutoring", "Non-Profit", "Other",
 ];
 
+type PointOfContact = { title: string; name: string; phone?: string; email?: string };
+
 type BusinessProfile = {
   id: number;
   userId: number;
   businessName: string;
   category: string;
+  industry?: string | null;
   address: string;
   city: string;
   state: string;
   zip: string;
   country: string;
   phone?: string | null;
+  email?: string | null;
   website?: string | null;
   description?: string | null;
+  pointsOfContact?: PointOfContact[] | null;
   logoUrl?: string | null;
   coverUrl?: string | null;
   lat?: number | null;
@@ -51,11 +57,13 @@ export default function BusinessProfileSetupPage() {
 
   const [bizName, setBizName] = useState("");
   const [bizCategory, setBizCategory] = useState("");
+  const [bizIndustry, setBizIndustry] = useState("");
   const [bizAddress, setBizAddress] = useState("");
   const [bizCity, setBizCity] = useState("");
   const [bizState, setBizState] = useState("");
   const [bizZip, setBizZip] = useState("");
   const [bizPhone, setBizPhone] = useState("");
+  const [bizEmail, setBizEmail] = useState("");
   const [bizWebsite, setBizWebsite] = useState("");
   const [bizDescription, setBizDescription] = useState("");
   const [bizLat, setBizLat] = useState<number | null>(null);
@@ -63,22 +71,25 @@ export default function BusinessProfileSetupPage() {
   const [geocoding, setGeocoding] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [contacts, setContacts] = useState<PointOfContact[]>([]);
 
-  // Populate form once existing profile data loads
   useEffect(() => {
     if (existing && !initialized) {
       setBizName(existing.businessName ?? "");
       setBizCategory(existing.category ?? "");
+      setBizIndustry(existing.industry ?? "");
       setBizAddress(existing.address ?? "");
       setBizCity(existing.city ?? "");
       setBizState(existing.state ?? "");
       setBizZip(existing.zip ?? "");
       setBizPhone(existing.phone ?? "");
+      setBizEmail(existing.email ?? "");
       setBizWebsite(existing.website ?? "");
       setBizDescription(existing.description ?? "");
       setBizLat(existing.lat ?? null);
       setBizLng(existing.lng ?? null);
       setMapReady(!!(existing.lat && existing.lng));
+      setContacts(existing.pointsOfContact ?? []);
       setInitialized(true);
     }
   }, [existing, initialized]);
@@ -117,18 +128,27 @@ export default function BusinessProfileSetupPage() {
     }
   };
 
+  const addContact = () => setContacts((c) => [...c, { title: "", name: "", phone: "", email: "" }]);
+  const removeContact = (i: number) => setContacts((c) => c.filter((_, idx) => idx !== i));
+  const updateContact = (i: number, field: keyof PointOfContact, val: string) =>
+    setContacts((c) => c.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+
   const handleSave = () => {
     if (!bizName.trim()) { toast({ title: "Business name required", variant: "destructive" }); return; }
+    const validContacts = contacts.filter((c) => c.title.trim() || c.name.trim());
     saveMutation.mutate({
       businessName: bizName.trim(),
       category: bizCategory,
+      industry: bizIndustry.trim() || null,
       address: bizAddress.trim(),
       city: bizCity.trim(),
       state: bizState.trim(),
       zip: bizZip.trim(),
       phone: bizPhone.trim() || null,
+      email: bizEmail.trim() || null,
       website: bizWebsite.trim() || null,
       description: bizDescription.trim() || null,
+      pointsOfContact: validContacts.length ? validContacts : null,
       lat: bizLat,
       lng: bizLng,
     });
@@ -142,10 +162,7 @@ export default function BusinessProfileSetupPage() {
     );
   }
 
-  if (!user) {
-    navigate("/auth?tab=register&tier=GZBusiness");
-    return null;
-  }
+  if (!user) { navigate("/auth?tab=register&tier=GZBusiness"); return null; }
 
   const tier = (user as any).user?.subscriptionTier ?? "";
   const isBusinessTier = tier === "GZBusiness" || tier === "GZEnterprise";
@@ -156,9 +173,7 @@ export default function BusinessProfileSetupPage() {
       <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center gap-4 px-4">
         <Store className="h-12 w-12 text-amber-400" />
         <h1 className="text-xl font-bold text-white text-center">GZBusiness Plan Required</h1>
-        <p className="text-sm text-[#666] text-center max-w-xs">
-          A Business storefront is available on the GZBusiness tier. Upgrade for free during Brand Build!
-        </p>
+        <p className="text-sm text-[#666] text-center max-w-xs">A Business storefront is available on the GZBusiness tier. Upgrade for free during Brand Build!</p>
         <Button onClick={() => navigate("/provider/me")} className="gap-1.5" style={{ background: "#f59e0b", color: "#000" }}>
           <Building2 className="h-4 w-4" /> Upgrade to GZBusiness
         </Button>
@@ -168,32 +183,30 @@ export default function BusinessProfileSetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] pb-20">
+    <div className="min-h-screen bg-[#050505] pb-24">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-[#050505]/90 backdrop-blur-sm border-b border-[#111] px-4 py-2.5 flex items-center gap-3">
-        <button onClick={() => navigate("/provider/me")} className="text-[#666] hover:text-white transition-colors"
-          data-testid="button-setup-back">
+        <button onClick={() => navigate("/provider/me")} className="text-[#666] hover:text-white transition-colors" data-testid="button-setup-back">
           <ChevronLeft className="h-5 w-5" />
         </button>
         <span className="text-sm font-semibold text-white">Business Storefront Setup</span>
         {existing?.id && (
           <button onClick={() => navigate(`/business/${existing.id}`)}
-            className="ml-auto text-amber-400 hover:text-amber-300 text-xs flex items-center gap-1"
-            data-testid="button-view-live">
+            className="ml-auto text-amber-400 hover:text-amber-300 text-xs flex items-center gap-1" data-testid="button-view-live">
             View live <ExternalLink className="h-3 w-3" />
           </button>
         )}
       </div>
 
-      <div className="px-4 pt-4 max-w-lg mx-auto space-y-4">
-        {/* Header banner */}
+      <div className="px-4 pt-4 max-w-lg mx-auto space-y-5">
+        {/* Banner */}
         <div className="rounded-xl p-4" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
           <div className="flex items-center gap-3">
             <Store className="h-8 w-8 text-amber-400 shrink-0" />
             <div>
               <h1 className="text-base font-bold text-amber-400">Your Business Storefront</h1>
               <p className="text-xs text-[#888] mt-0.5">
-                {existing ? "Update your business info below — changes go live immediately." : "Fill in your business details to launch your public storefront on Gigzito."}
+                {existing ? "Update your info — changes go live immediately." : "Fill in your details to launch your public storefront on Gigzito."}
               </p>
             </div>
           </div>
@@ -206,15 +219,23 @@ export default function BusinessProfileSetupPage() {
             className="bg-[#0b0b0b] border-[#1e1e1e]" data-testid="input-setup-biz-name" />
         </div>
 
-        {/* Category */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-[#aaa]">Business Category</Label>
-          <select value={bizCategory} onChange={(e) => setBizCategory(e.target.value)}
-            className="w-full h-10 rounded-md bg-[#0b0b0b] border border-[#1e1e1e] text-white text-sm px-3"
-            data-testid="select-setup-category">
-            <option value="">Select a category…</option>
-            {BIZ_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+        {/* Category + Industry */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-[#aaa]">Category</Label>
+            <select value={bizCategory} onChange={(e) => setBizCategory(e.target.value)}
+              className="w-full h-10 rounded-md bg-[#0b0b0b] border border-[#1e1e1e] text-white text-sm px-3"
+              data-testid="select-setup-category">
+              <option value="">Select…</option>
+              {BIZ_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-[#aaa]">Industry</Label>
+            <Input value={bizIndustry} onChange={(e) => setBizIndustry(e.target.value)}
+              placeholder="e.g. HVAC, Hair, SaaS…"
+              className="bg-[#0b0b0b] border-[#1e1e1e] text-sm" data-testid="input-setup-industry" />
+          </div>
         </div>
 
         {/* Address */}
@@ -263,18 +284,64 @@ export default function BusinessProfileSetupPage() {
           )}
         </div>
 
-        {/* Contact */}
+        {/* Contact info */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#aaa]"><Phone className="inline h-3 w-3 mr-1" />Phone</Label>
+            <Label className="text-xs text-[#aaa]"><Phone className="inline h-3 w-3 mr-1" />Telephone</Label>
             <Input value={bizPhone} onChange={(e) => setBizPhone(e.target.value)}
               placeholder="(503) 555-0100" className="bg-[#0b0b0b] border-[#1e1e1e] text-sm" data-testid="input-setup-phone" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-[#aaa]"><Globe className="inline h-3 w-3 mr-1" />Website</Label>
-            <Input value={bizWebsite} onChange={(e) => setBizWebsite(e.target.value)}
-              placeholder="https://…" className="bg-[#0b0b0b] border-[#1e1e1e] text-sm" data-testid="input-setup-website" />
+            <Label className="text-xs text-[#aaa]"><Mail className="inline h-3 w-3 mr-1" />Email Address</Label>
+            <Input value={bizEmail} onChange={(e) => setBizEmail(e.target.value)}
+              placeholder="info@yourstore.com" type="email" className="bg-[#0b0b0b] border-[#1e1e1e] text-sm" data-testid="input-setup-email" />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-[#aaa]"><Globe className="inline h-3 w-3 mr-1" />Web Address</Label>
+          <Input value={bizWebsite} onChange={(e) => setBizWebsite(e.target.value)}
+            placeholder="https://yoursite.com" className="bg-[#0b0b0b] border-[#1e1e1e] text-sm" data-testid="input-setup-website" />
+        </div>
+
+        {/* Points of Contact */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-xs text-[#aaa] flex items-center gap-1.5">
+              <User className="h-3 w-3" /> Points of Contact
+            </Label>
+            <button onClick={addContact}
+              className="flex items-center gap-1 text-[10px] text-amber-400 hover:text-amber-300 transition-colors"
+              data-testid="btn-add-contact">
+              <PlusCircle className="h-3 w-3" /> Add Contact
+            </button>
+          </div>
+          {contacts.length === 0 ? (
+            <p className="text-[11px] text-[#444] py-2">No contacts added yet. Click "Add Contact" to add a person or department.</p>
+          ) : (
+            <div className="space-y-3">
+              {contacts.map((c, i) => (
+                <div key={i} className="rounded-xl border border-[#1e1e1e] bg-[#0b0b0b] p-3 space-y-2" data-testid={`contact-card-${i}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <Input value={c.title} onChange={(e) => updateContact(i, "title", e.target.value)}
+                      placeholder="Title (e.g. Sales Manager, Owner, Booking)"
+                      className="bg-[#111] border-[#222] text-sm flex-1" data-testid={`input-contact-title-${i}`} />
+                    <button onClick={() => removeContact(i)} className="text-[#333] hover:text-[#ff2b2b] transition-colors shrink-0" data-testid={`btn-remove-contact-${i}`}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <Input value={c.name} onChange={(e) => updateContact(i, "name", e.target.value)}
+                    placeholder="Full name" className="bg-[#111] border-[#222] text-sm" data-testid={`input-contact-name-${i}`} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input value={c.phone ?? ""} onChange={(e) => updateContact(i, "phone", e.target.value)}
+                      placeholder="Phone" className="bg-[#111] border-[#222] text-sm" data-testid={`input-contact-phone-${i}`} />
+                    <Input value={c.email ?? ""} onChange={(e) => updateContact(i, "email", e.target.value)}
+                      placeholder="Email" className="bg-[#111] border-[#222] text-sm" data-testid={`input-contact-email-${i}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Description */}
@@ -294,6 +361,50 @@ export default function BusinessProfileSetupPage() {
           {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           {existing ? "Save Changes" : "Launch My Storefront"}
         </Button>
+
+        {/* Ad Creator shortcuts (owner only, once profile is saved) */}
+        {existing?.id && (
+          <div className="space-y-2 pb-4">
+            <p className="text-[10px] text-[#444] uppercase tracking-wider font-semibold pt-2">Marketing Tools</p>
+
+            <button onClick={() => navigate("/gz-business")}
+              className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e1e] bg-[#0b0b0b] p-3 text-left hover:border-blue-900/50 transition-all group"
+              data-testid="btn-flash-ad-creator">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(59,130,246,0.12)" }}>
+                <Zap className="h-4 w-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Flash AD Creator</p>
+                <p className="text-[10px] text-[#555]">Create GZFlash limited-time offers in the Offer Center</p>
+              </div>
+            </button>
+
+            <button onClick={() => navigate("/provider/new")}
+              className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e1e] bg-[#0b0b0b] p-3 text-left hover:border-emerald-900/50 transition-all group"
+              data-testid="btn-video-ad-creator">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(16,185,129,0.12)" }}>
+                <Video className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Video AD Creator</p>
+                <p className="text-[10px] text-[#555]">Upload a video listing that appears in the main feed</p>
+              </div>
+            </button>
+
+            <button
+              className="w-full flex items-center gap-3 rounded-xl border border-[#1e1e1e] bg-[#0b0b0b] p-3 text-left opacity-60 cursor-not-allowed"
+              data-testid="btn-preemptive-ad-creator" disabled>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(245,158,11,0.08)" }}>
+                <Radio className="h-4 w-4 text-amber-400/50" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#666]">Preemptive AD Creator</p>
+                <p className="text-[10px] text-[#444]">GPS proximity push-pin ads — coming soon</p>
+              </div>
+              <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)" }}>SOON</span>
+            </button>
+          </div>
+        )}
 
         <p className="text-[10px] text-[#333] text-center pb-4">
           Your storefront will be publicly visible at /business/{existing?.id ?? "…"}

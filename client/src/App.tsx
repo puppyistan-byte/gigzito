@@ -75,6 +75,7 @@ import GroupDetailPage from "@/pages/group-detail";
 import JoinGroupPage from "@/pages/join-group";
 import BusinessStorefrontPage from "@/pages/business-storefront";
 import BusinessProfileSetupPage from "@/pages/business-profile-setup";
+import GzBusinessDirectoryPage from "@/pages/gz-business-directory";
 
 function Router() {
   return (
@@ -119,6 +120,7 @@ function Router() {
       <Route path="/groups/:id" component={GroupDetailPage} />
       <Route path="/join-group/:token" component={JoinGroupPage} />
       <Route path="/qr/:uuid" component={QrRedirectPage} />
+      <Route path="/gz-business-directory" component={GzBusinessDirectoryPage} />
       <Route path="/business-profile/setup" component={BusinessProfileSetupPage} />
       <Route path="/business-profile/settings" component={BusinessProfileSetupPage} />
       <Route path="/business/:id" component={BusinessStorefrontPage} />

@@ -312,6 +312,8 @@ export interface IStorage {
   updateAdBookingStatus(id: number, status: string): Promise<AdBooking>;
   getAdBookings(): Promise<AdBookingWithAd[]>;
   deleteAdBooking(id: number): Promise<void>;
+  // Business Directory
+  getAllBusinessProfiles(): Promise<(BusinessProfile & { username: string | null; displayName: string | null; avatarUrl: string | null })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3430,6 +3432,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // === BUSINESS PROFILES ===
+  async getAllBusinessProfiles(): Promise<(BusinessProfile & { username: string | null; displayName: string | null; avatarUrl: string | null })[]> {
+    const rows = await db
+      .select({ bp: businessProfiles, username: providerProfiles.username, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl })
+      .from(businessProfiles)
+      .leftJoin(providerProfiles, eq(providerProfiles.userId, businessProfiles.userId))
+      .orderBy(businessProfiles.businessName);
+    return rows.map(({ bp, username, displayName, avatarUrl }) => ({ ...bp, username: username ?? null, displayName: displayName ?? null, avatarUrl: avatarUrl ?? null }));
+  }
+
   async getBusinessProfileByUserId(userId: number): Promise<BusinessProfile | null> {
     const [bp] = await db.select().from(businessProfiles).where(eq(businessProfiles.userId, userId));
     return bp ?? null;

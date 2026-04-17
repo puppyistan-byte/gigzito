@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { Home, PlusSquare, User, Radio, Music } from "lucide-react";
+import { Home, PlusSquare, User, Radio, Music, Store } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 export function BottomNav({ activeVertical, onVerticalChange }: {
@@ -26,6 +26,7 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
   const feedActive = location === "/";
   const liveActive = location.startsWith("/live");
   const musicActive = location === "/gz-music";
+  const bizActive = location === "/gz-business-directory" || location.startsWith("/business");
 
   const { data: liveSessions = [] } = useQuery<any[]>({
     queryKey: ["/api/live/active"],
@@ -78,6 +79,16 @@ export function BottomNav({ activeVertical, onVerticalChange }: {
       >
         <Music size={20} style={musicActive ? { color: "#ff7a00" } : {}} />
         <span className="nav-label" style={musicActive ? { color: "#ff7a00" } : {}}>GZMusic</span>
+      </button>
+
+      <button
+        onClick={() => window.location.href = "/gz-business-directory"}
+        className={`nav-item transition-colors ${bizActive ? "active" : ""}`}
+        style={bizActive ? { color: "#f59e0b" } : {}}
+        data-testid="nav-gz-business"
+      >
+        <Store size={20} style={bizActive ? { color: "#f59e0b" } : {}} />
+        <span className="nav-label" style={bizActive ? { color: "#f59e0b" } : {}}>GZBusiness</span>
       </button>
 
       <button
