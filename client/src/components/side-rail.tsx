@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import gzLogo from "@assets/gz_purple_1776386269790.png";
 import geezeeBtn from "@assets/geezee_button_circle.png";
 import mostlovedBtn from "@assets/mostloved_button_circle.png";
 import gzflashBtn from "@assets/gzflash_button_circle.png";
 import gzgroupsBtn from "@assets/gzgroups_button_circle.png";
 import gzmusicBtn from "@assets/gzmusic_button_circle.png";
+import gzbusinessBtn from "@assets/gzbusiness_button_circle.png";
 
 interface GzBtn {
   id: string;
@@ -62,7 +62,7 @@ const GZ_BUTTONS: GzBtn[] = [
     tagline: "🏢 Your Storefront · Get Found Locally",
     color: "#10b981",
     glow: "rgba(16,185,129,0.65)",
-    bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    bg: "transparent",
     path: "/business-profile/setup",
     businessOnly: true,
   },
@@ -180,9 +180,7 @@ export function SideRail() {
                 background: isBusinessLocked
                   ? "rgba(30,30,30,0.8)"
                   : btn.bg,
-                border: btn.id !== "gz-business"
-                  ? "none"
-                  : `2px solid ${btn.color}${isBusinessLocked ? "55" : "cc"}`,
+                border: "none",
                 boxShadow: hovered
                   ? `0 0 20px ${btn.glow}, 0 4px 20px rgba(0,0,0,0.6)`
                   : `0 2px 10px rgba(0,0,0,0.5)`,
@@ -205,25 +203,16 @@ export function SideRail() {
                   : btn.id === "gz-flash" ? gzflashBtn
                   : btn.id === "gz-groups" ? gzgroupsBtn
                   : btn.id === "gz-music" ? gzmusicBtn
-                  : gzLogo
+                  : gzbusinessBtn
                 }
                 alt={btn.label}
                 style={{
-                  width: btn.id !== "gz-business" ? "100%" : "76%",
-                  height: btn.id !== "gz-business" ? "100%" : "76%",
+                  width: "100%",
+                  height: "100%",
                   objectFit: "contain",
-                  borderRadius: btn.id !== "gz-business" ? "50%" : undefined,
-                  ...(btn.id !== "gz-business"
-                    ? {
-                        filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
-                        opacity: 1,
-                      }
-                    : {
-                        filter: isBusinessLocked
-                          ? "brightness(0) invert(1) opacity(0.3)"
-                          : "brightness(0) invert(1)",
-                        opacity: isBusinessLocked ? 0.4 : 0.95,
-                      }),
+                  borderRadius: "50%",
+                  filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
+                  opacity: 1,
                   pointerEvents: "none",
                   flexShrink: 0,
                 }}
