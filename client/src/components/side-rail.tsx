@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_purple_1776386269790.png";
+import gzPurpleLogo from "@assets/image_1776387204100.png";
 
 interface GzBtn {
   id: string;
@@ -38,8 +39,8 @@ const GZ_BUTTONS: GzBtn[] = [
     label: "GeeZee Cards",
     tagline: "💎 Your Digital Identity · Stand Out Now",
     color: "#7c3aed",
-    glow: "rgba(124,58,237,0.65)",
-    bg: "linear-gradient(135deg, #7c3aed 0%, #4f1eb8 100%)",
+    glow: "rgba(124,58,237,0.75)",
+    bg: "radial-gradient(circle at 40% 40%, #1a0a2e 0%, #0a0012 100%)",
     path: "/geezees",
   },
   {
@@ -192,16 +193,24 @@ export function SideRail() {
               }}
             >
               <img
-                src={gzLogo}
+                src={btn.id === "geezee-cards" ? gzPurpleLogo : gzLogo}
                 alt={btn.label}
                 style={{
-                  width: "76%",
-                  height: "76%",
+                  width: btn.id === "geezee-cards" ? "90%" : "76%",
+                  height: btn.id === "geezee-cards" ? "90%" : "76%",
                   objectFit: "contain",
-                  filter: isBusinessLocked
-                    ? "brightness(0) invert(1) opacity(0.3)"
-                    : "brightness(0) invert(1)",
-                  opacity: isBusinessLocked ? 0.4 : 0.95,
+                  ...(btn.id === "geezee-cards"
+                    ? {
+                        mixBlendMode: "screen" as const,
+                        filter: isBusinessLocked ? "opacity(0.35)" : "none",
+                        opacity: 1,
+                      }
+                    : {
+                        filter: isBusinessLocked
+                          ? "brightness(0) invert(1) opacity(0.3)"
+                          : "brightness(0) invert(1)",
+                        opacity: isBusinessLocked ? 0.4 : 0.95,
+                      }),
                   pointerEvents: "none",
                   flexShrink: 0,
                 }}
