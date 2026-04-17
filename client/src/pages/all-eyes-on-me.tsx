@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -303,15 +304,12 @@ export default function AllEyesOnMePage() {
                 const isActive = new Date(slot.startAt) <= now && new Date(slot.endAt) > now;
                 return (
                   <div key={slot.id} className={`flex items-center gap-3 p-3 rounded-xl border ${isActive ? "bg-[#ff2b2b]/8 border-[#ff2b2b]/25" : "bg-[#111] border-[#1a1a1a]"}`} data-testid={`upcoming-slot-${slot.id}`}>
-                    <div style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", background: "#222", flexShrink: 0 }}>
-                      {slot.provider.avatarUrl ? (
-                        <img src={slot.provider.avatarUrl} alt={slot.provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "11px" }}>
-                          {slot.provider.displayName?.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
+                    <UserAvatar
+                      avatarUrl={slot.provider.avatarUrl}
+                      displayName={slot.provider.displayName}
+                      size={32}
+                      fontSize={11}
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-white truncate">{slot.provider.displayName}</p>
                       <p className="text-[10px] text-[#555]">{formatScheduleTime(slot)}</p>

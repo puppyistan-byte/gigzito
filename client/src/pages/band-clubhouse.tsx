@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -522,11 +523,7 @@ function WallPostCard({ post, bandId, isAdmin, currentUserId }: {
   return (
     <div className="rounded-xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-[#222]">
-          {post.avatarUrl
-            ? <img src={post.avatarUrl} alt="" className="w-full h-full object-cover" />
-            : <div className="w-full h-full bg-[#333] flex items-center justify-center text-[10px] text-[#888]">{(post.displayName ?? "?")[0]?.toUpperCase()}</div>}
-        </div>
+        <UserAvatar avatarUrl={post.avatarUrl} displayName={post.displayName} size={32} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
@@ -567,9 +564,7 @@ function WallPostCard({ post, bandId, isAdmin, currentUserId }: {
             <div className="mt-3 space-y-2 pl-3 border-l border-[#1e1e1e]">
               {comments.map(c => (
                 <div key={c.id} className="flex gap-2 items-start">
-                  <div className="w-6 h-6 rounded-full bg-[#222] shrink-0 overflow-hidden">
-                    {c.avatarUrl ? <img src={c.avatarUrl} alt="" className="w-full h-full object-cover" /> : null}
-                  </div>
+                  <UserAvatar avatarUrl={c.avatarUrl} displayName={c.displayName} size={24} />
                   <div>
                     <span className="text-xs font-semibold text-[#aaa]">{c.displayName ?? "Member"} </span>
                     <span className="text-xs text-[#888]">{c.content}</span>
@@ -1956,7 +1951,7 @@ export default function BandClubbousePage() {
             data-testid="band-avatar-zoom"
           >
             {band.avatarUrl ? (
-              <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" />
+              <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
             ) : (
               <div className="w-full h-full flex items-center justify-center"><Music className="h-8 w-8 text-[#333]" /></div>
             )}
@@ -2051,9 +2046,13 @@ export default function BandClubbousePage() {
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             {members.map(m => (
               <div key={m.id} className="flex flex-col items-center gap-1 shrink-0" data-testid={`member-${m.id}`}>
-                <div className="w-9 h-9 rounded-full overflow-hidden border" style={{ borderColor: m.role === "admin" ? ORANGE : BORDER }}>
-                  {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#222] flex items-center justify-center text-xs text-[#666]">{(m.displayName ?? "?")[0]}</div>}
-                </div>
+                <UserAvatar
+                  avatarUrl={m.avatarUrl}
+                  displayName={m.displayName}
+                  size={36}
+                  borderWidth={1}
+                  borderColor={m.role === "admin" ? ORANGE : BORDER}
+                />
                 <p className="text-[9px] text-[#666] max-w-[48px] truncate">{m.displayName ?? "Member"}</p>
                 {m.instrument && <p className="text-[8px] text-[#444] truncate max-w-[48px]">{m.instrument}</p>}
               </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { UserAvatar } from "@/components/user-avatar";
 
 type EngagementEntry = {
   providerId: number;
@@ -124,7 +125,6 @@ export function LoveLeaderboardPanel() {
                 const rank = idx + 1;
                 const isTop3 = rank <= 3;
                 const rankColor = isTop3 ? rankColors[idx] : "rgba(255,255,255,0.22)";
-                const initials = entry.displayName?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
                 const profilePath = entry.username ? `/provider/${entry.username}` : `/provider/${entry.providerId}`;
                 return (
                   <Link key={entry.providerId} href={profilePath}>
@@ -137,13 +137,14 @@ export function LoveLeaderboardPanel() {
                       <span style={{ width: "16px", flexShrink: 0, fontSize: "9px", fontWeight: 700, color: rankColor, textAlign: "center" }}>
                         {rank === 1 ? "👑" : rank}
                       </span>
-                      <div style={{ width: "24px", height: "24px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "#2a0000", border: isTop3 ? `1.5px solid ${rankColor}` : "1.5px solid rgba(255,43,43,0.20)" }}>
-                        {entry.avatarUrl ? (
-                          <img src={entry.avatarUrl} alt={entry.displayName ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff2b2b", fontSize: "7px", fontWeight: 700 }}>{initials}</div>
-                        )}
-                      </div>
+                      <UserAvatar
+                        avatarUrl={entry.avatarUrl}
+                        displayName={entry.displayName}
+                        size={24}
+                        borderWidth={1.5}
+                        borderColor={isTop3 ? rankColor : "rgba(255,43,43,0.20)"}
+                        fontSize={7}
+                      />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: "10px", fontWeight: 600, color: isTop3 ? "#fff" : "rgba(255,255,255,0.65)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {entry.displayName ?? "Unknown"}

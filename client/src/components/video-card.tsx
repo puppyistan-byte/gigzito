@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Clock, Play, Share2, Copy, Check, ShoppingCart, Tag, Timer, Volume2, VolumeX, Heart, X, MessageCircle, UserPlus, UserCheck, Loader2, Download } from "lucide-react";
 import { InquireLeadModal } from "@/components/inquire-lead-modal";
+import { UserAvatar } from "@/components/user-avatar";
 import { GuestCtaModal } from "@/components/guest-cta-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -877,23 +878,14 @@ export function VideoCard({ listing, className = "", isActive = false, onEnd, is
               onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
               onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
-              <div
-                style={{
-                  width: 44, height: 44, borderRadius: "50%",
-                  border: "2.5px solid rgba(255,255,255,0.5)",
-                  overflow: "hidden",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3)",
-                  background: "#1a1a1a", flexShrink: 0,
-                }}
-              >
-                {provider.avatarUrl ? (
-                  <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: 15, fontWeight: 700 }}>
-                    {initials}
-                  </div>
-                )}
-              </div>
+              <UserAvatar
+                avatarUrl={provider.avatarUrl}
+                displayName={provider.displayName}
+                size={44}
+                borderWidth={2.5}
+                borderColor="rgba(255,255,255,0.5)"
+                style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.3)" }}
+              />
             </div>
           </Link>
 

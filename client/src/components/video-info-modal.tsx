@@ -1,4 +1,5 @@
 import { X, Mail, Phone, Globe, MessageCircle, Instagram, Youtube, Tag, Timer, ShoppingCart, ExternalLink } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 import type { ListingWithProvider } from "@shared/schema";
 
 const BADGE_LABEL: Record<string, string> = {
@@ -64,9 +65,13 @@ export function VideoInfoModal({ listing, onClose, onInquire }: VideoInfoModalPr
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 20px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {p.avatarUrl && (
-              <img src={p.avatarUrl} alt={p.displayName} style={{ width: "38px", height: "38px", borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,0.15)" }} />
-            )}
+            <UserAvatar
+              avatarUrl={p.avatarUrl}
+              displayName={p.displayName}
+              size={38}
+              borderWidth={2}
+              borderColor="rgba(255,255,255,0.15)"
+            />
             <div>
               <p style={{ fontSize: "15px", fontWeight: "700", color: "#fff" }}>{p.displayName}</p>
               <span style={{ fontSize: "11px", background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", borderRadius: "999px", padding: "1px 8px" }}>

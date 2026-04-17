@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { useParams, Link, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
@@ -601,11 +602,7 @@ function MyContactListsPanel() {
           <div className="space-y-2">
             {optIns.map((o) => (
               <div key={o.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0b0b0b] border border-[#1a1a1a]" data-testid={`row-optin-${o.presenterUserId}`}>
-                {o.avatarUrl ? (
-                  <img src={o.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0"><User className="h-4 w-4 text-[#444]" /></div>
-                )}
+                <UserAvatar avatarUrl={o.avatarUrl} displayName={o.displayName ?? o.username} size={32} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white font-medium truncate">{o.displayName ?? o.username ?? "Unknown"}</p>
                   <p className="text-[10px] text-[#555]">@{o.username} · since {new Date(o.optedInAt).toLocaleDateString()}</p>
@@ -650,11 +647,7 @@ function MyContactListsPanel() {
           {lookupError && <p className="text-red-400 text-[11px] mt-1">{lookupError}</p>}
           {lookupResult && (
             <div className="flex items-center gap-3 mt-2 p-2.5 rounded-xl bg-[#0b0b0b] border border-[#1a1a1a]">
-              {lookupResult.avatarUrl ? (
-                <img src={lookupResult.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center shrink-0"><User className="h-4 w-4 text-[#444]" /></div>
-              )}
+              <UserAvatar avatarUrl={lookupResult.avatarUrl} displayName={lookupResult.displayName ?? lookupResult.username} size={32} />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-white font-medium truncate">{lookupResult.displayName ?? lookupResult.username}</p>
                 <p className="text-[10px] text-[#555]">@{lookupResult.username}</p>

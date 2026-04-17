@@ -1,4 +1,5 @@
 import { useEffect, useState, Component, type ReactNode } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 
 class DashboardErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
@@ -1580,13 +1581,7 @@ function ProviderDashboardInner() {
                 };
                 return (
                   <div key={m.id} className="flex items-start gap-3 p-3 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e]" data-testid={`card-zeemotion-${m.id}`}>
-                    {m.avatarUrl ? (
-                      <img src={m.avatarUrl} alt={m.displayName ?? ""} className="w-8 h-8 rounded-full object-cover border border-[#2a2a2a] shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0">
-                        <Zap className="h-3.5 w-3.5 text-purple-400" />
-                      </div>
-                    )}
+                    <UserAvatar avatarUrl={m.avatarUrl} displayName={m.displayName} size={32} borderWidth={1} borderColor="#2a2a2a" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="text-xs font-semibold text-white">{m.displayName ?? m.username ?? "Unknown"}</span>

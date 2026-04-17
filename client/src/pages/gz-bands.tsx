@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -414,7 +415,7 @@ function BandCard({ band, onClick }: { band: GzBandWithMeta; onClick: () => void
     >
       <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0" style={{ background: "#1a1a1a", border: `1px solid ${BORDER}` }}>
         {band.avatarUrl ? (
-          <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" />
+          <img src={band.avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Music className="h-5 w-5 text-[#333]" />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Eye, X, ChevronRight } from "lucide-react";
@@ -66,13 +67,14 @@ function AllEyesBannerInner({ slot, onDismiss }: AllEyesBannerProps) {
 
       {/* Avatar */}
       <div className="shrink-0 relative">
-        <div style={{ width: "26px", height: "26px", borderRadius: "50%", overflow: "hidden", background: "#c41414", border: "1.5px solid #ff2b2b" }}>
-          {provider.avatarUrl ? (
-            <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "8px", fontWeight: "700" }}>{initials}</div>
-          )}
-        </div>
+        <UserAvatar
+          avatarUrl={provider.avatarUrl}
+          displayName={provider.displayName}
+          size={26}
+          borderWidth={1.5}
+          borderColor="#ff2b2b"
+          fontSize={8}
+        />
         <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#ff2b2b] border border-black animate-pulse" />
       </div>
 

@@ -3,6 +3,7 @@ import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/navbar";
+import { UserAvatar } from "@/components/user-avatar";
 import MoreBelow from "@/components/more-below";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -242,22 +243,15 @@ export default function ProviderPublicPage() {
                   <div className="flex items-end gap-4 -mt-9">
                     {/* Avatar */}
                     <div className="relative shrink-0 group" style={{ width: "72px", height: "72px" }}>
-                      <div
-                        style={{
-                          width: "72px", height: "72px", borderRadius: "50%",
-                          border: hasVoted ? "3px solid #ff69b4" : "3px solid #ff2b2b",
-                          overflow: "hidden", background: "#1a1a1a", zIndex: 10, position: "relative",
-                        }}
+                      <UserAvatar
+                        avatarUrl={profile.avatarUrl}
+                        displayName={profile.displayName}
+                        size={72}
+                        borderWidth={3}
+                        borderColor={hasVoted ? "#ff69b4" : "#ff2b2b"}
+                        style={{ zIndex: 10, position: "relative" }}
                         data-testid="img-provider-avatar"
-                      >
-                        {profile.avatarUrl ? (
-                          <img src={profile.avatarUrl} alt={profile.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "22px", fontWeight: "700" }}>
-                            {initials}
-                          </div>
-                        )}
-                      </div>
+                      />
                       <button
                         onClick={() => loveMutation.mutate()}
                         disabled={loveMutation.isPending}
@@ -724,7 +718,12 @@ export default function ProviderPublicPage() {
                               {/* Thumbnail */}
                               <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#111] shrink-0 flex items-center justify-center border border-[#2a2a2a]">
                                 {l.provider?.thumbUrl || l.provider?.avatarUrl ? (
-                                  <img src={l.provider.thumbUrl || l.provider.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                  <img
+                                    src={l.provider.thumbUrl || l.provider.avatarUrl}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                  />
                                 ) : (
                                   <Play className="w-5 h-5 text-[#333]" />
                                 )}
@@ -1054,13 +1053,13 @@ export default function ProviderPublicPage() {
                       {/* Card header */}
                       <div className="relative bg-gradient-to-br from-violet-900/40 to-violet-950/60 border-b border-violet-500/20 p-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-violet-500/50 bg-[#1a1a1a] shrink-0">
-                            {geezeeCard.profilePic || profile.avatarUrl ? (
-                              <img src={(geezeeCard.profilePic || profile.avatarUrl)!} alt={profile.displayName} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-violet-300 font-bold text-lg">{initials}</div>
-                            )}
-                          </div>
+                          <UserAvatar
+                            avatarUrl={geezeeCard.profilePic || profile.avatarUrl}
+                            displayName={profile.displayName}
+                            size={56}
+                            borderWidth={2}
+                            borderColor="rgba(139,92,246,0.5)"
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="font-black text-white text-base">{profile.displayName}</p>
                             {profile.username && <p className="text-xs text-violet-400">@{profile.username}</p>}

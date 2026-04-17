@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -215,15 +216,14 @@ function StreamCard({
       {/* Card footer */}
       <div className="p-3 flex items-center gap-3">
         {/* Avatar */}
-        <div className={`w-9 h-9 rounded-full shrink-0 overflow-hidden border-2 ${stream.isLive ? cat.ring : "border-[#2a2a2a]"} ring-1`}>
-          {stream.avatarUrl ? (
-            <img src={stream.avatarUrl} alt={stream.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[#1a0000] text-[10px] font-bold text-[#ff2b2b]">
-              {initials}
-            </div>
-          )}
-        </div>
+        <UserAvatar
+          avatarUrl={stream.avatarUrl}
+          displayName={stream.name}
+          size={36}
+          borderWidth={2}
+          borderColor={stream.isLive ? undefined : "#2a2a2a"}
+          fontSize={10}
+        />
 
         {/* Info */}
         <div className="flex-1 min-w-0">

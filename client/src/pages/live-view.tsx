@@ -1,4 +1,5 @@
 import { useParams, Link, useLocation } from "wouter";
+import { UserAvatar } from "@/components/user-avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { Navbar } from "@/components/navbar";
@@ -205,13 +206,11 @@ export default function LiveViewPage() {
         {/* Session info */}
         <div className="rounded-2xl bg-[#0b0b0b] border border-[#1e1e1e] p-4">
           <div className="flex items-start gap-3">
-            <div style={{ width: "48px", height: "48px", borderRadius: "50%", overflow: "hidden", background: "#c41414", flexShrink: 0 }}>
-              {provider.avatarUrl ? (
-                <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: "700" }}>{initials}</div>
-              )}
-            </div>
+            <UserAvatar
+              avatarUrl={provider.avatarUrl}
+              displayName={provider.displayName}
+              size={48}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-bold text-white text-base" data-testid="text-live-title">{session.title}</h2>

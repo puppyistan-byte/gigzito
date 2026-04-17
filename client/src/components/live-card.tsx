@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Eye, ExternalLink, Users } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SiTiktok, SiYoutube, SiInstagram, SiFacebook, SiTwitch, SiX } from "react-icons/si";
@@ -67,13 +68,14 @@ export function LiveCard({ session, compact = false }: LiveCardProps) {
       <Link href={`/live/${session.id}`}>
         <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] hover:border-[#ff2b2b]/40 transition-colors cursor-pointer" data-testid={`card-live-compact-${session.id}`}>
           <div className="relative shrink-0">
-            <div style={{ width: "40px", height: "40px", borderRadius: "50%", overflow: "hidden", background: "#1a1a1a", border: "2px solid #ff2b2b" }}>
-              {provider.avatarUrl ? (
-                <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "11px", fontWeight: "700" }}>{initials}</div>
-              )}
-            </div>
+            <UserAvatar
+              avatarUrl={provider.avatarUrl}
+              displayName={provider.displayName}
+              size={40}
+              borderWidth={2}
+              borderColor="#ff2b2b"
+              fontSize={11}
+            />
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#ff2b2b] border-2 border-black animate-pulse" />
           </div>
           <div className="flex-1 min-w-0">
@@ -137,20 +139,14 @@ export function LiveCard({ session, compact = false }: LiveCardProps) {
           {/* Avatar + name row */}
           <div className="flex items-start gap-3">
             <div className="relative shrink-0 -mt-8">
-              <div
-                style={{
-                  width: "56px", height: "56px", borderRadius: "50%",
-                  border: "3px solid #ff2b2b",
-                  overflow: "hidden", background: "#1a1a1a",
-                  boxShadow: "0 0 12px rgba(255,43,43,0.4)",
-                }}
-              >
-                {provider.avatarUrl ? (
-                  <img src={provider.avatarUrl} alt={provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#c41414", color: "#fff", fontSize: "18px", fontWeight: "700" }}>{initials}</div>
-                )}
-              </div>
+              <UserAvatar
+                avatarUrl={provider.avatarUrl}
+                displayName={provider.displayName}
+                size={56}
+                borderWidth={3}
+                borderColor="#ff2b2b"
+                style={{ boxShadow: "0 0 12px rgba(255,43,43,0.4)" }}
+              />
               {/* Pulsing live dot on avatar */}
               <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#ff2b2b] border-2 border-black animate-pulse" />
             </div>

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 
 type EngagementEntry = {
   providerId: number;
@@ -15,9 +16,9 @@ type EngagementEntry = {
 };
 
 const RANK_STYLES = [
-  { border: "border-yellow-400/60", bg: "bg-yellow-400/10", crown: "👑", label: "text-yellow-400" },
-  { border: "border-gray-400/40", bg: "bg-gray-400/5", crown: "🥈", label: "text-gray-400" },
-  { border: "border-orange-600/40", bg: "bg-orange-600/5", crown: "🥉", label: "text-orange-500" },
+  { border: "border-yellow-400/60", bg: "bg-yellow-400/10", crown: "👑", label: "text-yellow-400", borderCss: "rgba(234,179,8,0.6)" },
+  { border: "border-gray-400/40",   bg: "bg-gray-400/5",   crown: "🥈", label: "text-gray-400",   borderCss: "rgba(156,163,175,0.4)" },
+  { border: "border-orange-600/40", bg: "bg-orange-600/5", crown: "🥉", label: "text-orange-500", borderCss: "rgba(234,88,12,0.4)" },
 ];
 
 export default function LeaderboardPage() {
@@ -64,13 +65,13 @@ export default function LeaderboardPage() {
                 <div className="rounded-2xl bg-gradient-to-r from-yellow-950/50 to-[#0f0f0f] border border-yellow-500/30 p-5 flex items-center gap-4 hover:border-yellow-400/50 transition-colors cursor-pointer" data-testid="winner-card">
                   <div className="text-3xl">👑</div>
                   <div className="relative shrink-0">
-                    {winner.avatarUrl ? (
-                      <img src={winner.avatarUrl} alt={winner.displayName ?? ""} className="h-14 w-14 rounded-full object-cover border-2 border-yellow-400/60" />
-                    ) : (
-                      <div className="h-14 w-14 rounded-full bg-yellow-900 flex items-center justify-center text-yellow-300 font-bold text-lg border-2 border-yellow-400/60">
-                        {(winner.displayName ?? "?").slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    <UserAvatar
+                      avatarUrl={winner.avatarUrl}
+                      displayName={winner.displayName}
+                      size={56}
+                      borderWidth={2}
+                      borderColor="rgba(234,179,8,0.6)"
+                    />
                     <span className="absolute -bottom-1 -right-1 text-sm">🏆</span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -87,9 +88,8 @@ export default function LeaderboardPage() {
             {/* Full rankings */}
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] overflow-hidden">
               {entries.map((entry, i) => {
-                const style = RANK_STYLES[i] ?? { border: "border-transparent", bg: "", crown: `#${i+1}`, label: "text-[#555]" };
+                const style = RANK_STYLES[i] ?? { border: "border-transparent", bg: "", crown: `#${i+1}`, label: "text-[#555]", borderCss: "#2a2a2a" };
                 const profilePath = entry.username ? `/provider/${entry.username}` : `/provider/${entry.providerId}`;
-                const initials = (entry.displayName ?? "?").slice(0, 2).toUpperCase();
                 return (
                   <Link key={entry.providerId} href={profilePath}>
                     <div
@@ -99,13 +99,13 @@ export default function LeaderboardPage() {
                       <div className={`w-8 text-center text-base font-bold ${style.label}`}>
                         {style.crown}
                       </div>
-                      {entry.avatarUrl ? (
-                        <img src={entry.avatarUrl} alt={entry.displayName ?? ""} className={`h-10 w-10 rounded-full object-cover border ${i < 3 ? style.border : "border-[#2a2a2a]"}`} />
-                      ) : (
-                        <div className={`h-10 w-10 rounded-full bg-[#222] flex items-center justify-center text-sm font-bold text-white border ${i < 3 ? style.border : "border-[#2a2a2a]"}`}>
-                          {initials}
-                        </div>
-                      )}
+                      <UserAvatar
+                        avatarUrl={entry.avatarUrl}
+                        displayName={entry.displayName}
+                        size={40}
+                        borderWidth={1}
+                        borderColor={style.borderCss}
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white truncate">{entry.displayName ?? "Unknown"}</p>
                         {entry.username && <p className="text-xs text-[#555]">@{entry.username}</p>}

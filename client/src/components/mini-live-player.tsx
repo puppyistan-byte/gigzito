@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -412,14 +413,12 @@ export function MiniLivePlayer() {
 
           {hasSession && session && (
             <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px" }}>
-              <div style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", background: "#c41414", flexShrink: 0 }}>
-                {session.provider.avatarUrl
-                  ? <img src={session.provider.avatarUrl} alt={session.provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "11px", fontWeight: "700" }}>
-                      {session.provider.displayName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                    </div>
-                }
-              </div>
+              <UserAvatar
+                avatarUrl={session.provider.avatarUrl}
+                displayName={session.provider.displayName}
+                size={32}
+                fontSize={11}
+              />
               <div className="flex-1 min-w-0">
                 <p style={{ fontSize: "13px", fontWeight: "700", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{session.title}</p>
                 <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)" }}>{session.provider.displayName}</p>
@@ -562,15 +561,12 @@ export function MiniLivePlayer() {
 
             <Link href={`/live/${session.id}`}>
               <div className="flex items-center gap-1.5 px-2 py-2 cursor-pointer hover:bg-white/5 transition-colors">
-                <div style={{ width: "22px", height: "22px", borderRadius: "50%", overflow: "hidden", background: "#c41414", flexShrink: 0 }}>
-                  {session.provider.avatarUrl ? (
-                    <img src={session.provider.avatarUrl} alt={session.provider.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "8px", fontWeight: "700" }}>
-                      {session.provider.displayName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() ?? "L"}
-                    </div>
-                  )}
-                </div>
+                <UserAvatar
+                  avatarUrl={session.provider.avatarUrl}
+                  displayName={session.provider.displayName}
+                  size={22}
+                  fontSize={8}
+                />
                 <div className="flex-1 min-w-0">
                   <p style={{ fontSize: "10px", fontWeight: "700", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{session.title}</p>
                   <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.45)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{session.provider.displayName}</p>

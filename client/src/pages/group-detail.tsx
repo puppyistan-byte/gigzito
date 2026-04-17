@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { UserAvatar } from "@/components/user-avatar";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -890,9 +891,7 @@ function KanbanCardDisp({ card, ci, colKeys, memberMap, onEdit, onMoveBack, onMo
             )}
           </div>
           {assignee && (
-            assignee.avatarUrl
-              ? <img src={assignee.avatarUrl} alt={assignee.displayName ?? ""} title={assignee.displayName ?? ""} className="w-5 h-5 rounded-full border border-zinc-600 object-cover" />
-              : <div className="w-5 h-5 rounded-full bg-zinc-700 border border-zinc-600 flex items-center justify-center text-[8px] font-bold text-zinc-300" title={assignee.displayName ?? ""}>{(assignee.displayName ?? assignee.email ?? "?").charAt(0).toUpperCase()}</div>
+            <UserAvatar avatarUrl={assignee.avatarUrl} displayName={assignee.displayName ?? assignee.email} size={20} borderWidth={1} borderColor="#52525b" />
           )}
         </div>
       </div>
@@ -1223,9 +1222,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
               {retros.map(r => (
                 <div key={r.id} className="bg-zinc-900/50 border border-zinc-700/40 rounded-lg p-2.5">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    {r.avatarUrl
-                      ? <img src={r.avatarUrl} className="w-4 h-4 rounded-full object-cover" alt="" />
-                      : <div className="w-4 h-4 rounded-full bg-zinc-700 flex items-center justify-center text-[7px] font-bold">{(r.displayName ?? "?").charAt(0)}</div>}
+                    <UserAvatar avatarUrl={r.avatarUrl} displayName={r.displayName} size={16} fontSize={7} />
                     <span className="text-[10px] text-zinc-400 font-medium">{r.displayName ?? "Member"}</span>
                     <span className="text-[9px] text-zinc-600 ml-auto">{format(new Date(r.createdAt), "MMM d, yyyy")}</span>
                   </div>
@@ -1441,11 +1438,7 @@ function WalletContributions({ groupId, wallet, isAdmin }: { groupId: number; wa
             leaderboard.map((entry, idx) => (
               <div key={entry.uid} className="flex items-center gap-2 py-1.5 border-b border-dashed last:border-0">
                 <span className="text-xs font-bold text-muted-foreground w-4 flex-shrink-0">#{idx + 1}</span>
-                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {entry.avatarUrl
-                    ? <img src={entry.avatarUrl} alt={entry.displayName ?? ""} className="w-full h-full object-cover" />
-                    : <span className="text-xs font-bold text-indigo-600">{(entry.displayName ?? "M")[0].toUpperCase()}</span>}
-                </div>
+                <UserAvatar avatarUrl={entry.avatarUrl} displayName={entry.displayName} size={28} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold truncate">{entry.displayName ?? "Member"}</p>
                   {/* Individual tx rows */}
