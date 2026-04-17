@@ -5,6 +5,7 @@ import gzLogo from "@assets/gz_purple_1776386269790.png";
 import geezeeBtn from "@assets/geezee_button_circle.png";
 import mostlovedBtn from "@assets/mostloved_button_circle.png";
 import gzflashBtn from "@assets/gzflash_button_circle.png";
+import gzgroupsBtn from "@assets/gzgroups_button_circle.png";
 
 interface GzBtn {
   id: string;
@@ -51,7 +52,7 @@ const GZ_BUTTONS: GzBtn[] = [
     tagline: "👥 Find Your Tribe · Join the Movement",
     color: "#60a5fa",
     glow: "rgba(96,165,250,0.65)",
-    bg: "linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)",
+    bg: "transparent",
     path: "/groups",
   },
   {
@@ -178,7 +179,7 @@ export function SideRail() {
                 background: isBusinessLocked
                   ? "rgba(30,30,30,0.8)"
                   : btn.bg,
-                border: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash")
+                border: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash" || btn.id === "gz-groups")
                   ? "none"
                   : `2px solid ${btn.color}${isBusinessLocked ? "55" : "cc"}`,
                 boxShadow: hovered
@@ -201,15 +202,16 @@ export function SideRail() {
                   btn.id === "geezee-cards" ? geezeeBtn
                   : btn.id === "most-loved" ? mostlovedBtn
                   : btn.id === "gz-flash" ? gzflashBtn
+                  : btn.id === "gz-groups" ? gzgroupsBtn
                   : gzLogo
                 }
                 alt={btn.label}
                 style={{
-                  width: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash") ? "100%" : "76%",
-                  height: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash") ? "100%" : "76%",
+                  width: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash" || btn.id === "gz-groups") ? "100%" : "76%",
+                  height: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash" || btn.id === "gz-groups") ? "100%" : "76%",
                   objectFit: "contain",
-                  borderRadius: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash") ? "50%" : undefined,
-                  ...((btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash")
+                  borderRadius: (btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash" || btn.id === "gz-groups") ? "50%" : undefined,
+                  ...((btn.id === "geezee-cards" || btn.id === "most-loved" || btn.id === "gz-flash" || btn.id === "gz-groups")
                     ? {
                         filter: isBusinessLocked ? "grayscale(1) opacity(0.35)" : "none",
                         opacity: 1,
