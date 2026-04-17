@@ -25,12 +25,13 @@ const TIER_LABELS: Record<string, string> = {
   GZBusiness:   "GZBusiness",
 };
 
-function GeeZeeCardPreview({ card }: { card: any }) {
+function GeeZeeCardPreview({ card, avatarUrl }: { card: any; avatarUrl?: string | null }) {
   const tier = card?.userId ? "GZMarketer" : "GZLurker";
   const tierColor = TIER_COLORS[tier] ?? "#555";
   const qrUrl = card?.qrUuid
     ? `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${window.location.origin}/geezees?card=${card.qrUuid}`)}`
     : null;
+  const picSrc = card?.profilePic ?? avatarUrl ?? null;
 
   return (
     <div style={{
@@ -50,13 +51,13 @@ function GeeZeeCardPreview({ card }: { card: any }) {
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
         <div style={{
           width: 52, height: 52, borderRadius: 26,
-          background: card?.profilePic ? "transparent" : "rgba(139,92,246,0.2)",
+          background: picSrc ? "transparent" : "rgba(139,92,246,0.2)",
           border: "2px solid rgba(139,92,246,0.4)",
           overflow: "hidden", flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          {card?.profilePic
-            ? <img src={card.profilePic} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          {picSrc
+            ? <img src={picSrc} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             : <Sparkles style={{ width: 22, height: 22, color: "#a78bfa" }} />
           }
         </div>
@@ -260,7 +261,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
 
       {tab === "digital" && (
         <div className="space-y-3">
-          <GeeZeeCardPreview card={card} />
+          <GeeZeeCardPreview card={card} avatarUrl={profile.avatarUrl} />
 
           {hasCard && (
             <Button
