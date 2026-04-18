@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { getIO } from "./socket";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -442,6 +443,70 @@ async function seedDatabase() {
   } catch (err) {
     console.error("Seed error:", err);
   }
+}
+
+// ─── Orphan File Scanner ──────────────────────────────────────────────────────
+// Checks every local /uploads/ and /ads/ path stored in the DB.
+// If the file no longer exists on disk the row is cleaned up (or just reported).
+type OrphanEntry = { table: string; id: number; field: string; path: string };
+type OrphanReport = {
+  scanned: number;
+  orphaned: OrphanEntry[];
+  cleaned: number;
+  errors: string[];
+};
+
+async function runOrphanScan(applyFix: boolean): Promise<OrphanReport> {
+  const ROOT = process.cwd();
+  const orphaned: OrphanEntry[] = [];
+  const errors: string[] = [];
+  let scanned = 0;
+  let cleaned = 0;
+
+  // Columns: [table, id-col, file-col, on-orphan: "null" | "delete"]
+  const targets: [string, string, string, "null" | "delete"][] = [
+    ["video_listings", "id", "video_url",    "delete"],
+    ["gz_flash_ads",   "id", "artwork_url",  "null"],
+    ["gz_music_tracks","id", "audio_url",    "null"],
+    ["gz_music_tracks","id", "cover_url",    "null"],
+    ["gig_jacks",      "id", "artwork_url",  "null"],
+    ["sponsor_ads",    "id", "image_url",    "null"],
+  ];
+
+  for (const [table, idCol, fileCol, action] of targets) {
+    let rows: { id: number; path: string }[] = [];
+    try {
+      const result = await pool.query(
+        `SELECT ${idCol} AS id, ${fileCol} AS path FROM ${table} WHERE ${fileCol} IS NOT NULL AND (${fileCol} LIKE '/uploads/%' OR ${fileCol} LIKE '/ads/%')`
+      );
+      rows = result.rows;
+    } catch (e: any) {
+      errors.push(`${table}.${fileCol}: query failed — ${e.message}`);
+      continue;
+    }
+
+    for (const row of rows) {
+      scanned++;
+      const diskPath = path.join(ROOT, row.path.replace(/^\//, ""));
+      if (!fs.existsSync(diskPath)) {
+        orphaned.push({ table, id: row.id, field: fileCol, path: row.path });
+        if (applyFix) {
+          try {
+            if (action === "null") {
+              await pool.query(`UPDATE ${table} SET ${fileCol} = NULL WHERE ${idCol} = $1`, [row.id]);
+            } else {
+              await pool.query(`DELETE FROM ${table} WHERE ${idCol} = $1`, [row.id]);
+            }
+            cleaned++;
+          } catch (e: any) {
+            errors.push(`${table}#${row.id}: fix failed — ${e.message}`);
+          }
+        }
+      }
+    }
+  }
+
+  return { scanned, orphaned, cleaned: applyFix ? cleaned : 0, errors };
 }
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
@@ -4048,6 +4113,29 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       console.error("[notifications/send]", err);
       return res.status(500).json({ message: "Server error" });
+    }
+  });
+
+  // ─── Admin: Orphan File Cleanup ──────────────────────────────────────────────
+  // Scans all local-file-referencing DB columns.
+  // GET  = dry-run report   POST = actually remove orphaned references
+  app.get("/api/admin/orphan-scan", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const report = await runOrphanScan(false);
+      return res.json(report);
+    } catch (e: any) {
+      return res.status(500).json({ message: e.message ?? "Scan failed" });
+    }
+  });
+
+  app.post("/api/admin/orphan-cleanup", async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    try {
+      const report = await runOrphanScan(true);
+      return res.json(report);
+    } catch (e: any) {
+      return res.status(500).json({ message: e.message ?? "Cleanup failed" });
     }
   });
 

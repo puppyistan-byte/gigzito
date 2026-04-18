@@ -18,6 +18,7 @@ import {
   Radio, PlusCircle, ExternalLink, Wifi, WifiOff, AlertTriangle, CreditCard,
   ChevronDown, ChevronUp, ChevronLeft, Film, Link2, LogOut, Megaphone, ImagePlus, Power, MapPin,
   FileText, Bot, Info, Flame, Pause, Play, MessageSquare, Tag, Mail, Send, CheckSquare, Square, Users2,
+  HardDrive,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ContentActionDialog } from "@/components/content-action-dialog";
@@ -77,7 +78,7 @@ const BASE_ROLES = ["VISITOR", "PROVIDER", "MEMBER", "MARKETER", "INFLUENCER", "
 const SUPER_ROLES = [...BASE_ROLES, "SUPER_ADMIN"];
 const GJ_STATUS_TABS = ["ALL", "PENDING_REVIEW", "APPROVED", "DENIED"] as const;
 type GJStatusTab = typeof GJ_STATUS_TABS[number];
-type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo" | "gzbusiness" | "notifications";
+type AdminTab = "overview" | "lookup" | "users" | "content" | "gigjacks" | "injection" | "ads" | "geo" | "gzbusiness" | "notifications" | "storage";
 
 function TabBtn({ label, icon: Icon, active, onClick, badge, superOnly }: {
   label: string; icon: any; active: boolean; onClick: () => void; badge?: number; superOnly?: boolean;
@@ -236,6 +237,27 @@ export default function AdminPage() {
   const [smtpTestEmail, setSmtpTestEmail] = useState("");
   const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; devMode?: boolean; message?: string; toEmail?: string; config?: { host: string | null; port: string; user: string | null } } | null>(null);
   const [smtpTestLoading, setSmtpTestLoading] = useState(false);
+
+  // Storage cleanup tab state
+  type OrphanEntry = { table: string; id: number; field: string; path: string };
+  type OrphanReport = { scanned: number; orphaned: OrphanEntry[]; cleaned: number; errors: string[] };
+  const [orphanReport, setOrphanReport] = useState<OrphanReport | null>(null);
+  const [orphanLoading, setOrphanLoading] = useState(false);
+  const [orphanCleaned, setOrphanCleaned] = useState(false);
+
+  const runOrphanScan = async (fix: boolean) => {
+    setOrphanLoading(true);
+    setOrphanCleaned(false);
+    try {
+      const r: OrphanReport = await apiRequest(fix ? "POST" : "GET", fix ? "/api/admin/orphan-cleanup" : "/api/admin/orphan-scan");
+      setOrphanReport(r);
+      if (fix) setOrphanCleaned(true);
+    } catch (e: any) {
+      toast({ title: "Scan failed", description: e.message, variant: "destructive" });
+    } finally {
+      setOrphanLoading(false);
+    }
+  };
 
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState("ALL");
@@ -823,6 +845,7 @@ export default function AdminPage() {
           {isSuperAdmin && (
             <TabBtn label="Notifications" icon={Mail} active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
           )}
+          <TabBtn label="Storage" icon={HardDrive} active={activeTab === "storage"} onClick={() => setActiveTab("storage")} />
           {/* Always-visible Sign Out — right edge of tab bar */}
           <button
             onClick={async () => { await logout(); navigate("/"); }}
@@ -3108,6 +3131,115 @@ export default function AdminPage() {
           <p className="text-[10px] text-[#333] text-center">
             In dev mode (no SMTP configured) emails are logged to the server console. Configure SMTP_HOST, SMTP_USER, SMTP_PASS to send real emails.
           </p>
+        </div>
+      )}
+
+      {/* ─── Storage Cleanup Tab ────────────────────────────────────────────────── */}
+      {activeTab === "storage" && (
+        <div className="space-y-6 p-4">
+          <div>
+            <h2 className="text-white font-bold text-base flex items-center gap-2">
+              <HardDrive className="h-4 w-4 text-blue-400" />
+              Storage & Orphan File Cleanup
+            </h2>
+            <p className="text-[#555] text-sm mt-1">
+              Scans every file-referencing DB column for paths that no longer exist on disk (e.g. deleted videos, missing artwork). Dry-run first — then apply the fix.
+            </p>
+          </div>
+
+          {/* What gets scanned */}
+          <div className="rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] p-4 space-y-2">
+            <p className="text-[#888] text-xs font-semibold uppercase tracking-wider mb-2">Tables Scanned</p>
+            {[
+              { table: "video_listings", field: "video_url", action: "DELETE listing" },
+              { table: "gz_flash_ads",   field: "artwork_url", action: "Null artwork" },
+              { table: "gz_music_tracks",field: "audio_url",   action: "Null audio" },
+              { table: "gz_music_tracks",field: "cover_url",   action: "Null cover" },
+              { table: "gig_jacks",      field: "artwork_url", action: "Null artwork" },
+              { table: "sponsor_ads",    field: "image_url",   action: "Null image" },
+            ].map(({ table, field, action }) => (
+              <div key={`${table}.${field}`} className="flex items-center justify-between text-xs">
+                <span className="font-mono text-[#aaa]">{table}.<span className="text-blue-400">{field}</span></span>
+                <span className="text-[#555] border border-[#222] rounded px-1.5 py-0.5">{action}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <Button
+              onClick={() => runOrphanScan(false)}
+              disabled={orphanLoading}
+              variant="ghost"
+              className="border border-[#2a2a2a] text-[#aaa] hover:text-white hover:border-blue-500/50 text-sm"
+              data-testid="btn-orphan-scan"
+            >
+              {orphanLoading && !orphanCleaned ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-2" /> : <Eye className="h-3.5 w-3.5 mr-2" />}
+              Dry Run (Preview Only)
+            </Button>
+            <Button
+              onClick={() => runOrphanScan(true)}
+              disabled={orphanLoading || !orphanReport || orphanReport.orphaned.length === 0}
+              className="bg-red-700 hover:bg-red-600 text-white text-sm"
+              data-testid="btn-orphan-cleanup"
+            >
+              {orphanLoading && orphanCleaned ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-2" /> : <Trash2 className="h-3.5 w-3.5 mr-2" />}
+              Apply Cleanup
+            </Button>
+          </div>
+
+          {/* Results */}
+          {orphanReport && (
+            <div className="space-y-3">
+              {/* Summary bar */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Scanned", val: orphanReport.scanned, color: "text-white" },
+                  { label: "Orphaned", val: orphanReport.orphaned.length, color: orphanReport.orphaned.length > 0 ? "text-orange-400" : "text-green-400" },
+                  { label: "Cleaned", val: orphanReport.cleaned, color: orphanReport.cleaned > 0 ? "text-green-400" : "text-[#555]" },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-3 text-center">
+                    <p className="text-[#555] text-[10px] uppercase tracking-wider mb-1">{label}</p>
+                    <p className={`text-2xl font-black font-mono ${color}`}>{val}</p>
+                  </div>
+                ))}
+              </div>
+
+              {orphanReport.orphaned.length === 0 ? (
+                <div className="flex items-center gap-2 rounded-xl border border-green-700/40 bg-green-900/10 p-3 text-green-400 text-sm">
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                  All DB file references are valid — no orphans found.
+                </div>
+              ) : (
+                <div className="rounded-xl border border-orange-700/40 bg-[#0a0a0a] overflow-hidden">
+                  <div className="px-4 py-2 border-b border-[#1a1a1a] flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-orange-400" />
+                    <span className="text-orange-300 text-xs font-semibold">{orphanReport.orphaned.length} orphaned reference{orphanReport.orphaned.length !== 1 ? "s" : ""}{orphanCleaned ? " — now cleaned" : " found (not yet removed)"}</span>
+                  </div>
+                  <div className="divide-y divide-[#111] max-h-64 overflow-y-auto">
+                    {orphanReport.orphaned.map((o, i) => (
+                      <div key={i} className="flex items-center justify-between px-4 py-2 text-xs">
+                        <div>
+                          <span className="font-mono text-[#aaa]">{o.table}</span>
+                          <span className="text-[#444]"> #{o.id} </span>
+                          <span className="font-mono text-orange-400">{o.path}</span>
+                        </div>
+                        {orphanCleaned && <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {orphanReport.errors.length > 0 && (
+                <div className="rounded-xl border border-red-800/40 bg-red-950/10 p-3 space-y-1">
+                  {orphanReport.errors.map((e, i) => (
+                    <p key={i} className="text-red-400 text-xs font-mono">{e}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
