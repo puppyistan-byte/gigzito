@@ -155,7 +155,7 @@ function AdCard({ ad, rank, onClaim }: {
         ) : (ad.displayName || ad.username) ? (
           <Link
             href={`/provider/${ad.userId}`}
-            className="block text-[#777] text-xs truncate hover:text-blue-400 transition-colors"
+            className="block text-[#aaa] text-xs truncate hover:text-blue-400 transition-colors underline underline-offset-2 decoration-[#555]"
             data-testid={`link-provider-name-${ad.id}`}
           >
             {ad.displayName ?? ad.username}
