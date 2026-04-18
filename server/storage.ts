@@ -2180,12 +2180,19 @@ export class DatabaseStorage implements IStorage {
         displayName: providerProfiles.displayName,
         username: providerProfiles.username,
         avatarUrl: providerProfiles.avatarUrl,
+        businessName: businessProfiles.businessName,
+        businessCategory: businessProfiles.category,
       })
       .from(gzFlashAds)
       .leftJoin(providerProfiles, eq(gzFlashAds.userId, providerProfiles.userId))
+      .leftJoin(businessProfiles, eq(gzFlashAds.userId, businessProfiles.userId))
       .where(and(eq(gzFlashAds.status, "active"), gte(gzFlashAds.expiresAt, now)))
       .orderBy(desc(gzFlashAds.potencyScore));
-    return rows.map(({ ad, displayName, username, avatarUrl }) => ({ ...ad, displayName, username, avatarUrl }));
+    return rows.map(({ ad, displayName, username, avatarUrl, businessName, businessCategory }) => ({
+      ...ad, displayName, username, avatarUrl,
+      businessName: businessName || null,
+      businessCategory: businessCategory || null,
+    }));
   }
 
   async getMyGzFlashAds(userId: number): Promise<GzFlashAd[]> {
@@ -2295,17 +2302,22 @@ export class DatabaseStorage implements IStorage {
         username: providerProfiles.username,
         avatarUrl: providerProfiles.avatarUrl,
         ownerEmail: users.email,
+        businessName: businessProfiles.businessName,
+        businessCategory: businessProfiles.category,
       })
       .from(gzFlashAds)
       .leftJoin(providerProfiles, eq(gzFlashAds.userId, providerProfiles.userId))
       .leftJoin(users, eq(gzFlashAds.userId, users.id))
+      .leftJoin(businessProfiles, eq(gzFlashAds.userId, businessProfiles.userId))
       .orderBy(desc(gzFlashAds.createdAt));
-    return rows.map(({ ad, displayName, username, avatarUrl, ownerEmail }) => ({
+    return rows.map(({ ad, displayName, username, avatarUrl, ownerEmail, businessName, businessCategory }) => ({
       ...ad,
       displayName: displayName ?? null,
       username: username ?? null,
       avatarUrl: avatarUrl ?? null,
       ownerEmail: ownerEmail ?? null,
+      businessName: businessName || null,
+      businessCategory: businessCategory || null,
     }));
   }
 

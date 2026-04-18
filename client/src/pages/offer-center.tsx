@@ -131,10 +131,36 @@ function AdCard({ ad, rank, onClaim }: {
         </div>
       )}
 
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <span className={`relative z-10 text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider ${cfg.badge}`}>
           {cfg.badgeText}
         </span>
+      </div>
+
+      {/* Business / Provider identity — top of card */}
+      <div className="mb-3 min-w-0">
+        {ad.businessName ? (
+          <>
+            <Link
+              href={ad.username ? `/storefront/${ad.username}` : `/business/${ad.userId}`}
+              className="block text-white font-bold text-sm leading-tight truncate hover:text-blue-300 transition-colors"
+              data-testid={`link-business-name-${ad.id}`}
+            >
+              {ad.businessName}
+            </Link>
+            {ad.businessCategory && (
+              <p className="text-[#555] text-[10px] mt-0.5 truncate">{ad.businessCategory}</p>
+            )}
+          </>
+        ) : (ad.displayName || ad.username) ? (
+          <Link
+            href={`/provider/${ad.userId}`}
+            className="block text-[#777] text-xs truncate hover:text-blue-400 transition-colors"
+            data-testid={`link-provider-name-${ad.id}`}
+          >
+            {ad.displayName ?? ad.username}
+          </Link>
+        ) : null}
       </div>
 
       {/* Product image — always present, placeholder if none or broken */}
@@ -159,15 +185,9 @@ function AdCard({ ad, rank, onClaim }: {
         </div>
       </div>
 
-      <h3 className="text-white font-bold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-blue-100 transition-colors">
+      <h3 className="text-white font-bold text-sm leading-snug mb-3 line-clamp-2 group-hover:text-blue-100 transition-colors">
         {ad.title}
       </h3>
-
-      {(ad.displayName || ad.username) && (
-        <p className="text-[#555] text-[10px] mb-3 truncate">
-          {ad.displayName ?? ad.username}
-        </p>
-      )}
 
       <div className="flex items-baseline gap-2 mb-3">
         <span className="text-green-400 font-black text-xl">${salePrice}</span>

@@ -942,6 +942,8 @@ export type GzFlashAdWithOwner = GzFlashAd & {
   displayName: string | null;
   username: string | null;
   avatarUrl: string | null;
+  businessName: string | null;
+  businessCategory: string | null;
 };
 
 export type GzFlashAdAdmin = GzFlashAdWithOwner & {
