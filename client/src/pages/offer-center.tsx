@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Flame, Clock, Users, Zap, RefreshCw, CheckCircle2, Plus, Home, Tag, X, Mail, Copy, ShieldAlert } from "lucide-react";
+import { Flame, Clock, Users, Zap, RefreshCw, CheckCircle2, Plus, Home, Tag, X, Mail, Copy, ShieldAlert, ImageOff } from "lucide-react";
 import type { GzFlashAdWithOwner } from "@shared/schema";
 
 function useCountdown(expiresAt: string) {
@@ -136,13 +136,26 @@ function AdCard({ ad, rank, onClaim }: {
         </span>
       </div>
 
-      {ad.artworkUrl && (
-        <img
-          src={ad.artworkUrl}
-          alt={ad.title}
-          className="w-full h-24 object-cover rounded-xl mb-3 border border-[#1a1a1a]"
-        />
-      )}
+      {/* Product image — always present, placeholder if none */}
+      <div className="w-full h-40 rounded-xl mb-3 overflow-hidden border border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-center relative">
+        {ad.artworkUrl ? (
+          <img
+            src={ad.artworkUrl}
+            alt={ad.title}
+            className="w-full h-full object-cover"
+            data-testid={`img-ad-artwork-${ad.id}`}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-[#2a2a2a]">
+            <ImageOff className="h-8 w-8" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider">No product image</span>
+          </div>
+        )}
+        {/* Overlay discount badge on the image */}
+        <div className="absolute bottom-2 right-2 bg-green-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-lg">
+          {ad.discountPercent}% OFF
+        </div>
+      </div>
 
       <h3 className="text-white font-bold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-blue-100 transition-colors">
         {ad.title}
@@ -482,19 +495,37 @@ export default function OfferCenterPage() {
                   </button>
                 </div>
 
-                <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl p-3 mb-4">
-                  <p className="text-white font-semibold text-sm line-clamp-2">{claimAd.title}</p>
-                  {(claimAd.displayName || claimAd.username) && (
-                    <p className="text-[#555] text-[10px] mt-0.5">{claimAd.displayName ?? claimAd.username}</p>
-                  )}
-                  <div className="flex items-baseline gap-2 mt-2">
-                    <span className="text-green-400 font-black text-lg">
-                      ${((claimAd.retailPriceCents * (1 - claimAd.discountPercent / 100)) / 100).toFixed(2)}
-                    </span>
-                    <span className="text-[#444] line-through text-xs">${(claimAd.retailPriceCents / 100).toFixed(2)}</span>
-                    <span className="ml-auto bg-green-900/40 border border-green-800/40 text-green-400 text-[10px] font-bold rounded px-1.5 py-0.5">
+                <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl overflow-hidden mb-4">
+                  {/* Product image in claim modal */}
+                  <div className="w-full h-36 bg-[#060c1a] flex items-center justify-center relative">
+                    {claimAd.artworkUrl ? (
+                      <img
+                        src={claimAd.artworkUrl}
+                        alt={claimAd.title}
+                        className="w-full h-full object-cover"
+                        data-testid="img-claim-modal-artwork"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5 text-[#2a2a2a]">
+                        <ImageOff className="h-6 w-6" />
+                        <span className="text-[9px] uppercase tracking-wider">No product image</span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 right-2 bg-green-600/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded-lg">
                       {claimAd.discountPercent}% OFF
-                    </span>
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-white font-semibold text-sm line-clamp-2">{claimAd.title}</p>
+                    {(claimAd.displayName || claimAd.username) && (
+                      <p className="text-[#555] text-[10px] mt-0.5">{claimAd.displayName ?? claimAd.username}</p>
+                    )}
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <span className="text-green-400 font-black text-lg">
+                        ${((claimAd.retailPriceCents * (1 - claimAd.discountPercent / 100)) / 100).toFixed(2)}
+                      </span>
+                      <span className="text-[#444] line-through text-xs">${(claimAd.retailPriceCents / 100).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
 
