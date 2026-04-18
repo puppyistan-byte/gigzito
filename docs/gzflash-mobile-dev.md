@@ -63,11 +63,21 @@ Authenticated but wrong tier → show upgrade prompt linking to `/pricing`.
 ```json
 {
   ...all fields above...,
-  "displayName": "Joe's Sneaker Shop",
-  "username": "joessneakers",
-  "avatarUrl": "https://cdn.gigzito.com/avatars/xyz.jpg"
+  "displayName": "Joe Smith",
+  "username": "joesmith",
+  "avatarUrl": "https://cdn.gigzito.com/avatars/xyz.jpg",
+  "businessName": "Joe's Tire Shop",       // null if user has no GZBusiness profile
+  "businessCategory": "Automotive Tires"   // null if no business profile
 }
 ```
+
+**Business identity priority rules (used in card rendering):**
+
+| Condition | Name shown | Link target |
+|---|---|---|
+| `businessName` is non-null | `businessName` (bold, white) | `/storefront/:username` or `/business/:userId` |
+| `businessName` is null, `displayName` or `username` exists | `displayName ?? username` (muted, small) | `/provider/:userId` |
+| All null | Nothing shown | — |
 
 ### gz_flash_claims table
 
@@ -314,13 +324,15 @@ Each ad card in the directory displays:
 ┌─────────────────────────────────┐
 │ [HOT / TRENDING / ACTIVE / COOL]│  ← heat zone badge, top left
 │                                 │
+│  Joe's Tire Shop                │  ← businessName (bold white, linkable)
+│  Automotive Tires               │  ← businessCategory (muted, 10px)
+│                                 │  ← (or displayName/username if no business)
 │  [Product Image — 160px tall]   │  ← ALWAYS shown (placeholder if none)
 │                            X%OFF│  ← discount badge overlaid bottom-right
 │                                 │
 │  Ad Title (2-line clamp)        │
-│  Provider name                  │
 │                                 │
-│  $FlashPrice  $RetailPrice ~~   │  ← prices (no badge here anymore)
+│  $FlashPrice  $RetailPrice ~~   │  ← prices
 │                                 │
 │  [Countdown Clock OR Slots]     │  ← depends on displayMode
 │                                 │
@@ -329,6 +341,25 @@ Each ad card in the directory displays:
 │  [Claim This Deal]              │  ← or [Sold Out] if exhausted
 └─────────────────────────────────┘
 ```
+
+### Business identity block (top of card, below heat badge)
+
+Rendered **above the product image** so the buyer knows who they're buying from before seeing the product.
+
+**GZBusiness user:**
+```
+Joe's Tire Shop        ← bold, white (#ffffff), 14px, font-bold
+                         → tappable link to /storefront/:username
+Automotive Tires       ← muted (#555555), 10px
+```
+
+**Non-business user with posting rights (e.g. delegated provider):**
+```
+Joe Smith              ← muted (#777777), 12px
+                         → tappable link to /provider/:userId
+```
+
+**No profile info at all:** block is empty (zero height).
 
 ### Product image rules
 
@@ -464,6 +495,8 @@ const atPeak = computeGZScore(retail, flash, qty, qty - 1, duration, duration - 
 | Element | test ID |
 |---|---|
 | Ad card | `card-ad-{id}` |
+| Business name link (GZBusiness) | `link-business-name-{id}` |
+| Provider name link (non-business) | `link-provider-name-{id}` |
 | Ad artwork image | `img-ad-artwork-{id}` |
 | Rank fire number | `rank-fire-{id}` |
 | Claim button | `btn-claim-{id}` |
@@ -491,6 +524,8 @@ const atPeak = computeGZScore(retail, flash, qty, qty - 1, duration, duration - 
 
 ## 12. What Changed — April 18, 2026
 
+### Update 1 — Image & Badge Layout
+
 | # | Change | Impact |
 |---|---|---|
 | 1 | **Product image zone is always rendered in ad card** | Was: image only shown when `artworkUrl` non-null (collapsed if missing). Now: 160px zone always present with placeholder. |
@@ -498,12 +533,27 @@ const atPeak = computeGZScore(retail, flash, qty, qty - 1, duration, duration - 
 | 3 | **Discount badge moved to image overlay** (absolute, bottom-right) | Immediately visible before the buyer reads title or price. Was in the price row. |
 | 4 | **Product image added to Claim modal** | When buyer taps "Claim This Deal", they now see the product image (same 160px zone with placeholder) at the top of the modal before entering their email. |
 
+### Update 2 — Business Name & Category on Ad Cards (April 18, 2026)
+
+| # | Change | Impact |
+|---|---|---|
+| 5 | **Business name appears at the top of every ad card** | The ad card now shows who is selling above the product image. GZBusiness users show their registered business name in bold white text. |
+| 6 | **Business category shown below business name** | Gives buyers immediate context (e.g. "Automotive Tires") without reading the ad title. |
+| 7 | **Business name is a tappable link to the storefront** | Tapping the name navigates to `/storefront/:username` (GZBusiness users) or `/provider/:userId` (non-business providers). |
+| 8 | **Provider name removed from below the ad title** | Eliminated duplicate / redundant placement. Identity is now anchored at the top only. |
+| 9 | **`GzFlashAdWithOwner` API type extended** | `businessName` and `businessCategory` are now returned by `GET /api/gz-flash`. Both are nullable — null means the user has no GZBusiness profile. |
+
 **Files changed:**
-- `client/src/pages/offer-center.tsx` — `AdCard` component + claim modal
+- `shared/schema.ts` — `GzFlashAdWithOwner` type
+- `server/storage.ts` — `getActiveGzFlashAds()` and `adminGetAllGzFlashAds()` — new `leftJoin` on `business_profiles`
+- `client/src/pages/offer-center.tsx` — `AdCard` component restructured
 
 ---
 
 ## 13. Deployment
 
-Changes deployed April 18, 2026. Commit on Replit: `00c7a0d1`.
-Web source: `client/src/pages/offer-center.tsx`, `client/src/components/gz-flash-form.tsx`
+Changes deployed April 18, 2026.
+- Update 1 commit: `00c7a0d1`
+- Update 2 commit: `c3424f48`
+
+Web source: `client/src/pages/offer-center.tsx`, `client/src/components/gz-flash-form.tsx`, `shared/schema.ts`, `server/storage.ts`
