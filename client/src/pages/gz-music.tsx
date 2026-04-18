@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   Music, Heart, Trophy, Flame, Radio, Mic2, Headphones, Plus,
   ExternalLink, Play, Pause, SkipBack, SkipForward, ChevronUp, Upload, Download, Shield, FileBadge2,
-  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2, Home, X,
+  Star, StarHalf, Share2, Copy, Mail, Check, MessageCircle, Send, Trash2, Home, X, Shuffle,
 } from "lucide-react";
 import { SiX, SiWhatsapp, SiFacebook, SiTelegram } from "react-icons/si";
 import type { GZMusicTrack } from "@shared/schema";
@@ -638,7 +638,6 @@ function TrackCard({
             <div>
               {hasFile ? (
                 <audio
-                  ref={(el) => { if (el) el.play().catch(() => {}); }}
                   controls
                   src={(track as any).fileUrl}
                   className="w-full rounded-lg"
@@ -701,6 +700,8 @@ export default function GZMusicPage() {
   const [jkProgress, setJkProgress]   = useState(0);   // 0–1
   const [jkTimeSec, setJkTimeSec]     = useState(0);
   const [jkDurSec, setJkDurSec]       = useState(0);
+  const [isShuffleMode, setIsShuffleMode] = useState(false);
+  const shuffleHistoryRef = useRef<Set<number>>(new Set());
 
   const { data: tracks = [], isLoading } = useQuery<TrackWithRating[]>({
     queryKey: ["/api/gz-music/tracks"],
@@ -735,11 +736,14 @@ export default function GZMusicPage() {
     const fileUrl = (track as any).fileUrl as string;
     if (!fileUrl || !audioRef.current) return;
     const fileIdx = fileTracks.findIndex((t) => t.id === track.id);
+    // Stop any currently playing audio before switching tracks
+    audioRef.current.pause();
     audioRef.current.src = fileUrl;
     audioRef.current.currentTime = 0;
     setJukeboxInfo({ track, rank, fileIdx });
     setJkProgress(0);
     setJkTimeSec(0);
+    audioRef.current.load();
     audioRef.current.play().catch(() => {});
   }, [fileTracks]);
 
@@ -755,15 +759,32 @@ export default function GZMusicPage() {
 
   const jukeboxNext = useCallback(() => {
     if (!jukeboxInfo) return;
-    const nextIdx = jukeboxInfo.fileIdx + 1;
-    if (nextIdx < fileTracks.length) {
+    if (isShuffleMode && fileTracks.length > 1) {
+      // Pick a random track that hasn't been played yet in this shuffle cycle
+      let available = fileTracks.map((_, i) => i).filter(
+        (i) => i !== jukeboxInfo.fileIdx && !shuffleHistoryRef.current.has(i)
+      );
+      // If all have been played, reset history and allow any except current
+      if (available.length === 0) {
+        shuffleHistoryRef.current = new Set([jukeboxInfo.fileIdx]);
+        available = fileTracks.map((_, i) => i).filter((i) => i !== jukeboxInfo.fileIdx);
+      }
+      const nextIdx = available[Math.floor(Math.random() * available.length)];
+      shuffleHistoryRef.current.add(jukeboxInfo.fileIdx);
       const t = fileTracks[nextIdx];
       const r = tracks.findIndex((x) => x.id === t.id) + 1;
       jukeboxPlay(t, r);
     } else {
-      setJkPlaying(false);
+      const nextIdx = jukeboxInfo.fileIdx + 1;
+      if (nextIdx < fileTracks.length) {
+        const t = fileTracks[nextIdx];
+        const r = tracks.findIndex((x) => x.id === t.id) + 1;
+        jukeboxPlay(t, r);
+      } else {
+        setJkPlaying(false);
+      }
     }
-  }, [jukeboxInfo, fileTracks, tracks, jukeboxPlay]);
+  }, [jukeboxInfo, fileTracks, tracks, jukeboxPlay, isShuffleMode]);
 
   const { data: likedMap = {} } = useQuery<Record<number, boolean>>({
     queryKey: ["/api/gz-music/likes/batch", tracks.map((t) => t.id).join(",")],
@@ -1003,9 +1024,26 @@ export default function GZMusicPage() {
               <button
                 data-testid="jukebox-next"
                 onClick={jukeboxNext}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: jukeboxInfo.fileIdx >= fileTracks.length - 1 ? 0.3 : 1 }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: (!isShuffleMode && jukeboxInfo.fileIdx >= fileTracks.length - 1) ? 0.3 : 1 }}
               >
                 <SkipForward style={{ color: "#bbb", width: 17, height: 17 }} />
+              </button>
+
+              <button
+                data-testid="jukebox-shuffle"
+                onClick={() => {
+                  shuffleHistoryRef.current = new Set();
+                  setIsShuffleMode((v) => !v);
+                }}
+                title={isShuffleMode ? "Shuffle on" : "Shuffle off"}
+                style={{
+                  background: isShuffleMode ? "rgba(255,122,0,0.15)" : "none",
+                  border: isShuffleMode ? `1px solid rgba(255,122,0,0.35)` : "1px solid transparent",
+                  borderRadius: 6,
+                  cursor: "pointer", padding: "3px 5px",
+                }}
+              >
+                <Shuffle style={{ color: isShuffleMode ? ORANGE : "#444", width: 14, height: 14 }} />
               </button>
 
               <button
@@ -1153,26 +1191,51 @@ export default function GZMusicPage() {
             <h2 className="text-lg font-black text-white">The GZ100</h2>
             <p className="text-xs text-[#555]">Ranked by star ratings + community likes</p>
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
             {fileTracks.length > 0 && (
-              <button
-                data-testid="button-play-all"
-                onClick={() => {
-                  const first = fileTracks[0];
-                  const rank = tracks.findIndex((t) => t.id === first.id) + 1;
-                  jukeboxPlay(first, rank);
-                }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
-                  border: "none", borderRadius: 8, padding: "7px 13px",
-                  cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700,
-                  boxShadow: "0 2px 10px rgba(255,122,0,0.3)",
-                }}
-              >
-                <Play style={{ width: 12, height: 12 }} fill="#fff" />
-                Play All
-              </button>
+              <>
+                <button
+                  data-testid="button-play-all"
+                  onClick={() => {
+                    shuffleHistoryRef.current = new Set();
+                    const first = fileTracks[0];
+                    const rank = tracks.findIndex((t) => t.id === first.id) + 1;
+                    jukeboxPlay(first, rank);
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: `linear-gradient(135deg, ${ORANGE}, #cc5200)`,
+                    border: "none", borderRadius: 8, padding: "7px 13px",
+                    cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700,
+                    boxShadow: "0 2px 10px rgba(255,122,0,0.3)",
+                  }}
+                >
+                  <Play style={{ width: 12, height: 12 }} fill="#fff" />
+                  Play All
+                </button>
+                <button
+                  data-testid="button-shuffle-all"
+                  onClick={() => {
+                    shuffleHistoryRef.current = new Set();
+                    setIsShuffleMode(true);
+                    const randomIdx = Math.floor(Math.random() * fileTracks.length);
+                    const t = fileTracks[randomIdx];
+                    const r = tracks.findIndex((x) => x.id === t.id) + 1;
+                    jukeboxPlay(t, r);
+                  }}
+                  title="Shuffle all tracks"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: isShuffleMode ? "rgba(255,122,0,0.18)" : "#111",
+                    border: `1px solid ${isShuffleMode ? ORANGE : "#2a2a2a"}`,
+                    borderRadius: 8, padding: "7px 13px",
+                    cursor: "pointer", color: isShuffleMode ? ORANGE : "#666", fontSize: 12, fontWeight: 700,
+                  }}
+                >
+                  <Shuffle style={{ width: 12, height: 12 }} />
+                  Shuffle
+                </button>
+              </>
             )}
             <div className="text-right">
               <p className="text-lg font-black" style={{ color: ORANGE }}>{tracks.length}</p>
