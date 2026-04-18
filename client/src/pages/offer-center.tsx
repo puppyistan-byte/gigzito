@@ -85,6 +85,7 @@ function AdCard({ ad, rank, onClaim }: {
   rank: number;
   onClaim: () => void;
 }) {
+  const [imgError, setImgError] = useState(false);
   const countdown = useCountdown(ad.expiresAt.toString());
   const zone = heatZone(ad.potencyScore);
   const cfg = ZONE_CONFIG[zone];
@@ -136,14 +137,15 @@ function AdCard({ ad, rank, onClaim }: {
         </span>
       </div>
 
-      {/* Product image — always present, placeholder if none */}
+      {/* Product image — always present, placeholder if none or broken */}
       <div className="w-full h-40 rounded-xl mb-3 overflow-hidden border border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-center relative">
-        {ad.artworkUrl ? (
+        {ad.artworkUrl && !imgError ? (
           <img
             src={ad.artworkUrl}
             alt={ad.title}
             className="w-full h-full object-cover"
             data-testid={`img-ad-artwork-${ad.id}`}
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-[#2a2a2a]">
@@ -246,6 +248,7 @@ export default function OfferCenterPage() {
   const [tick, setTick] = useState(0);
   const [claimAd, setClaimAd] = useState<GzFlashAdWithOwner | null>(null);
   const [claimEmail, setClaimEmail] = useState("");
+  const [claimImgError, setClaimImgError] = useState(false);
   const [claimResult, setClaimResult] = useState<{ couponCode: string | null; couponExpiresAt: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -279,12 +282,14 @@ export default function OfferCenterPage() {
     setClaimEmail("");
     setClaimResult(null);
     setCopied(false);
+    setClaimImgError(false);
   }
   function closeClaimModal() {
     setClaimAd(null);
     setClaimResult(null);
     setClaimEmail("");
     setCopied(false);
+    setClaimImgError(false);
   }
   function submitClaim() {
     if (!claimAd) return;
@@ -498,12 +503,13 @@ export default function OfferCenterPage() {
                 <div className="bg-[#0a1020] border border-[#1a2030] rounded-xl overflow-hidden mb-4">
                   {/* Product image in claim modal */}
                   <div className="w-full h-36 bg-[#060c1a] flex items-center justify-center relative">
-                    {claimAd.artworkUrl ? (
+                    {claimAd.artworkUrl && !claimImgError ? (
                       <img
                         src={claimAd.artworkUrl}
                         alt={claimAd.title}
                         className="w-full h-full object-cover"
                         data-testid="img-claim-modal-artwork"
+                        onError={() => setClaimImgError(true)}
                       />
                     ) : (
                       <div className="flex flex-col items-center gap-1.5 text-[#2a2a2a]">
