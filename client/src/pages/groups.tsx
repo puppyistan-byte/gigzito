@@ -108,7 +108,7 @@ export default function GroupsPage() {
     },
   });
 
-  if (!user) return (
+  if (false && !user) return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
 
       {/* ── Top nav bar with Home button ── */}
@@ -277,7 +277,7 @@ export default function GroupsPage() {
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-create-group" className="bg-red-600 hover:bg-red-700 text-white gap-2">
+              <Button data-testid="button-create-group" className="bg-red-600 hover:bg-red-700 text-white gap-2" onClick={(e) => { if (!user) { e.preventDefault(); navigate("/auth"); } }}>
                 <Plus className="w-4 h-4" /> Create Group
               </Button>
             </DialogTrigger>
@@ -477,7 +477,16 @@ export default function GroupsPage() {
           </div>
         )}
 
-        {isLoading ? (
+        {!user ? (
+          <div className="text-center py-16 rounded-2xl border border-dashed border-border bg-muted/20">
+            <Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-base font-semibold mb-1">Sign in to see your groups</p>
+            <p className="text-sm text-muted-foreground mb-5">Join existing groups or create your own community.</p>
+            <Button data-testid="button-signin-to-groups" className="bg-red-600 hover:bg-red-700 text-white gap-2" onClick={() => navigate("/auth")}>
+              Sign In / Register
+            </Button>
+          </div>
+        ) : isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[1, 2, 3].map((i) => <div key={i} className="h-36 rounded-xl bg-muted animate-pulse" />)}
           </div>
