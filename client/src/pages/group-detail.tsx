@@ -249,13 +249,12 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   };
 
   const removeInvestment = (id: string) => setForm(f => ({ ...f, investments: f.investments.filter(i => i.id !== id) }));
-  const updateInv = (id: string, field: keyof GoalInvestment, val: string) =>
-    setForm(f => ({
-      ...f,
-      investments: f.investments.map(i =>
-        i.id === id ? { ...i, [field]: (field === "amount" || field === "dailyEarnings") ? parseFloat(val) || 0 : val } : i
-      )
-    }));
+  const updateInvName = (id: string, val: string) =>
+    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, name: val } : i) }));
+  const updateInvAmount = (id: string, val: string) =>
+    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, amount: parseFloat(val) || 0 } : i) }));
+  const updateInvEarnings = (id: string, val: string) =>
+    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, dailyEarnings: parseFloat(val) || 0 } : i) }));
 
   const activeInv = goalData.investments.filter(i => i.name.trim() && (i.amount > 0 || i.dailyEarnings > 0));
   const totalInvested = activeInv.reduce((s, i) => s + i.amount, 0);
@@ -325,12 +324,18 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               </div>
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Earning Now</p>
-                <p className="text-base font-bold" style={{ color: totalDailyEarnings > 0 ? "#f59e0b" : undefined }}>
-                  ${totalDailyEarnings.toFixed(2)}/day
-                </p>
+                <p className="text-base font-bold text-amber-500">${totalDailyEarnings.toFixed(2)}/day</p>
               </div>
+              {dailyGoal > 0 && (
+                <div className="rounded-lg px-2.5 py-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Still Needed</p>
+                  <p className="text-base font-bold text-red-400">
+                    ${Math.max(0, dailyGoal - totalDailyEarnings).toFixed(2)}/day
+                  </p>
+                </div>
+              )}
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Invested</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invested</p>
                 <p className="text-sm font-bold">${totalInvested.toLocaleString()}</p>
               </div>
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5" style={{ border: "1px solid rgba(245,158,11,0.25)" }}>
@@ -412,20 +417,20 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                   <div key={inv.id} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">#{idx + 1}</span>
                     <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" value={inv.name}
-                      onChange={(e) => updateInv(inv.id, "name", e.target.value)} />
+                      onChange={(e) => updateInvName(inv.id, e.target.value)} />
                     {/* Amount invested */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
                       <Input type="number" min={0} placeholder="300" className="pl-5 h-8 text-sm w-full"
-                        value={inv.amount || ""}
-                        onChange={(e) => updateInv(inv.id, "amount", e.target.value)} />
+                        value={inv.amount > 0 ? inv.amount : ""}
+                        onChange={(e) => updateInvAmount(inv.id, e.target.value)} />
                     </div>
                     {/* Daily earnings */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-500">$</span>
                       <Input type="number" min={0} step={0.01} placeholder="1.50" className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
-                        value={inv.dailyEarnings || ""}
-                        onChange={(e) => updateInv(inv.id, "dailyEarnings", e.target.value)} />
+                        value={inv.dailyEarnings > 0 ? inv.dailyEarnings : ""}
+                        onChange={(e) => updateInvEarnings(inv.id, e.target.value)} />
                     </div>
                     <button onClick={() => removeInvestment(inv.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 w-4">
                       <X className="w-3.5 h-3.5" />
@@ -444,9 +449,15 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                   <span className="font-semibold text-green-500">${previewGoal.toLocaleString()}/day</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Currently Earning</span>
+                  <span className="text-muted-foreground">Earning Now</span>
                   <span className="font-semibold text-amber-500">${previewEarnings.toFixed(2)}/day</span>
                 </div>
+                {previewGoal > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Still Needed</span>
+                    <span className="font-semibold text-red-400">${Math.max(0, previewGoal - previewEarnings).toFixed(2)}/day</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Invested</span>
                   <span className="font-semibold">${previewTotal.toLocaleString()}</span>
@@ -466,7 +477,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 {previewGoal > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-t pt-1.5">
                     <span>Goal progress</span>
-                    <span>{previewGoal > 0 ? Math.min(100, (previewEarnings / previewGoal) * 100).toFixed(1) : 0}% of daily goal</span>
+                    <span>{Math.min(100, (previewEarnings / previewGoal) * 100).toFixed(1)}% of daily goal</span>
                   </div>
                 )}
               </div>
