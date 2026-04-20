@@ -203,7 +203,7 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 }
 
 // ─── GOALS THERMOMETER ────────────────────────────────────────────────────────
-type GoalInvestment = { id: string; name: string; amount: number };
+type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number };
 type GoalData = { dailyGoal: number; investments: GoalInvestment[] };
 
 function GoalsThermometer({ groupId }: { groupId: number }) {
@@ -213,7 +213,11 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const loadGoals = (): GoalData => {
     try {
       const s = localStorage.getItem(storageKey);
-      return s ? JSON.parse(s) : { dailyGoal: 0, investments: [] };
+      if (!s) return { dailyGoal: 0, investments: [] };
+      const parsed = JSON.parse(s);
+      // migrate old investments that lack dailyEarnings
+      parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, ...i }));
+      return parsed;
     } catch { return { dailyGoal: 0, investments: [] }; }
   };
 
@@ -224,7 +228,9 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const saveGoals = () => {
     const cleaned: GoalData = {
       dailyGoal: Number(form.dailyGoal) || 0,
-      investments: form.investments.filter(i => i.name.trim() || i.amount > 0).map(i => ({ ...i, amount: Number(i.amount) || 0 })),
+      investments: form.investments
+        .filter(i => i.name.trim() || i.amount > 0 || i.dailyEarnings > 0)
+        .map(i => ({ ...i, amount: Number(i.amount) || 0, dailyEarnings: Number(i.dailyEarnings) || 0 })),
     };
     localStorage.setItem(storageKey, JSON.stringify(cleaned));
     setGoalData(cleaned);
@@ -239,30 +245,38 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
 
   const addInvestment = () => {
     if (form.investments.length >= 100) return;
-    setForm(f => ({ ...f, investments: [...f.investments, { id: `${Date.now()}`, name: "", amount: 0 }] }));
+    setForm(f => ({ ...f, investments: [...f.investments, { id: `${Date.now()}`, name: "", amount: 0, dailyEarnings: 0 }] }));
   };
 
   const removeInvestment = (id: string) => setForm(f => ({ ...f, investments: f.investments.filter(i => i.id !== id) }));
-  const updateInv = (id: string, field: "name" | "amount", val: string) =>
-    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, [field]: field === "amount" ? parseFloat(val) || 0 : val } : i) }));
+  const updateInv = (id: string, field: keyof GoalInvestment, val: string) =>
+    setForm(f => ({
+      ...f,
+      investments: f.investments.map(i =>
+        i.id === id ? { ...i, [field]: (field === "amount" || field === "dailyEarnings") ? parseFloat(val) || 0 : val } : i
+      )
+    }));
 
-  const activeInv = goalData.investments.filter(i => i.name.trim() && i.amount > 0);
+  const activeInv = goalData.investments.filter(i => i.name.trim() && (i.amount > 0 || i.dailyEarnings > 0));
   const totalInvested = activeInv.reduce((s, i) => s + i.amount, 0);
+  const totalDailyEarnings = activeInv.reduce((s, i) => s + i.dailyEarnings, 0);
   const dailyGoal = goalData.dailyGoal;
-  const breakEvenDays = dailyGoal > 0 && totalInvested > 0 ? Math.ceil(totalInvested / dailyGoal) : 0;
+
+  // Break-even: how many days until actual earnings recoup total investment
+  const breakEvenDays = totalDailyEarnings > 0 && totalInvested > 0 ? Math.ceil(totalInvested / totalDailyEarnings) : 0;
   const breakEvenMonths = breakEvenDays > 0 ? (breakEvenDays / 30.44).toFixed(1) : "—";
   const breakEvenYears = breakEvenDays > 0 ? (breakEvenDays / 365.25).toFixed(2) : "—";
 
-  // Thermometer fill: scale 0 days = 100%, 730+ days = 0%
-  const MAX_DAYS = 730;
-  const fillPct = breakEvenDays > 0 ? Math.max(0, Math.min(100, (1 - breakEvenDays / MAX_DAYS) * 100)) : 0;
+  // Thermometer fill: how close are actual daily earnings to the daily goal (0–100%)
+  const fillPct = dailyGoal > 0 ? Math.min(100, (totalDailyEarnings / dailyGoal) * 100) : 0;
   const fillColor = fillPct >= 66 ? "#22c55e" : fillPct >= 33 ? "#f59e0b" : "#ef4444";
-  const hasData = dailyGoal > 0 || totalInvested > 0;
+  const hasData = dailyGoal > 0 || totalInvested > 0 || totalDailyEarnings > 0;
 
   // Preview helpers inside settings
   const previewTotal = form.investments.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const previewDaily = Number(form.dailyGoal) || 0;
-  const previewBE = previewDaily > 0 && previewTotal > 0 ? Math.ceil(previewTotal / previewDaily) : 0;
+  const previewEarnings = form.investments.reduce((s, i) => s + (Number(i.dailyEarnings) || 0), 0);
+  const previewGoal = Number(form.dailyGoal) || 0;
+  const previewBE = previewEarnings > 0 && previewTotal > 0 ? Math.ceil(previewTotal / previewEarnings) : 0;
 
   return (
     <div className="bg-card border rounded-xl overflow-hidden" data-testid="goals-thermometer">
@@ -282,18 +296,16 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
         {!hasData ? (
           <div className="text-center py-5">
             <Target className="w-7 h-7 text-muted-foreground mx-auto mb-2 opacity-40" />
-            <p className="text-xs text-muted-foreground mb-3">Set your daily goal and investments to track break-even.</p>
+            <p className="text-xs text-muted-foreground mb-3">Set your daily income goal and add investments to track your break-even.</p>
             <button onClick={openSettings} className="text-xs text-green-500 hover:text-green-400 font-semibold" data-testid="btn-goals-configure-empty">
               Configure Goals →
             </button>
           </div>
         ) : (
           <div className="flex gap-3">
-            {/* Thermometer */}
+            {/* Thermometer — shows actual earnings vs daily goal */}
             <div className="flex flex-col items-center shrink-0">
-              {/* Scale labels */}
               <div style={{ height: 8 }} />
-              {/* Tube */}
               <div style={{ width: 20, height: 128, background: "hsl(var(--muted))", borderRadius: "10px 10px 0 0", position: "relative", overflow: "hidden", border: "2px solid hsl(var(--border))" }}>
                 <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: `${fillPct}%`, background: `linear-gradient(to top, ${fillColor}, ${fillColor}bb)`, transition: "height 1s ease", borderRadius: "8px 8px 0 0" }} />
                 {[25, 50, 75].map(p => (
@@ -301,7 +313,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 ))}
               </div>
               {/* Bulb */}
-              <div style={{ width: 30, height: 30, borderRadius: "50%", background: hasData ? fillColor : "hsl(var(--muted))", border: "2px solid hsl(var(--border))", marginTop: -2, transition: "background 1s ease" }} />
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: fillPct > 0 ? fillColor : "hsl(var(--muted))", border: "2px solid hsl(var(--border))", marginTop: -2, transition: "background 1s ease" }} />
               <span className="text-[10px] text-muted-foreground mt-1.5 font-semibold">{Math.round(fillPct)}%</span>
             </div>
 
@@ -309,11 +321,17 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
             <div className="flex-1 space-y-1.5 min-w-0">
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Daily Goal</p>
-                <p className="text-base font-bold text-green-500">${dailyGoal.toLocaleString()}</p>
+                <p className="text-base font-bold text-green-500">${dailyGoal.toLocaleString()}/day</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Earning Now</p>
+                <p className="text-base font-bold" style={{ color: totalDailyEarnings > 0 ? "#f59e0b" : undefined }}>
+                  ${totalDailyEarnings.toFixed(2)}/day
+                </p>
               </div>
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Invested</p>
-                <p className="text-base font-bold">${totalInvested.toLocaleString()}</p>
+                <p className="text-sm font-bold">${totalInvested.toLocaleString()}</p>
               </div>
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5" style={{ border: "1px solid rgba(245,158,11,0.25)" }}>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Break-Even</p>
@@ -326,12 +344,15 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
 
         {/* Investment list */}
         {activeInv.length > 0 && (
-          <div className="mt-3 pt-3 border-t space-y-1">
+          <div className="mt-3 pt-3 border-t space-y-1.5">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Investments</p>
             {activeInv.map((inv, idx) => (
-              <div key={inv.id} className="flex items-center justify-between gap-2">
+              <div key={inv.id} className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground truncate flex-1">{idx + 1}. {inv.name}</span>
                 <span className="text-xs font-semibold shrink-0">${inv.amount.toLocaleString()}</span>
+                {inv.dailyEarnings > 0 && (
+                  <span className="text-[10px] text-amber-500 font-semibold shrink-0">+${inv.dailyEarnings.toFixed(2)}/d</span>
+                )}
               </div>
             ))}
           </div>
@@ -340,7 +361,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-md" style={{ maxHeight: "85vh", overflowY: "auto" }}>
+        <DialogContent className="max-w-lg" style={{ maxHeight: "85vh", overflowY: "auto" }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Target className="w-4 h-4 text-green-500" />
@@ -350,40 +371,63 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
           <div className="space-y-4 pt-1">
             {/* Daily Goal */}
             <div>
-              <label className="text-sm font-medium">Daily Goal (USD)</label>
+              <label className="text-sm font-medium">Daily Income Goal (USD)</label>
               <div className="relative mt-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input data-testid="input-daily-goal" className="pl-7" type="number" min={0} step={1} placeholder="0.00"
+                <Input data-testid="input-daily-goal" className="pl-7" type="number" min={0} step={1} placeholder="e.g. 67 for $2,000/month"
                   value={form.dailyGoal || ""}
                   onChange={(e) => setForm(f => ({ ...f, dailyGoal: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">How much USD do you expect to generate per day?</p>
+              <p className="text-xs text-muted-foreground mt-1">Your target daily income. e.g. $67/day = ~$2,000/month.</p>
             </div>
 
             {/* Investments */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium">Investments ({form.investments.length}/100)</label>
-                <button onClick={addInvestment} disabled={form.investments.length >= 100} className="text-xs text-green-500 hover:text-green-400 font-semibold flex items-center gap-1 disabled:opacity-40" data-testid="btn-add-investment">
-                  <Plus className="w-3 h-3" /> Add Investment
+                <button onClick={addInvestment} disabled={form.investments.length >= 100}
+                  className="text-xs text-green-500 hover:text-green-400 font-semibold flex items-center gap-1 disabled:opacity-40"
+                  data-testid="btn-add-investment">
+                  <Plus className="w-3 h-3" /> Add
                 </button>
               </div>
-              <div className="space-y-2" style={{ maxHeight: 220, overflowY: "auto" }}>
+              {/* Column headers */}
+              {form.investments.length > 0 && (
+                <div className="flex gap-2 mb-1 px-1">
+                  <span className="w-6 shrink-0" />
+                  <span className="flex-1 text-[10px] text-muted-foreground uppercase tracking-wide">Name</span>
+                  <span className="w-24 shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide">Invested</span>
+                  <span className="w-24 shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide">$/day</span>
+                  <span className="w-4 shrink-0" />
+                </div>
+              )}
+              <div className="space-y-2" style={{ maxHeight: 260, overflowY: "auto" }}>
                 {form.investments.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">No investments added. Click "Add Investment" to start.</p>
+                  <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">
+                    No investments yet. Click "Add" to start.
+                  </p>
                 )}
                 {form.investments.map((inv, idx) => (
                   <div key={inv.id} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">#{idx + 1}</span>
-                    <Input className="flex-1 h-8 text-sm" placeholder="Investment name" value={inv.name}
+                    <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" value={inv.name}
                       onChange={(e) => updateInv(inv.id, "name", e.target.value)} />
-                    <div className="relative w-28 shrink-0">
+                    {/* Amount invested */}
+                    <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <Input type="number" min={0} placeholder="0" className="pl-5 h-8 text-sm w-full" value={inv.amount || ""}
+                      <Input type="number" min={0} placeholder="300" className="pl-5 h-8 text-sm w-full"
+                        value={inv.amount || ""}
                         onChange={(e) => updateInv(inv.id, "amount", e.target.value)} />
                     </div>
-                    <button onClick={() => removeInvestment(inv.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0" aria-label="Remove">
+                    {/* Daily earnings */}
+                    <div className="relative w-24 shrink-0">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-500">$</span>
+                      <Input type="number" min={0} step={0.01} placeholder="1.50" className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
+                        value={inv.dailyEarnings || ""}
+                        onChange={(e) => updateInv(inv.id, "dailyEarnings", e.target.value)} />
+                    </div>
+                    <button onClick={() => removeInvestment(inv.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 w-4">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -392,28 +436,38 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
             </div>
 
             {/* Live preview */}
-            {(previewDaily > 0 || previewTotal > 0) && (
+            {(previewGoal > 0 || previewTotal > 0 || previewEarnings > 0) && (
               <div className="rounded-lg bg-muted/40 p-3 border space-y-1.5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preview</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Daily Goal</span>
+                  <span className="font-semibold text-green-500">${previewGoal.toLocaleString()}/day</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Currently Earning</span>
+                  <span className="font-semibold text-amber-500">${previewEarnings.toFixed(2)}/day</span>
+                </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Invested</span>
                   <span className="font-semibold">${previewTotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Daily Goal</span>
-                  <span className="font-semibold text-green-500">${previewDaily.toLocaleString()}/day</span>
-                </div>
                 {previewBE > 0 && (
-                  <>
-                    <div className="border-t pt-1.5 flex justify-between text-sm">
+                  <div className="border-t pt-1.5 space-y-0.5">
+                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Break-Even</span>
                       <span className="font-bold text-amber-500">{previewBE.toLocaleString()} days</span>
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span></span>
+                      <span />
                       <span>{(previewBE / 30.44).toFixed(1)} months · {(previewBE / 365.25).toFixed(2)} years</span>
                     </div>
-                  </>
+                  </div>
+                )}
+                {previewGoal > 0 && (
+                  <div className="flex justify-between text-xs text-muted-foreground border-t pt-1.5">
+                    <span>Goal progress</span>
+                    <span>{previewGoal > 0 ? Math.min(100, (previewEarnings / previewGoal) * 100).toFixed(1) : 0}% of daily goal</span>
+                  </div>
                 )}
               </div>
             )}
