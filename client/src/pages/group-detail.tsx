@@ -390,6 +390,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               <div className="relative mt-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
                 <Input data-testid="input-daily-goal" className="pl-7" type="text" inputMode="decimal" placeholder="e.g. 67 for $2,000/month"
+                  autoComplete="off" autoCorrect="off" autoCapitalize="off"
                   value={dailyGoalRaw}
                   onChange={(e) => setDailyGoalRaw(e.target.value)}
                 />
@@ -432,19 +433,21 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 {rows.map((row, idx) => (
                   <div key={row.id} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">#{idx + 1}</span>
-                    <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" value={row.name}
-                      onChange={(e) => updateRow(row.id, "name", e.target.value)} />
+                    <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" autoComplete="off"
+                      value={row.name} onChange={(e) => updateRow(row.id, "name", e.target.value)} />
                     {/* Amount invested */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <Input type="text" inputMode="decimal" placeholder="300" className="pl-5 h-8 text-sm w-full"
+                      <Input type="text" inputMode="decimal" placeholder="300" autoComplete="off"
+                        className="pl-5 h-8 text-sm w-full"
                         value={row.amountRaw}
                         onChange={(e) => updateRow(row.id, "amountRaw", e.target.value)} />
                     </div>
                     {/* Daily earnings */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-500">$</span>
-                      <Input type="text" inputMode="decimal" placeholder="1.50" className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
+                      <Input type="text" inputMode="decimal" placeholder="1.50" autoComplete="off"
+                        className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
                         value={row.earningsRaw}
                         onChange={(e) => updateRow(row.id, "earningsRaw", e.target.value)} />
                     </div>
