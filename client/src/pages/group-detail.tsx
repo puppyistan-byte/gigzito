@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Users, MessageSquare, Calendar, Target, ChevronLeft, Plus, Trash2, Lock, Globe,
@@ -203,10 +204,20 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 }
 
 // ─── GOALS THERMOMETER ────────────────────────────────────────────────────────
-type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number };
+type RiskLevel = "volatile" | "high" | "medium" | "medium-low" | "low" | "none" | "";
+type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number; risk?: RiskLevel };
 type GoalData = { dailyGoal: number; investments: GoalInvestment[] };
 // Form state uses raw strings so typing "1.50" never snaps back mid-keystroke
-type FormRow = { id: string; name: string; amountRaw: string; earningsRaw: string };
+type FormRow = { id: string; name: string; amountRaw: string; earningsRaw: string; risk: RiskLevel };
+
+const RISK_OPTIONS: { value: RiskLevel; label: string; color: string }[] = [
+  { value: "volatile", label: "Volatile", color: "#dc2626" },
+  { value: "high",     label: "High",     color: "#f97316" },
+  { value: "medium",   label: "Medium",   color: "#eab308" },
+  { value: "medium-low", label: "Med-Low", color: "#38bdf8" },
+  { value: "low",      label: "Low",      color: "#22c55e" },
+  { value: "none",     label: "No Risk",  color: "#6b7280" },
+];
 
 function GoalsThermometer({ groupId }: { groupId: number }) {
   const storageKey = `gz-group-goals-${groupId}`;
@@ -217,8 +228,8 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
       const s = localStorage.getItem(storageKey);
       if (!s) return { dailyGoal: 0, investments: [] };
       const parsed = JSON.parse(s);
-      // migrate old investments that lack dailyEarnings
-      parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, ...i }));
+      // migrate old investments that lack dailyEarnings or risk
+      parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, risk: "" as RiskLevel, ...i }));
       return parsed;
     } catch { return { dailyGoal: 0, investments: [] }; }
   };
@@ -230,7 +241,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const [rows, setRows] = useState<FormRow[]>([]);
 
   const toRows = (invs: GoalInvestment[]): FormRow[] =>
-    invs.map(i => ({ id: i.id, name: i.name, amountRaw: i.amount > 0 ? String(i.amount) : "", earningsRaw: i.dailyEarnings > 0 ? String(i.dailyEarnings) : "" }));
+    invs.map(i => ({ id: i.id, name: i.name, amountRaw: i.amount > 0 ? String(i.amount) : "", earningsRaw: i.dailyEarnings > 0 ? String(i.dailyEarnings) : "", risk: (i.risk ?? "") as RiskLevel }));
 
   const openSettings = () => {
     setDailyGoalRaw(goalData.dailyGoal > 0 ? String(goalData.dailyGoal) : "");
@@ -243,7 +254,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
       dailyGoal: parseFloat(dailyGoalRaw) || 0,
       investments: rows
         .filter(r => r.name.trim() || parseFloat(r.amountRaw) > 0 || parseFloat(r.earningsRaw) > 0)
-        .map(r => ({ id: r.id, name: r.name, amount: parseFloat(r.amountRaw) || 0, dailyEarnings: parseFloat(r.earningsRaw) || 0 })),
+        .map(r => ({ id: r.id, name: r.name, amount: parseFloat(r.amountRaw) || 0, dailyEarnings: parseFloat(r.earningsRaw) || 0, risk: r.risk })),
     };
     localStorage.setItem(storageKey, JSON.stringify(cleaned));
     setGoalData(cleaned);
@@ -253,7 +264,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
 
   const addInvestment = () => {
     if (rows.length >= 100) return;
-    setRows(r => [...r, { id: `${Date.now()}`, name: "", amountRaw: "", earningsRaw: "" }]);
+    setRows(r => [...r, { id: `${Date.now()}`, name: "", amountRaw: "", earningsRaw: "", risk: "" as RiskLevel }]);
   };
   const removeInvestment = (id: string) => setRows(r => r.filter(i => i.id !== id));
   const updateRow = (id: string, field: keyof FormRow, val: string) =>
@@ -361,15 +372,24 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
         {activeInv.length > 0 && (
           <div className="mt-3 pt-3 border-t space-y-1.5">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Investments</p>
-            {activeInv.map((inv, idx) => (
-              <div key={inv.id} className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground truncate flex-1">{idx + 1}. {inv.name}</span>
-                <span className="text-xs font-semibold shrink-0">${inv.amount.toLocaleString()}</span>
-                {inv.dailyEarnings > 0 && (
-                  <span className="text-[10px] text-amber-500 font-semibold shrink-0">+${inv.dailyEarnings.toFixed(2)}/d</span>
-                )}
-              </div>
-            ))}
+            {activeInv.map((inv, idx) => {
+              const riskMeta = RISK_OPTIONS.find(o => o.value === inv.risk);
+              return (
+                <div key={inv.id} className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground truncate flex-1">{idx + 1}. {inv.name}</span>
+                  {riskMeta && riskMeta.value && (
+                    <span className="text-[9px] font-bold uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
+                      style={{ color: riskMeta.color, backgroundColor: riskMeta.color + "22" }}>
+                      {riskMeta.label}
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold shrink-0">${inv.amount.toLocaleString()}</span>
+                  {inv.dailyEarnings > 0 && (
+                    <span className="text-[10px] text-amber-500 font-semibold shrink-0">+${inv.dailyEarnings.toFixed(2)}/d</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -414,48 +434,57 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                   <Plus className="w-3 h-3" /> Add
                 </button>
               </div>
-              {/* Column headers */}
-              {rows.length > 0 && (
-                <div className="flex gap-2 mb-1 px-1">
-                  <span className="w-6 shrink-0" />
-                  <span className="flex-1 text-[10px] text-muted-foreground uppercase tracking-wide">Name</span>
-                  <span className="w-24 shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide">Invested</span>
-                  <span className="w-24 shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide">$/day</span>
-                  <span className="w-4 shrink-0" />
-                </div>
-              )}
-              <div className="space-y-2" style={{ maxHeight: 260, overflowY: "auto" }}>
+              <div className="space-y-2" style={{ maxHeight: 300, overflowY: "auto" }}>
                 {rows.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">
                     No investments yet. Click "Add" to start.
                   </p>
                 )}
-                {rows.map((row, idx) => (
-                  <div key={row.id} className="flex gap-2 items-center">
-                    <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">#{idx + 1}</span>
-                    <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" autoComplete="off"
-                      value={row.name} onChange={(e) => updateRow(row.id, "name", e.target.value)} />
-                    {/* Amount invested */}
-                    <div className="relative w-24 shrink-0">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <Input type="text" inputMode="decimal" placeholder="300" autoComplete="off"
-                        className="pl-5 h-8 text-sm w-full"
-                        value={row.amountRaw}
-                        onChange={(e) => updateRow(row.id, "amountRaw", e.target.value)} />
+                {rows.map((row, idx) => {
+                  const riskMeta = RISK_OPTIONS.find(o => o.value === row.risk);
+                  return (
+                    <div key={row.id} className="border rounded-lg p-2 space-y-1.5 bg-muted/20">
+                      {/* Row 1: # + Name + × */}
+                      <div className="flex gap-2 items-center">
+                        <span className="text-xs text-muted-foreground w-5 shrink-0 text-right">#{idx + 1}</span>
+                        <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" autoComplete="off"
+                          value={row.name} onChange={(e) => updateRow(row.id, "name", e.target.value)} />
+                        <button onClick={() => removeInvestment(row.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {/* Row 2: Invested | $/day | Risk */}
+                      <div className="flex gap-2 items-center pl-7">
+                        <div className="relative flex-1">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
+                          <Input type="text" inputMode="decimal" placeholder="300" autoComplete="off"
+                            className="pl-4 h-7 text-xs w-full" value={row.amountRaw}
+                            onChange={(e) => updateRow(row.id, "amountRaw", e.target.value)} />
+                        </div>
+                        <div className="relative flex-1">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-amber-500">$</span>
+                          <Input type="text" inputMode="decimal" placeholder="$/day" autoComplete="off"
+                            className="pl-4 h-7 text-xs w-full border-amber-500/30 focus:border-amber-500" value={row.earningsRaw}
+                            onChange={(e) => updateRow(row.id, "earningsRaw", e.target.value)} />
+                        </div>
+                        <Select value={row.risk || ""} onValueChange={(v) => updateRow(row.id, "risk", v)}>
+                          <SelectTrigger className="h-7 text-xs flex-1 min-w-0"
+                            style={{ color: riskMeta?.color ?? undefined }}>
+                            <SelectValue placeholder="Risk…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RISK_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}
+                                className="text-xs" style={{ color: opt.color }}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    {/* Daily earnings */}
-                    <div className="relative w-24 shrink-0">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-500">$</span>
-                      <Input type="text" inputMode="decimal" placeholder="1.50" autoComplete="off"
-                        className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
-                        value={row.earningsRaw}
-                        onChange={(e) => updateRow(row.id, "earningsRaw", e.target.value)} />
-                    </div>
-                    <button onClick={() => removeInvestment(row.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 w-4">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
