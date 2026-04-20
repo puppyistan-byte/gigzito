@@ -206,9 +206,11 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 // ─── GOALS THERMOMETER ────────────────────────────────────────────────────────
 type RiskLevel = "volatile" | "high" | "medium" | "medium-low" | "low" | "none" | "";
 type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number; risk?: RiskLevel };
-type GoalData = { dailyGoal: number; investments: GoalInvestment[] };
+type MemberContribution = { id: string; name: string; amount: number };
+type GoalData = { dailyGoal: number; investments: GoalInvestment[]; contributions: MemberContribution[] };
 // Form state uses raw strings so typing "1.50" never snaps back mid-keystroke
 type FormRow = { id: string; name: string; amountRaw: string; earningsRaw: string; risk: RiskLevel };
+type ContribRow = { id: string; name: string; amountRaw: string };
 
 const RISK_OPTIONS: { value: RiskLevel; label: string; color: string }[] = [
   { value: "volatile", label: "Volatile", color: "#dc2626" },
@@ -226,10 +228,11 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const loadGoals = (): GoalData => {
     try {
       const s = localStorage.getItem(storageKey);
-      if (!s) return { dailyGoal: 0, investments: [] };
+      if (!s) return { dailyGoal: 0, investments: [], contributions: [] };
       const parsed = JSON.parse(s);
       // migrate old investments that lack dailyEarnings or risk
       parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, risk: "" as RiskLevel, ...i }));
+      parsed.contributions = parsed.contributions || [];
       return parsed;
     } catch { return { dailyGoal: 0, investments: [] }; }
   };
@@ -239,13 +242,17 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   // Form uses raw strings so typing "1.50" never snaps back
   const [dailyGoalRaw, setDailyGoalRaw] = useState("");
   const [rows, setRows] = useState<FormRow[]>([]);
+  const [contribRows, setContribRows] = useState<ContribRow[]>([]);
 
   const toRows = (invs: GoalInvestment[]): FormRow[] =>
     invs.map(i => ({ id: i.id, name: i.name, amountRaw: i.amount > 0 ? String(i.amount) : "", earningsRaw: i.dailyEarnings > 0 ? String(i.dailyEarnings) : "", risk: (i.risk ?? "") as RiskLevel }));
+  const toContribRows = (cs: MemberContribution[]): ContribRow[] =>
+    cs.map(c => ({ id: c.id, name: c.name, amountRaw: c.amount > 0 ? String(c.amount) : "" }));
 
   const openSettings = () => {
     setDailyGoalRaw(goalData.dailyGoal > 0 ? String(goalData.dailyGoal) : "");
     setRows(toRows(goalData.investments));
+    setContribRows(toContribRows(goalData.contributions || []));
     setShowSettings(true);
   };
 
@@ -255,6 +262,9 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
       investments: rows
         .filter(r => r.name.trim() || parseFloat(r.amountRaw) > 0 || parseFloat(r.earningsRaw) > 0)
         .map(r => ({ id: r.id, name: r.name, amount: parseFloat(r.amountRaw) || 0, dailyEarnings: parseFloat(r.earningsRaw) || 0, risk: r.risk })),
+      contributions: contribRows
+        .filter(c => c.name.trim() || parseFloat(c.amountRaw) > 0)
+        .map(c => ({ id: c.id, name: c.name, amount: parseFloat(c.amountRaw) || 0 })),
     };
     localStorage.setItem(storageKey, JSON.stringify(cleaned));
     setGoalData(cleaned);
@@ -270,6 +280,11 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const updateRow = (id: string, field: keyof FormRow, val: string) =>
     setRows(r => r.map(i => i.id === id ? { ...i, [field]: val } : i));
 
+  const addContrib = () => setContribRows(r => [...r, { id: `${Date.now()}`, name: "", amountRaw: "" }]);
+  const removeContrib = (id: string) => setContribRows(r => r.filter(c => c.id !== id));
+  const updateContrib = (id: string, field: keyof ContribRow, val: string) =>
+    setContribRows(r => r.map(c => c.id === id ? { ...c, [field]: val } : c));
+
   const activeInv = goalData.investments.filter(i => i.name.trim() && (i.amount > 0 || i.dailyEarnings > 0));
   const totalInvested = activeInv.reduce((s, i) => s + i.amount, 0);
   const totalDailyEarnings = activeInv.reduce((s, i) => s + i.dailyEarnings, 0);
@@ -284,6 +299,10 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const fillPct = dailyGoal > 0 ? Math.min(100, (totalDailyEarnings / dailyGoal) * 100) : 0;
   const fillColor = fillPct >= 66 ? "#22c55e" : fillPct >= 33 ? "#f59e0b" : "#ef4444";
   const hasData = dailyGoal > 0 || totalInvested > 0 || totalDailyEarnings > 0;
+
+  // Member contributions
+  const activeContribs = (goalData.contributions || []).filter(c => c.name.trim() && c.amount > 0);
+  const totalContributed = activeContribs.reduce((s, c) => s + c.amount, 0);
 
   // Overall portfolio risk — weighted average of active investments with risk set
   const RISK_WEIGHTS: Record<string, number> = { volatile: 5, high: 4, medium: 3, "medium-low": 2, low: 1, none: 0 };
@@ -411,6 +430,57 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
             })}
           </div>
         )}
+
+        {/* Member Contributions */}
+        {activeContribs.length > 0 && (
+          <div className="mt-3 pt-3 border-t space-y-2">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Contributions</p>
+              {totalContributed > 0 && totalDailyEarnings > 0 && (
+                <span className="text-[9px] text-amber-500 font-semibold uppercase tracking-wide">Split Now</span>
+              )}
+            </div>
+            {activeContribs.map(c => {
+              const sharePct = totalContributed > 0 ? (c.amount / totalContributed) * 100 : 0;
+              const dailyDiv = (sharePct / 100) * totalDailyEarnings;
+              const pctOfGoal = dailyGoal > 0 ? (dailyDiv / dailyGoal) * 100 : 0;
+              return (
+                <div key={c.id} className="rounded-lg bg-muted/30 px-2.5 py-1.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold truncate">{c.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2">${c.amount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span className="text-blue-400 font-semibold">{sharePct.toFixed(1)}% share</span>
+                    {totalDailyEarnings > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-amber-500 font-semibold">${dailyDiv.toFixed(2)}/day</span>
+                      </>
+                    )}
+                    {dailyGoal > 0 && totalDailyEarnings > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-green-500 font-semibold">{pctOfGoal.toFixed(1)}% of goal</span>
+                      </>
+                    )}
+                  </div>
+                  {/* Share progress bar */}
+                  <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
+                    <div className="h-full rounded-full bg-blue-500/70 transition-all"
+                      style={{ width: `${sharePct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+            {totalContributed > 0 && (
+              <div className="flex justify-between text-[10px] text-muted-foreground pt-0.5">
+                <span>Total contributed</span>
+                <span className="font-semibold">${totalContributed.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Settings Dialog */}
@@ -504,6 +574,42 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Member Contributions */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">Member Contributions</label>
+                <button onClick={addContrib}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1"
+                  data-testid="btn-add-contrib">
+                  <Plus className="w-3 h-3" /> Add
+                </button>
+              </div>
+              <div className="space-y-2" style={{ maxHeight: 200, overflowY: "auto" }}>
+                {contribRows.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-3 border border-dashed rounded-lg">
+                    No contributors yet. Click "Add" to track member contributions.
+                  </p>
+                )}
+                {contribRows.map((c, idx) => (
+                  <div key={c.id} className="flex gap-2 items-center">
+                    <span className="text-xs text-muted-foreground w-5 shrink-0 text-right">#{idx + 1}</span>
+                    <Input className="flex-1 h-8 text-sm" placeholder="Member name" autoComplete="off"
+                      value={c.name} onChange={(e) => updateContrib(c.id, "name", e.target.value)} />
+                    <div className="relative w-28 shrink-0">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                      <Input type="text" inputMode="decimal" placeholder="Amount" autoComplete="off"
+                        className="pl-5 h-8 text-sm w-full"
+                        value={c.amountRaw}
+                        onChange={(e) => updateContrib(c.id, "amountRaw", e.target.value)} />
+                    </div>
+                    <button onClick={() => removeContrib(c.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 
