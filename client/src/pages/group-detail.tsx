@@ -202,6 +202,235 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
   );
 }
 
+// ─── GOALS THERMOMETER ────────────────────────────────────────────────────────
+type GoalInvestment = { id: string; name: string; amount: number };
+type GoalData = { dailyGoal: number; investments: GoalInvestment[] };
+
+function GoalsThermometer({ groupId }: { groupId: number }) {
+  const storageKey = `gz-group-goals-${groupId}`;
+  const { toast } = useToast();
+
+  const loadGoals = (): GoalData => {
+    try {
+      const s = localStorage.getItem(storageKey);
+      return s ? JSON.parse(s) : { dailyGoal: 0, investments: [] };
+    } catch { return { dailyGoal: 0, investments: [] }; }
+  };
+
+  const [goalData, setGoalData] = useState<GoalData>(loadGoals);
+  const [showSettings, setShowSettings] = useState(false);
+  const [form, setForm] = useState<GoalData>(goalData);
+
+  const saveGoals = () => {
+    const cleaned: GoalData = {
+      dailyGoal: Number(form.dailyGoal) || 0,
+      investments: form.investments.filter(i => i.name.trim() || i.amount > 0).map(i => ({ ...i, amount: Number(i.amount) || 0 })),
+    };
+    localStorage.setItem(storageKey, JSON.stringify(cleaned));
+    setGoalData(cleaned);
+    setShowSettings(false);
+    toast({ title: "Goals saved!" });
+  };
+
+  const openSettings = () => {
+    setForm({ ...goalData, investments: goalData.investments.map(i => ({ ...i })) });
+    setShowSettings(true);
+  };
+
+  const addInvestment = () => {
+    if (form.investments.length >= 100) return;
+    setForm(f => ({ ...f, investments: [...f.investments, { id: `${Date.now()}`, name: "", amount: 0 }] }));
+  };
+
+  const removeInvestment = (id: string) => setForm(f => ({ ...f, investments: f.investments.filter(i => i.id !== id) }));
+  const updateInv = (id: string, field: "name" | "amount", val: string) =>
+    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, [field]: field === "amount" ? parseFloat(val) || 0 : val } : i) }));
+
+  const activeInv = goalData.investments.filter(i => i.name.trim() && i.amount > 0);
+  const totalInvested = activeInv.reduce((s, i) => s + i.amount, 0);
+  const dailyGoal = goalData.dailyGoal;
+  const breakEvenDays = dailyGoal > 0 && totalInvested > 0 ? Math.ceil(totalInvested / dailyGoal) : 0;
+  const breakEvenMonths = breakEvenDays > 0 ? (breakEvenDays / 30.44).toFixed(1) : "—";
+  const breakEvenYears = breakEvenDays > 0 ? (breakEvenDays / 365.25).toFixed(2) : "—";
+
+  // Thermometer fill: scale 0 days = 100%, 730+ days = 0%
+  const MAX_DAYS = 730;
+  const fillPct = breakEvenDays > 0 ? Math.max(0, Math.min(100, (1 - breakEvenDays / MAX_DAYS) * 100)) : 0;
+  const fillColor = fillPct >= 66 ? "#22c55e" : fillPct >= 33 ? "#f59e0b" : "#ef4444";
+  const hasData = dailyGoal > 0 || totalInvested > 0;
+
+  // Preview helpers inside settings
+  const previewTotal = form.investments.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  const previewDaily = Number(form.dailyGoal) || 0;
+  const previewBE = previewDaily > 0 && previewTotal > 0 ? Math.ceil(previewTotal / previewDaily) : 0;
+
+  return (
+    <div className="bg-card border rounded-xl overflow-hidden" data-testid="goals-thermometer">
+      {/* Header */}
+      <div className="px-4 pt-3 pb-1 border-b flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Target className="w-4 h-4 text-green-500" />
+          <h3 className="font-semibold text-sm">Goals</h3>
+        </div>
+        <button onClick={openSettings} className="text-muted-foreground hover:text-foreground transition-colors" data-testid="btn-goals-settings" aria-label="Configure goals">
+          <Settings className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="p-4">
+        {!hasData ? (
+          <div className="text-center py-5">
+            <Target className="w-7 h-7 text-muted-foreground mx-auto mb-2 opacity-40" />
+            <p className="text-xs text-muted-foreground mb-3">Set your daily goal and investments to track break-even.</p>
+            <button onClick={openSettings} className="text-xs text-green-500 hover:text-green-400 font-semibold" data-testid="btn-goals-configure-empty">
+              Configure Goals →
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            {/* Thermometer */}
+            <div className="flex flex-col items-center shrink-0">
+              {/* Scale labels */}
+              <div style={{ height: 8 }} />
+              {/* Tube */}
+              <div style={{ width: 20, height: 128, background: "hsl(var(--muted))", borderRadius: "10px 10px 0 0", position: "relative", overflow: "hidden", border: "2px solid hsl(var(--border))" }}>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: `${fillPct}%`, background: `linear-gradient(to top, ${fillColor}, ${fillColor}bb)`, transition: "height 1s ease", borderRadius: "8px 8px 0 0" }} />
+                {[25, 50, 75].map(p => (
+                  <div key={p} style={{ position: "absolute", bottom: `${p}%`, right: -6, width: 5, height: 1.5, background: "hsl(var(--muted-foreground))", opacity: 0.5 }} />
+                ))}
+              </div>
+              {/* Bulb */}
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: hasData ? fillColor : "hsl(var(--muted))", border: "2px solid hsl(var(--border))", marginTop: -2, transition: "background 1s ease" }} />
+              <span className="text-[10px] text-muted-foreground mt-1.5 font-semibold">{Math.round(fillPct)}%</span>
+            </div>
+
+            {/* Stats */}
+            <div className="flex-1 space-y-1.5 min-w-0">
+              <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Daily Goal</p>
+                <p className="text-base font-bold text-green-500">${dailyGoal.toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Invested</p>
+                <p className="text-base font-bold">${totalInvested.toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-2.5 py-1.5" style={{ border: "1px solid rgba(245,158,11,0.25)" }}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Break-Even</p>
+                <p className="text-sm font-bold text-amber-500">{breakEvenDays > 0 ? `${breakEvenDays.toLocaleString()} days` : "—"}</p>
+                {breakEvenDays > 0 && <p className="text-[10px] text-muted-foreground">{breakEvenMonths} mo · {breakEvenYears} yrs</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Investment list */}
+        {activeInv.length > 0 && (
+          <div className="mt-3 pt-3 border-t space-y-1">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Investments</p>
+            {activeInv.map((inv, idx) => (
+              <div key={inv.id} className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground truncate flex-1">{idx + 1}. {inv.name}</span>
+                <span className="text-xs font-semibold shrink-0">${inv.amount.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-md" style={{ maxHeight: "85vh", overflowY: "auto" }}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-green-500" />
+              Configure Goals
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            {/* Daily Goal */}
+            <div>
+              <label className="text-sm font-medium">Daily Goal (USD)</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <Input data-testid="input-daily-goal" className="pl-7" type="number" min={0} step={1} placeholder="0.00"
+                  value={form.dailyGoal || ""}
+                  onChange={(e) => setForm(f => ({ ...f, dailyGoal: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">How much USD do you expect to generate per day?</p>
+            </div>
+
+            {/* Investments */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">Investments ({form.investments.length}/100)</label>
+                <button onClick={addInvestment} disabled={form.investments.length >= 100} className="text-xs text-green-500 hover:text-green-400 font-semibold flex items-center gap-1 disabled:opacity-40" data-testid="btn-add-investment">
+                  <Plus className="w-3 h-3" /> Add Investment
+                </button>
+              </div>
+              <div className="space-y-2" style={{ maxHeight: 220, overflowY: "auto" }}>
+                {form.investments.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">No investments added. Click "Add Investment" to start.</p>
+                )}
+                {form.investments.map((inv, idx) => (
+                  <div key={inv.id} className="flex gap-2 items-center">
+                    <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">#{idx + 1}</span>
+                    <Input className="flex-1 h-8 text-sm" placeholder="Investment name" value={inv.name}
+                      onChange={(e) => updateInv(inv.id, "name", e.target.value)} />
+                    <div className="relative w-28 shrink-0">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                      <Input type="number" min={0} placeholder="0" className="pl-5 h-8 text-sm w-full" value={inv.amount || ""}
+                        onChange={(e) => updateInv(inv.id, "amount", e.target.value)} />
+                    </div>
+                    <button onClick={() => removeInvestment(inv.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0" aria-label="Remove">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Live preview */}
+            {(previewDaily > 0 || previewTotal > 0) && (
+              <div className="rounded-lg bg-muted/40 p-3 border space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preview</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Invested</span>
+                  <span className="font-semibold">${previewTotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Daily Goal</span>
+                  <span className="font-semibold text-green-500">${previewDaily.toLocaleString()}/day</span>
+                </div>
+                {previewBE > 0 && (
+                  <>
+                    <div className="border-t pt-1.5 flex justify-between text-sm">
+                      <span className="text-muted-foreground">Break-Even</span>
+                      <span className="font-bold text-amber-500">{previewBE.toLocaleString()} days</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span></span>
+                      <span>{(previewBE / 30.44).toFixed(1)} months · {(previewBE / 365.25).toFixed(2)} years</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={saveGoals} data-testid="btn-save-goals">
+                Save Goals
+              </Button>
+              <Button variant="outline" onClick={() => setShowSettings(false)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── CALENDAR SIDEBAR ─────────────────────────────────────────────────────────
 function CalendarSidebar({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
   const qc = useQueryClient();
@@ -2178,8 +2407,8 @@ export default function GroupDetailPage() {
           </button>
         </div>
 
-        {/* ── BANNER ─────────────────────────────────────────── */}
-        <div className="relative rounded-2xl overflow-hidden mb-5 bg-gradient-to-br from-red-600 to-red-900 group/banner" style={{ height: 200 }}>
+        {/* ── BANNER (shown above grid on mobile; inside left col on desktop) ── */}
+        <div className="lg:hidden relative rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-red-600 to-red-900 group/banner" style={{ height: 180 }}>
           {group.coverUrl && <img src={group.coverUrl} alt={group.name} className="absolute inset-0 w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
@@ -2244,8 +2473,53 @@ export default function GroupDetailPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 items-start">
 
-            {/* Left: tabs + content */}
+            {/* Left: banner (desktop only) + tabs + content */}
             <div>
+              {/* Desktop banner — symmetric with right rail */}
+              <div className="hidden lg:block relative rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-red-600 to-red-900 group/banner-desk" style={{ height: 180 }}>
+                {group.coverUrl && <img src={group.coverUrl} alt={group.name} className="absolute inset-0 w-full h-full object-cover" />}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                {isAdmin && (
+                  <>
+                    <input id="banner-upload-desk" type="file" accept="image/*" className="sr-only" onChange={handleBannerUpload} />
+                    <label htmlFor="banner-upload-desk" className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/banner-desk:opacity-100 transition-opacity cursor-pointer z-10">
+                      {bannerUploading ? (
+                        <div className="text-white text-sm font-medium">Uploading…</div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-white">
+                          <Camera className="w-8 h-8" />
+                          <span className="text-sm font-medium">Change Banner Photo</span>
+                        </div>
+                      )}
+                    </label>
+                  </>
+                )}
+                <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        {group.isPrivate ? <Lock className="w-3.5 h-3.5 text-white/70" /> : <Globe className="w-3.5 h-3.5 text-white/70" />}
+                        {isAdmin && <Badge className="bg-red-500/80 text-white text-xs border-0">Admin</Badge>}
+                      </div>
+                      <h1 className="text-white text-xl font-bold leading-tight">{group.name}</h1>
+                      {group.description && <p className="text-white/70 text-xs mt-0.5 line-clamp-1">{group.description}</p>}
+                      <p className="text-white/60 text-xs mt-0.5">{group.memberCount} {group.memberCount === 1 ? "member" : "members"}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button data-testid="button-back-desk" onClick={() => navigate("/groups")} className="p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors">
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      {isAdmin && (
+                        <button data-testid="button-edit-group-desk" onClick={openEdit} className="p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors">
+                          <Settings className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs */}
               <div className="flex gap-0.5 border-b mb-4">
                 {MAIN_TABS.map((t) => (
                   <button
@@ -2268,8 +2542,9 @@ export default function GroupDetailPage() {
               {tab === "wallet" && <WalletTab groupId={groupId} isAdmin={isAdmin} />}
             </div>
 
-            {/* Right: sidebar */}
+            {/* Right: Goals + Calendar + Members */}
             <div className="space-y-4 lg:sticky lg:top-20">
+              <GoalsThermometer groupId={groupId} />
               <CalendarSidebar groupId={groupId} isAdmin={isAdmin} />
               <MembersSidebar groupId={groupId} isAdmin={isAdmin} inviteCode={group.inviteCode} />
             </div>
