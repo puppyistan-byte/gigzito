@@ -205,6 +205,8 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 // ─── GOALS THERMOMETER ────────────────────────────────────────────────────────
 type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number };
 type GoalData = { dailyGoal: number; investments: GoalInvestment[] };
+// Form state uses raw strings so typing "1.50" never snaps back mid-keystroke
+type FormRow = { id: string; name: string; amountRaw: string; earningsRaw: string };
 
 function GoalsThermometer({ groupId }: { groupId: number }) {
   const storageKey = `gz-group-goals-${groupId}`;
@@ -223,14 +225,25 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
 
   const [goalData, setGoalData] = useState<GoalData>(loadGoals);
   const [showSettings, setShowSettings] = useState(false);
-  const [form, setForm] = useState<GoalData>(goalData);
+  // Form uses raw strings so typing "1.50" never snaps back
+  const [dailyGoalRaw, setDailyGoalRaw] = useState("");
+  const [rows, setRows] = useState<FormRow[]>([]);
+
+  const toRows = (invs: GoalInvestment[]): FormRow[] =>
+    invs.map(i => ({ id: i.id, name: i.name, amountRaw: i.amount > 0 ? String(i.amount) : "", earningsRaw: i.dailyEarnings > 0 ? String(i.dailyEarnings) : "" }));
+
+  const openSettings = () => {
+    setDailyGoalRaw(goalData.dailyGoal > 0 ? String(goalData.dailyGoal) : "");
+    setRows(toRows(goalData.investments));
+    setShowSettings(true);
+  };
 
   const saveGoals = () => {
     const cleaned: GoalData = {
-      dailyGoal: Number(form.dailyGoal) || 0,
-      investments: form.investments
-        .filter(i => i.name.trim() || i.amount > 0 || i.dailyEarnings > 0)
-        .map(i => ({ ...i, amount: Number(i.amount) || 0, dailyEarnings: Number(i.dailyEarnings) || 0 })),
+      dailyGoal: parseFloat(dailyGoalRaw) || 0,
+      investments: rows
+        .filter(r => r.name.trim() || parseFloat(r.amountRaw) > 0 || parseFloat(r.earningsRaw) > 0)
+        .map(r => ({ id: r.id, name: r.name, amount: parseFloat(r.amountRaw) || 0, dailyEarnings: parseFloat(r.earningsRaw) || 0 })),
     };
     localStorage.setItem(storageKey, JSON.stringify(cleaned));
     setGoalData(cleaned);
@@ -238,23 +251,13 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
     toast({ title: "Goals saved!" });
   };
 
-  const openSettings = () => {
-    setForm({ ...goalData, investments: goalData.investments.map(i => ({ ...i })) });
-    setShowSettings(true);
-  };
-
   const addInvestment = () => {
-    if (form.investments.length >= 100) return;
-    setForm(f => ({ ...f, investments: [...f.investments, { id: `${Date.now()}`, name: "", amount: 0, dailyEarnings: 0 }] }));
+    if (rows.length >= 100) return;
+    setRows(r => [...r, { id: `${Date.now()}`, name: "", amountRaw: "", earningsRaw: "" }]);
   };
-
-  const removeInvestment = (id: string) => setForm(f => ({ ...f, investments: f.investments.filter(i => i.id !== id) }));
-  const updateInvName = (id: string, val: string) =>
-    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, name: val } : i) }));
-  const updateInvAmount = (id: string, val: string) =>
-    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, amount: parseFloat(val) || 0 } : i) }));
-  const updateInvEarnings = (id: string, val: string) =>
-    setForm(f => ({ ...f, investments: f.investments.map(i => i.id === id ? { ...i, dailyEarnings: parseFloat(val) || 0 } : i) }));
+  const removeInvestment = (id: string) => setRows(r => r.filter(i => i.id !== id));
+  const updateRow = (id: string, field: keyof FormRow, val: string) =>
+    setRows(r => r.map(i => i.id === id ? { ...i, [field]: val } : i));
 
   const activeInv = goalData.investments.filter(i => i.name.trim() && (i.amount > 0 || i.dailyEarnings > 0));
   const totalInvested = activeInv.reduce((s, i) => s + i.amount, 0);
@@ -271,10 +274,10 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const fillColor = fillPct >= 66 ? "#22c55e" : fillPct >= 33 ? "#f59e0b" : "#ef4444";
   const hasData = dailyGoal > 0 || totalInvested > 0 || totalDailyEarnings > 0;
 
-  // Preview helpers inside settings
-  const previewTotal = form.investments.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-  const previewEarnings = form.investments.reduce((s, i) => s + (Number(i.dailyEarnings) || 0), 0);
-  const previewGoal = Number(form.dailyGoal) || 0;
+  // Preview helpers — parse the live string row values
+  const previewGoal = parseFloat(dailyGoalRaw) || 0;
+  const previewTotal = rows.reduce((s, r) => s + (parseFloat(r.amountRaw) || 0), 0);
+  const previewEarnings = rows.reduce((s, r) => s + (parseFloat(r.earningsRaw) || 0), 0);
   const previewBE = previewEarnings > 0 && previewTotal > 0 ? Math.ceil(previewTotal / previewEarnings) : 0;
 
   return (
@@ -386,9 +389,9 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               <label className="text-sm font-medium">Daily Income Goal (USD)</label>
               <div className="relative mt-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                <Input data-testid="input-daily-goal" className="pl-7" type="number" min={0} step={1} placeholder="e.g. 67 for $2,000/month"
-                  value={form.dailyGoal || ""}
-                  onChange={(e) => setForm(f => ({ ...f, dailyGoal: parseFloat(e.target.value) || 0 }))}
+                <Input data-testid="input-daily-goal" className="pl-7" type="text" inputMode="decimal" placeholder="e.g. 67 for $2,000/month"
+                  value={dailyGoalRaw}
+                  onChange={(e) => setDailyGoalRaw(e.target.value)}
                 />
               </div>
               {previewGoal > 0 ? (
@@ -403,15 +406,15 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
             {/* Investments */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium">Investments ({form.investments.length}/100)</label>
-                <button onClick={addInvestment} disabled={form.investments.length >= 100}
+                <label className="text-sm font-medium">Investments ({rows.length}/100)</label>
+                <button onClick={addInvestment} disabled={rows.length >= 100}
                   className="text-xs text-green-500 hover:text-green-400 font-semibold flex items-center gap-1 disabled:opacity-40"
                   data-testid="btn-add-investment">
                   <Plus className="w-3 h-3" /> Add
                 </button>
               </div>
               {/* Column headers */}
-              {form.investments.length > 0 && (
+              {rows.length > 0 && (
                 <div className="flex gap-2 mb-1 px-1">
                   <span className="w-6 shrink-0" />
                   <span className="flex-1 text-[10px] text-muted-foreground uppercase tracking-wide">Name</span>
@@ -421,31 +424,31 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 </div>
               )}
               <div className="space-y-2" style={{ maxHeight: 260, overflowY: "auto" }}>
-                {form.investments.length === 0 && (
+                {rows.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-4 border border-dashed rounded-lg">
                     No investments yet. Click "Add" to start.
                   </p>
                 )}
-                {form.investments.map((inv, idx) => (
-                  <div key={inv.id} className="flex gap-2 items-center">
+                {rows.map((row, idx) => (
+                  <div key={row.id} className="flex gap-2 items-center">
                     <span className="text-xs text-muted-foreground w-6 shrink-0 text-right">#{idx + 1}</span>
-                    <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" value={inv.name}
-                      onChange={(e) => updateInvName(inv.id, e.target.value)} />
+                    <Input className="flex-1 h-8 text-sm" placeholder="e.g. Aurum" value={row.name}
+                      onChange={(e) => updateRow(row.id, "name", e.target.value)} />
                     {/* Amount invested */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <Input type="number" min={0} placeholder="300" className="pl-5 h-8 text-sm w-full"
-                        value={inv.amount > 0 ? inv.amount : ""}
-                        onChange={(e) => updateInvAmount(inv.id, e.target.value)} />
+                      <Input type="text" inputMode="decimal" placeholder="300" className="pl-5 h-8 text-sm w-full"
+                        value={row.amountRaw}
+                        onChange={(e) => updateRow(row.id, "amountRaw", e.target.value)} />
                     </div>
                     {/* Daily earnings */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-500">$</span>
                       <Input type="text" inputMode="decimal" placeholder="1.50" className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
-                        value={inv.dailyEarnings > 0 ? inv.dailyEarnings : ""}
-                        onChange={(e) => updateInvEarnings(inv.id, e.target.value)} />
+                        value={row.earningsRaw}
+                        onChange={(e) => updateRow(row.id, "earningsRaw", e.target.value)} />
                     </div>
-                    <button onClick={() => removeInvestment(inv.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 w-4">
+                    <button onClick={() => removeInvestment(row.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0 w-4">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
