@@ -107,7 +107,9 @@ function Router() {
       <Route path="/what-is-gigjack" component={WhatIsGigJackPage} />
       <Route path="/preemptive-marketing" component={PreemptiveMarketingPage} />
       <Route path="/geezee/:userId" component={GeeZeeProfilePage} />
-      <Route path="/gz-business" component={GzBusinessPage} />
+      <Route path="/gz-business" component={GzBusinessDirectoryPage} />
+      <Route path="/gz-business/manage" component={GzBusinessPage} />
+      <Route path="/gz-business-directory" component={GzBusinessDirectoryPage} />
       <Route path="/offer-center" component={OfferCenterPage} />
       <Route path="/gz-invite" component={InviteLandingPage} />
       <Route path="/activity" component={ActivityPage} />
@@ -120,7 +122,6 @@ function Router() {
       <Route path="/groups/:id" component={GroupDetailPage} />
       <Route path="/join-group/:token" component={JoinGroupPage} />
       <Route path="/qr/:uuid" component={QrRedirectPage} />
-      <Route path="/gz-business-directory" component={GzBusinessDirectoryPage} />
       <Route path="/business-profile/setup" component={BusinessProfileSetupPage} />
       <Route path="/business-profile/settings" component={BusinessProfileSetupPage} />
       <Route path="/business/:id" component={BusinessStorefrontPage} />

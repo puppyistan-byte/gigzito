@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Store, MapPin, Phone, Globe, Search, Building2, Mail, ChevronLeft } from "lucide-react";
+import { Store, MapPin, Phone, Globe, Search, Building2, ChevronLeft, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth";
 
 type BizEntry = {
   id: number;
@@ -92,6 +93,19 @@ function BizCard({ biz, onClick }: { biz: BizEntry; onClick: () => void }) {
 export default function GzBusinessDirectoryPage() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const { user } = useAuth();
+  const tier = user?.user?.subscriptionTier ?? "";
+  const canAddBusiness = ["GZBusiness", "GZEnterprise", "SUPER_ADMIN", "ADMIN"].includes(tier) || user?.user?.role === "SUPER_ADMIN";
+
+  const handleAddBusiness = () => {
+    if (!user) {
+      navigate("/auth");
+    } else if (canAddBusiness) {
+      navigate("/business-profile/setup");
+    } else {
+      navigate("/pricing");
+    }
+  };
 
   const { data: businesses = [], isLoading } = useQuery<BizEntry[]>({
     queryKey: ["/api/businesses/directory"],
@@ -125,6 +139,14 @@ export default function GzBusinessDirectoryPage() {
           {businesses.length > 0 && (
             <span className="text-[10px] text-[#555] shrink-0">{businesses.length} listed</span>
           )}
+          <button
+            onClick={handleAddBusiness}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-full transition-colors shrink-0"
+            data-testid="btn-add-business"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Business
+          </button>
         </div>
       </div>
 
@@ -168,7 +190,17 @@ export default function GzBusinessDirectoryPage() {
               {search ? "No businesses match your search." : "No businesses listed yet."}
             </p>
             {!search && (
-              <p className="text-[#333] text-xs mt-1">GZBusiness members can create a storefront from their dashboard.</p>
+              <>
+                <p className="text-[#333] text-xs mt-1 mb-4">Be the first to list your business on Gigzito.</p>
+                <button
+                  onClick={handleAddBusiness}
+                  className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold px-5 py-2.5 rounded-full transition-colors"
+                  data-testid="btn-add-business-empty"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Your Business
+                </button>
+              </>
             )}
           </div>
         ) : (

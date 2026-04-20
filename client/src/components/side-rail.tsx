@@ -59,12 +59,11 @@ const GZ_BUTTONS: GzBtn[] = [
   {
     id: "gz-business",
     label: "GZBusiness",
-    tagline: "🏢 Your Storefront · Get Found Locally",
+    tagline: "🏢 Business Directory · Get Found Locally",
     color: "#10b981",
     glow: "rgba(16,185,129,0.65)",
     bg: "transparent",
-    path: "/business-profile/setup",
-    businessOnly: true,
+    path: "/gz-business",
   },
   {
     id: "most-loved",

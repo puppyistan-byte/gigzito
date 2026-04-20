@@ -792,8 +792,9 @@ export class DatabaseStorage implements IStorage {
     return rows.map((r) => ({
       ...r.card,
       // profilePic is the card-specific pic; avatarUrl is the provider profile fallback
-      profilePic:   r.card.profilePic ?? r.avatarUrl ?? null,
-      avatarUrl:    r.avatarUrl    ?? null,
+      // Use || (not ??) so empty strings are also treated as missing
+      profilePic:   r.card.profilePic || r.avatarUrl || null,
+      avatarUrl:    r.avatarUrl    || null,
       username:     r.username     ?? null,
       displayName:  r.displayName  ?? null,
       instagramUrl: r.instagramUrl ?? null,
@@ -2066,7 +2067,7 @@ export class DatabaseStorage implements IStorage {
     for (const r of geezeeRows) {
       if (r.profileId) {
         geezeeMap.set(r.profileId, r.engagementCount);
-        profileInfoMap.set(r.profileId, { displayName: r.displayName ?? null, avatarUrl: r.avatarUrl ?? null, username: r.username ?? null });
+        profileInfoMap.set(r.profileId, { displayName: r.displayName || null, avatarUrl: r.avatarUrl || null, username: r.username || null });
       }
     }
 
@@ -2075,7 +2076,7 @@ export class DatabaseStorage implements IStorage {
     if (missingIds.length > 0) {
       const profiles = await db.select({ id: providerProfiles.id, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl, username: providerProfiles.username })
         .from(providerProfiles).where(inArray(providerProfiles.id, missingIds));
-      for (const p of profiles) profileInfoMap.set(p.id, { displayName: p.displayName ?? null, avatarUrl: p.avatarUrl ?? null, username: p.username ?? null });
+      for (const p of profiles) profileInfoMap.set(p.id, { displayName: p.displayName || null, avatarUrl: p.avatarUrl || null, username: p.username || null });
     }
 
     const allIds = new Set([...loveMap.keys(), ...geezeeMap.keys()]);
