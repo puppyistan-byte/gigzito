@@ -285,6 +285,19 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const fillColor = fillPct >= 66 ? "#22c55e" : fillPct >= 33 ? "#f59e0b" : "#ef4444";
   const hasData = dailyGoal > 0 || totalInvested > 0 || totalDailyEarnings > 0;
 
+  // Overall portfolio risk — weighted average of active investments with risk set
+  const RISK_WEIGHTS: Record<string, number> = { volatile: 5, high: 4, medium: 3, "medium-low": 2, low: 1, none: 0 };
+  const ratedInv = activeInv.filter(i => i.risk && i.risk in RISK_WEIGHTS);
+  const avgRisk = ratedInv.length > 0
+    ? ratedInv.reduce((s, i) => s + RISK_WEIGHTS[i.risk!], 0) / ratedInv.length : null;
+  const overallRisk = avgRisk === null ? null
+    : avgRisk >= 4.5 ? RISK_OPTIONS[0]   // Volatile
+    : avgRisk >= 3.5 ? RISK_OPTIONS[1]   // High
+    : avgRisk >= 2.5 ? RISK_OPTIONS[2]   // Medium
+    : avgRisk >= 1.5 ? RISK_OPTIONS[3]   // Med-Low
+    : avgRisk >= 0.5 ? RISK_OPTIONS[4]   // Low
+    : RISK_OPTIONS[5];                   // No Risk
+
   // Preview helpers — parse the live string row values
   const previewGoal = parseFloat(dailyGoalRaw) || 0;
   const previewTotal = rows.reduce((s, r) => s + (parseFloat(r.amountRaw) || 0), 0);
@@ -295,11 +308,17 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
     <div className="bg-card border rounded-xl overflow-hidden" data-testid="goals-thermometer">
       {/* Header */}
       <div className="px-4 pt-3 pb-1 border-b flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Target className="w-4 h-4 text-green-500" />
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <Target className="w-4 h-4 text-green-500 shrink-0" />
           <h3 className="font-semibold text-sm">Goals</h3>
+          {overallRisk && (
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full shrink-0"
+              style={{ color: overallRisk.color, backgroundColor: overallRisk.color + "22", border: `1px solid ${overallRisk.color}44` }}>
+              {overallRisk.label} risk
+            </span>
+          )}
         </div>
-        <button onClick={openSettings} className="text-muted-foreground hover:text-foreground transition-colors" data-testid="btn-goals-settings" aria-label="Configure goals">
+        <button onClick={openSettings} className="text-muted-foreground hover:text-foreground transition-colors shrink-0" data-testid="btn-goals-settings" aria-label="Configure goals">
           <Settings className="w-4 h-4" />
         </button>
       </div>
@@ -2527,9 +2546,9 @@ export default function GroupDetailPage() {
           <button
             data-testid="button-group-detail-home"
             onClick={() => navigate("/")}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 16px rgba(255,43,43,0.35)", letterSpacing: "0.02em", border: "none" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 600, fontSize: 11, padding: "4px 11px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 10px rgba(255,43,43,0.30)", letterSpacing: "0.02em", border: "none" }}
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={11} />
             Back to Gigzito
           </button>
         </div>
