@@ -441,7 +441,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                     {/* Daily earnings */}
                     <div className="relative w-24 shrink-0">
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-amber-500">$</span>
-                      <Input type="number" min={0} step={0.01} placeholder="1.50" className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
+                      <Input type="text" inputMode="decimal" placeholder="1.50" className="pl-5 h-8 text-sm w-full border-amber-500/30 focus:border-amber-500"
                         value={inv.dailyEarnings > 0 ? inv.dailyEarnings : ""}
                         onChange={(e) => updateInvEarnings(inv.id, e.target.value)} />
                     </div>

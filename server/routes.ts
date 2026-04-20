@@ -4666,7 +4666,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       // Send in-app notification to invited user
       try {
         const group = await storage.getGroupById(id);
-        const inviterProfile = await storage.getProviderProfile(userId);
+        const inviterProfile = await storage.getProfileByUserId(userId);
         const inviterName = inviterProfile?.displayName ?? "Someone";
         const groupName = group?.name ?? "a group";
         await storage.createNotification(
@@ -4694,7 +4694,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const group = await storage.getGroupById(id);
       if (!group) return res.status(404).json({ message: "Group not found" });
-      const inviterProfile = await storage.getProviderProfile(userId);
+      const inviterProfile = await storage.getProfileByUserId(userId);
       const inviterName = inviterProfile?.displayName ?? "A Gigzito member";
       // Check if user already registered
       const existingUser = await storage.getUserByEmail(email);
@@ -5379,7 +5379,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (userId) {
       const user = await storage.getUser(userId);
       followEmail = followEmail || user?.email;
-      const profile = await storage.getProviderProfile(userId);
+      const profile = await storage.getProfileByUserId(userId);
       followName = followName || profile?.displayName || user?.email;
     }
     if (!followEmail) return res.status(400).json({ message: "Email is required" });
