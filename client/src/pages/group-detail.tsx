@@ -384,7 +384,13 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                   onChange={(e) => setForm(f => ({ ...f, dailyGoal: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Your target daily income. e.g. $67/day = ~$2,000/month.</p>
+              {previewGoal > 0 ? (
+                <p className="text-xs text-green-500 font-medium mt-1">
+                  ≈ ${(previewGoal * 30).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/month on a 30-day month
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">Your target daily income — we'll show the monthly equivalent as you type.</p>
+              )}
             </div>
 
             {/* Investments */}
