@@ -341,7 +341,14 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5" style={{ border: "1px solid rgba(245,158,11,0.25)" }}>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Break-Even</p>
                 <p className="text-sm font-bold text-amber-500">{breakEvenDays > 0 ? `${breakEvenDays.toLocaleString()} days` : "—"}</p>
-                {breakEvenDays > 0 && <p className="text-[10px] text-muted-foreground">{breakEvenMonths} mo · {breakEvenYears} yrs</p>}
+                {breakEvenDays > 0 && (
+                  <>
+                    <p className="text-[10px] text-muted-foreground">{breakEvenMonths} mo · {breakEvenYears} yrs</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                      ${totalInvested.toLocaleString()} ÷ ${totalDailyEarnings.toFixed(2)}/day
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
