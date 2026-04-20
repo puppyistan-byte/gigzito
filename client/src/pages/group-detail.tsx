@@ -475,18 +475,32 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                   <span className="text-muted-foreground">Total Invested</span>
                   <span className="font-semibold">${previewTotal.toLocaleString()}</span>
                 </div>
-                {previewBE > 0 && (
-                  <div className="border-t pt-1.5 space-y-0.5">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Break-Even</span>
-                      <span className="font-bold text-amber-500">{previewBE.toLocaleString()} days</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span />
-                      <span>{(previewBE / 30.44).toFixed(1)} months · {(previewBE / 365.25).toFixed(2)} years</span>
-                    </div>
+                <div className="border-t pt-1.5 space-y-0.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Break-Even</span>
+                    <span className="font-bold text-amber-500">
+                      {previewBE > 0 ? `${previewBE.toLocaleString()} days` : "—"}
+                    </span>
                   </div>
-                )}
+                  {previewBE > 0 && (
+                    <>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span />
+                        <span>{(previewBE / 30.44).toFixed(1)} mo · {(previewBE / 365.25).toFixed(2)} yrs</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground/60">
+                        <span />
+                        <span>${previewTotal.toLocaleString()} ÷ ${previewEarnings.toFixed(2)}/day</span>
+                      </div>
+                    </>
+                  )}
+                  {previewBE === 0 && (previewTotal > 0 || previewEarnings > 0) && (
+                    <div className="flex justify-between text-xs text-muted-foreground/60">
+                      <span />
+                      <span>{previewTotal > 0 && previewEarnings === 0 ? "Enter $/day earnings to calculate" : previewTotal === 0 && previewEarnings > 0 ? "Enter invested amount to calculate" : ""}</span>
+                    </div>
+                  )}
+                </div>
                 {previewGoal > 0 && (
                   <div className="flex justify-between text-xs text-muted-foreground border-t pt-1.5">
                     <span>Goal progress</span>
