@@ -617,24 +617,6 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 <span>Since {new Date(kitty.startDate!).toLocaleDateString()}</span>
                 <span>${kitty.dailyAmount.toFixed(2)}/day × {kittyDaysElapsed}d</span>
               </div>
-              {/* Progress bar: kitty vs total invested */}
-              {totalInvested > 0 && (
-                <div className="space-y-0.5 pt-0.5">
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all"
-                      style={{ width: `${Math.min(100, (kittyAccumulated / totalInvested) * 100)}%` }} />
-                  </div>
-                  <div className="flex justify-between text-[9px] text-muted-foreground/70">
-                    <span>{Math.min(100, (kittyAccumulated / totalInvested) * 100).toFixed(1)}% of ${totalInvested.toLocaleString()} invested</span>
-                    {kittyAccumulated < totalInvested && (
-                      <span>${(totalInvested - kittyAccumulated).toFixed(2)} to go</span>
-                    )}
-                    {kittyAccumulated >= totalInvested && (
-                      <span className="text-emerald-400 font-semibold">Covered!</span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
