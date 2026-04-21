@@ -245,8 +245,8 @@ export interface IStorage {
   updateGroupEvent(id: number, data: Partial<{ title: string; description: string; startAt: Date; endAt: Date; allDay: boolean }>): Promise<GroupEvent>;
   deleteGroupEvent(id: number): Promise<void>;
   getGroupKanbanCards(groupId: number): Promise<GroupKanbanCard[]>;
-  createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string }): Promise<GroupKanbanCard>;
-  updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null }>): Promise<GroupKanbanCard>;
+  createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string; endeavorId?: number | null }): Promise<GroupKanbanCard>;
+  updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null; endeavorId: number | null }>): Promise<GroupKanbanCard>;
   deleteGroupKanbanCard(id: number): Promise<void>;
   getGroupRetrospectives(groupId: number): Promise<GroupRetrospective[]>;
   createGroupRetrospective(groupId: number, userId: number, displayName: string | null, avatarUrl: string | null, data: { win: string; roadblock: string }): Promise<GroupRetrospective>;
@@ -3037,7 +3037,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(groupKanbanCards).where(eq(groupKanbanCards.groupId, groupId)).orderBy(groupKanbanCards.position, groupKanbanCards.createdAt);
   }
 
-  async createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string }) {
+  async createGroupKanbanCard(groupId: number, userId: number, data: { title: string; description?: string; status?: string; priority?: string; deadline?: string; assignedTo?: number; impactLevel?: string; effortLevel?: string; endeavorId?: number | null }) {
     const existing = await db.select({ id: groupKanbanCards.id }).from(groupKanbanCards).where(eq(groupKanbanCards.groupId, groupId));
     const position = existing.length;
     const [row] = await db.insert(groupKanbanCards).values({
@@ -3048,11 +3048,12 @@ export class DatabaseStorage implements IStorage {
       assignedTo: data.assignedTo ?? null,
       impactLevel: data.impactLevel ?? null,
       effortLevel: data.effortLevel ?? null,
+      endeavorId: data.endeavorId ?? null,
     }).returning();
     return row;
   }
 
-  async updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null }>) {
+  async updateGroupKanbanCard(id: number, data: Partial<{ title: string; description: string; status: string; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null; endeavorId: number | null }>) {
     const updateData: Record<string, unknown> = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
@@ -3062,6 +3063,7 @@ export class DatabaseStorage implements IStorage {
     if ("assignedTo" in data) updateData.assignedTo = data.assignedTo ?? null;
     if ("impactLevel" in data) updateData.impactLevel = data.impactLevel ?? null;
     if ("effortLevel" in data) updateData.effortLevel = data.effortLevel ?? null;
+    if ("endeavorId" in data) updateData.endeavorId = data.endeavorId ?? null;
     const [row] = await db.update(groupKanbanCards).set(updateData).where(eq(groupKanbanCards.id, id)).returning();
     return row;
   }

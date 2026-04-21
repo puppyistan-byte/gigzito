@@ -1137,10 +1137,13 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
   const qc = useQueryClient();
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
-  const emptyForm = { title: "", description: "", linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "" };
+  const emptyForm = { title: "", description: "" };
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
   const [pendingProgress, setPendingProgress] = useState<Record<number, number>>({});
   const debounceRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const emptyLinks = { linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "" };
+  const [linksOpenId, setLinksOpenId] = useState<number | null>(null);
+  const [linksForm, setLinksForm] = useState<typeof emptyLinks>(emptyLinks);
 
   const { data: endeavors = [], isLoading } = useQuery<Endeavor[]>({ queryKey: ["/api/groups", groupId, "endeavors"] });
 
@@ -1159,6 +1162,17 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
     mutationFn: (id: number) => apiRequest("DELETE", `/api/groups/${groupId}/endeavors/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }),
   });
+
+  const updateLinksMut = useMutation({
+    mutationFn: ({ id, links }: { id: number; links: typeof emptyLinks }) => apiRequest("PATCH", `/api/groups/${groupId}/endeavors/${id}`, links),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }); setLinksOpenId(null); toast({ title: "Links saved!" }); },
+    onError: () => toast({ title: "Failed to save links", variant: "destructive" }),
+  });
+
+  const openLinks = (end: Endeavor) => {
+    setLinksForm({ linkX: end.linkX ?? "", linkFb: end.linkFb ?? "", linkIg: end.linkIg ?? "", linkTelegram: end.linkTelegram ?? "", linkYoutube: end.linkYoutube ?? "", linkRumble: end.linkRumble ?? "", linkReddit: end.linkReddit ?? "" });
+    setLinksOpenId(end.id);
+  };
 
   const handleProgress = (id: number, value: number) => {
     setPendingProgress((prev) => ({ ...prev, [id]: value }));
@@ -1183,31 +1197,77 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
         <div className="space-y-3">
           {endeavors.map((end) => {
             const progress = pendingProgress[end.id] ?? end.goalProgress;
+            const isLinksOpen = linksOpenId === end.id;
+            const hasLinks = SOCIAL_LINKS.some(s => end[s.key as keyof Endeavor]);
             return (
-              <div key={end.id} data-testid={`endeavor-card-${end.id}`} className="bg-card border rounded-xl p-4">
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm">{end.title}</h3>
-                    {end.description && <p className="text-xs text-muted-foreground mt-0.5">{end.description}</p>}
-                    <ProjectSocialLinks project={end} />
+              <div key={end.id} data-testid={`endeavor-card-${end.id}`} className="bg-card border rounded-xl overflow-hidden">
+                {/* ── Card body ── */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm">{end.title}</h3>
+                      {end.description && <p className="text-xs text-muted-foreground mt-0.5">{end.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 ml-3 shrink-0">
+                      <span className={`text-lg font-bold ${progress >= 100 ? "text-green-500" : progress >= 50 ? "text-amber-500" : "text-red-500"}`}>{progress}%</span>
+                      {isAdmin && (
+                        <button data-testid={`button-delete-endeavor-${end.id}`} onClick={() => deleteMut.mutate(end.id)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-3 shrink-0">
-                    <span className={`text-lg font-bold ${progress >= 100 ? "text-green-500" : progress >= 50 ? "text-amber-500" : "text-red-500"}`}>{progress}%</span>
-                    {isAdmin && (
-                      <button data-testid={`button-delete-endeavor-${end.id}`} onClick={() => deleteMut.mutate(end.id)} className="text-muted-foreground hover:text-red-500 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  {isAdmin ? (
+                    <Slider data-testid={`slider-endeavor-${end.id}`} min={0} max={100} step={1} value={[progress]} onValueChange={([v]) => handleProgress(end.id, v)} className="mt-3" />
+                  ) : (
+                    <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${progress >= 100 ? "bg-green-500" : progress >= 50 ? "bg-amber-500" : "bg-red-500"}`} style={{ width: `${progress}%` }} />
+                    </div>
+                  )}
+                  {progress >= 100 && <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-semibold">🎉 Goal achieved!</p>}
+                </div>
+
+                {/* ── Tab strip ── */}
+                <div className="flex border-t border-border">
+                  <button
+                    onClick={() => isLinksOpen ? setLinksOpenId(null) : openLinks(end)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors ${isLinksOpen ? "bg-muted text-foreground border-r border-border" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    <Link2 className="w-3 h-3" /> Links
+                    {hasLinks && !isLinksOpen && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ml-0.5" />}
+                  </button>
+                </div>
+
+                {/* ── Links panel ── */}
+                {isLinksOpen && (
+                  <div className="p-3 border-t border-border bg-muted/30 space-y-2">
+                    {SOCIAL_LINKS.map(s => (
+                      <div key={s.key} className="flex items-center gap-2">
+                        <span className="shrink-0 w-5 flex justify-center" style={{ color: s.color }}>{s.icon}</span>
+                        <Input
+                          className="text-xs h-8"
+                          placeholder={s.placeholder}
+                          value={linksForm[s.key as SocialKey]}
+                          onChange={(e) => setLinksForm(f => ({ ...f, [s.key]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={updateLinksMut.isPending}
+                        onClick={() => updateLinksMut.mutate({ id: end.id, links: linksForm })}>
+                        {updateLinksMut.isPending ? "Saving…" : "Save Links"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setLinksOpenId(null)}>Cancel</Button>
+                    </div>
+                    {/* Read-only link icons for quick reference */}
+                    {hasLinks && (
+                      <div className="pt-1 border-t border-border/50">
+                        <ProjectSocialLinks project={end} />
+                      </div>
                     )}
                   </div>
-                </div>
-                {isAdmin ? (
-                  <Slider data-testid={`slider-endeavor-${end.id}`} min={0} max={100} step={1} value={[progress]} onValueChange={([v]) => handleProgress(end.id, v)} className="mt-3" />
-                ) : (
-                  <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${progress >= 100 ? "bg-green-500" : progress >= 50 ? "bg-amber-500" : "bg-red-500"}`} style={{ width: `${progress}%` }} />
-                  </div>
                 )}
-                {progress >= 100 && <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-semibold">🎉 Goal achieved!</p>}
               </div>
             );
           })}
@@ -1217,31 +1277,16 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
-          <div className="space-y-3 pt-1 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-3 pt-1">
             <div>
               <label className="text-xs font-medium">Title *</label>
               <Input data-testid="input-endeavor-title" className="mt-1" placeholder="e.g. Launch our website" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs font-medium">Description</label>
-              <Textarea data-testid="input-endeavor-description" className="mt-1" rows={2} placeholder="What does success look like?" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              <Textarea data-testid="input-endeavor-description" className="mt-1" rows={3} placeholder="What does success look like?" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Social Links (optional)</label>
-              <div className="space-y-2 mt-2">
-                {SOCIAL_LINKS.map(s => (
-                  <div key={s.key} className="flex items-center gap-2">
-                    <span className="shrink-0" style={{ color: s.color }}>{s.icon}</span>
-                    <Input
-                      className="text-xs h-8"
-                      placeholder={s.placeholder}
-                      value={form[s.key as SocialKey]}
-                      onChange={(e) => setForm((f) => ({ ...f, [s.key]: e.target.value }))}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">You can add social links after creating the project via the Links tab on each project card.</p>
             <Button data-testid="button-submit-endeavor" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={!form.title.trim() || createMut.isPending} onClick={() => createMut.mutate(form)}>
               {createMut.isPending ? "Adding…" : "Add Project"}
             </Button>
@@ -1253,7 +1298,7 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
 }
 
 // ─── KANBAN TAB ───────────────────────────────────────────────────────────────
-type KanbanCard = { id: number; groupId: number; title: string; description: string | null; status: string; position: number; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null; createdBy: number; createdAt: string };
+type KanbanCard = { id: number; groupId: number; title: string; description: string | null; status: string; position: number; priority: string; deadline: string | null; assignedTo: number | null; impactLevel: string | null; effortLevel: string | null; endeavorId: number | null; createdBy: number; createdAt: string };
 type Retrospective = { id: number; groupId: number; userId: number; displayName: string | null; avatarUrl: string | null; win: string; roadblock: string; createdAt: string };
 
 const KANBAN_COLS = [
@@ -1284,14 +1329,16 @@ function deadlinePill(deadline: string | null): { label: string; cls: string } |
 interface KanbanFormProps {
   title: string; desc: string; priority: string; deadline: string;
   assignedTo: number | undefined; impact: string; effort: string;
+  endeavorId: number | undefined; endeavors: Endeavor[];
   members: Member[]; showMatrixFields: boolean;
   onTitle: (v: string) => void; onDesc: (v: string) => void;
   onPriority: (v: string) => void; onDeadline: (v: string) => void;
   onAssignedTo: (v: number | undefined) => void;
   onImpact: (v: string) => void; onEffort: (v: string) => void;
+  onEndeavor: (v: number | undefined) => void;
   onEscape: () => void;
 }
-function KanbanCardForm({ title, desc, priority, deadline, assignedTo, impact, effort, members, showMatrixFields, onTitle, onDesc, onPriority, onDeadline, onAssignedTo, onImpact, onEffort, onEscape }: KanbanFormProps) {
+function KanbanCardForm({ title, desc, priority, deadline, assignedTo, impact, effort, endeavorId, endeavors, members, showMatrixFields, onTitle, onDesc, onPriority, onDeadline, onAssignedTo, onImpact, onEffort, onEndeavor, onEscape }: KanbanFormProps) {
   return (
     <div className="flex flex-col gap-3">
       <Input
@@ -1335,6 +1382,20 @@ function KanbanCardForm({ title, desc, priority, deadline, assignedTo, impact, e
         <Input type="date" value={deadline} onChange={e => onDeadline(e.target.value)}
           className="text-sm h-9 bg-zinc-800 border-zinc-700" />
       </div>
+
+      {/* Project */}
+      {endeavors.length > 0 && (
+        <div>
+          <p className="text-[9px] text-zinc-500 mb-1.5 font-bold tracking-wider">PROJECT</p>
+          <select value={endeavorId ?? ""} onChange={e => onEndeavor(e.target.value ? parseInt(e.target.value) : undefined)}
+            className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-zinc-300">
+            <option value="">No project</option>
+            {endeavors.map(e => (
+              <option key={e.id} value={e.id}>{e.title}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Assignee */}
       <div>
@@ -1385,19 +1446,26 @@ function KanbanCardForm({ title, desc, priority, deadline, assignedTo, impact, e
 interface KanbanCardDispProps {
   card: KanbanCard; ci: number; colKeys: string[];
   memberMap: Map<number, Member>;
+  endeavorMap: Map<number, string>;
   onEdit: (c: KanbanCard) => void;
   onMoveBack: (id: number, status: string) => void;
   onMoveForward: (id: number, status: string) => void;
 }
-function KanbanCardDisp({ card, ci, colKeys, memberMap, onEdit, onMoveBack, onMoveForward }: KanbanCardDispProps) {
+function KanbanCardDisp({ card, ci, colKeys, memberMap, endeavorMap, onEdit, onMoveBack, onMoveForward }: KanbanCardDispProps) {
   const assignee  = card.assignedTo ? memberMap.get(card.assignedTo) : null;
   const pMeta     = PRIORITY_META[card.priority ?? "medium"] ?? PRIORITY_META.medium;
   const dl        = deadlinePill(card.deadline);
   const addedDays = Math.floor((Date.now() - new Date(card.createdAt).getTime()) / 86400000);
+  const projectName = card.endeavorId ? endeavorMap.get(card.endeavorId) : null;
   return (
     <div data-testid={`kanban-card-${card.id}`}
       className="bg-zinc-900/70 border border-zinc-700/40 rounded-xl p-3 shadow-sm group hover:border-zinc-600/60 transition-all cursor-pointer"
       onClick={() => onEdit(card)}>
+      {projectName && (
+        <div className="flex items-center gap-1 mb-2">
+          <span className="text-[9px] font-semibold text-blue-400 bg-blue-900/30 border border-blue-800/40 px-2 py-0.5 rounded-full truncate max-w-[140px]">{projectName}</span>
+        </div>
+      )}
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
         <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${pMeta.bg} ${pMeta.text}`}>{pMeta.label}</span>
         {dl && <span className={`text-[9px] px-2 py-0.5 rounded-full font-semibold ${dl.cls}`}>{dl.label}</span>}
@@ -1450,25 +1518,29 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   const [newAssignedTo, setNewAssignedTo] = useState<number | undefined>();
   const [newImpact,     setNewImpact]     = useState("");
   const [newEffort,     setNewEffort]     = useState("");
+  const [newEndeavor,   setNewEndeavor]   = useState<number | undefined>();
   const [retroWin,      setRetroWin]      = useState("");
   const [retroRoadblock,setRetroRoadblock]= useState("");
 
-  const { data: cards   = [], isLoading } = useQuery<KanbanCard[]>({ queryKey: ["/api/groups", groupId, "kanban"] });
-  const { data: members = [] }            = useQuery<Member[]>({ queryKey: ["/api/groups", groupId, "members"] });
+  const { data: cards    = [], isLoading } = useQuery<KanbanCard[]>({ queryKey: ["/api/groups", groupId, "kanban"] });
+  const { data: members  = [] }            = useQuery<Member[]>({ queryKey: ["/api/groups", groupId, "members"] });
+  const { data: endeavors = [] }           = useQuery<Endeavor[]>({ queryKey: ["/api/groups", groupId, "endeavors"] });
   const { data: retros  = [] }            = useQuery<Retrospective[]>({
     queryKey: ["/api/groups", groupId, "retrospectives"],
     queryFn: () => fetch(`/api/groups/${groupId}/retrospectives`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
   });
 
-  const colKeys   = KANBAN_COLS.map(c => c.key);
-  const memberMap = new Map(members.map(m => [m.userId, m]));
+  const colKeys    = KANBAN_COLS.map(c => c.key);
+  const memberMap  = new Map(members.map(m => [m.userId, m]));
+  const endeavorMap = new Map(endeavors.map(e => [e.id, e.title]));
+
+  const resetForm = () => { setNewTitle(""); setNewDesc(""); setNewPriority("medium"); setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort(""); setNewEndeavor(undefined); };
 
   const createMut = useMutation({
     mutationFn: (d: object) => apiRequest("POST", `/api/groups/${groupId}/kanban`, d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "kanban"] });
-      setAddingCol(null); setNewTitle(""); setNewDesc(""); setNewPriority("medium");
-      setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort("");
+      setAddingCol(null); resetForm();
     },
     onError: () => toast({ title: "Failed to create card", variant: "destructive" }),
   });
@@ -1501,10 +1573,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
     onError: () => toast({ title: "Failed to save", variant: "destructive" }),
   });
 
-  const openAdd = (colKey: string) => {
-    setAddingCol(colKey); setNewTitle(""); setNewDesc(""); setNewPriority("medium");
-    setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort("");
-  };
+  const openAdd = (colKey: string) => { setAddingCol(colKey); resetForm(); };
 
   const openEdit = (card: KanbanCard) => {
     setEditCard(card);
@@ -1515,6 +1584,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
     setNewAssignedTo(card.assignedTo ?? undefined);
     setNewImpact(card.impactLevel ?? "");
     setNewEffort(card.effortLevel ?? "");
+    setNewEndeavor(card.endeavorId ?? undefined);
   };
 
   if (isLoading) return <div className="h-40 animate-pulse bg-muted rounded-xl" />;
@@ -1555,17 +1625,18 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
             <KanbanCardForm
               title={newTitle} desc={newDesc} priority={newPriority} deadline={newDeadline}
               assignedTo={newAssignedTo} impact={newImpact} effort={newEffort}
+              endeavorId={newEndeavor} endeavors={endeavors}
               members={members} showMatrixFields={editCard?.status === "backlog"}
               onTitle={setNewTitle} onDesc={setNewDesc} onPriority={setNewPriority}
               onDeadline={setNewDeadline} onAssignedTo={setNewAssignedTo}
-              onImpact={setNewImpact} onEffort={setNewEffort}
+              onImpact={setNewImpact} onEffort={setNewEffort} onEndeavor={setNewEndeavor}
               onEscape={() => setEditCard(null)}
             />
             <div className="flex gap-2 pt-1">
               <Button data-testid="button-save-kanban-card" size="sm"
                 className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
                 disabled={!newTitle.trim() || updateMut.isPending}
-                onClick={() => updateMut.mutate({ id: editCard.id, title: newTitle, description: newDesc, priority: newPriority, deadline: newDeadline || null, assignedTo: newAssignedTo ?? null, impactLevel: newImpact || null, effortLevel: newEffort || null })}>
+                onClick={() => updateMut.mutate({ id: editCard.id, title: newTitle, description: newDesc, priority: newPriority, deadline: newDeadline || null, assignedTo: newAssignedTo ?? null, impactLevel: newImpact || null, effortLevel: newEffort || null, endeavorId: newEndeavor ?? null })}>
                 Save Changes
               </Button>
               <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditCard(null)}>Cancel</Button>
@@ -1609,17 +1680,18 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
                     <KanbanCardForm
                       title={newTitle} desc={newDesc} priority={newPriority} deadline={newDeadline}
                       assignedTo={newAssignedTo} impact={newImpact} effort={newEffort}
+                      endeavorId={newEndeavor} endeavors={endeavors}
                       members={members} showMatrixFields={col.key === "backlog"}
                       onTitle={setNewTitle} onDesc={setNewDesc} onPriority={setNewPriority}
                       onDeadline={setNewDeadline} onAssignedTo={setNewAssignedTo}
-                      onImpact={setNewImpact} onEffort={setNewEffort}
+                      onImpact={setNewImpact} onEffort={setNewEffort} onEndeavor={setNewEndeavor}
                       onEscape={() => setAddingCol(null)}
                     />
                     <div className="flex gap-1.5">
                       <Button data-testid="button-save-kanban-card" size="sm"
                         className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
                         disabled={!newTitle.trim() || createMut.isPending}
-                        onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key, priority: newPriority, deadline: newDeadline || undefined, assignedTo: newAssignedTo, impactLevel: newImpact || undefined, effortLevel: newEffort || undefined })}>
+                        onClick={() => createMut.mutate({ title: newTitle, description: newDesc, status: col.key, priority: newPriority, deadline: newDeadline || undefined, assignedTo: newAssignedTo, impactLevel: newImpact || undefined, effortLevel: newEffort || undefined, endeavorId: newEndeavor ?? null })}>
                         Add Card
                       </Button>
                       <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setAddingCol(null)}>Cancel</Button>
@@ -1628,7 +1700,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
                 )}
 
                 {colCards.map(card => (
-                  <KanbanCardDisp key={card.id} card={card} ci={ci} colKeys={colKeys} memberMap={memberMap}
+                  <KanbanCardDisp key={card.id} card={card} ci={ci} colKeys={colKeys} memberMap={memberMap} endeavorMap={endeavorMap}
                     onEdit={openEdit}
                     onMoveBack={(id, st) => moveMut.mutate({ id, status: st })}
                     onMoveForward={(id, st) => moveMut.mutate({ id, status: st })}

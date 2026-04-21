@@ -1138,6 +1138,7 @@ export const groupKanbanCards = pgTable("group_kanban_cards", {
   assignedTo: integer("assigned_to"),
   impactLevel: text("impact_level"),
   effortLevel: text("effort_level"),
+  endeavorId: integer("endeavor_id"),
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

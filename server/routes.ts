@@ -4997,9 +4997,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     const mem = await storage.getUserGroupRole(id, userId);
     if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
-    const { title, description, status, priority, deadline, assignedTo, impactLevel, effortLevel } = req.body;
+    const { title, description, status, priority, deadline, assignedTo, impactLevel, effortLevel, endeavorId } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: "Title required" });
-    try { return res.status(201).json(await storage.createGroupKanbanCard(id, userId, { title: title.trim(), description, status, priority, deadline, assignedTo, impactLevel, effortLevel })); }
+    try { return res.status(201).json(await storage.createGroupKanbanCard(id, userId, { title: title.trim(), description, status, priority, deadline, assignedTo, impactLevel, effortLevel, endeavorId: endeavorId ?? null })); }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
@@ -5009,8 +5009,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     const mem = await storage.getUserGroupRole(id, userId);
     if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
-    const { title, description, status, priority, deadline, assignedTo, impactLevel, effortLevel } = req.body;
-    try { return res.json(await storage.updateGroupKanbanCard(parseInt(req.params.cid), { title, description, status, priority, deadline, assignedTo, impactLevel, effortLevel })); }
+    const { title, description, status, priority, deadline, assignedTo, impactLevel, effortLevel, endeavorId } = req.body;
+    try { return res.json(await storage.updateGroupKanbanCard(parseInt(req.params.cid), { title, description, status, priority, deadline, assignedTo, impactLevel, effortLevel, endeavorId: endeavorId !== undefined ? (endeavorId ?? null) : undefined })); }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
