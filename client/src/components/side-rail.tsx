@@ -40,7 +40,7 @@ const GZ_BUTTONS: GzBtn[] = [
   },
   {
     id: "geezee-cards",
-    label: "GeeZee Cards",
+    label: "GZCards",
     tagline: "💎 Your Digital Identity · Stand Out Now",
     color: "#7c3aed",
     glow: "rgba(124,58,237,0.75)",

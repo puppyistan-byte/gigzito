@@ -1071,7 +1071,7 @@ function ProviderDashboardInner() {
               data-testid="button-my-geezee-card"
             >
               <CreditCard className="h-3.5 w-3.5 text-purple-400" />
-              My GeeZee Card
+              My GZCard
             </Button>
             <Button
               size="sm"
@@ -1573,7 +1573,7 @@ function ProviderDashboardInner() {
             <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-6 text-center" data-testid="text-no-zeefeed">
               <Zap className="h-6 w-6 text-[#333] mx-auto mb-2" />
               <p className="text-[#555] text-sm">No ZeeMotion updates yet.</p>
-              <p className="text-[#444] text-xs mt-1">Follow GeeZee cards to see their updates here.</p>
+              <p className="text-[#444] text-xs mt-1">Follow GZCards to see their updates here.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1790,7 +1790,7 @@ function ProviderDashboardInner() {
           {presenterContacts.length === 0 ? (
             <div className="rounded-xl bg-[#070707] border border-[#181818] p-4 text-center" data-testid="card-no-presenter-contacts">
               <Bell className="h-6 w-6 text-[#333] mx-auto mb-2" />
-              <p className="text-[#555] text-xs">No subscribers yet. When users engage with your GeeZee card and opt in, they'll appear here.</p>
+              <p className="text-[#555] text-xs">No subscribers yet. When users engage with your GZCard and opt in, they'll appear here.</p>
             </div>
           ) : (
             <div className="rounded-xl bg-[#070707] border border-[#181818] p-3" data-testid="card-presenter-contacts">

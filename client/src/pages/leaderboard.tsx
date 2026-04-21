@@ -55,7 +55,7 @@ export default function LeaderboardPage() {
           <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-12 text-center space-y-3">
             <div className="text-4xl">🏆</div>
             <p className="text-white font-semibold">No engagement yet</p>
-            <p className="text-sm text-[#555]">Show Love on a video or hit Engage on a GeeZee card to get started!</p>
+            <p className="text-sm text-[#555]">Show Love on a video or hit Engage on a GZCard to get started!</p>
           </div>
         ) : (
           <div className="space-y-3">

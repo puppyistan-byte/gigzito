@@ -448,7 +448,7 @@ export default function ProviderProfilePage() {
 
         <ProfileCard profile={previewProfile} />
 
-        {/* Follower / Following stats — same data as GeeZee cards & public profile */}
+        {/* Follower / Following stats — same data as GZCards & public profile */}
         <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] px-4 py-3 flex items-center gap-6" data-testid="section-follow-stats">
           <Link href={`/provider/me`}>
             <div className="flex flex-col items-center cursor-pointer group" data-testid="stat-followers">
@@ -469,7 +469,7 @@ export default function ProviderProfilePage() {
           </Link>
           <div className="w-px h-8 bg-[#1e1e1e]" />
           <div className="flex-1 text-right">
-            <span className="text-[#444] text-xs">Followers are shared across your GeeZee cards &amp; video feed</span>
+            <span className="text-[#444] text-xs">Followers are shared across your GZCards &amp; video feed</span>
           </div>
         </div>
 

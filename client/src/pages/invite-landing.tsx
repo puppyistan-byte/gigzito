@@ -20,7 +20,7 @@ const TIERS = [
     ring: "ring-gray-600",
     perks: [
       "Access to the full video feed",
-      "GeeZee Card (digital identity)",
+      "GZCard (digital identity)",
       "Flash coupons & member-only offers",
       "Geo-push deal notifications",
       "ZitoTV live content access",
@@ -100,7 +100,7 @@ const FEATURES = [
   {
     icon: CreditCard,
     color: "#a855f7",
-    title: "GeeZee Cards",
+    title: "GZCards",
     subtitle: "Digital Identity + Consumer Power",
     body: "Your personal intro card, creator profile, and consumer advantage card all in one. Get discovered in the GeeZee Rolodex and receive member-only flash coupons, geo-triggered alerts, and exclusive offers directly to your phone.",
   },

@@ -117,7 +117,7 @@ export function LoveLeaderboardPanel() {
             ) : entries.length === 0 ? (
               <div style={{ padding: "16px", textAlign: "center" }}>
                 <p style={{ color: "rgba(255,255,255,0.22)", fontSize: "10px", lineHeight: "1.6" }}>
-                  No engagement yet.<br />Show Love or hit Engage on a GeeZee card! 💜
+                  No engagement yet.<br />Show Love or hit Engage on a GZCard! 💜
                 </p>
               </div>
             ) : (

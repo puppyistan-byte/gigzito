@@ -136,7 +136,7 @@ export default function MostLovedPage() {
             >
               No engagement yet.
               <br />
-              Show Love or hit Engage on a GeeZee card!
+              Show Love or hit Engage on a GZCard!
             </p>
           </div>
         ) : (

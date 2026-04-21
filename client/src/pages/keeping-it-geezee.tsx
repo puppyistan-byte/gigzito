@@ -16,7 +16,7 @@ const TIER_JOURNEY = [
       "Like, comment & engage",
       "Post 1 video/day",
       "Post text ads (unlimited)",
-      "Create your GeeZee Card",
+      "Create your GZCard",
       "Join the Rolodex network",
     ],
   },
@@ -31,7 +31,7 @@ const TIER_JOURNEY = [
     perks: [
       "Unlimited video uploads",
       "Full Zito TV presence",
-      "GeeZee Card & Rolodex",
+      "GZCard & Rolodex",
       "Creator dashboard",
     ],
   },
@@ -111,7 +111,7 @@ export default function KeepingItGeezeePage() {
         <div style={{ position: "relative", zIndex: 1, maxWidth: 820 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,43,43,0.12)", border: "1px solid rgba(255,43,43,0.3)", borderRadius: 999, padding: "5px 16px", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", color: "#ff4444", textTransform: "uppercase", marginBottom: 28 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff4444", display: "inline-block" }} />
-            Keeping it Geezee
+            Keeping it GZ
           </div>
 
           <h1 style={{ fontSize: "clamp(38px, 7vw, 80px)", fontWeight: 900, lineHeight: 1.05, margin: "0 0 24px", letterSpacing: "-0.02em" }}>
@@ -308,9 +308,9 @@ export default function KeepingItGeezeePage() {
             <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20, border: "1px solid rgba(124,58,237,0.25)" }}>
               <CreditCard style={{ width: 22, height: 22, color: "#7c3aed" }} />
             </div>
-            <h3 style={{ fontSize: 20, fontWeight: 800, color: "#fff", margin: "0 0 12px" }}>GeeZee Cards</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: "#fff", margin: "0 0 12px" }}>GZCards</h3>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.75, margin: "0 0 20px" }}>
-              Your scannable digital identity on Gigzito. Every user — from GZLurker to GZBusiness — can create and publish a GeeZee Card to the Rolodex network. QR-powered, shareable, and always on.
+              Your scannable digital identity on Gigzito. Every user — from GZLurker to GZBusiness — can create and publish a GZCard to the Rolodex network. QR-powered, shareable, and always on.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {["Available on all tiers", "QR code scannable", "Published to Rolodex", "Send & receive messages"].map((item) => (
@@ -396,7 +396,7 @@ export default function KeepingItGeezeePage() {
           </Link>
           <a href="mailto:press@gigzito.com" style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>press@gigzito.com</a>
         </div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>© 2026 Gigzito. Keeping it Geezee.</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>© 2026 Gigzito. Keeping it GZ.</div>
       </div>
 
     </div>

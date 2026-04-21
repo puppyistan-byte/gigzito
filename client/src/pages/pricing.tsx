@@ -68,7 +68,7 @@ const TIERS = [
     type: "Viewer / Participant",
     highlight: false,
     color: "#6b7280",
-    perks: ["Watch all content", "Like & comment", "GeeZee card", "GeeZee Rolodex"],
+    perks: ["Watch all content", "Like & comment", "GZCard", "GeeZee Rolodex"],
   },
   {
     id: "GZGroups",
@@ -137,7 +137,7 @@ const FEATURES: Feature[] = [
   { label: "Like / Comment / Engage", tooltip: "React and engage with creator content.", values: [true, true, true, true, true] },
   { label: "Post Videos", tooltip: "Post promotional videos in the Zito TV feed.", values: ["1/day", "1/day", "Unlimited", "Unlimited", "Unlimited"] },
   { label: "Text Ad Posts", tooltip: "Publish text-based ads in the feed.", values: [true, true, true, true, true] },
-  { label: "GeeZee Cards", tooltip: "Create and publish your digital Gigness Card.", values: ["Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish"] },
+  { label: "GZCards", tooltip: "Create and publish your digital Gigness Card.", values: ["Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish", "Create & Publish"] },
   { label: "GeeZee Rolodex Listing", tooltip: "Appear in the GeeZee public directory.", values: [true, true, true, true, true] },
   { label: "Create GZGroups", tooltip: "Create your own private or open group.", values: [false, true, false, true, true] },
   { label: "Unlimited Group Members", tooltip: "No cap on how many members can join.", values: [false, true, false, true, true] },

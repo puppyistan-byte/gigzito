@@ -515,7 +515,7 @@ export async function sendInvitationEmail(opts: {
     ${[
       { color:"#ff2b2b", emoji:"📹", title:"The Video Feed", body:"A TikTok-style vertical scroll where creators and businesses publish short-form video to be discovered. Your story, on an open stage." },
       { color:"#3b82f6", emoji:"📺", title:"Zito TV — Live Broadcasting", body:"Go live or relay your stream from another platform. Gigzito captures your engagement metrics either way, giving you insight no other platform offers." },
-      { color:"#a855f7", emoji:"🃏", title:"GeeZee Cards — Your Digital Identity", body:"A personal intro card, creator profile, and consumer advantage card all in one. Listed in the GeeZee Rolodex so others can find and connect with you." },
+      { color:"#a855f7", emoji:"🃏", title:"GZCards — Your Digital Identity", body:"A personal intro card, creator profile, and consumer advantage card all in one. Listed in the GeeZee Rolodex so others can find and connect with you." },
       { color:"#f59e0b", emoji:"⚡", title:"GigJack Flash Events", body:"Time-locked, seat-limited experiences. Live bookings, skill sessions, and flash deals that vanish when the clock hits zero. The community that moves fast wins." },
       { color:"#22c55e", emoji:"📍", title:"Geo Push Campaigns", body:"Walking near a partner business? Your phone knows. Members receive exclusive real-time offers triggered by location. Foot traffic becomes customers." },
       { color:"#ff2b2b", emoji:"📊", title:"GZMetrics — Real Analytics", body:"Watch time, returning viewers, audience demographics, CTA clicks. Intelligence that creates strategy, not just vanity numbers." },
@@ -538,7 +538,7 @@ export async function sendInvitationEmail(opts: {
     <div style="font-size:11px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:3px;margin-bottom:20px;">Membership Tiers</div>
     <table width="100%" cellpadding="0" cellspacing="0">
     ${[
-      { name:"GZLurker", price:"Free", color:"#9ca3af", desc:"Full feed access, GeeZee Card, flash coupons, geo offers, ZitoTV." },
+      { name:"GZLurker", price:"Free", color:"#9ca3af", desc:"Full feed access, GZCard, flash coupons, geo offers, ZitoTV." },
       { name:"GZMarketer", price:"$12/mo", color:"#3b82f6", desc:"+ Video listings, Audience Aggregator, broadcast tools, GZMetrics." },
       { name:"GZMarketerPro", price:"$15/mo", color:"#a855f7", desc:"+ GigJack Events, All Eyes On Me slots, ZitoTV presenter access." },
       { name:"GZBusiness", price:"$25/mo", color:"#f59e0b", desc:"+ GZFlash Ad Center, Geo Push Campaigns, Preemptive Marketing, sponsor placements." },

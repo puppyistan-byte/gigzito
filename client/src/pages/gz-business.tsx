@@ -167,7 +167,7 @@ export default function GzBusinessPage() {
           <Link href="/card-editor">
             <Button variant="outline" size="sm" className="border-[#333] text-[#999] hover:text-white hover:border-[#555] text-xs h-8" data-testid="link-card-editor">
               <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-              Edit My GeeZee Card
+              Edit My GZCard
             </Button>
           </Link>
         </div>

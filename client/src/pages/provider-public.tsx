@@ -619,13 +619,13 @@ export default function ProviderPublicPage() {
                           data-testid="btn-view-geezee-tab"
                         >
                           <CreditCard className="h-5 w-5 shrink-0" />
-                          <span className="text-[11px] font-bold tracking-wide">GeeZee Card</span>
+                          <span className="text-[11px] font-bold tracking-wide">GZCard</span>
                           <span className="text-[10px] text-violet-400/70">Tap to view</span>
                         </button>
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center gap-1.5 h-[80px] rounded-xl border border-[#2a2a2a] bg-[#0d0d0d] text-[#444]" data-testid="geezee-card-placeholder">
                           <CreditCard className="h-5 w-5 shrink-0" />
-                          <span className="text-[11px] font-semibold">GeeZee Card</span>
+                          <span className="text-[11px] font-semibold">GZCard</span>
                           <span className="text-[10px] text-[#333]">Not published</span>
                         </div>
                       )}
@@ -1045,8 +1045,8 @@ export default function ProviderPublicPage() {
                   {!geezeeCard || !geezeeCard.isPublic ? (
                     <div className="p-12 flex flex-col items-center gap-3 text-center">
                       <CreditCard className="w-10 h-10 text-[#222]" />
-                      <p className="text-[#555] text-sm font-semibold">No GeeZee card published</p>
-                      <p className="text-[#333] text-xs">{profile.displayName} hasn't published their GeeZee card yet.</p>
+                      <p className="text-[#555] text-sm font-semibold">No GZCard published</p>
+                      <p className="text-[#333] text-xs">{profile.displayName} hasn't published their GZCard yet.</p>
                     </div>
                   ) : (
                     <div className="space-y-0">

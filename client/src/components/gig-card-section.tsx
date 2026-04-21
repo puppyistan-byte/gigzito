@@ -132,7 +132,7 @@ function PrintVistaTab() {
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Printer style={{ width: 16, height: 16, color: "#555" }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: "#888" }}>
-          Physical GeeZee Cards via PrintVista
+          Physical GZCards via PrintVista
         </span>
         <span style={{
           fontSize: 9, fontWeight: 700, color: "#f59e0b",
@@ -151,7 +151,7 @@ function PrintVistaTab() {
       }}>
         <QrCode style={{ width: 32, height: 32, color: "#2a2a2a" }} />
         <p style={{ fontSize: 11, color: "#444", margin: 0, lineHeight: 1.5 }}>
-          Print premium business-style GeeZee Cards with your QR code, photo, slogan, and tier badge.
+          Print premium business-style GZCards with your QR code, photo, slogan, and tier badge.
           Fulfilled via PrintVista — 3.5 × 2 in, double-sided, shipped to your door.
         </p>
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
@@ -200,7 +200,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards/mine"] });
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards"] });
-      toast({ title: "🎙️ Broadcasted!", description: "Your GeeZee Card is live in the Rolodex." });
+      toast({ title: "🎙️ Broadcasted!", description: "Your GZCard is live in the Rolodex." });
     },
     onError: () => toast({ title: "Error", description: "Could not broadcast.", variant: "destructive" }),
   });
@@ -213,7 +213,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Sparkles style={{ width: 14, height: 14, color: "#a78bfa" }} />
           <h2 className="text-sm font-semibold text-white" data-testid="text-gig-cards-title">
-            GeeZee Card
+            GZCard
           </h2>
         </div>
         <span className="text-[10px] text-[#555] uppercase tracking-widest font-semibold">
@@ -277,7 +277,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
               data-testid="button-view-my-geezee-card"
             >
               <CreditCard style={{ width: 13, height: 13, marginRight: 6 }} />
-              My GeeZee Card
+              My GZCard
             </Button>
           )}
 
@@ -306,7 +306,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
 
           {!hasCard && (
             <p style={{ fontSize: 10, color: "#444", textAlign: "center", margin: "4px 8px 8px" }}>
-              Your GeeZee Card is your social identity on the platform — create it to appear in the Rolodex and connect with others.
+              Your GZCard is your social identity on the platform — create it to appear in the Rolodex and connect with others.
             </p>
           )}
 
@@ -324,7 +324,7 @@ export function GigCardSection({ profile }: GigCardSectionProps) {
               data-testid="button-broadcast-geezee"
             >
               <Radio style={{ width: 12, height: 12, marginRight: 5 }} />
-              {broadcastMutation.isPending ? "Broadcasting…" : "Broadcast My GeeZee"}
+              {broadcastMutation.isPending ? "Broadcasting…" : "Broadcast My GZCard"}
             </Button>
           )}
 

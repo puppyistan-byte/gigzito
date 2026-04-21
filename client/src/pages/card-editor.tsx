@@ -392,7 +392,7 @@ export default function CardEditorPage() {
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards/mine"] });
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards"] });
       setDirty(false);
-      toast({ title: "Card saved!", description: "Your GeeZee Card has been updated." });
+      toast({ title: "Card saved!", description: "Your GZCard has been updated." });
     },
     onError: (err: any) => {
       toast({ title: "Save failed", description: err?.message ?? "Something went wrong.", variant: "destructive" });
@@ -405,7 +405,7 @@ export default function CardEditorPage() {
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards/mine"] });
       qc.invalidateQueries({ queryKey: ["/api/gigness-cards"] });
       setIsPublic(true);
-      toast({ title: "🎙️ Broadcasted!", description: "Your GeeZee Card is now live in the Rolodex." });
+      toast({ title: "🎙️ Broadcasted!", description: "Your GZCard is now live in the Rolodex." });
     },
     onError: () => toast({ title: "Error", description: "Could not broadcast.", variant: "destructive" }),
   });
@@ -776,7 +776,7 @@ export default function CardEditorPage() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-white">Allow Incoming Messaging</p>
-                  <p className="text-[10px] text-[#3a3a3a] mt-0.5">Let others message you via your GeeZee Card</p>
+                  <p className="text-[10px] text-[#3a3a3a] mt-0.5">Let others message you via your GZCard</p>
                 </div>
               </div>
               <Switch checked={allowMessaging} onCheckedChange={(v) => { setAllowMessaging(v); markDirty(); }} data-testid="switch-allow-messaging" />
@@ -805,7 +805,7 @@ export default function CardEditorPage() {
           <div className="rounded-2xl bg-[#0d0d0d] border border-[#1a1a1a] p-4 flex flex-col items-center mb-4">
             <p className="text-[10px] text-[#444] mb-3 font-semibold uppercase tracking-wider">Your QR Master Card</p>
             <QRCodeBox uuid={existingCard.qrUuid} />
-            <p className="text-[10px] text-[#333] mt-3 text-center">Share this QR — anyone who scans it lands on your GeeZee Card.</p>
+            <p className="text-[10px] text-[#333] mt-3 text-center">Share this QR — anyone who scans it lands on your GZCard.</p>
           </div>
         )}
 

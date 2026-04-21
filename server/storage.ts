@@ -2089,7 +2089,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Fill profile info for providers with love votes but no GeeZee card
+    // Fill profile info for providers with love votes but no GZCard
     const missingIds = [...loveMap.keys()].filter(id => !profileInfoMap.has(id));
     if (missingIds.length > 0) {
       const profiles = await db.select({ id: providerProfiles.id, displayName: providerProfiles.displayName, avatarUrl: providerProfiles.avatarUrl, username: providerProfiles.username })

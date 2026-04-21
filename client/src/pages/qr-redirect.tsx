@@ -71,7 +71,7 @@ export default function QrRedirectPage() {
             style={{ width: 28, height: 28, color: "rgba(255,255,255,0.4)", marginTop: 8 }}
           />
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, margin: 0 }}>
-            Loading GeeZee Card…
+            Loading GZCard…
           </p>
         </>
       )}

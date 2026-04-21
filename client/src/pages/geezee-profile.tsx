@@ -364,7 +364,7 @@ export default function GeeZeeProfilePage() {
         ) : !card ? (
           <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] p-10 text-center">
             <User className="h-8 w-8 text-[#333] mx-auto mb-3" />
-            <p className="text-[#555] text-sm">This GeeZee card is private or doesn't exist.</p>
+            <p className="text-[#555] text-sm">This GZCard is private or doesn't exist.</p>
             <Link href="/geezees">
               <button className="mt-4 text-xs text-purple-400 hover:text-purple-300">← Back to Rolodex</button>
             </Link>

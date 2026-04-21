@@ -517,7 +517,7 @@ export default function HomePage() {
             }}
           >
             <Flame style={{ width: 12, height: 12, color: "#fff" }} />
-            Keeping it Geezee
+            Keeping it GZ
           </button>
 
         </div>
@@ -598,7 +598,7 @@ export default function HomePage() {
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <Flame style={{ width: 13, height: 13, color: "#f59e0b", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>Keeping it Geezee</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>Keeping it GZ</span>
           </button>
 
           <button
@@ -620,7 +620,7 @@ export default function HomePage() {
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <CreditCard style={{ width: 13, height: 13, color: "#7c3aed", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#7c3aed", letterSpacing: "0.01em" }}>GeeZee Cards</span>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: "#7c3aed", letterSpacing: "0.01em" }}>GZCards</span>
           </button>
 
           <button

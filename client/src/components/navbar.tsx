@@ -308,7 +308,7 @@ export function Navbar() {
             data-testid="menu-item-keeping-it-geezee"
           >
             <Flame className="h-4 w-4" />
-            Keeping it Geezee
+            Keeping it GZ
           </DropdownMenuItem>
 
           <DropdownMenuItem

@@ -1851,7 +1851,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     return res.json(card ?? null);
   });
 
-  // Public: look up a GeeZee card by the owner's userId, enriched with provider profile
+  // Public: look up a GZCard by the owner's userId, enriched with provider profile
   app.get("/api/gigness-cards/user/:userId", async (req, res) => {
     const userId = parseInt(req.params.userId);
     if (isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
@@ -2812,7 +2812,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ─── USER DASHBOARD ──────────────────────────────────────────────────────────
   // GET /api/user/dashboard  — Single-call snapshot for the mobile home screen.
-  // Returns user info, profile, tier unlocks, stats, GeeZee card, recent listings,
+  // Returns user info, profile, tier unlocks, stats, GZCard, recent listings,
   // and groups — all filtered to what the session user's tier actually has access to.
   app.get("/api/user/dashboard", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
@@ -2841,7 +2841,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         canPost:         atLeast("GZMarketer"),          // GZMarketer+
         canPresent:      atLeast("GZMarketer"),          // Preemptive Marketing geo push
         canBroadcast:    atLeast("GZMarketer"),          // broadcast to followers
-        hasGeeZeeCard:   atLeast("GZMarketer"),          // GeeZee card + Geemotion
+        hasGeeZeeCard:   atLeast("GZMarketer"),          // GZCard + Geemotion
         hasGroups:       atLeast("GZGroups"),            // GZGroups workspace
         canFlash:        atLeast("GZMarketerPro"),       // GigJack flash events
         hasAdCenter:     atLeast("GZBusiness"),          // GZBusiness Ad Center
@@ -2894,7 +2894,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           activeListings: activeListings.length,
         },
         unlocks,
-        // GeeZee card — only present when hasGeeZeeCard is true
+        // GZCard — only present when hasGeeZeeCard is true
         geeZeeCard: unlocks.hasGeeZeeCard && geeZeeCard
           ? {
               id: geeZeeCard.id,

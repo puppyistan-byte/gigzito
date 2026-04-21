@@ -26,7 +26,7 @@ const TIERS = [
     desc: "Watch & engage",
     color: "#6b7280",
     price: "Free forever",
-    perks: ["Like & comment on content", "GeeZee card & rolodex", "Follow creators"],
+    perks: ["Like & comment on content", "GZCard & rolodex", "Follow creators"],
   },
   {
     id: "GZGroups",

@@ -37,7 +37,7 @@ const TIER_OPTIONS = [
   { value: "GZBusiness",    label: "GZBusiness",    color: "border-amber-800 text-amber-400", active: "bg-amber-700 border-amber-500 text-white" },
 ];
 
-// ── GeeZee Card tile ───────────────────────────────────────────────────────
+// ── GZCard tile ───────────────────────────────────────────────────────
 function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; myTier: string; isAuthed: boolean; myUserId: number | null }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -101,7 +101,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
       qc.invalidateQueries({ queryKey: ["/api/zee-motions/feed"] });
       toast({
         title: followStatus?.following ? "Unfollowed" : "✅ Following!",
-        description: followStatus?.following ? "You unfollowed this GeeZee card." : "Their ZeeMotions will appear in your feed.",
+        description: followStatus?.following ? "You unfollowed this GZCard." : "Their ZeeMotions will appear in your feed.",
       });
     },
     onError: () => toast({ title: "Error", description: "Could not update follow status.", variant: "destructive" }),
@@ -402,7 +402,7 @@ export default function GeezeesPage() {
                   data-testid="btn-edit-my-card"
                 >
                   <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-                  My GeeZee Card
+                  My GZCard
                 </Button>
               </Link>
             ) : (
@@ -507,7 +507,7 @@ export default function GeezeesPage() {
         ) : cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <CreditCard className="h-12 w-12 text-[#333] mb-4" />
-            <p className="text-[#555] text-base font-semibold">No GeeZee Cards yet</p>
+            <p className="text-[#555] text-base font-semibold">No GZCards yet</p>
             <p className="text-[#444] text-sm mt-1">
               {hasFilters ? "Try adjusting your filters." : "Be the first to create a card!"}
             </p>
