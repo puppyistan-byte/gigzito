@@ -4976,6 +4976,29 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  // ─── Endeavor Comments ─────────────────────────────────────────────────────
+  app.get("/api/groups/:id/endeavors/:eid/comments", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const mem = await storage.getUserGroupRole(parseInt(req.params.id), userId);
+    const siteRole = (req.session as any)?.role ?? "";
+    const isSiteAdmin = ["ADMIN", "SUPER_ADMIN"].includes(siteRole);
+    if (!isSiteAdmin && (!mem || mem.status !== "accepted")) return res.status(403).json({ message: "Members only" });
+    return res.json(await storage.getEndeavorComments(parseInt(req.params.eid)));
+  });
+
+  app.post("/api/groups/:id/endeavors/:eid/comments", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const mem = await storage.getUserGroupRole(parseInt(req.params.id), userId);
+    const siteRole = (req.session as any)?.role ?? "";
+    const isSiteAdmin = ["ADMIN", "SUPER_ADMIN"].includes(siteRole);
+    if (!isSiteAdmin && (!mem || mem.status !== "accepted")) return res.status(403).json({ message: "Members only" });
+    const { content } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+    return res.status(201).json(await storage.addEndeavorComment(parseInt(req.params.eid), userId, content.trim()));
+  });
+
   app.get("/api/groups/:id/events", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });

@@ -1081,6 +1081,14 @@ export const groupEndeavors = pgTable("group_endeavors", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const groupEndeavorComments = pgTable("group_endeavor_comments", {
+  id: serial("id").primaryKey(),
+  endeavorId: integer("endeavor_id").notNull().references(() => groupEndeavors.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const groupWallPosts = pgTable("group_wall_posts", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),

@@ -37,7 +37,7 @@ type Event = { id: number; groupId: number; title: string; description: string; 
 type Member = { id: number; groupId: number; userId: number; role: string; status: string; displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
 type GroupWallet = { id: number; groupId: number; label: string; network: string; address: string; link: string | null; createdBy: number; createdAt: string; goalAmount: number | null; goalCurrency: string | null; goalLabel: string | null };
 
-const MAIN_TABS = ["wall", "endeavors", "kanban", "wallet"] as const;
+const MAIN_TABS = ["wall", "endeavors", "kanban", "wallet", "links"] as const;
 type MainTab = typeof MAIN_TABS[number];
 
 const NETWORKS: { value: string; label: string; color: string; explorer: (addr: string) => string }[] = [
@@ -1098,6 +1098,58 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
   );
 }
 
+// ─── ENDEAVOR COMMENTS PANEL ─────────────────────────────────────────────────
+type EndeavorComment = { id: number; endeavorId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null };
+function EndeavorCommentsPanel({ groupId, endeavorId }: { groupId: number; endeavorId: number }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const { data: comments = [], isLoading } = useQuery<EndeavorComment[]>({
+    queryKey: ["/api/groups", groupId, "endeavors", endeavorId, "comments"],
+    queryFn: () => fetch(`/api/groups/${groupId}/endeavors/${endeavorId}/comments`, { credentials: "include" }).then(r => r.json()),
+  });
+  const addMut = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/groups/${groupId}/endeavors/${endeavorId}/comments`, { content: text }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors", endeavorId, "comments"] }); setText(""); },
+    onError: () => toast({ title: "Failed to post update", variant: "destructive" }),
+  });
+  return (
+    <div className="p-3 border-t border-border bg-muted/20 space-y-2">
+      {isLoading ? <div className="h-8 animate-pulse bg-muted rounded" /> : comments.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic">No updates yet. Add the first one below.</p>
+      ) : (
+        <div className="space-y-2.5 max-h-52 overflow-y-auto">
+          {comments.map(c => (
+            <div key={c.id} className="flex gap-2">
+              <UserAvatar avatarUrl={c.avatarUrl} displayName={c.displayName ?? c.username ?? "?"} size={24} borderWidth={1} borderColor="#3f3f46" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-[11px] font-semibold">{c.displayName ?? c.username ?? "Member"}</span>
+                  <span className="text-[9px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-snug mt-0.5">{c.content}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1.5 pt-1">
+        <Input
+          data-testid={`input-project-comment-${endeavorId}`}
+          className="text-xs h-7 flex-1"
+          placeholder="Add a project update…"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && text.trim()) { e.preventDefault(); addMut.mutate(); } }}
+        />
+        <Button data-testid={`button-post-project-comment-${endeavorId}`} size="sm" className="h-7 px-2 bg-red-600 hover:bg-red-700 text-white" disabled={!text.trim() || addMut.isPending} onClick={() => addMut.mutate()}>
+          <Send className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── ENDEAVORS ────────────────────────────────────────────────────────────────
 const SOCIAL_LINKS = [
   { key: "linkX", label: "X (Twitter)", icon: <SiX size={13} />, color: "#e7e7e7", placeholder: "https://x.com/yourhandle" },
@@ -1141,9 +1193,7 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
   const [pendingProgress, setPendingProgress] = useState<Record<number, number>>({});
   const debounceRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const emptyLinks = { linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "" };
-  const [linksOpenId, setLinksOpenId] = useState<number | null>(null);
-  const [linksForm, setLinksForm] = useState<typeof emptyLinks>(emptyLinks);
+  const [commentsOpenId, setCommentsOpenId] = useState<number | null>(null);
 
   const { data: endeavors = [], isLoading } = useQuery<Endeavor[]>({ queryKey: ["/api/groups", groupId, "endeavors"] });
 
@@ -1162,17 +1212,6 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
     mutationFn: (id: number) => apiRequest("DELETE", `/api/groups/${groupId}/endeavors/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }),
   });
-
-  const updateLinksMut = useMutation({
-    mutationFn: ({ id, links }: { id: number; links: typeof emptyLinks }) => apiRequest("PATCH", `/api/groups/${groupId}/endeavors/${id}`, links),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }); setLinksOpenId(null); toast({ title: "Links saved!" }); },
-    onError: () => toast({ title: "Failed to save links", variant: "destructive" }),
-  });
-
-  const openLinks = (end: Endeavor) => {
-    setLinksForm({ linkX: end.linkX ?? "", linkFb: end.linkFb ?? "", linkIg: end.linkIg ?? "", linkTelegram: end.linkTelegram ?? "", linkYoutube: end.linkYoutube ?? "", linkRumble: end.linkRumble ?? "", linkReddit: end.linkReddit ?? "" });
-    setLinksOpenId(end.id);
-  };
 
   const handleProgress = (id: number, value: number) => {
     setPendingProgress((prev) => ({ ...prev, [id]: value }));
@@ -1197,8 +1236,7 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
         <div className="space-y-3">
           {endeavors.map((end) => {
             const progress = pendingProgress[end.id] ?? end.goalProgress;
-            const isLinksOpen = linksOpenId === end.id;
-            const hasLinks = SOCIAL_LINKS.some(s => end[s.key as keyof Endeavor]);
+            const isCommentsOpen = commentsOpenId === end.id;
             return (
               <div key={end.id} data-testid={`endeavor-card-${end.id}`} className="bg-card border rounded-xl overflow-hidden">
                 {/* ── Card body ── */}
@@ -1227,47 +1265,19 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
                   {progress >= 100 && <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-semibold">🎉 Goal achieved!</p>}
                 </div>
 
-                {/* ── Tab strip ── */}
+                {/* ── Comments toggle ── */}
                 <div className="flex border-t border-border">
                   <button
-                    onClick={() => isLinksOpen ? setLinksOpenId(null) : openLinks(end)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors ${isLinksOpen ? "bg-muted text-foreground border-r border-border" : "text-muted-foreground hover:text-foreground"}`}
+                    data-testid={`button-toggle-project-comments-${end.id}`}
+                    onClick={() => setCommentsOpenId(isCommentsOpen ? null : end.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium transition-colors ${isCommentsOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
                   >
-                    <Link2 className="w-3 h-3" /> Links
-                    {hasLinks && !isLinksOpen && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ml-0.5" />}
+                    <MessageSquare className="w-3 h-3" /> Updates
                   </button>
                 </div>
 
-                {/* ── Links panel ── */}
-                {isLinksOpen && (
-                  <div className="p-3 border-t border-border bg-muted/30 space-y-2">
-                    {SOCIAL_LINKS.map(s => (
-                      <div key={s.key} className="flex items-center gap-2">
-                        <span className="shrink-0 w-5 flex justify-center" style={{ color: s.color }}>{s.icon}</span>
-                        <Input
-                          className="text-xs h-8"
-                          placeholder={s.placeholder}
-                          value={linksForm[s.key as SocialKey]}
-                          onChange={(e) => setLinksForm(f => ({ ...f, [s.key]: e.target.value }))}
-                        />
-                      </div>
-                    ))}
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                        disabled={updateLinksMut.isPending}
-                        onClick={() => updateLinksMut.mutate({ id: end.id, links: linksForm })}>
-                        {updateLinksMut.isPending ? "Saving…" : "Save Links"}
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setLinksOpenId(null)}>Cancel</Button>
-                    </div>
-                    {/* Read-only link icons for quick reference */}
-                    {hasLinks && (
-                      <div className="pt-1 border-t border-border/50">
-                        <ProjectSocialLinks project={end} />
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* ── Comments panel ── */}
+                {isCommentsOpen && <EndeavorCommentsPanel groupId={groupId} endeavorId={end.id} />}
               </div>
             );
           })}
@@ -1292,6 +1302,76 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── LINKS TAB ────────────────────────────────────────────────────────────────
+function LinksTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: endeavors = [], isLoading } = useQuery<Endeavor[]>({ queryKey: ["/api/groups", groupId, "endeavors"] });
+  const emptyLinks = { linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "" };
+  const [editId, setEditId] = useState<number | null>(null);
+  const [linksForm, setLinksForm] = useState<typeof emptyLinks>(emptyLinks);
+  const updateLinksMut = useMutation({
+    mutationFn: ({ id, links }: { id: number; links: typeof emptyLinks }) => apiRequest("PATCH", `/api/groups/${groupId}/endeavors/${id}`, links),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }); setEditId(null); toast({ title: "Links saved!" }); },
+    onError: () => toast({ title: "Failed to save links", variant: "destructive" }),
+  });
+  const openEdit = (end: Endeavor) => {
+    setLinksForm({ linkX: end.linkX ?? "", linkFb: end.linkFb ?? "", linkIg: end.linkIg ?? "", linkTelegram: end.linkTelegram ?? "", linkYoutube: end.linkYoutube ?? "", linkRumble: end.linkRumble ?? "", linkReddit: end.linkReddit ?? "" });
+    setEditId(end.id);
+  };
+  if (isLoading) return <div className="h-32 animate-pulse bg-muted rounded-xl" />;
+  if (endeavors.length === 0) return (
+    <div className="text-center py-12 text-muted-foreground">
+      <Link2 className="w-8 h-8 mx-auto mb-2 opacity-40" />
+      <p className="text-sm">No projects yet. Add projects first, then attach social links here.</p>
+    </div>
+  );
+  return (
+    <div className="space-y-3">
+      {endeavors.map(end => {
+        const hasLinks = SOCIAL_LINKS.some(s => end[s.key as keyof Endeavor]);
+        const isEditing = editId === end.id;
+        return (
+          <div key={end.id} className="bg-card border rounded-xl overflow-hidden">
+            <div className="p-3 flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{end.title}</p>
+                {hasLinks && !isEditing && <ProjectSocialLinks project={end} />}
+                {!hasLinks && !isEditing && <p className="text-xs text-muted-foreground mt-0.5 italic">No links set yet</p>}
+              </div>
+              {isAdmin && (
+                <button onClick={() => isEditing ? setEditId(null) : openEdit(end)}
+                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors shrink-0 mt-0.5">
+                  {isEditing ? "Cancel" : "Edit Links"}
+                </button>
+              )}
+            </div>
+            {isEditing && (
+              <div className="p-3 border-t border-border bg-muted/30 space-y-2">
+                {SOCIAL_LINKS.map(s => (
+                  <div key={s.key} className="flex items-center gap-2">
+                    <span className="shrink-0 w-5 flex justify-center" style={{ color: s.color }}>{s.icon}</span>
+                    <Input className="text-xs h-8" placeholder={s.placeholder} value={linksForm[s.key as SocialKey]}
+                      onChange={e => setLinksForm(f => ({ ...f, [s.key]: e.target.value }))} />
+                  </div>
+                ))}
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={updateLinksMut.isPending}
+                    onClick={() => updateLinksMut.mutate({ id: end.id, links: linksForm })}>
+                    {updateLinksMut.isPending ? "Saving…" : "Save Links"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditId(null)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -2756,6 +2836,7 @@ export default function GroupDetailPage() {
     endeavors: { label: "Projects", icon: <Target className="w-4 h-4" /> },
     kanban: { label: "Kanban", icon: <KanbanSquare className="w-4 h-4" /> },
     wallet: { label: "Wallet", icon: <Wallet className="w-4 h-4" /> },
+    links: { label: "Links", icon: <Link2 className="w-4 h-4" /> },
   };
 
   if (!user) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Please log in.</p></div>;
@@ -2931,6 +3012,7 @@ export default function GroupDetailPage() {
               {tab === "endeavors" && <EndeavorsTab groupId={groupId} isAdmin={isAdmin} />}
               {tab === "kanban" && <KanbanTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
               {tab === "wallet" && <WalletTab groupId={groupId} isAdmin={isAdmin} />}
+              {tab === "links" && <LinksTab groupId={groupId} isAdmin={isAdmin} />}
             </div>
 
             {/* Right: Goals + Calendar + Members */}
