@@ -4881,10 +4881,14 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     const { title, description } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: "Title required" });
-    const mem = await storage.getUserGroupRole(id, userId);
-    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    const siteRole = (req.session as any)?.role ?? "";
+    const isSiteAdmin = ["ADMIN", "SUPER_ADMIN"].includes(siteRole);
+    if (!isSiteAdmin) {
+      const mem = await storage.getUserGroupRole(id, userId);
+      if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    }
     try { return res.status(201).json(await storage.createGroupEndeavor(id, { title: title.trim(), description })); }
-    catch (e) { return res.status(500).json({ message: "Server error" }); }
+    catch (e) { console.error("[endeavor create]", e); return res.status(500).json({ message: "Server error" }); }
   });
 
   app.patch("/api/groups/:id/endeavors/:eid", async (req, res) => {
@@ -4892,8 +4896,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const id = parseInt(req.params.id);
     const eid = parseInt(req.params.eid);
-    const mem = await storage.getUserGroupRole(id, userId);
-    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    const siteRole = (req.session as any)?.role ?? "";
+    const isSiteAdmin = ["ADMIN", "SUPER_ADMIN"].includes(siteRole);
+    if (!isSiteAdmin) {
+      const mem = await storage.getUserGroupRole(id, userId);
+      if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    }
     try {
       if (req.body.goalProgress !== undefined) return res.json(await storage.updateGroupEndeavorProgress(eid, req.body.goalProgress));
       return res.json(await storage.updateGroupEndeavor(eid, req.body));
@@ -4904,8 +4912,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const id = parseInt(req.params.id);
-    const mem = await storage.getUserGroupRole(id, userId);
-    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    const siteRoleDel = (req.session as any)?.role ?? "";
+    const isSiteAdminDel = ["ADMIN", "SUPER_ADMIN"].includes(siteRoleDel);
+    if (!isSiteAdminDel) {
+      const mem = await storage.getUserGroupRole(id, userId);
+      if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    }
     try { await storage.deleteGroupEndeavor(parseInt(req.params.eid)); return res.json({ message: "Deleted" }); }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
