@@ -234,7 +234,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
       parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, risk: "" as RiskLevel, ...i }));
       parsed.contributions = parsed.contributions || [];
       return parsed;
-    } catch { return { dailyGoal: 0, investments: [] }; }
+    } catch { return { dailyGoal: 0, investments: [], contributions: [] }; }
   };
 
   const [goalData, setGoalData] = useState<GoalData>(loadGoals);
