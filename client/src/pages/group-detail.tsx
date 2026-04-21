@@ -211,7 +211,7 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 type RiskLevel = "volatile" | "high" | "medium" | "medium-low" | "low" | "none" | "";
 type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number; risk?: RiskLevel; trackingStartedAt?: string | null };
 type MemberContribution = { id: string; name: string; amount: number };
-type GoalKitty = { startDate: string | null; dailyAmount: number };
+type GoalKitty = { startDate: string | null; startTime?: string | null; dailyAmount: number };
 type GoalData = { dailyGoal: number; investments: GoalInvestment[]; contributions: MemberContribution[]; kitty?: GoalKitty };
 // Form state uses raw strings so typing "1.50" never snaps back mid-keystroke
 type FormRow = { id: string; name: string; amountRaw: string; earningsRaw: string; risk: RiskLevel };
@@ -233,14 +233,14 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const loadGoals = (): GoalData => {
     try {
       const s = localStorage.getItem(storageKey);
-      if (!s) return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, dailyAmount: 0 } };
+      if (!s) return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, startTime: "00:00", dailyAmount: 0 } };
       const parsed = JSON.parse(s);
       // migrate old investments that lack dailyEarnings or risk
       parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, risk: "" as RiskLevel, ...i }));
       parsed.contributions = parsed.contributions || [];
-      parsed.kitty = parsed.kitty || { startDate: null, dailyAmount: 0 };
+      parsed.kitty = { startDate: null, startTime: "00:00", dailyAmount: 0, ...(parsed.kitty || {}) };
       return parsed;
-    } catch { return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, dailyAmount: 0 } }; }
+    } catch { return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, startTime: "00:00", dailyAmount: 0 } }; }
   };
 
   const [goalData, setGoalData] = useState<GoalData>(loadGoals);
@@ -250,6 +250,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const [rows, setRows] = useState<FormRow[]>([]);
   const [contribRows, setContribRows] = useState<ContribRow[]>([]);
   const [kittyStartDate, setKittyStartDate] = useState<string>("");
+  const [kittyStartTime, setKittyStartTime] = useState<string>("00:00");
   const [kittyDailyRaw, setKittyDailyRaw] = useState<string>("");
 
   const toRows = (invs: GoalInvestment[]): FormRow[] =>
@@ -261,8 +262,9 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
     setDailyGoalRaw(goalData.dailyGoal > 0 ? String(goalData.dailyGoal) : "");
     setRows(toRows(goalData.investments));
     setContribRows(toContribRows(goalData.contributions || []));
-    const k = goalData.kitty || { startDate: null, dailyAmount: 0 };
+    const k = goalData.kitty || { startDate: null, startTime: "00:00", dailyAmount: 0 };
     setKittyStartDate(k.startDate || "");
+    setKittyStartTime(k.startTime || "00:00");
     setKittyDailyRaw(k.dailyAmount > 0 ? String(k.dailyAmount) : "");
     setShowSettings(true);
   };
@@ -287,6 +289,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
         .map(c => ({ id: c.id, name: c.name, amount: parseFloat(c.amountRaw) || 0 })),
       kitty: {
         startDate: kittyStartDate.trim() || null,
+        startTime: kittyStartTime.trim() || "00:00",
         dailyAmount: parseFloat(kittyDailyRaw) || 0,
       },
     };
@@ -359,14 +362,24 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const activeContribs = (goalData.contributions || []).filter(c => c.name.trim() && c.amount > 0);
   const totalContributed = activeContribs.reduce((s, c) => s + c.amount, 0);
 
-  // Kitty — daily accumulation from a start date
+  // Kitty — daily accumulation from a start date + time (parsed as LOCAL time)
+  // IMPORTANT: "2026-04-21" alone parses as UTC midnight — wrong in US timezones.
+  // "2026-04-21T09:00:00" (no Z) parses as LOCAL time — correct.
   const MS_PER_DAY_K = 86400000;
-  const kitty = goalData.kitty || { startDate: null, dailyAmount: 0 };
+  const kitty = goalData.kitty || { startDate: null, startTime: "00:00", dailyAmount: 0 };
   const kittyActive = !!(kitty.startDate && kitty.dailyAmount > 0);
-  const kittyDaysElapsed = kittyActive
-    ? Math.max(0, Math.floor((Date.now() - new Date(kitty.startDate!).getTime()) / MS_PER_DAY_K))
+  const kittyStartMs = kittyActive
+    ? new Date(`${kitty.startDate}T${kitty.startTime || "00:00"}:00`).getTime()
     : 0;
-  const kittyAccumulated = kittyActive ? kittyDaysElapsed * kitty.dailyAmount : 0;
+  const kittyDaysElapsed = kittyActive
+    ? Math.max(0, Math.floor((Date.now() - kittyStartMs) / MS_PER_DAY_K))
+    : 0;
+  const kittyHoursElapsed = kittyActive
+    ? Math.max(0, (Date.now() - kittyStartMs) / (1000 * 60 * 60))
+    : 0;
+  const kittyAccumulated = kittyActive
+    ? parseFloat((kittyDaysElapsed * kitty.dailyAmount).toFixed(2))
+    : 0;
 
   // Overall portfolio risk — weighted average of active investments with risk set
   const RISK_WEIGHTS: Record<string, number> = { volatile: 5, high: 4, medium: 3, "medium-low": 2, low: 1, none: 0 };
@@ -614,9 +627,14 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>Since {new Date(kitty.startDate!).toLocaleDateString()}</span>
+                <span>Since {new Date(`${kitty.startDate}T${kitty.startTime || "00:00"}:00`).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                 <span>${kitty.dailyAmount.toFixed(2)}/day × {kittyDaysElapsed}d</span>
               </div>
+              {kittyDaysElapsed === 0 && kittyHoursElapsed > 0 && (
+                <p className="text-[9px] text-emerald-400/60 text-right">
+                  {kittyHoursElapsed.toFixed(1)}h elapsed — full day tally starts after 24h
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -761,7 +779,8 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 </label>
               </div>
               <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
-                <div className="flex gap-2 items-center">
+                {/* Row 1: date + time */}
+                <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <p className="text-[10px] text-muted-foreground mb-1">Start Date</p>
                     <Input type="date" className="h-8 text-sm w-full"
@@ -769,32 +788,46 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                       onChange={e => setKittyStartDate(e.target.value)}
                       data-testid="input-kitty-start-date" />
                   </div>
-                  <div className="w-36 shrink-0">
-                    <p className="text-[10px] text-muted-foreground mb-1">USD / Day</p>
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <Input type="text" inputMode="decimal" placeholder="0.00" autoComplete="off"
-                        className="pl-5 h-8 text-sm w-full"
-                        value={kittyDailyRaw}
-                        onChange={e => setKittyDailyRaw(e.target.value)}
-                        data-testid="input-kitty-daily" />
-                    </div>
+                  <div className="w-28 shrink-0">
+                    <p className="text-[10px] text-muted-foreground mb-1">Start Time</p>
+                    <Input type="time" className="h-8 text-sm w-full"
+                      value={kittyStartTime}
+                      onChange={e => setKittyStartTime(e.target.value)}
+                      data-testid="input-kitty-start-time" />
                   </div>
                 </div>
-                {/* Kitty preview */}
+                {/* Row 2: USD/day */}
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1">USD / Day</p>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                    <Input type="text" inputMode="decimal" placeholder="0.00" autoComplete="off"
+                      className="pl-5 h-8 text-sm w-full"
+                      value={kittyDailyRaw}
+                      onChange={e => setKittyDailyRaw(e.target.value)}
+                      data-testid="input-kitty-daily" />
+                  </div>
+                </div>
+                {/* Kitty live preview — uses LOCAL time parsing (no UTC shift) */}
                 {kittyStartDate && parseFloat(kittyDailyRaw) > 0 && (() => {
-                  const d = Math.max(0, Math.floor((Date.now() - new Date(kittyStartDate).getTime()) / 86400000));
-                  const acc = d * (parseFloat(kittyDailyRaw) || 0);
+                  const startMs = new Date(`${kittyStartDate}T${kittyStartTime || "00:00"}:00`).getTime();
+                  const d = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
+                  const hrs = Math.max(0, (Date.now() - startMs) / (1000 * 60 * 60));
+                  const rate = parseFloat(kittyDailyRaw) || 0;
+                  const acc = d * rate;
                   return (
                     <div className="rounded bg-emerald-950/40 border border-emerald-800/30 px-2.5 py-2 space-y-0.5">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Kitty Total</span>
-                        <span className="font-bold text-emerald-400">${acc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-bold text-emerald-400">${acc.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-[10px] text-muted-foreground/70">
-                        <span>${(parseFloat(kittyDailyRaw) || 0).toFixed(2)}/day × {d} days</span>
-                        <span>since {new Date(kittyStartDate).toLocaleDateString()}</span>
+                        <span>${rate.toFixed(2)}/day × {d} day{d !== 1 ? "s" : ""}</span>
+                        <span>since {new Date(`${kittyStartDate}T${kittyStartTime || "00:00"}:00`).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                       </div>
+                      {d === 0 && hrs > 0 && (
+                        <p className="text-[9px] text-emerald-400/50 text-right">{hrs.toFixed(1)}h elapsed — tally starts after 24h</p>
+                      )}
                     </div>
                   );
                 })()}
