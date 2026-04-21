@@ -4941,7 +4941,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const mem = await storage.getUserGroupRole(id, userId);
       if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
     }
-    try { return res.status(201).json(await storage.createGroupEndeavor(id, { title: title.trim(), description, linkX, linkFb, linkIg, linkTelegram, linkYoutube, linkRumble, linkReddit })); }
+    try { return res.status(201).json(await storage.createGroupEndeavor(id, userId, { title: title.trim(), description, linkX, linkFb, linkIg, linkTelegram, linkYoutube, linkRumble, linkReddit })); }
     catch (e) { console.error("[endeavor create]", e); return res.status(500).json({ message: "Server error" }); }
   });
 

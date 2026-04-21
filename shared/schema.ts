@@ -1077,6 +1077,7 @@ export const groupEndeavors = pgTable("group_endeavors", {
   linkYoutube: text("link_youtube"),
   linkRumble: text("link_rumble"),
   linkReddit: text("link_reddit"),
+  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

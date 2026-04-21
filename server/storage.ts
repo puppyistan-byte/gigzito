@@ -233,7 +233,7 @@ export interface IStorage {
   getPendingGroupInvites(userId: number): Promise<Array<GroupMember & { groupName: string; groupCoverUrl: string | null; inviterName: string | null }>>;
   searchUsersForInvite(q: string, groupId: number): Promise<Array<{ userId: number; displayName: string | null; avatarUrl: string | null; username: string | null; email: string }>>;
   getGroupEndeavors(groupId: number): Promise<GroupEndeavor[]>;
-  createGroupEndeavor(groupId: number, data: { title: string; description?: string }): Promise<GroupEndeavor>;
+  createGroupEndeavor(groupId: number, createdBy: number, data: { title: string; description?: string }): Promise<GroupEndeavor>;
   updateGroupEndeavorProgress(id: number, progress: number): Promise<GroupEndeavor>;
   updateGroupEndeavor(id: number, data: Partial<{ title: string; description: string }>): Promise<GroupEndeavor>;
   deleteGroupEndeavor(id: number): Promise<void>;
@@ -2959,8 +2959,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(groupEndeavors).where(eq(groupEndeavors.groupId, groupId)).orderBy(groupEndeavors.createdAt);
   }
 
-  async createGroupEndeavor(groupId: number, data: { title: string; description?: string; linkX?: string; linkFb?: string; linkIg?: string; linkTelegram?: string; linkYoutube?: string; linkRumble?: string; linkReddit?: string }) {
-    const [row] = await db.insert(groupEndeavors).values({ groupId, title: data.title, description: data.description ?? "", linkX: data.linkX || null, linkFb: data.linkFb || null, linkIg: data.linkIg || null, linkTelegram: data.linkTelegram || null, linkYoutube: data.linkYoutube || null, linkRumble: data.linkRumble || null, linkReddit: data.linkReddit || null }).returning();
+  async createGroupEndeavor(groupId: number, createdBy: number, data: { title: string; description?: string; linkX?: string; linkFb?: string; linkIg?: string; linkTelegram?: string; linkYoutube?: string; linkRumble?: string; linkReddit?: string }) {
+    const [row] = await db.insert(groupEndeavors).values({ groupId, createdBy, title: data.title, description: data.description ?? "", linkX: data.linkX || null, linkFb: data.linkFb || null, linkIg: data.linkIg || null, linkTelegram: data.linkTelegram || null, linkYoutube: data.linkYoutube || null, linkRumble: data.linkRumble || null, linkReddit: data.linkReddit || null }).returning();
     return row;
   }
 

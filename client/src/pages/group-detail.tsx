@@ -1286,7 +1286,6 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
               <label className="text-xs font-medium">Description</label>
               <Textarea data-testid="input-endeavor-description" className="mt-1" rows={3} placeholder="What does success look like?" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
-            <p className="text-xs text-muted-foreground">You can add social links after creating the project via the Links tab on each project card.</p>
             <Button data-testid="button-submit-endeavor" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={!form.title.trim() || createMut.isPending} onClick={() => createMut.mutate(form)}>
               {createMut.isPending ? "Adding…" : "Add Project"}
             </Button>
