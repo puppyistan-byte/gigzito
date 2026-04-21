@@ -209,7 +209,7 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 
 // ─── GOALS THERMOMETER ────────────────────────────────────────────────────────
 type RiskLevel = "volatile" | "high" | "medium" | "medium-low" | "low" | "none" | "";
-type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number; risk?: RiskLevel };
+type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number; risk?: RiskLevel; trackingStartedAt?: string | null };
 type MemberContribution = { id: string; name: string; amount: number };
 type GoalData = { dailyGoal: number; investments: GoalInvestment[]; contributions: MemberContribution[] };
 // Form state uses raw strings so typing "1.50" never snaps back mid-keystroke
@@ -261,11 +261,20 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   };
 
   const saveGoals = () => {
+    // Preserve trackingStartedAt from existing investments when re-saving form rows
+    const existingById: Record<string, GoalInvestment> = {};
+    goalData.investments.forEach(i => { existingById[i.id] = i; });
     const cleaned: GoalData = {
       dailyGoal: parseFloat(dailyGoalRaw) || 0,
       investments: rows
         .filter(r => r.name.trim() || parseFloat(r.amountRaw) > 0 || parseFloat(r.earningsRaw) > 0)
-        .map(r => ({ id: r.id, name: r.name, amount: parseFloat(r.amountRaw) || 0, dailyEarnings: parseFloat(r.earningsRaw) || 0, risk: r.risk })),
+        .map(r => ({
+          id: r.id, name: r.name,
+          amount: parseFloat(r.amountRaw) || 0,
+          dailyEarnings: parseFloat(r.earningsRaw) || 0,
+          risk: r.risk,
+          trackingStartedAt: existingById[r.id]?.trackingStartedAt ?? null,
+        })),
       contributions: contribRows
         .filter(c => c.name.trim() || parseFloat(c.amountRaw) > 0)
         .map(c => ({ id: c.id, name: c.name, amount: parseFloat(c.amountRaw) || 0 })),
@@ -274,6 +283,20 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
     setGoalData(cleaned);
     setShowSettings(false);
     toast({ title: "Goals saved!" });
+  };
+
+  const toggleTracking = (id: string) => {
+    setGoalData(prev => {
+      const updated = {
+        ...prev,
+        investments: prev.investments.map(inv =>
+          inv.id !== id ? inv :
+          { ...inv, trackingStartedAt: inv.trackingStartedAt ? null : new Date().toISOString() }
+        ),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const addInvestment = () => {
@@ -298,6 +321,23 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const breakEvenDays = totalDailyEarnings > 0 && totalInvested > 0 ? Math.ceil(totalInvested / totalDailyEarnings) : 0;
   const breakEvenMonths = breakEvenDays > 0 ? (breakEvenDays / 30.44).toFixed(1) : "—";
   const breakEvenYears = breakEvenDays > 0 ? (breakEvenDays / 365.25).toFixed(2) : "—";
+
+  // Daily tracking calculations — per investment
+  const NOW = Date.now();
+  const MS_PER_DAY = 86_400_000;
+  const trackingData = activeInv.map(inv => {
+    if (!inv.trackingStartedAt) return { inv, tracking: false, daysElapsed: 0, accumulated: 0, remaining: inv.amount, pct: 0 };
+    const daysElapsed = Math.max(0, Math.floor((NOW - new Date(inv.trackingStartedAt).getTime()) / MS_PER_DAY));
+    const accumulated = Math.min(inv.amount, daysElapsed * inv.dailyEarnings);
+    const remaining = Math.max(0, inv.amount - accumulated);
+    const pct = inv.amount > 0 ? Math.min(100, (accumulated / inv.amount) * 100) : 0;
+    return { inv, tracking: true, daysElapsed, accumulated, remaining, pct };
+  });
+  const anyTracking = trackingData.some(t => t.tracking);
+  const totalAccumulated = trackingData.reduce((s, t) => s + t.accumulated, 0);
+  const totalRemaining = trackingData.reduce((s, t) => s + t.remaining, 0);
+  const adjustedBreakEvenDays = anyTracking && totalDailyEarnings > 0 && totalRemaining > 0
+    ? Math.ceil(totalRemaining / totalDailyEarnings) : 0;
 
   // Thermometer fill: how close are actual daily earnings to the daily goal (0–100%)
   const fillPct = dailyGoal > 0 ? Math.min(100, (totalDailyEarnings / dailyGoal) * 100) : 0;
@@ -396,13 +436,32 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               </div>
               <div className="rounded-lg bg-muted/40 px-2.5 py-1.5" style={{ border: "1px solid rgba(245,158,11,0.25)" }}>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Break-Even</p>
-                <p className="text-sm font-bold text-amber-500">{breakEvenDays > 0 ? `${breakEvenDays.toLocaleString()} days` : "—"}</p>
-                {breakEvenDays > 0 && (
+                {anyTracking && adjustedBreakEvenDays > 0 ? (
                   <>
-                    <p className="text-[10px] text-muted-foreground">{breakEvenMonths} mo · {breakEvenYears} yrs</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                      ${totalInvested.toLocaleString()} ÷ ${totalDailyEarnings.toFixed(2)}/day
+                    <p className="text-sm font-bold text-green-400">{adjustedBreakEvenDays.toLocaleString()} days left</p>
+                    <p className="text-[10px] text-muted-foreground/70">
+                      ${totalRemaining.toFixed(2)} remaining ÷ ${totalDailyEarnings.toFixed(2)}/day
                     </p>
+                    <p className="text-[10px] text-muted-foreground/50 line-through">
+                      was {breakEvenDays.toLocaleString()} days
+                    </p>
+                  </>
+                ) : anyTracking && totalRemaining <= 0 ? (
+                  <>
+                    <p className="text-sm font-bold text-green-400">Break-even reached!</p>
+                    <p className="text-[10px] text-green-500/70">${totalAccumulated.toFixed(2)} recouped</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-amber-500">{breakEvenDays > 0 ? `${breakEvenDays.toLocaleString()} days` : "—"}</p>
+                    {breakEvenDays > 0 && (
+                      <>
+                        <p className="text-[10px] text-muted-foreground">{breakEvenMonths} mo · {breakEvenYears} yrs</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                          ${totalInvested.toLocaleString()} ÷ ${totalDailyEarnings.toFixed(2)}/day
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -414,20 +473,50 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
         {activeInv.length > 0 && (
           <div className="mt-3 pt-3 border-t space-y-1.5">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Investments</p>
-            {activeInv.map((inv, idx) => {
+            {trackingData.map(({ inv, tracking, daysElapsed, accumulated, remaining, pct }, idx) => {
               const riskMeta = RISK_OPTIONS.find(o => o.value === inv.risk);
               return (
-                <div key={inv.id} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground truncate flex-1">{idx + 1}. {inv.name}</span>
-                  {riskMeta && riskMeta.value && (
-                    <span className="text-[9px] font-bold uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
-                      style={{ color: riskMeta.color, backgroundColor: riskMeta.color + "22" }}>
-                      {riskMeta.label}
-                    </span>
-                  )}
-                  <span className="text-xs font-semibold shrink-0">${inv.amount.toLocaleString()}</span>
-                  {inv.dailyEarnings > 0 && (
-                    <span className="text-[10px] text-amber-500 font-semibold shrink-0">+${inv.dailyEarnings.toFixed(2)}/d</span>
+                <div key={inv.id} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {/* Tracking toggle */}
+                    <button
+                      onClick={() => toggleTracking(inv.id)}
+                      title={tracking ? "Stop tracking daily tally" : "Start tracking daily tally"}
+                      data-testid={`btn-track-${inv.id}`}
+                      className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        tracking
+                          ? "border-green-500 bg-green-500/20 text-green-400"
+                          : "border-muted-foreground/40 text-muted-foreground/40 hover:border-green-500/60 hover:text-green-500/60"
+                      }`}
+                    >
+                      {tracking
+                        ? <span className="w-2 h-2 rounded-full bg-green-400 block animate-pulse" />
+                        : <span className="w-1.5 h-1.5 rounded-full bg-current block" />
+                      }
+                    </button>
+                    <span className="text-xs text-muted-foreground truncate flex-1">{idx + 1}. {inv.name}</span>
+                    {riskMeta && riskMeta.value && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
+                        style={{ color: riskMeta.color, backgroundColor: riskMeta.color + "22" }}>
+                        {riskMeta.label}
+                      </span>
+                    )}
+                    <span className="text-xs font-semibold shrink-0">${inv.amount.toLocaleString()}</span>
+                    {inv.dailyEarnings > 0 && (
+                      <span className="text-[10px] text-amber-500 font-semibold shrink-0">+${inv.dailyEarnings.toFixed(2)}/d</span>
+                    )}
+                  </div>
+                  {/* Tracking progress row */}
+                  {tracking && (
+                    <div className="ml-7 space-y-0.5">
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                        <span className="text-green-400 font-semibold">${accumulated.toFixed(2)} recouped ({daysElapsed}d)</span>
+                        <span className="text-amber-400 font-semibold">${remaining.toFixed(2)} remaining</span>
+                      </div>
+                    </div>
                   )}
                 </div>
               );
