@@ -1518,6 +1518,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   const [newImpact,     setNewImpact]     = useState("");
   const [newEffort,     setNewEffort]     = useState("");
   const [newEndeavor,   setNewEndeavor]   = useState<number | undefined>();
+  const [newStatus,     setNewStatus]     = useState("backlog");
   const [retroWin,      setRetroWin]      = useState("");
   const [retroRoadblock,setRetroRoadblock]= useState("");
 
@@ -1533,7 +1534,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
   const memberMap  = new Map(members.map(m => [m.userId, m]));
   const endeavorMap = new Map(endeavors.map(e => [e.id, e.title]));
 
-  const resetForm = () => { setNewTitle(""); setNewDesc(""); setNewPriority("medium"); setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort(""); setNewEndeavor(undefined); };
+  const resetForm = () => { setNewTitle(""); setNewDesc(""); setNewPriority("medium"); setNewDeadline(""); setNewAssignedTo(undefined); setNewImpact(""); setNewEffort(""); setNewEndeavor(undefined); setNewStatus("backlog"); };
 
   const createMut = useMutation({
     mutationFn: (d: object) => apiRequest("POST", `/api/groups/${groupId}/kanban`, d),
@@ -1584,6 +1585,7 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
     setNewImpact(card.impactLevel ?? "");
     setNewEffort(card.effortLevel ?? "");
     setNewEndeavor(card.endeavorId ?? undefined);
+    setNewStatus(card.status ?? "backlog");
   };
 
   if (isLoading) return <div className="h-40 animate-pulse bg-muted rounded-xl" />;
@@ -1625,17 +1627,30 @@ function KanbanTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: b
               title={newTitle} desc={newDesc} priority={newPriority} deadline={newDeadline}
               assignedTo={newAssignedTo} impact={newImpact} effort={newEffort}
               endeavorId={newEndeavor} endeavors={endeavors}
-              members={members} showMatrixFields={editCard?.status === "backlog"}
+              members={members} showMatrixFields={newStatus === "backlog"}
               onTitle={setNewTitle} onDesc={setNewDesc} onPriority={setNewPriority}
               onDeadline={setNewDeadline} onAssignedTo={setNewAssignedTo}
               onImpact={setNewImpact} onEffort={setNewEffort} onEndeavor={setNewEndeavor}
               onEscape={() => setEditCard(null)}
             />
+            {/* Column / Status picker */}
+            <div>
+              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Move to column</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {KANBAN_COLS.map(col => (
+                  <button key={col.key} data-testid={`button-status-${col.key}`}
+                    onClick={() => setNewStatus(col.key)}
+                    className={`flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-all ${newStatus === col.key ? `${col.topColor.replace("border-", "border-")} bg-zinc-800 text-white border` : "border-zinc-700/40 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500"}`}>
+                    {col.icon} {col.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex gap-2 pt-1">
               <Button data-testid="button-save-kanban-card" size="sm"
                 className="flex-1 h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
                 disabled={!newTitle.trim() || updateMut.isPending}
-                onClick={() => updateMut.mutate({ id: editCard.id, title: newTitle, description: newDesc, priority: newPriority, deadline: newDeadline || null, assignedTo: newAssignedTo ?? null, impactLevel: newImpact || null, effortLevel: newEffort || null, endeavorId: newEndeavor ?? null })}>
+                onClick={() => updateMut.mutate({ id: editCard.id, title: newTitle, description: newDesc, status: newStatus, priority: newPriority, deadline: newDeadline || null, assignedTo: newAssignedTo ?? null, impactLevel: newImpact || null, effortLevel: newEffort || null, endeavorId: newEndeavor ?? null })}>
                 Save Changes
               </Button>
               <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditCard(null)}>Cancel</Button>
