@@ -223,7 +223,7 @@ export interface IStorage {
   getMyGroups(userId: number): Promise<Array<Group & { memberCount: number; myRole: string }>>;
   getFeaturedGroups(limit?: number): Promise<Array<Group & { memberCount: number }>>;
   getGroupById(id: number, userId?: number): Promise<(Group & { memberCount: number; myRole: string | null; myStatus: string | null }) | null>;
-  updateGroup(id: number, data: Partial<{ name: string; description: string; coverUrl: string; isPrivate: boolean }>): Promise<Group>;
+  updateGroup(id: number, data: Partial<{ name: string; description: string; coverUrl: string; isPrivate: boolean; linkX: string | null; linkFb: string | null; linkIg: string | null; linkTelegram: string | null; linkYoutube: string | null; linkRumble: string | null; linkReddit: string | null; linkWebsite: string | null }>): Promise<Group>;
   deleteGroup(id: number): Promise<void>;
   getGroupMembers(groupId: number): Promise<Array<GroupMember & { displayName: string | null; avatarUrl: string | null; username: string | null; email: string }>>;
   inviteToGroup(groupId: number, inviteeUserId: number, adminUserId: number): Promise<GroupMember>;

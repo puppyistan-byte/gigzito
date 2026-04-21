@@ -29,6 +29,9 @@ type Group = {
   id: number; name: string; description: string; coverUrl: string | null;
   isPrivate: boolean; inviteCode: string; memberCount: number;
   myRole: string | null; myStatus: string | null; createdBy: number; createdAt: string;
+  linkX?: string | null; linkFb?: string | null; linkIg?: string | null;
+  linkTelegram?: string | null; linkYoutube?: string | null; linkRumble?: string | null;
+  linkReddit?: string | null; linkWebsite?: string | null;
 };
 type Post = { id: number; groupId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number };
 type Comment = { id: number; postId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null };
@@ -1307,71 +1310,101 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
 }
 
 // ─── LINKS TAB ────────────────────────────────────────────────────────────────
-function LinksTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
+const GROUP_LINKS = [
+  { key: "linkX",        label: "X (Twitter)",  icon: <SiX size={22} />,        color: "#e7e7e7", placeholder: "https://x.com/yourhandle" },
+  { key: "linkFb",       label: "Facebook",     icon: <SiFacebook size={22} />, color: "#1877f2", placeholder: "https://facebook.com/yourpage" },
+  { key: "linkIg",       label: "Instagram",    icon: <SiInstagram size={22} />,color: "#e1306c", placeholder: "https://instagram.com/yourhandle" },
+  { key: "linkTelegram", label: "Telegram",     icon: <SiTelegram size={22} />, color: "#26a5e4", placeholder: "https://t.me/yourchannel" },
+  { key: "linkYoutube",  label: "YouTube",      icon: <SiYoutube size={22} />,  color: "#ff0000", placeholder: "https://youtube.com/@yourchannel" },
+  { key: "linkRumble",   label: "Rumble",       icon: <SiRumble size={22} />,   color: "#85c742", placeholder: "https://rumble.com/c/yourchannel" },
+  { key: "linkReddit",   label: "Reddit",       icon: <SiReddit size={22} />,   color: "#ff4500", placeholder: "https://reddit.com/r/yoursubreddit" },
+  { key: "linkWebsite",  label: "Website",      icon: <ExternalLink size={22} />, color: "#a78bfa", placeholder: "https://yourwebsite.com" },
+] as const;
+type GroupLinkKey = typeof GROUP_LINKS[number]["key"];
+
+function LinksTab({ groupId, isAdmin, group }: { groupId: number; isAdmin: boolean; group: Group }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { data: endeavors = [], isLoading } = useQuery<Endeavor[]>({ queryKey: ["/api/groups", groupId, "endeavors"] });
-  const emptyLinks = { linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "" };
-  const [editId, setEditId] = useState<number | null>(null);
-  const [linksForm, setLinksForm] = useState<typeof emptyLinks>(emptyLinks);
-  const updateLinksMut = useMutation({
-    mutationFn: ({ id, links }: { id: number; links: typeof emptyLinks }) => apiRequest("PATCH", `/api/groups/${groupId}/endeavors/${id}`, links),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }); setEditId(null); toast({ title: "Links saved!" }); },
-    onError: () => toast({ title: "Failed to save links", variant: "destructive" }),
+  const [editing, setEditing] = useState(false);
+  const emptyForm = { linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "", linkWebsite: "" };
+  const [form, setForm] = useState<typeof emptyForm>(emptyForm);
+
+  const saveMut = useMutation({
+    mutationFn: (data: typeof emptyForm) => apiRequest("PATCH", `/api/groups/${groupId}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/groups", groupId] });
+      setEditing(false);
+      toast({ title: "Links saved!" });
+    },
+    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
   });
-  const openEdit = (end: Endeavor) => {
-    setLinksForm({ linkX: end.linkX ?? "", linkFb: end.linkFb ?? "", linkIg: end.linkIg ?? "", linkTelegram: end.linkTelegram ?? "", linkYoutube: end.linkYoutube ?? "", linkRumble: end.linkRumble ?? "", linkReddit: end.linkReddit ?? "" });
-    setEditId(end.id);
+
+  const openEdit = () => {
+    setForm({
+      linkX: group.linkX ?? "", linkFb: group.linkFb ?? "", linkIg: group.linkIg ?? "",
+      linkTelegram: group.linkTelegram ?? "", linkYoutube: group.linkYoutube ?? "",
+      linkRumble: group.linkRumble ?? "", linkReddit: group.linkReddit ?? "",
+      linkWebsite: group.linkWebsite ?? "",
+    });
+    setEditing(true);
   };
-  if (isLoading) return <div className="h-32 animate-pulse bg-muted rounded-xl" />;
-  if (endeavors.length === 0) return (
-    <div className="text-center py-12 text-muted-foreground">
-      <Link2 className="w-8 h-8 mx-auto mb-2 opacity-40" />
-      <p className="text-sm">No projects yet. Add projects first, then attach social links here.</p>
-    </div>
-  );
-  return (
-    <div className="space-y-3">
-      {endeavors.map(end => {
-        const hasLinks = SOCIAL_LINKS.some(s => end[s.key as keyof Endeavor]);
-        const isEditing = editId === end.id;
-        return (
-          <div key={end.id} className="bg-card border rounded-xl overflow-hidden">
-            <div className="p-3 flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">{end.title}</p>
-                {hasLinks && !isEditing && <ProjectSocialLinks project={end} />}
-                {!hasLinks && !isEditing && <p className="text-xs text-muted-foreground mt-0.5 italic">No links set yet</p>}
-              </div>
-              {isAdmin && (
-                <button onClick={() => isEditing ? setEditId(null) : openEdit(end)}
-                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors shrink-0 mt-0.5">
-                  {isEditing ? "Cancel" : "Edit Links"}
-                </button>
-              )}
+
+  const activeLinks = GROUP_LINKS.filter(l => group[l.key as keyof Group]);
+
+  if (editing) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold">Edit Group Links</p>
+          <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+        </div>
+        <div className="bg-card border rounded-xl p-4 space-y-2.5">
+          {GROUP_LINKS.map(l => (
+            <div key={l.key} className="flex items-center gap-3">
+              <span className="shrink-0 w-6 flex justify-center" style={{ color: l.color }}>{l.icon}</span>
+              <Input className="text-xs h-9 flex-1" placeholder={l.placeholder}
+                value={form[l.key as GroupLinkKey]}
+                onChange={e => setForm(f => ({ ...f, [l.key]: e.target.value }))} />
             </div>
-            {isEditing && (
-              <div className="p-3 border-t border-border bg-muted/30 space-y-2">
-                {SOCIAL_LINKS.map(s => (
-                  <div key={s.key} className="flex items-center gap-2">
-                    <span className="shrink-0 w-5 flex justify-center" style={{ color: s.color }}>{s.icon}</span>
-                    <Input className="text-xs h-8" placeholder={s.placeholder} value={linksForm[s.key as SocialKey]}
-                      onChange={e => setLinksForm(f => ({ ...f, [s.key]: e.target.value }))} />
-                  </div>
-                ))}
-                <div className="flex gap-2 pt-1">
-                  <Button size="sm" className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={updateLinksMut.isPending}
-                    onClick={() => updateLinksMut.mutate({ id: end.id, links: linksForm })}>
-                    {updateLinksMut.isPending ? "Saving…" : "Save Links"}
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditId(null)}>Cancel</Button>
-                </div>
-              </div>
-            )}
+          ))}
+          <div className="flex gap-2 pt-2">
+            <Button className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white" disabled={saveMut.isPending}
+              onClick={() => saveMut.mutate(form)}>
+              {saveMut.isPending ? "Saving…" : "Save Links"}
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
           </div>
-        );
-      })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {isAdmin && (
+        <div className="flex justify-end">
+          <button onClick={openEdit} className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1">
+            <Plus className="w-3 h-3" /> Edit Links
+          </button>
+        </div>
+      )}
+      {activeLinks.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Link2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm font-medium">No links added yet</p>
+          {isAdmin && <p className="text-xs mt-1">Click "Edit Links" above to add your social media links.</p>}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {activeLinks.map(l => (
+            <a key={l.key} href={group[l.key as keyof Group] as string} target="_blank" rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 bg-card border rounded-xl p-4 hover:bg-muted/50 transition-colors group">
+              <span className="transition-transform group-hover:scale-110" style={{ color: l.color }}>{l.icon}</span>
+              <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">{l.label}</span>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -3012,7 +3045,7 @@ export default function GroupDetailPage() {
               {tab === "endeavors" && <EndeavorsTab groupId={groupId} isAdmin={isAdmin} />}
               {tab === "kanban" && <KanbanTab groupId={groupId} isAdmin={isAdmin} myUserId={myUserId} />}
               {tab === "wallet" && <WalletTab groupId={groupId} isAdmin={isAdmin} />}
-              {tab === "links" && <LinksTab groupId={groupId} isAdmin={isAdmin} />}
+              {tab === "links" && <LinksTab groupId={groupId} isAdmin={isAdmin} group={group} />}
             </div>
 
             {/* Right: Goals + Calendar + Members */}

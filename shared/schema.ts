@@ -1052,6 +1052,14 @@ export const groups = pgTable("groups", {
   isPrivate: boolean("is_private").notNull().default(true),
   createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  linkX: text("link_x"),
+  linkFb: text("link_fb"),
+  linkIg: text("link_ig"),
+  linkTelegram: text("link_telegram"),
+  linkYoutube: text("link_youtube"),
+  linkRumble: text("link_rumble"),
+  linkReddit: text("link_reddit"),
+  linkWebsite: text("link_website"),
 });
 
 export const groupMembers = pgTable("group_members", {
