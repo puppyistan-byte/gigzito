@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, type ReactNode 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CurrentUserResponse } from "@shared/schema";
 
-const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const IDLE_TIMEOUT_MS = 8 * 60 * 60 * 1000; // 8 hours
 
 interface AuthContextType {
   user: CurrentUserResponse;
