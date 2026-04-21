@@ -4879,7 +4879,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const id = parseInt(req.params.id);
-    const { title, description } = req.body;
+    const { title, description, linkX, linkFb, linkIg, linkTelegram, linkYoutube, linkRumble, linkReddit } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: "Title required" });
     const siteRole = (req.session as any)?.role ?? "";
     const isSiteAdmin = ["ADMIN", "SUPER_ADMIN"].includes(siteRole);
@@ -4887,7 +4887,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const mem = await storage.getUserGroupRole(id, userId);
       if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
     }
-    try { return res.status(201).json(await storage.createGroupEndeavor(id, { title: title.trim(), description })); }
+    try { return res.status(201).json(await storage.createGroupEndeavor(id, { title: title.trim(), description, linkX, linkFb, linkIg, linkTelegram, linkYoutube, linkRumble, linkReddit })); }
     catch (e) { console.error("[endeavor create]", e); return res.status(500).json({ message: "Server error" }); }
   });
 

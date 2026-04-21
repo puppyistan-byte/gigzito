@@ -23,6 +23,7 @@ import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   isSameDay, addMonths, subMonths, parseISO
 } from "date-fns";
+import { SiX, SiFacebook, SiInstagram, SiTelegram, SiYoutube, SiRumble, SiReddit } from "react-icons/si";
 
 type Group = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -31,7 +32,7 @@ type Group = {
 };
 type Post = { id: number; groupId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number };
 type Comment = { id: number; postId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null };
-type Endeavor = { id: number; groupId: number; title: string; description: string; goalProgress: number; createdAt: string };
+type Endeavor = { id: number; groupId: number; title: string; description: string; goalProgress: number; linkX?: string | null; linkFb?: string | null; linkIg?: string | null; linkTelegram?: string | null; linkYoutube?: string | null; linkRumble?: string | null; linkReddit?: string | null; createdAt: string };
 type Event = { id: number; groupId: number; title: string; description: string; startAt: string; endAt: string | null; allDay: boolean; createdBy: number };
 type Member = { id: number; groupId: number; userId: number; role: string; status: string; displayName: string | null; avatarUrl: string | null; username: string | null; email: string };
 type GroupWallet = { id: number; groupId: number; label: string; network: string; address: string; link: string | null; createdBy: number; createdAt: string; goalAmount: number | null; goalCurrency: string | null; goalLabel: string | null };
@@ -1098,11 +1099,46 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
 }
 
 // ─── ENDEAVORS ────────────────────────────────────────────────────────────────
+const SOCIAL_LINKS = [
+  { key: "linkX", label: "X (Twitter)", icon: <SiX size={13} />, color: "#e7e7e7", placeholder: "https://x.com/yourhandle" },
+  { key: "linkFb", label: "Facebook", icon: <SiFacebook size={13} />, color: "#1877f2", placeholder: "https://facebook.com/yourpage" },
+  { key: "linkIg", label: "Instagram", icon: <SiInstagram size={13} />, color: "#e1306c", placeholder: "https://instagram.com/yourhandle" },
+  { key: "linkTelegram", label: "Telegram", icon: <SiTelegram size={13} />, color: "#26a5e4", placeholder: "https://t.me/yourchannel" },
+  { key: "linkYoutube", label: "YouTube", icon: <SiYoutube size={13} />, color: "#ff0000", placeholder: "https://youtube.com/@yourchannel" },
+  { key: "linkRumble", label: "Rumble", icon: <SiRumble size={13} />, color: "#85c742", placeholder: "https://rumble.com/c/yourchannel" },
+  { key: "linkReddit", label: "Reddit", icon: <SiReddit size={13} />, color: "#ff4500", placeholder: "https://reddit.com/r/yoursubreddit" },
+] as const;
+
+type SocialKey = typeof SOCIAL_LINKS[number]["key"];
+
+function ProjectSocialLinks({ project }: { project: Endeavor }) {
+  const active = SOCIAL_LINKS.filter(s => project[s.key as keyof Endeavor]);
+  if (active.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+      {active.map(s => (
+        <a
+          key={s.key}
+          href={project[s.key as keyof Endeavor] as string}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={s.label}
+          className="flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+          style={{ width: 26, height: 26, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: s.color }}
+        >
+          {s.icon}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "" });
+  const emptyForm = { title: "", description: "", linkX: "", linkFb: "", linkIg: "", linkTelegram: "", linkYoutube: "", linkRumble: "", linkReddit: "" };
+  const [form, setForm] = useState<typeof emptyForm>(emptyForm);
   const [pendingProgress, setPendingProgress] = useState<Record<number, number>>({});
   const debounceRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
@@ -1110,8 +1146,8 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
 
   const createMut = useMutation({
     mutationFn: (d: typeof form) => apiRequest("POST", `/api/groups/${groupId}/endeavors`, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }); setAddOpen(false); setForm({ title: "", description: "" }); },
-    onError: () => toast({ title: "Failed to add endeavor", variant: "destructive" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "endeavors"] }); setAddOpen(false); setForm(emptyForm); },
+    onError: () => toast({ title: "Failed to add project", variant: "destructive" }),
   });
 
   const progressMut = useMutation({
@@ -1134,14 +1170,14 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
     <div className="space-y-4">
       {isAdmin && (
         <Button data-testid="button-add-endeavor" className="bg-red-600 hover:bg-red-700 text-white gap-2" onClick={() => setAddOpen(true)}>
-          <Plus className="w-4 h-4" /> Add Endeavor
+          <Plus className="w-4 h-4" /> Add Project
         </Button>
       )}
 
       {isLoading ? <div className="h-32 bg-muted animate-pulse rounded-xl" /> : endeavors.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Target className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No endeavors yet. {isAdmin ? "Add one to track group goals." : "Admins can add endeavors here."}</p>
+          <p className="text-sm">No projects yet. {isAdmin ? "Add one to track group goals." : "Admins can add projects here."}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -1149,12 +1185,13 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
             const progress = pendingProgress[end.id] ?? end.goalProgress;
             return (
               <div key={end.id} data-testid={`endeavor-card-${end.id}`} className="bg-card border rounded-xl p-4">
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-1">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm">{end.title}</h3>
                     {end.description && <p className="text-xs text-muted-foreground mt-0.5">{end.description}</p>}
+                    <ProjectSocialLinks project={end} />
                   </div>
-                  <div className="flex items-center gap-2 ml-3">
+                  <div className="flex items-center gap-2 ml-3 shrink-0">
                     <span className={`text-lg font-bold ${progress >= 100 ? "text-green-500" : progress >= 50 ? "text-amber-500" : "text-red-500"}`}>{progress}%</span>
                     {isAdmin && (
                       <button data-testid={`button-delete-endeavor-${end.id}`} onClick={() => deleteMut.mutate(end.id)} className="text-muted-foreground hover:text-red-500 transition-colors">
@@ -1178,9 +1215,9 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
       )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>New Endeavor</DialogTitle></DialogHeader>
-          <div className="space-y-3 pt-1">
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
+          <div className="space-y-3 pt-1 max-h-[70vh] overflow-y-auto pr-1">
             <div>
               <label className="text-xs font-medium">Title *</label>
               <Input data-testid="input-endeavor-title" className="mt-1" placeholder="e.g. Launch our website" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
@@ -1189,8 +1226,24 @@ function EndeavorsTab({ groupId, isAdmin }: { groupId: number; isAdmin: boolean 
               <label className="text-xs font-medium">Description</label>
               <Textarea data-testid="input-endeavor-description" className="mt-1" rows={2} placeholder="What does success look like?" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Social Links (optional)</label>
+              <div className="space-y-2 mt-2">
+                {SOCIAL_LINKS.map(s => (
+                  <div key={s.key} className="flex items-center gap-2">
+                    <span className="shrink-0" style={{ color: s.color }}>{s.icon}</span>
+                    <Input
+                      className="text-xs h-8"
+                      placeholder={s.placeholder}
+                      value={form[s.key as SocialKey]}
+                      onChange={(e) => setForm((f) => ({ ...f, [s.key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
             <Button data-testid="button-submit-endeavor" className="w-full bg-red-600 hover:bg-red-700 text-white" disabled={!form.title.trim() || createMut.isPending} onClick={() => createMut.mutate(form)}>
-              {createMut.isPending ? "Adding…" : "Add Endeavor"}
+              {createMut.isPending ? "Adding…" : "Add Project"}
             </Button>
           </div>
         </DialogContent>
@@ -2614,7 +2667,7 @@ export default function GroupDetailPage() {
 
   const tabConfig: Record<MainTab, { label: string; icon: JSX.Element }> = {
     wall: { label: "Home", icon: <MessageSquare className="w-4 h-4" /> },
-    endeavors: { label: "Endeavors", icon: <Target className="w-4 h-4" /> },
+    endeavors: { label: "Projects", icon: <Target className="w-4 h-4" /> },
     kanban: { label: "Kanban", icon: <KanbanSquare className="w-4 h-4" /> },
     wallet: { label: "Wallet", icon: <Wallet className="w-4 h-4" /> },
   };

@@ -2943,8 +2943,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(groupEndeavors).where(eq(groupEndeavors.groupId, groupId)).orderBy(groupEndeavors.createdAt);
   }
 
-  async createGroupEndeavor(groupId: number, data: { title: string; description?: string }) {
-    const [row] = await db.insert(groupEndeavors).values({ groupId, title: data.title, description: data.description ?? "" }).returning();
+  async createGroupEndeavor(groupId: number, data: { title: string; description?: string; linkX?: string; linkFb?: string; linkIg?: string; linkTelegram?: string; linkYoutube?: string; linkRumble?: string; linkReddit?: string }) {
+    const [row] = await db.insert(groupEndeavors).values({ groupId, title: data.title, description: data.description ?? "", linkX: data.linkX || null, linkFb: data.linkFb || null, linkIg: data.linkIg || null, linkTelegram: data.linkTelegram || null, linkYoutube: data.linkYoutube || null, linkRumble: data.linkRumble || null, linkReddit: data.linkReddit || null }).returning();
     return row;
   }
 

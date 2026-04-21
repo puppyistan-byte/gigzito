@@ -1070,6 +1070,13 @@ export const groupEndeavors = pgTable("group_endeavors", {
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
   goalProgress: integer("goal_progress").notNull().default(0),
+  linkX: text("link_x"),
+  linkFb: text("link_fb"),
+  linkIg: text("link_ig"),
+  linkTelegram: text("link_telegram"),
+  linkYoutube: text("link_youtube"),
+  linkRumble: text("link_rumble"),
+  linkReddit: text("link_reddit"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
