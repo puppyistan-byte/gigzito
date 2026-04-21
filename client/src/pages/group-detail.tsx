@@ -442,7 +442,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               )}
             </div>
             {activeContribs.map(c => {
-              const sharePct = totalContributed > 0 ? (c.amount / totalContributed) * 100 : 0;
+              const sharePct = totalInvested > 0 ? (c.amount / totalInvested) * 100 : 0;
               const dailyDiv = (sharePct / 100) * totalDailyEarnings;
               const pctOfGoal = dailyGoal > 0 ? (dailyDiv / dailyGoal) * 100 : 0;
               return (
@@ -456,7 +456,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                     {totalDailyEarnings > 0 && (
                       <>
                         <span className="text-muted-foreground">·</span>
-                        <span className="text-amber-500 font-semibold">${dailyDiv.toFixed(2)}/day</span>
+                        <span className="text-amber-500 font-semibold">{sharePct.toFixed(1)}% of ${totalDailyEarnings.toFixed(2)}/d</span>
                       </>
                     )}
                     {dailyGoal > 0 && totalDailyEarnings > 0 && (
