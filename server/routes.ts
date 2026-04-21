@@ -4659,16 +4659,22 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const id = parseInt(req.params.id);
     const { inviteeUserId } = req.body;
     if (!inviteeUserId) return res.status(400).json({ message: "inviteeUserId required" });
-    const mem = await storage.getUserGroupRole(id, userId);
-    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    const siteRole = (req.session as any)?.role ?? "";
+    const isSiteAdmin = ["ADMIN", "SUPER_ADMIN"].includes(siteRole);
+    if (!isSiteAdmin) {
+      const mem = await storage.getUserGroupRole(id, userId);
+      if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    }
     try {
       const result = await storage.inviteToGroup(id, inviteeUserId, userId);
-      // Send in-app notification to invited user
+      // Send in-app notification + email to invited user
       try {
         const group = await storage.getGroupById(id);
         const inviterProfile = await storage.getProfileByUserId(userId);
+        const inviteeUser = await storage.getUserById(inviteeUserId);
         const inviterName = inviterProfile?.displayName ?? "Someone";
         const groupName = group?.name ?? "a group";
+        const APP_URL = process.env.APP_URL || "https://gigzito.com";
         await storage.createNotification(
           inviteeUserId,
           "group_invite",
@@ -4676,6 +4682,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           `${inviterName} invited you to join ${groupName}. Go to Groups to accept.`,
           `/groups/${id}`
         );
+        if (inviteeUser?.email) {
+          await sendGroupInviteEmail({ toEmail: inviteeUser.email, groupName, inviterName, joinUrl: `${APP_URL}/groups/${id}`, isNewUser: false }).catch(() => {});
+        }
       } catch (_) {}
       return res.status(201).json(result);
     }
