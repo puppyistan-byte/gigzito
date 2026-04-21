@@ -52,6 +52,7 @@ import GigCardDirectoryPage from "@/pages/gigcard-directory";
 import LeaderboardPage from "@/pages/leaderboard";
 import VerifyEmailPage from "@/pages/verify-email";
 import LogoutPage from "@/pages/logout";
+import ResetPasswordPage from "@/pages/reset-password";
 import AdvertisePage from "@/pages/advertise";
 import GeezeesPage from "@/pages/geezees";
 import CardEditorPage from "@/pages/card-editor";
@@ -98,6 +99,7 @@ function Router() {
       <Route path="/leaderboard" component={LeaderboardPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/logout" component={LogoutPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/advertise" component={AdvertisePage} />
       <Route path="/geezees" component={GeezeesPage} />

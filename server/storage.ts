@@ -42,6 +42,9 @@ export interface IStorage {
   updateUserRole(id: number, role: string): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
   updateUserEmail(id: number, email: string): Promise<User | undefined>;
+  setPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  clearPasswordResetToken(userId: number): Promise<void>;
   deleteUser(id: number): Promise<void>;
   softDeleteUser(id: number): Promise<void>;
   restoreUser(id: number): Promise<void>;
@@ -613,6 +616,19 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
     await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
+  }
+
+  async setPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+    await db.update(users).set({ passwordResetToken: token, passwordResetExpiresAt: expiresAt }).where(eq(users.id, userId));
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [u] = await db.select().from(users).where(eq(users.passwordResetToken, token));
+    return u;
+  }
+
+  async clearPasswordResetToken(userId: number): Promise<void> {
+    await db.update(users).set({ passwordResetToken: null, passwordResetExpiresAt: null }).where(eq(users.id, userId));
   }
 
   async updateUserEmail(id: number, email: string): Promise<User | undefined> {

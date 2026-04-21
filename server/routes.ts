@@ -9,7 +9,7 @@ import sharp from "sharp";
 import { scrypt, randomBytes, createHash, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import rateLimit from "express-rate-limit";
-import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement, sendGroupInviteEmail, sendGZFlashCoupon } from "./email";
+import { sendMfaCode, sendTriageNotification, sendVerificationEmail, sendContentDisabledNotification, sendContentDeletedNotification, sendAdInquiryNotification, sendAudienceBroadcast, sendEmail, sendInvitationEmail, sendMassNotification, sendGZMusicAnnouncement, sendGroupInviteEmail, sendGZFlashCoupon, sendPasswordResetEmail } from "./email";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
@@ -722,6 +722,51 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // GET /logout — navigating to this URL in any browser clears the session and redirects home
   app.get("/logout", (req, res) => {
     req.session.destroy(() => res.redirect("/?signedout=1"));
+  });
+
+  // POST /api/auth/forgot-password — send a password reset email
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email required" });
+    // Always return success to prevent user enumeration
+    try {
+      const user = await storage.getUserByEmail(email.toLowerCase().trim());
+      if (user) {
+        const token = randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await storage.setPasswordResetToken(user.id, token, expiresAt);
+        const APP_URL = process.env.APP_URL || "https://gigzito.com";
+        const profile = await storage.getProfileByUserId(user.id);
+        await sendPasswordResetEmail({
+          toEmail: user.email,
+          resetUrl: `${APP_URL}/reset-password?token=${token}`,
+          displayName: profile?.displayName ?? undefined,
+        }).catch(e => console.error("[forgot-password] email error:", e));
+      }
+    } catch (e) { console.error("[forgot-password]", e); }
+    return res.json({ ok: true });
+  });
+
+  // POST /api/auth/reset-password — validate token and set new password
+  app.post("/api/auth/reset-password", async (req, res) => {
+    const { token, password } = req.body;
+    if (!token || !password || password.length < 6) return res.status(400).json({ message: "Token and password (min 6 chars) required" });
+    try {
+      const user = await storage.getUserByResetToken(token);
+      if (!user || !user.passwordResetExpiresAt || user.passwordResetExpiresAt < new Date()) {
+        return res.status(400).json({ message: "Reset link is invalid or has expired. Please request a new one." });
+      }
+      const scryptAsync = promisify(scrypt);
+      const salt = randomBytes(16).toString("hex");
+      const buf = await scryptAsync(password, salt, 64) as Buffer;
+      const hashedPassword = `${buf.toString("hex")}.${salt}`;
+      await storage.updateUserPassword(user.id, hashedPassword);
+      await storage.clearPasswordResetToken(user.id);
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error("[reset-password]", e);
+      return res.status(500).json({ message: "Server error" });
+    }
   });
 
   // =====================================================================

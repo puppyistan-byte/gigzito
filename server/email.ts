@@ -756,3 +756,47 @@ export async function sendGZFlashCoupon(opts: {
   });
   return { devMode: false };
 }
+
+export async function sendPasswordResetEmail(opts: {
+  toEmail: string;
+  resetUrl: string;
+  displayName?: string;
+}): Promise<{ devMode: boolean }> {
+  const { toEmail, resetUrl, displayName } = opts;
+  const name = displayName || "there";
+  const html = `
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{margin:0;padding:0;background:#0a0a0a;font-family:Arial,sans-serif;color:#e0e0e0}
+.wrap{max-width:520px;margin:0 auto;padding:32px 16px}
+.logo{font-size:28px;font-weight:900;color:#ff3333;letter-spacing:-1px;margin-bottom:4px}
+.sub{font-size:12px;color:#555;margin-bottom:32px}
+.card{background:#141414;border:1px solid #222;border-radius:12px;padding:28px}
+h2{margin:0 0 8px;font-size:20px;color:#fff}
+p{margin:12px 0;font-size:14px;line-height:1.6;color:#aaa}
+.btn{display:inline-block;margin-top:20px;padding:13px 28px;background:#ff3333;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px}
+.footer{margin-top:24px;font-size:11px;color:#444;text-align:center}
+</style></head><body>
+<div class="wrap">
+  <div class="logo">Gigzito</div>
+  <div class="sub">Getcho Gig On</div>
+  <div class="card">
+    <h2>Reset your password</h2>
+    <p>Hey ${name} — we got a request to reset your Gigzito password.</p>
+    <p>Click the button below to choose a new password. This link expires in <strong style="color:#fff">1 hour</strong>.</p>
+    <a href="${resetUrl}" class="btn">Reset My Password</a>
+    <p style="margin-top:24px;font-size:12px;color:#555">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+  </div>
+  <div class="footer">© Gigzito · Hillsboro, OR</div>
+</div>
+</body></html>`;
+
+  if (DEV_MODE) {
+    console.log("\n" + "=".repeat(60));
+    console.log("  [DEV MODE] Password reset email to:", toEmail);
+    console.log("  Reset URL:", resetUrl);
+    console.log("=".repeat(60) + "\n");
+    return { devMode: true };
+  }
+
+  return sendEmail({ toEmail, subject: "Reset your Gigzito password", html });
+}
