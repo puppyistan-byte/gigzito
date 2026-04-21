@@ -211,7 +211,8 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
 type RiskLevel = "volatile" | "high" | "medium" | "medium-low" | "low" | "none" | "";
 type GoalInvestment = { id: string; name: string; amount: number; dailyEarnings: number; risk?: RiskLevel; trackingStartedAt?: string | null };
 type MemberContribution = { id: string; name: string; amount: number };
-type GoalData = { dailyGoal: number; investments: GoalInvestment[]; contributions: MemberContribution[] };
+type GoalKitty = { startDate: string | null; dailyAmount: number };
+type GoalData = { dailyGoal: number; investments: GoalInvestment[]; contributions: MemberContribution[]; kitty?: GoalKitty };
 // Form state uses raw strings so typing "1.50" never snaps back mid-keystroke
 type FormRow = { id: string; name: string; amountRaw: string; earningsRaw: string; risk: RiskLevel };
 type ContribRow = { id: string; name: string; amountRaw: string };
@@ -232,13 +233,14 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const loadGoals = (): GoalData => {
     try {
       const s = localStorage.getItem(storageKey);
-      if (!s) return { dailyGoal: 0, investments: [], contributions: [] };
+      if (!s) return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, dailyAmount: 0 } };
       const parsed = JSON.parse(s);
       // migrate old investments that lack dailyEarnings or risk
       parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, risk: "" as RiskLevel, ...i }));
       parsed.contributions = parsed.contributions || [];
+      parsed.kitty = parsed.kitty || { startDate: null, dailyAmount: 0 };
       return parsed;
-    } catch { return { dailyGoal: 0, investments: [], contributions: [] }; }
+    } catch { return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, dailyAmount: 0 } }; }
   };
 
   const [goalData, setGoalData] = useState<GoalData>(loadGoals);
@@ -247,6 +249,8 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const [dailyGoalRaw, setDailyGoalRaw] = useState("");
   const [rows, setRows] = useState<FormRow[]>([]);
   const [contribRows, setContribRows] = useState<ContribRow[]>([]);
+  const [kittyStartDate, setKittyStartDate] = useState<string>("");
+  const [kittyDailyRaw, setKittyDailyRaw] = useState<string>("");
 
   const toRows = (invs: GoalInvestment[]): FormRow[] =>
     invs.map(i => ({ id: i.id, name: i.name, amountRaw: i.amount > 0 ? String(i.amount) : "", earningsRaw: i.dailyEarnings > 0 ? String(i.dailyEarnings) : "", risk: (i.risk ?? "") as RiskLevel }));
@@ -257,6 +261,9 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
     setDailyGoalRaw(goalData.dailyGoal > 0 ? String(goalData.dailyGoal) : "");
     setRows(toRows(goalData.investments));
     setContribRows(toContribRows(goalData.contributions || []));
+    const k = goalData.kitty || { startDate: null, dailyAmount: 0 };
+    setKittyStartDate(k.startDate || "");
+    setKittyDailyRaw(k.dailyAmount > 0 ? String(k.dailyAmount) : "");
     setShowSettings(true);
   };
 
@@ -278,6 +285,10 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
       contributions: contribRows
         .filter(c => c.name.trim() || parseFloat(c.amountRaw) > 0)
         .map(c => ({ id: c.id, name: c.name, amount: parseFloat(c.amountRaw) || 0 })),
+      kitty: {
+        startDate: kittyStartDate.trim() || null,
+        dailyAmount: parseFloat(kittyDailyRaw) || 0,
+      },
     };
     localStorage.setItem(storageKey, JSON.stringify(cleaned));
     setGoalData(cleaned);
@@ -347,6 +358,15 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   // Member contributions
   const activeContribs = (goalData.contributions || []).filter(c => c.name.trim() && c.amount > 0);
   const totalContributed = activeContribs.reduce((s, c) => s + c.amount, 0);
+
+  // Kitty — daily accumulation from a start date
+  const MS_PER_DAY_K = 86400000;
+  const kitty = goalData.kitty || { startDate: null, dailyAmount: 0 };
+  const kittyActive = !!(kitty.startDate && kitty.dailyAmount > 0);
+  const kittyDaysElapsed = kittyActive
+    ? Math.max(0, Math.floor((Date.now() - new Date(kitty.startDate!).getTime()) / MS_PER_DAY_K))
+    : 0;
+  const kittyAccumulated = kittyActive ? kittyDaysElapsed * kitty.dailyAmount : 0;
 
   // Overall portfolio risk — weighted average of active investments with risk set
   const RISK_WEIGHTS: Record<string, number> = { volatile: 5, high: 4, medium: 3, "medium-low": 2, low: 1, none: 0 };
@@ -574,6 +594,50 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
             )}
           </div>
         )}
+
+        {/* Kitty */}
+        {kittyActive && (
+          <div className="mt-3 pt-3 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <span>🪣</span> Kitty
+              </p>
+              <span className="text-[9px] text-emerald-400 font-semibold uppercase tracking-wide">
+                {kittyDaysElapsed} day{kittyDaysElapsed !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/40 px-3 py-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Accumulated</span>
+                <span className="text-base font-bold text-emerald-400" data-testid="kitty-accumulated">
+                  ${kittyAccumulated.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Since {new Date(kitty.startDate!).toLocaleDateString()}</span>
+                <span>${kitty.dailyAmount.toFixed(2)}/day × {kittyDaysElapsed}d</span>
+              </div>
+              {/* Progress bar: kitty vs total invested */}
+              {totalInvested > 0 && (
+                <div className="space-y-0.5 pt-0.5">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{ width: `${Math.min(100, (kittyAccumulated / totalInvested) * 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-muted-foreground/70">
+                    <span>{Math.min(100, (kittyAccumulated / totalInvested) * 100).toFixed(1)}% of ${totalInvested.toLocaleString()} invested</span>
+                    {kittyAccumulated < totalInvested && (
+                      <span>${(totalInvested - kittyAccumulated).toFixed(2)} to go</span>
+                    )}
+                    {kittyAccumulated >= totalInvested && (
+                      <span className="text-emerald-400 font-semibold">Covered!</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Settings Dialog */}
@@ -703,6 +767,55 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Kitty */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <span>🪣</span> Kitty
+                  <span className="text-[10px] text-muted-foreground font-normal">(daily savings pool)</span>
+                </label>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1">
+                    <p className="text-[10px] text-muted-foreground mb-1">Start Date</p>
+                    <Input type="date" className="h-8 text-sm w-full"
+                      value={kittyStartDate}
+                      onChange={e => setKittyStartDate(e.target.value)}
+                      data-testid="input-kitty-start-date" />
+                  </div>
+                  <div className="w-36 shrink-0">
+                    <p className="text-[10px] text-muted-foreground mb-1">USD / Day</p>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                      <Input type="text" inputMode="decimal" placeholder="0.00" autoComplete="off"
+                        className="pl-5 h-8 text-sm w-full"
+                        value={kittyDailyRaw}
+                        onChange={e => setKittyDailyRaw(e.target.value)}
+                        data-testid="input-kitty-daily" />
+                    </div>
+                  </div>
+                </div>
+                {/* Kitty preview */}
+                {kittyStartDate && parseFloat(kittyDailyRaw) > 0 && (() => {
+                  const d = Math.max(0, Math.floor((Date.now() - new Date(kittyStartDate).getTime()) / 86400000));
+                  const acc = d * (parseFloat(kittyDailyRaw) || 0);
+                  return (
+                    <div className="rounded bg-emerald-950/40 border border-emerald-800/30 px-2.5 py-2 space-y-0.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Kitty Total</span>
+                        <span className="font-bold text-emerald-400">${acc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground/70">
+                        <span>${(parseFloat(kittyDailyRaw) || 0).toFixed(2)}/day × {d} days</span>
+                        <span>since {new Date(kittyStartDate).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
