@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight, ArrowLeft, Home, Star, Send } from "lucide-react";
+import { Users, Plus, Lock, Globe, CheckCircle, XCircle, ChevronRight, Calendar, Image, Bell, KanbanSquare, Shield, Zap, Target, ArrowRight, ArrowLeft, Home, Star, Send, TrendingUp } from "lucide-react";
 
 type FeaturedGroup = {
   id: number; name: string; description: string; coverUrl: string | null;
@@ -263,9 +263,9 @@ export default function GroupsPage() {
             <button
               data-testid="button-groups-home"
               onClick={() => navigate("/")}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 16px rgba(255,43,43,0.35)", letterSpacing: "0.02em", border: "none" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "linear-gradient(135deg, #ff2b2b, #cc0000)", color: "#fff", fontWeight: 700, fontSize: 11, padding: "4px 11px", borderRadius: 999, cursor: "pointer", boxShadow: "0 0 12px rgba(255,43,43,0.3)", letterSpacing: "0.02em", border: "none" }}
             >
-              <ArrowLeft size={14} />
+              <ArrowLeft size={11} />
               Back to Gigzito
             </button>
             <div>
@@ -277,7 +277,7 @@ export default function GroupsPage() {
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-create-group" className="bg-red-600 hover:bg-red-700 text-white gap-2" onClick={(e) => { if (!user) { e.preventDefault(); navigate("/auth"); } }}>
+              <Button data-testid="button-create-group" style={{ background: "linear-gradient(135deg, #60a5fa, #3b82f6)", color: "#fff" }} className="hover:opacity-90 text-white gap-2" onClick={(e) => { if (!user) { e.preventDefault(); navigate("/auth"); } }}>
                 <Plus className="w-4 h-4" /> Create Group
               </Button>
             </DialogTrigger>
@@ -350,6 +350,28 @@ export default function GroupsPage() {
                 <p className="text-xs leading-snug" style={{ color: "#71717a" }}>{f.desc}</p>
               </div>
             ))}
+          </div>
+          {/* Financial Projects */}
+          <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4" style={{ color: "#34d399" }} />
+              <span className="text-xs font-semibold" style={{ color: "#f4f4f5" }}>Financial Projects</span>
+              <span style={{ background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.3)", borderRadius: 999, padding: "1px 8px", fontSize: 10, fontWeight: 700, color: "#34d399" }}>NEW</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+              {[
+                { range: "$0 – $999", tier: "Emergent", sub: "Startup", color: "#71717a" },
+                { range: "$1K – $19.9K", tier: "Resilient", sub: "Strong", color: "#60a5fa" },
+                { range: "$20K – $99.9K", tier: "Dominant", sub: "", color: "#a78bfa" },
+                { range: "$100K+", tier: "Juggernaut", sub: "", color: "#fbbf24" },
+              ].map((t) => (
+                <div key={t.tier} className="flex flex-col gap-0.5 px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <span className="text-xs" style={{ color: "#71717a" }}>{t.range}</span>
+                  <span className="text-xs font-bold" style={{ color: t.color }}>{t.tier}{t.sub ? ` (${t.sub})` : ""}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs leading-snug" style={{ color: "#71717a" }}>Track your group's collective financial milestones — from Emergent startup to Juggernaut status. Set targets, log investments, and watch your tier climb in real time.</p>
           </div>
           <div className="px-5 py-3 flex items-center gap-2">
             <Bell className="w-3.5 h-3.5" style={{ color: "#ef4444" }} />
