@@ -314,15 +314,110 @@ On mobile: banner spans full width at top, right rail (Goals / Calendar / Member
 
 ---
 
-## 5. Banner
+## 5. Banner (Group Wallpaper / Cover Photo)
 
-- **Field:** `groups.cover_url` — any image URL.
-- **Display:** Full-width container, `height: 180px`, `object-fit: cover`. Gradient overlay (`black/70` at bottom, transparent at top).
-- **Overlay text (bottom-left):** privacy icon + Admin badge (if applicable) → group name (xl bold white) → description (truncated 1 line, white/70) → member count (white/60).
-- **Controls (bottom-right):** Back button (chevron-left), Edit button (gear icon, admin only).
-- **Admin upload:** Hovering the banner reveals a camera icon overlay. Clicking opens a hidden `<input type="file" accept="image/*">`. The image is uploaded (multipart or base64), the returned URL is saved via `PATCH /api/groups/:id` with `{ coverUrl: "..." }`.
-- **Mobile:** Same banner appears at the top of the page. The mobile version stacks the back/edit buttons at the top right and the group info at the bottom.
-- **Fallback:** If no `coverUrl`, a red gradient background (`from-red-600 to-red-900`) is shown.
+### 5.1 Database Field
+
+| Table | Column | Type | Nullable |
+|---|---|---|---|
+| `groups` | `cover_url` | `text` | yes |
+
+Stores the server-relative path to the uploaded image, e.g. `/uploads/1776726745011-bcaf99a50c0c182a.png`.
+
+**HotStove Ministries (group id=6) current file:**
+```
+/uploads/1776726745011-bcaf99a50c0c182a.png
+```
+- Filename format: `{unix-timestamp-ms}-{random-hex}.{ext}`
+- Uploaded: April 20, 2026 at 23:12 UTC
+- File size: 931 KB
+- Full URL on VPS: `https://gigzito.com/uploads/1776726745011-bcaf99a50c0c182a.png`
+
+---
+
+### 5.2 Upload Flow (step by step)
+
+1. **Admin taps/clicks the banner area** — a hover overlay (camera icon + "Change Banner Photo" label) appears over the banner. This overlay is **admin-only** and invisible to regular members.
+2. **File picker opens** — hidden `<input type="file" accept="image/*">` triggered by the label click. Any image format is accepted.
+3. **Upload to server:**
+   ```
+   POST /api/upload/image
+   Content-Type: multipart/form-data
+   Field name: "file"
+   ```
+   - The file is first saved to a **quarantine directory** and scanned for safety before being moved to `/uploads/`.
+   - On success: returns `{ url: "/uploads/{timestamp}-{hash}.ext" }`
+4. **Save URL to group:**
+   ```
+   PATCH /api/groups/:id
+   Body: { "coverUrl": "/uploads/1776726745011-bcaf99a50c0c182a.png" }
+   ```
+   - Auth: must be group admin.
+   - Returns the updated group object.
+   - Frontend invalidates the `["/api/groups", groupId]` query cache so the new image loads immediately.
+5. **Loading state:** During upload, the overlay shows "Uploading…" text instead of the camera icon.
+
+**No removal endpoint exists.** There is no way to delete a banner and revert to the fallback gradient through the UI — only replace it with a new image.
+
+---
+
+### 5.3 Display / Rendering
+
+| Property | Value |
+|---|---|
+| Height | 180px (fixed) |
+| Width | Full container width |
+| `object-fit` | `cover` (fills the box, crops edges) |
+| `object-position` | default (center) |
+| Gradient overlay | `linear-gradient(to top, black/70, black/20, transparent)` — bottom-heavy, so text is always readable |
+| Fallback (no image) | `background: linear-gradient(135deg, red-600, red-900)` |
+| Border radius | `border-radius: 1rem` (rounded-2xl) |
+| Overflow | hidden |
+
+**Overlay content (always visible, on top of image or gradient):**
+
+Bottom-left stack:
+- Privacy icon: 🔒 (Lock) if private, 🌐 (Globe) if public
+- "Admin" badge (red pill) — only shown to the admin themselves
+- Group name (white, 2xl bold)
+- Group description (white/70, truncated to 1 line)
+- Member count (white/60, xs)
+
+Bottom-right buttons:
+- **Back** (chevron-left) → navigates to `/groups`
+- **Settings** (gear icon) → opens the Edit Group modal — **admin only**
+
+---
+
+### 5.4 Responsive Behavior
+
+The banner exists in **two separate DOM instances** — both use the same `handleBannerUpload` function:
+
+| Instance | CSS class | Shown when |
+|---|---|---|
+| Mobile banner | `lg:hidden` | viewport < 1024px |
+| Desktop banner | `hidden lg:block` | viewport ≥ 1024px |
+
+The desktop banner sits inside the main content column (left of the right rail). The mobile banner sits above the full content area. Both render identically except for their containing layout.
+
+---
+
+### 5.5 API Reference
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| POST | `/api/upload/image` | any authenticated user | `multipart/form-data`, field `file`. Returns `{ url: "/uploads/..." }` |
+| PATCH | `/api/groups/:id` | group admin only | Pass `{ coverUrl: "/uploads/..." }` to update the banner. Can be combined with other fields (name, description, etc.) |
+
+---
+
+### 5.6 Mobile Implementation Notes
+
+- **No localStorage** — the banner URL is part of the `GET /api/groups/:id` response as `coverUrl`.
+- For native mobile: use the platform's image picker, upload to `POST /api/upload/image` as `multipart/form-data` with the field named `file`, then call `PATCH /api/groups/:id` with the returned URL.
+- The quarantine scan on the server is transparent — from the client's perspective it's a standard multipart upload that returns a URL.
+- Show an uploading spinner/state during the two-step process (upload → patch).
+- Only show the "change banner" control to group admins (`myRole === "admin"` in the group response).
 
 ---
 
