@@ -1,5 +1,5 @@
 # GZGroups Module — Mobile Developer Reference
-**Gigzito Platform · Updated April 21, 2026 (Kitty v2 + Admin Approve)**
+**Gigzito Platform · Updated April 21, 2026 (Kitty v2 + Admin Approve + Goals → Server)**
 
 ---
 
@@ -167,7 +167,14 @@ Unique constraint: `(group_id, user_id)`.
 | `verified` | boolean | admin-toggleable |
 | `created_at` | timestamp | |
 
-### 2.12 `group_email_invites` table
+### 2.12 `group_goals` table *(added April 21 2026)*
+| Column | Type | Notes |
+|---|---|---|
+| `group_id` | integer PK FK → groups | One row per group, CASCADE delete |
+| `data` | json | Full `GoalData` blob — see Section 11 |
+| `updated_at` | timestamp | Auto-set on upsert |
+
+### 2.13 `group_email_invites` table
 | Column | Type | Notes |
 |---|---|---|
 | `id` | serial PK | |
@@ -526,7 +533,15 @@ If no links are set and the user is not admin, empty state message is shown. If 
 
 ## 11. Right Rail: Goals Thermometer
 
-**Data storage:** 100% `localStorage`. Key: `gz-group-goals-{groupId}`. No server API.
+> ⚠️ **Breaking change — April 21 2026:** Goals data was migrated from `localStorage` to the server. See API endpoints below. The old `gz-group-goals-{groupId}` localStorage key is no longer used. Any existing localStorage data is auto-migrated to the server on first page load after the update.
+
+**Data storage:** Server-side. One row per group in the `group_goals` table. All members of a group share the same Goals data.
+
+**API endpoints:**
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/api/groups/:id/goals` | member | Returns the `GoalData` JSON object (or `{}` if not set) |
+| PUT | `/api/groups/:id/goals` | member | Body: full `GoalData` object — replaces stored data |
 
 **GoalData structure:**
 ```json
@@ -727,7 +742,7 @@ If no links are set and the user is not admin, empty state message is shown. If 
 | Configure Goals / Kitty | any member | any member | ❌ |
 | Submit Retro | ✅ | ✅ | ❌ |
 
-> **Note:** Goals Thermometer data is stored in the individual device's localStorage, so it is per-device, per-member. There is no shared server state for Goals.
+> **Note (updated April 21 2026):** Goals Thermometer data is now stored server-side in `group_goals` and is **shared across all members** of the group. Any member can configure Goals. The last save wins.
 
 ---
 
@@ -777,14 +792,13 @@ Cascades to all child records (members, wall, endeavors, kanban, wallets, events
 
 ## 18. Data That Lives in localStorage (Not on Server)
 
-The following data is stored entirely in the browser's `localStorage` and is **not synced to the server**. It is per-device.
+The following data is still stored in the browser's `localStorage` and is **not synced to the server**. It is per-device.
 
-| Key | Data |
-|---|---|
-| `gz-group-goals-{groupId}` | Goals: daily goal, investments (with tracking timestamps), contributions, kitty config |
-| `gz-kanban-columns-{groupId}` | Custom kanban column names for the group |
+| Key | Data | Mobile action needed |
+|---|---|---|
+| `gz-kanban-columns-{groupId}` | Custom kanban column names for the group | Replace with server API |
 
-For mobile, these will need to be replaced with a server-side API or a sync mechanism, since localStorage does not exist in native mobile contexts.
+> ✅ **Goals data (`gz-group-goals-{groupId}`) was migrated to server on April 21, 2026.** It now lives in the `group_goals` table and is served via `GET/PUT /api/groups/:id/goals`. No localStorage involved. Any pre-migration localStorage data is automatically migrated to the server on the user's first page load.
 
 ---
 
