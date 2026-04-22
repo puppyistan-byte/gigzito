@@ -371,15 +371,18 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
   const kittyStartMs = kittyActive
     ? new Date(`${kitty.startDate}T${kitty.startTime || "00:00"}:00`).getTime()
     : 0;
+  // Continuous accumulation — fraction of a day elapsed × daily rate
   const kittyDaysElapsed = kittyActive
-    ? Math.max(0, Math.floor((Date.now() - kittyStartMs) / MS_PER_DAY_K))
+    ? Math.max(0, (Date.now() - kittyStartMs) / MS_PER_DAY_K)
     : 0;
-  const kittyHoursElapsed = kittyActive
-    ? Math.max(0, (Date.now() - kittyStartMs) / (1000 * 60 * 60))
-    : 0;
+  const kittyHoursElapsed = kittyDaysElapsed * 24;
   const kittyAccumulated = kittyActive
     ? parseFloat((kittyDaysElapsed * kitty.dailyAmount).toFixed(2))
     : 0;
+  // Human-readable elapsed label: "Xh" under 2 days, "X.Xd" after
+  const kittyElapsedLabel = kittyHoursElapsed < 48
+    ? `${kittyHoursElapsed.toFixed(1)}h`
+    : `${kittyDaysElapsed.toFixed(1)}d`;
 
   // Overall portfolio risk — weighted average of active investments with risk set
   const RISK_WEIGHTS: Record<string, number> = { volatile: 5, high: 4, medium: 3, "medium-low": 2, low: 1, none: 0 };
@@ -616,7 +619,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 <span>🪣</span> Kitty
               </p>
               <span className="text-[9px] text-emerald-400 font-semibold uppercase tracking-wide">
-                {kittyDaysElapsed} day{kittyDaysElapsed !== 1 ? "s" : ""}
+                {kittyElapsedLabel}
               </span>
             </div>
             <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/40 px-3 py-2.5 space-y-1.5">
@@ -628,13 +631,8 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>Since {new Date(`${kitty.startDate}T${kitty.startTime || "00:00"}:00`).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-                <span>${kitty.dailyAmount.toFixed(2)}/day × {kittyDaysElapsed}d</span>
+                <span>${kitty.dailyAmount.toFixed(2)}/day × {kittyElapsedLabel}</span>
               </div>
-              {kittyDaysElapsed === 0 && kittyHoursElapsed > 0 && (
-                <p className="text-[9px] text-emerald-400/60 text-right">
-                  {kittyHoursElapsed.toFixed(1)}h elapsed — full day tally starts after 24h
-                </p>
-              )}
             </div>
           </div>
         )}
@@ -811,10 +809,11 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                 {/* Kitty live preview — uses LOCAL time parsing (no UTC shift) */}
                 {kittyStartDate && parseFloat(kittyDailyRaw) > 0 && (() => {
                   const startMs = new Date(`${kittyStartDate}T${kittyStartTime || "00:00"}:00`).getTime();
-                  const d = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
-                  const hrs = Math.max(0, (Date.now() - startMs) / (1000 * 60 * 60));
+                  const dFrac = Math.max(0, (Date.now() - startMs) / 86400000);
+                  const hrs = dFrac * 24;
                   const rate = parseFloat(kittyDailyRaw) || 0;
-                  const acc = d * rate;
+                  const acc = dFrac * rate;
+                  const label = hrs < 48 ? `${hrs.toFixed(1)}h` : `${dFrac.toFixed(1)}d`;
                   return (
                     <div className="rounded bg-emerald-950/40 border border-emerald-800/30 px-2.5 py-2 space-y-0.5">
                       <div className="flex justify-between text-sm">
@@ -822,12 +821,9 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
                         <span className="font-bold text-emerald-400">${acc.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-[10px] text-muted-foreground/70">
-                        <span>${rate.toFixed(2)}/day × {d} day{d !== 1 ? "s" : ""}</span>
+                        <span>${rate.toFixed(2)}/day × {label}</span>
                         <span>since {new Date(`${kittyStartDate}T${kittyStartTime || "00:00"}:00`).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
                       </div>
-                      {d === 0 && hrs > 0 && (
-                        <p className="text-[9px] text-emerald-400/50 text-right">{hrs.toFixed(1)}h elapsed — tally starts after 24h</p>
-                      )}
                     </div>
                   );
                 })()}
