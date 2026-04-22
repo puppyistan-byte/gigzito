@@ -1,5 +1,5 @@
 # GZGroups Module — Mobile Developer Reference
-**Gigzito Platform · Generated April 21, 2026**
+**Gigzito Platform · Updated April 21, 2026 (Kitty v2 + Admin Approve)**
 
 ---
 
@@ -213,6 +213,7 @@ linkX, linkFb, linkIg, linkTelegram, linkYoutube, linkRumble, linkReddit, linkWe
 | POST | `/api/groups/join/:token` | logged-in | Claims email invite and joins the group |
 | POST | `/api/groups/:id/invite/respond` | member | Body: `{ accept: boolean }` — accept or decline a pending invite |
 | POST | `/api/groups/:id/join-request` | any | Request to join a public group |
+| PATCH | `/api/groups/:id/members/:uid/approve` | admin | Approve a pending member — sets `status = "accepted"` |
 | DELETE | `/api/groups/:id/members/:uid` | admin | Remove a member from the group |
 | GET | `/api/groups/invites` | any | Returns pending invites for the current user |
 | GET | `/api/groups/search-users` | admin | Query: `?q=...&groupId=...` — search users to invite |
@@ -546,8 +547,9 @@ If no links are set and the user is not admin, empty state message is shown. If 
     { "id": "uuid", "name": "Mike B", "amount": 50 }
   ],
   "kitty": {
-    "startDate": "2026-01-15",
-    "dailyAmount": 10
+    "startDate": "2026-04-21",
+    "startTime": "17:00",
+    "dailyAmount": 3.44
   }
 }
 ```
@@ -571,16 +573,22 @@ If no links are set and the user is not admin, empty state message is shown. If 
 - Progress bar per contributor showing their share %.
 
 **Kitty section (daily savings pool):**
-- Configured in Goals settings: Start Date + USD per Day.
-- Displays: accumulated total = `daysElapsed × dailyAmount`.
-- Shows: start date, rate formula (`$X/day × Yd`), days counter.
-- Kitty is independent — it does not compare to or include the seed money (investments/contributions).
+- Configured in Goals settings: **Start Date + Start Time + USD per Day**.
+- `startTime` is a `"HH:MM"` 24-hour string (e.g. `"17:00"`). Defaults to `"00:00"` if absent.
+- **Counting logic:** Day 1 is added **immediately** when the kitty starts. Each additional `+1` day is added at every 24-hour mark from the exact start timestamp.
+  - Formula: `days = Math.floor((now - startMs) / 86_400_000) + 1`
+  - `accumulated = days × dailyAmount`
+- **Critical — local time parsing:** The start timestamp must be parsed as **local time**, not UTC:
+  - ✅ Correct: `new Date("2026-04-21T17:00:00")` — no trailing `Z`, parses in device local timezone
+  - ❌ Wrong: `new Date("2026-04-21")` — bare date strings parse as UTC midnight, causing a timezone offset error
+- Displays: accumulated total, "since" date/time, rate formula (`$X/day × N days`), and a "Next $X at [datetime]" hint showing when the next day flips.
+- Kitty is independent — it does not compare to or include investments/contributions.
 
 **Configure Goals dialog fields:**
 1. Daily Income Goal (USD)
 2. Investments: Name, $ Amount, $ Daily Earnings, Risk level
 3. Member Contributions: Name, $ Amount
-4. Kitty: Start Date, USD / Day
+4. Kitty: **Start Date**, **Start Time** (HH:MM), USD / Day
 5. Live Preview (updates as you type)
 
 **Risk levels:**
@@ -632,6 +640,7 @@ If no links are set and the user is not admin, empty state message is shown. If 
 
 **API calls:**
 - Load members: `GET /api/groups/:id/members`
+- **Approve pending member:** `PATCH /api/groups/:id/members/:uid/approve` (admin) — sets `status = "accepted"`
 - Remove member: `DELETE /api/groups/:id/members/:uid` (admin)
 - Invite by user ID: `POST /api/groups/:id/invite` (admin)
 - Invite by email: `POST /api/groups/:id/invite/email` (admin)
@@ -644,7 +653,10 @@ If no links are set and the user is not admin, empty state message is shown. If 
 4. **Accepted Members list** — avatar, displayName (or username), role badge.
    - Admin can remove members (trash icon).
    - Admin can message any member (speech-bubble icon → posts to wall mentioning the member).
-5. **Pending Invites** (admin) — list of members with `status = "pending"`.
+5. **Pending Members** (admin) — list of members with `status = "pending"`. Each row shows:
+   - **Approve button** (checkmark icon) → calls `PATCH .../approve` to immediately accept the member.
+   - **Remove button** (X icon) → calls `DELETE` to reject and remove.
+   - A member lands in Pending when invited by admin (they haven't accepted yet) or when they arrive via invite link/code and the system places them pending. Admin can approve directly without waiting for the invitee to click Accept.
 
 **Member object:**
 ```json
