@@ -1216,6 +1216,13 @@ export const groupWalletContributions = pgTable("group_wallet_contributions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// One Goals record per group — stores the entire GoalData blob
+export const groupGoals = pgTable("group_goals", {
+  groupId: integer("group_id").primaryKey().references(() => groups.id, { onDelete: "cascade" }),
+  data: json("data").notNull().default({}),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertGroupWalletContributionSchema = createInsertSchema(groupWalletContributions).omit({ id: true, walletId: true, groupId: true, userId: true, displayName: true, createdAt: true });
 export type GroupWalletContribution = typeof groupWalletContributions.$inferSelect;
 export type InsertGroupWalletContribution = z.infer<typeof insertGroupWalletContributionSchema>;

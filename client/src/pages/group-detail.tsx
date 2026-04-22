@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { UserAvatar } from "@/components/user-avatar";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -229,21 +229,53 @@ const RISK_OPTIONS: { value: RiskLevel; label: string; color: string }[] = [
 function GoalsThermometer({ groupId }: { groupId: number }) {
   const storageKey = `gz-group-goals-${groupId}`;
   const { toast } = useToast();
+  const qc = useQueryClient();
 
-  const loadGoals = (): GoalData => {
+  const EMPTY_GOALS: GoalData = { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, startTime: "00:00", dailyAmount: 0 } };
+
+  const normalizeGoalData = (raw: Record<string, unknown>): GoalData => {
     try {
-      const s = localStorage.getItem(storageKey);
-      if (!s) return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, startTime: "00:00", dailyAmount: 0 } };
-      const parsed = JSON.parse(s);
-      // migrate old investments that lack dailyEarnings or risk
+      const parsed = raw as any;
       parsed.investments = (parsed.investments || []).map((i: GoalInvestment) => ({ dailyEarnings: 0, risk: "" as RiskLevel, ...i }));
       parsed.contributions = parsed.contributions || [];
       parsed.kitty = { startDate: null, startTime: "00:00", dailyAmount: 0, ...(parsed.kitty || {}) };
-      return parsed;
-    } catch { return { dailyGoal: 0, investments: [], contributions: [], kitty: { startDate: null, startTime: "00:00", dailyAmount: 0 } }; }
+      return parsed as GoalData;
+    } catch { return EMPTY_GOALS; }
   };
 
-  const [goalData, setGoalData] = useState<GoalData>(loadGoals);
+  // Load from server; auto-migrate localStorage data on first load if server is empty
+  const { data: serverGoals, isLoading: goalsLoading } = useQuery<Record<string, unknown>>({
+    queryKey: ["/api/groups", groupId, "goals"],
+    queryFn: () => fetch(`/api/groups/${groupId}/goals`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const saveMut = useMutation({
+    mutationFn: (data: GoalData) => apiRequest("PUT", `/api/groups/${groupId}/goals`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "goals"] }),
+  });
+
+  const [goalData, setGoalData] = useState<GoalData>(EMPTY_GOALS);
+  const [goalsInitialized, setGoalsInitialized] = useState(false);
+
+  // When server data arrives, populate local state; auto-migrate localStorage if server is empty
+  useEffect(() => {
+    if (goalsLoading || serverGoals === undefined || goalsInitialized) return;
+    const serverEmpty = !serverGoals || Object.keys(serverGoals).length === 0 || !(serverGoals as any).dailyGoal;
+    if (serverEmpty) {
+      try {
+        const ls = localStorage.getItem(storageKey);
+        if (ls) {
+          const migrated = normalizeGoalData(JSON.parse(ls));
+          setGoalData(migrated);
+          saveMut.mutate(migrated);
+          localStorage.removeItem(storageKey);
+        }
+      } catch { /* leave as EMPTY_GOALS */ }
+    } else {
+      setGoalData(normalizeGoalData(serverGoals as Record<string, unknown>));
+    }
+    setGoalsInitialized(true);
+  }, [goalsLoading, serverGoals]);
   const [showSettings, setShowSettings] = useState(false);
   // Form uses raw strings so typing "1.50" never snaps back
   const [dailyGoalRaw, setDailyGoalRaw] = useState("");
@@ -293,8 +325,8 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
         dailyAmount: parseFloat(kittyDailyRaw) || 0,
       },
     };
-    localStorage.setItem(storageKey, JSON.stringify(cleaned));
     setGoalData(cleaned);
+    saveMut.mutate(cleaned);
     setShowSettings(false);
     toast({ title: "Goals saved!" });
   };
@@ -308,7 +340,7 @@ function GoalsThermometer({ groupId }: { groupId: number }) {
           { ...inv, trackingStartedAt: inv.trackingStartedAt ? null : new Date().toISOString() }
         ),
       };
-      localStorage.setItem(storageKey, JSON.stringify(updated));
+      saveMut.mutate(updated);
       return updated;
     });
   };

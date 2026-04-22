@@ -4864,6 +4864,28 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  app.get("/api/groups/:id/goals", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try { return res.json(await storage.getGroupGoals(id)); }
+    catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
+  app.put("/api/groups/:id/goals", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
+    try {
+      await storage.saveGroupGoals(id, req.body);
+      return res.json({ ok: true });
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   app.get("/api/groups/:id/wall", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
