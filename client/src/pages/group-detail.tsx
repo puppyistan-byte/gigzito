@@ -1140,6 +1140,12 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }),
   });
 
+  const approveMut = useMutation({
+    mutationFn: (uid: number) => apiRequest("PATCH", `/api/groups/${groupId}/members/${uid}/approve`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "members"] }); toast({ title: "Member approved!" }); },
+    onError: () => toast({ title: "Could not approve member", variant: "destructive" }),
+  });
+
   const postMut = useMutation({
     mutationFn: (content: string) => apiRequest("POST", `/api/groups/${groupId}/wall`, { content }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "wall"] }); setMsgTarget(null); setMsgText(""); toast({ title: "Message posted to wall!" }); },
@@ -1243,9 +1249,20 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
                   <p className="text-[10px] text-amber-500">Pending</p>
                 </div>
                 {isAdmin && (
-                  <button data-testid={`button-remove-pending-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="text-muted-foreground hover:text-red-500 transition-colors">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      data-testid={`button-approve-${m.userId}`}
+                      onClick={() => approveMut.mutate(m.userId)}
+                      disabled={approveMut.isPending}
+                      title="Approve member"
+                      className="text-muted-foreground hover:text-emerald-500 transition-colors"
+                    >
+                      <CheckSquare className="w-3.5 h-3.5" />
+                    </button>
+                    <button data-testid={`button-remove-pending-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 )}
               </div>
             ))}

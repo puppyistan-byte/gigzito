@@ -4851,6 +4851,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
+  app.patch("/api/groups/:id/members/:uid/approve", async (req, res) => {
+    const userId = (req.session as any)?.userId as number | undefined;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const id = parseInt(req.params.id);
+    const uid = parseInt(req.params.uid);
+    const mem = await storage.getUserGroupRole(id, userId);
+    if (!mem || mem.role !== "admin") return res.status(403).json({ message: "Admins only" });
+    try {
+      await storage.respondToGroupInvite(id, uid, true);
+      return res.json({ message: "Approved" });
+    } catch (e) { return res.status(500).json({ message: "Server error" }); }
+  });
+
   app.get("/api/groups/:id/wall", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
