@@ -20,7 +20,7 @@ const VERTICAL_LABELS: Record<string, string> = {
 
 const VERTICAL_COLORS: Record<string, string> = {
   MARKETING:   "bg-blue-500/20 text-blue-400",
-  COACHING:    "bg-purple-500/20 text-purple-400",
+  COACHING:    "bg-red-500/20 text-red-400",
   COURSES:     "bg-teal-500/20 text-teal-400",
   MUSIC:       "bg-pink-500/20 text-pink-400",
   CRYPTO:      "bg-amber-500/20 text-amber-400",

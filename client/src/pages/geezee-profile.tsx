@@ -32,7 +32,7 @@ type EnrichedCard = GignessCard & {
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
   GZLurker:     { label: "GZ Lurker",      color: "text-zinc-400",   border: "border-zinc-700" },
   GZMarketer:   { label: "GZMarketer",     color: "text-blue-400",   border: "border-blue-700" },
-  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-purple-400", border: "border-purple-700" },
+  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-red-400", border: "border-red-700" },
   GZBusiness:   { label: "GZBusiness",     color: "text-amber-400",  border: "border-amber-600" },
 };
 
@@ -70,7 +70,7 @@ function GeemotionComments({ motionId, isAuthed, myDisplayName }: { motionId: nu
   return (
     <div className="mt-3 border-t border-[#1a1a1a] pt-3">
       <button
-        className="flex items-center gap-1.5 text-xs text-[#555] hover:text-purple-400 transition-colors"
+        className="flex items-center gap-1.5 text-xs text-[#555] hover:text-red-400 transition-colors"
         onClick={() => setOpen(!open)}
         data-testid={`btn-toggle-comments-${motionId}`}
       >
@@ -109,14 +109,14 @@ function GeemotionComments({ motionId, isAuthed, myDisplayName }: { motionId: nu
                 onChange={(e) => setText(e.target.value.slice(0, 500))}
                 placeholder="Add a comment…"
                 rows={2}
-                className="flex-1 bg-[#0d0d0d] border-[#222] text-white placeholder-[#333] text-xs resize-none focus:border-purple-700/40"
+                className="flex-1 bg-[#0d0d0d] border-[#222] text-white placeholder-[#333] text-xs resize-none focus:border-red-700/40"
                 data-testid={`input-comment-${motionId}`}
               />
               <Button
                 size="sm"
                 disabled={!isAuthed || !text.trim() || postMutation.isPending}
                 onClick={() => postMutation.mutate()}
-                className="self-end h-8 px-3 bg-purple-700 hover:bg-purple-600 text-white rounded-xl"
+                className="self-end h-8 px-3 bg-red-700 hover:bg-red-600 text-white rounded-xl"
                 data-testid={`btn-post-comment-${motionId}`}
               >
                 {postMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
@@ -134,7 +134,7 @@ function GeemotionCard({ motion, isAuthed, myDisplayName }: { motion: ZeeMotion;
   return (
     <div className="rounded-xl bg-[#0b0b0b] border border-[#1e1e1e] p-4" data-testid={`card-geemotion-${motion.id}`}>
       <div className="flex items-center gap-2 mb-2">
-        <Zap className="h-3 w-3 text-purple-400" />
+        <Zap className="h-3 w-3 text-red-400" />
         <span className="text-[10px] text-[#444]">{timeAgo(motion.createdAt)}</span>
       </div>
       {motion.text && <p className="text-sm text-[#ddd] whitespace-pre-wrap leading-relaxed">{motion.text}</p>}
@@ -206,7 +206,7 @@ function PrivateMessagePanel({ card, myTier, isAuthed, myUserId }: {
             <div className="flex items-center gap-2 py-3 text-xs text-[#555]">
               <Mail className="h-4 w-4 text-[#333]" />
               <span>
-                <a href="/auth" className="text-purple-400 hover:text-purple-300">Sign in</a> to send a private message — available to all members.
+                <a href="/auth" className="text-red-400 hover:text-red-300">Sign in</a> to send a private message — available to all members.
               </span>
             </div>
           ) : sent ? (
@@ -331,7 +331,7 @@ export default function GeeZeeProfilePage() {
     card.tiktokUrl    && { href: card.tiktokUrl,    icon: SiTiktok,    label: "TikTok",    color: "hover:text-white" },
     card.facebookUrl  && { href: card.facebookUrl,  icon: SiFacebook,  label: "Facebook",  color: "hover:text-blue-400" },
     card.twitterUrl   && { href: card.twitterUrl,   icon: SiX,         label: "X",         color: "hover:text-white" },
-    card.discordUrl   && { href: card.discordUrl,   icon: SiDiscord,   label: "Discord",   color: "hover:text-indigo-400" },
+    card.discordUrl   && { href: card.discordUrl,   icon: SiDiscord,   label: "Discord",   color: "hover:text-red-400" },
   ].filter(Boolean) as { href: string; icon: any; label: string; color: string }[] : [];
 
   if (isNaN(userId)) {
@@ -367,12 +367,12 @@ export default function GeeZeeProfilePage() {
             <User className="h-8 w-8 text-[#333] mx-auto mb-3" />
             <p className="text-[#555] text-sm">This GZCard is private or doesn't exist.</p>
             <Link href="/geezees">
-              <button className="mt-4 text-xs text-purple-400 hover:text-purple-300">← Back to Rolodex</button>
+              <button className="mt-4 text-xs text-red-400 hover:text-red-300">← Back to Rolodex</button>
             </Link>
           </div>
         ) : (
           <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden">
-            <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+            <div className="h-0.5 w-full bg-gradient-to-r from-red-600/60 to-pink-500/40" />
             <div className="p-6 space-y-5">
 
               {/* Identity row */}
@@ -466,8 +466,8 @@ export default function GeeZeeProfilePage() {
                     disabled={followMutation.isPending}
                     className={`h-9 px-5 text-xs font-bold rounded-xl transition-all ${
                       followStatus?.following
-                        ? "bg-[#1a1a1a] border border-purple-700/60 text-purple-300 hover:bg-purple-900/20"
-                        : "bg-purple-700 hover:bg-purple-600 text-white"
+                        ? "bg-[#1a1a1a] border border-red-700/60 text-red-300 hover:bg-red-900/20"
+                        : "bg-red-700 hover:bg-red-600 text-white"
                     }`}
                     data-testid="btn-follow-profile"
                   >
@@ -498,7 +498,7 @@ export default function GeeZeeProfilePage() {
         {card && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4 text-purple-400" />
+              <Zap className="h-4 w-4 text-red-400" />
               <h2 className="text-sm font-semibold text-white">Geemotions</h2>
               {motions.length > 0 && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#7c3aed22", color: "#a78bfa", border: "1px solid #7c3aed44" }}>
@@ -589,7 +589,7 @@ function MyContactListsPanel() {
 
   return (
     <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden">
-      <div className="h-0.5 w-full bg-gradient-to-r from-pink-500/60 to-purple-500/40" />
+      <div className="h-0.5 w-full bg-gradient-to-r from-pink-500/60 to-red-600/40" />
       <div className="p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-pink-400" />
@@ -640,14 +640,14 @@ function MyContactListsPanel() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleLookup()}
               placeholder="Enter username..."
-              className="bg-[#111] border-[#222] text-white placeholder:text-[#444] focus:border-purple-600 h-8 text-xs flex-1"
+              className="bg-[#111] border-[#222] text-white placeholder:text-[#444] focus:border-red-600 h-8 text-xs flex-1"
               data-testid="input-lookup-presenter"
             />
             <Button
               size="sm"
               onClick={handleLookup}
               disabled={lookupLoading || !search.trim()}
-              className="h-8 px-3 bg-purple-800 hover:bg-purple-700 text-white text-xs"
+              className="h-8 px-3 bg-red-800 hover:bg-red-700 text-white text-xs"
               data-testid="btn-lookup-presenter"
             >
               {lookupLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
@@ -711,10 +711,10 @@ function SecurityPanel() {
 
   return (
     <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden">
-      <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+      <div className="h-0.5 w-full bg-gradient-to-r from-red-600/60 to-pink-500/40" />
       <div className="p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-purple-400" />
+          <Shield className="h-4 w-4 text-red-400" />
           <h2 className="text-sm font-semibold text-white">Security</h2>
         </div>
 
@@ -727,7 +727,7 @@ function SecurityPanel() {
                 value={currentPw}
                 onChange={(e) => setCurrentPw(e.target.value)}
                 placeholder="Enter current password"
-                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-purple-600"
+                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-red-600"
                 data-testid="input-current-password"
               />
               <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
@@ -744,7 +744,7 @@ function SecurityPanel() {
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
                 placeholder="Min. 8 characters"
-                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-purple-600"
+                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-red-600"
                 data-testid="input-new-password"
               />
               <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
@@ -761,7 +761,7 @@ function SecurityPanel() {
                 value={confirmPw}
                 onChange={(e) => setConfirmPw(e.target.value)}
                 placeholder="Repeat new password"
-                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-purple-600"
+                className="bg-[#111] border-[#222] text-white pr-9 placeholder:text-[#444] focus:border-red-600"
                 data-testid="input-confirm-password"
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#555] hover:text-white">
@@ -779,7 +779,7 @@ function SecurityPanel() {
           <Button
             type="submit"
             disabled={changePwMutation.isPending || !currentPw || !newPw || !confirmPw}
-            className="w-full h-9 bg-purple-700 hover:bg-purple-600 text-white text-xs font-bold rounded-xl"
+            className="w-full h-9 bg-red-700 hover:bg-red-600 text-white text-xs font-bold rounded-xl"
             data-testid="btn-change-password"
           >
             {changePwMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Lock className="h-3.5 w-3.5 mr-1.5" />Update Password</>}

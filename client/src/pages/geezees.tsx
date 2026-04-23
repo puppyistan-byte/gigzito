@@ -19,7 +19,7 @@ const PAID_TIERS = ["GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"]
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
   GZLurker:     { label: "GZ Lurker",      color: "text-zinc-400",   border: "border-zinc-700" },
   GZMarketer:   { label: "GZMarketer",     color: "text-blue-400",   border: "border-blue-700" },
-  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-purple-400", border: "border-purple-700" },
+  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-red-400",    border: "border-red-700" },
   GZBusiness:   { label: "GZBusiness",     color: "text-amber-400",  border: "border-amber-600" },
 };
 
@@ -31,10 +31,10 @@ const INTENT_OPTIONS = [
   { value: "activity",  label: "Activity" },
 ];
 const TIER_OPTIONS = [
-  { value: "GZLurker",      label: "GZ Lurker",     color: "border-zinc-600 text-zinc-300",   active: "bg-zinc-700 border-zinc-500 text-white" },
-  { value: "GZMarketer",    label: "GZMarketer",    color: "border-blue-800 text-blue-400",   active: "bg-blue-700 border-blue-500 text-white" },
-  { value: "GZMarketerPro", label: "GZMarketerPro", color: "border-purple-800 text-purple-400", active: "bg-purple-700 border-purple-500 text-white" },
-  { value: "GZBusiness",    label: "GZBusiness",    color: "border-amber-800 text-amber-400", active: "bg-amber-700 border-amber-500 text-white" },
+  { value: "GZLurker",      label: "GZ Lurker",     color: "border-zinc-400 text-zinc-500",   active: "bg-zinc-700 border-zinc-500 text-white" },
+  { value: "GZMarketer",    label: "GZMarketer",    color: "border-blue-400 text-blue-500",   active: "bg-blue-700 border-blue-500 text-white" },
+  { value: "GZMarketerPro", label: "GZMarketerPro", color: "border-red-400 text-red-500",     active: "bg-red-700 border-red-500 text-white" },
+  { value: "GZBusiness",    label: "GZBusiness",    color: "border-amber-400 text-amber-500", active: "bg-amber-700 border-amber-500 text-white" },
 ];
 
 // ── GZCard tile ───────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
       data-testid={`card-geezee-${card.id}`}
     >
       {/* Thin gradient stripe */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+      <div className="h-0.5 w-full bg-gradient-to-r from-red-600/70 to-rose-500/50" />
 
       {/* Card body — profile link + QR thumb side by side */}
       <div className="flex items-start gap-2 px-3 pt-3 pb-2 flex-1">
@@ -125,11 +125,11 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
                 <img
                   src={card.profilePic}
                   alt=""
-                  className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
+                  className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-red-700/60 transition-all"
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
+                <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-red-700/60 transition-all">
                   <User className="h-5 w-5 text-[#444]" />
                 </div>
               )}
@@ -139,25 +139,25 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
                     {cardTier.label}
                   </span>
                   {card.intent && (
-                    <span className="text-[9px] text-purple-300/80 bg-purple-900/20 border border-purple-700/30 rounded px-1.5 py-0.5 capitalize leading-none">
+                    <span className="text-[9px] text-red-300/80 bg-red-900/20 border border-red-700/30 rounded px-1.5 py-0.5 capitalize leading-none">
                       {card.intent}
                     </span>
                   )}
                   {(card as any).username && (
-                    <span className="ml-auto text-[9px] font-mono text-purple-400 truncate max-w-[80px]">
+                    <span className="ml-auto text-[9px] font-mono text-red-400 truncate max-w-[80px]">
                       @{(card as any).username}
                     </span>
                   )}
                 </div>
                 {card.slogan && (
-                  <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-purple-200 transition-colors">
+                  <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-red-200 transition-colors">
                     {card.slogan}
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-0.5 text-[10px]">
-                  {card.ageBracket && <span className="text-purple-400/80">{card.ageBracket}</span>}
-                  {card.gender && <span className="text-purple-400/80">{card.gender}</span>}
-                  <span className="text-purple-400 group-hover:text-purple-300 transition-colors ml-auto font-medium">View →</span>
+                  {card.ageBracket && <span className="text-red-400/80">{card.ageBracket}</span>}
+                  {card.gender && <span className="text-red-400/80">{card.gender}</span>}
+                  <span className="text-red-400 group-hover:text-red-300 transition-colors ml-auto font-medium">View →</span>
                 </div>
               </div>
             </div>
@@ -175,9 +175,9 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
             className="shrink-0 mt-0.5 opacity-60 hover:opacity-100 transition-opacity"
           >
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=a855f7&bgcolor=0d0d0d&data=${encodeURIComponent(window.location.origin + '/qr/' + card.qrUuid)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=ef4444&bgcolor=0d0d0d&data=${encodeURIComponent(window.location.origin + '/qr/' + card.qrUuid)}`}
               alt="QR"
-              className="w-10 h-10 rounded border border-purple-900/40"
+              className="w-10 h-10 rounded border border-red-900/40"
               style={{ imageRendering: "pixelated" }}
             />
           </a>
@@ -193,7 +193,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
           : gender === "male"
           ? "#22d3ee"   // cyan-400 neon blue
           : gender === "other"
-          ? "#a78bfa"   // purple-400 for Other
+          ? "#f87171"   // red-400 for Other
           : "#3f3f3f";  // dim gray for not-set / unknown
 
         const PLATFORMS = [
@@ -234,13 +234,13 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
       {/* Action bar */}
       <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-[#1e1e1e]">
         {/* Stats */}
-        <div className="flex items-center gap-2 text-purple-400/60 text-[10px] mr-auto">
-          <span className="flex items-center gap-0.5 text-purple-400/80">
+        <div className="flex items-center gap-2 text-red-400/60 text-[10px] mr-auto">
+          <span className="flex items-center gap-0.5 text-red-400/80">
             <Heart className="h-3 w-3" />{card.engagementCount ?? 0}
           </span>
           <button
             onClick={() => navigate(`/geezee/${card.userId}`)}
-            className="flex items-center gap-0.5 hover:text-purple-400 transition-colors"
+            className="flex items-center gap-0.5 hover:text-red-400 transition-colors"
             data-testid={`btn-comments-${card.id}`}
           >
             <MessageSquare className="h-3 w-3" />
@@ -249,7 +249,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
             href={`/qr/${card.qrUuid}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-purple-400 transition-colors"
+            className="hover:text-red-400 transition-colors"
             title="QR Card"
             data-testid={`btn-qr-${card.id}`}
           >
@@ -265,8 +265,8 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
               variant="outline"
               className={`h-6 px-2 text-[10px] font-semibold transition-all ${
                 followStatus?.following
-                  ? "border-purple-600/70 text-purple-300 bg-purple-900/20 hover:bg-purple-900/40"
-                  : "border-purple-700/40 text-purple-400 hover:bg-purple-900/20 hover:text-purple-300 hover:border-purple-600/60"
+                  ? "border-red-600/70 text-red-300 bg-red-900/20 hover:bg-red-900/40"
+                  : "border-red-700/40 text-red-400 hover:bg-red-900/20 hover:text-red-300 hover:border-red-600/60"
               }`}
               onClick={() => followMutation.mutate()}
               disabled={followMutation.isPending}
@@ -297,7 +297,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
           </>
         ) : (
           <Link href={`/geezee/${card.userId}`}>
-            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] font-semibold border-purple-700/50 text-purple-300 hover:bg-purple-900/25 transition-all" data-testid={`btn-view-card-${card.id}`}>
+            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] font-semibold border-red-700/50 text-red-300 hover:bg-red-900/25 transition-all" data-testid={`btn-view-card-${card.id}`}>
               View Card
             </Button>
           </Link>
@@ -313,7 +313,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
               Allow Contact from this Presenter?
             </DialogTitle>
             <DialogDescription className="text-[#888] text-sm leading-relaxed pt-1">
-              By engaging with <span className="text-purple-300 font-semibold">{(card as any).displayName ?? "this presenter"}</span>, you agree to allow them to contact you via email and app notifications.
+              By engaging with <span className="text-red-300 font-semibold">{(card as any).displayName ?? "this presenter"}</span>, you agree to allow them to contact you via email and app notifications.
               <br /><br />
               You can remove yourself from their contact list at any time from your profile settings.
             </DialogDescription>
@@ -371,14 +371,14 @@ export default function GeezeesPage() {
   const hasFilters = filterAge || filterGender || filterIntent || filterTier;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#080808", color: "#fff" }}>
+    <div style={{ minHeight: "100vh", background: "#ffffff", color: "#111111" }}>
       <Navbar />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 0" }}>
         {/* Back to main */}
         <Link href="/">
           <button
-            className="flex items-center gap-1.5 text-xs text-[#555] hover:text-purple-400 transition-colors mb-5"
+            className="flex items-center gap-1.5 text-xs text-[#999] hover:text-red-600 transition-colors mb-5"
             data-testid="btn-back-main"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -390,17 +390,17 @@ export default function GeezeesPage() {
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-5 w-5 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">GZCards</h1>
+              <Sparkles className="h-5 w-5 text-red-500" />
+              <h1 className="text-2xl font-bold text-[#111]">GZCards</h1>
             </div>
-            <p className="text-sm text-[#555]">Browse GZCard profiles — connect with real people</p>
+            <p className="text-sm text-[#777]">Browse GZCard profiles — connect with real people</p>
           </div>
           <div className="flex items-center gap-2">
             {isAuthed ? (
               <Link href="/card-editor">
                 <Button
                   size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-4"
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-4"
                   data-testid="btn-edit-my-card"
                 >
                   <CreditCard className="h-3.5 w-3.5 mr-1.5" />
@@ -409,7 +409,7 @@ export default function GeezeesPage() {
               </Link>
             ) : (
               <Link href="/auth">
-                <Button size="sm" variant="outline" className="border-[#333] text-[#aaa] text-xs h-8 px-4">
+                <Button size="sm" variant="outline" className="border-[#ccc] text-[#666] text-xs h-8 px-4">
                   Sign in to create card
                 </Button>
               </Link>
@@ -419,7 +419,7 @@ export default function GeezeesPage() {
 
         {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-2 mb-6">
-          <div className="flex items-center gap-1.5 text-xs text-[#555] mr-1">
+          <div className="flex items-center gap-1.5 text-xs text-[#888] mr-1">
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filters
           </div>
@@ -430,8 +430,8 @@ export default function GeezeesPage() {
               onClick={() => setFilterAge(filterAge === age ? "" : age)}
               className={`text-xs px-3 py-1 rounded-full border transition-all ${
                 filterAge === age
-                  ? "bg-purple-600 border-purple-500 text-white"
-                  : "bg-transparent border-[#2a2a2a] text-[#777] hover:border-[#444]"
+                  ? "bg-red-600 border-red-500 text-white"
+                  : "bg-transparent border-[#d0d0d0] text-[#777] hover:border-[#aaa]"
               }`}
               data-testid={`filter-age-${age}`}
             >
@@ -439,7 +439,7 @@ export default function GeezeesPage() {
             </button>
           ))}
 
-          <div className="w-px h-4 bg-[#222] mx-1" />
+          <div className="w-px h-4 bg-[#ddd] mx-1" />
 
           {GENDER_OPTIONS.map((g) => (
             <button
@@ -448,7 +448,7 @@ export default function GeezeesPage() {
               className={`text-xs px-3 py-1 rounded-full border transition-all ${
                 filterGender === g
                   ? "bg-blue-600 border-blue-500 text-white"
-                  : "bg-transparent border-[#2a2a2a] text-[#777] hover:border-[#444]"
+                  : "bg-transparent border-[#d0d0d0] text-[#777] hover:border-[#aaa]"
               }`}
               data-testid={`filter-gender-${g}`}
             >
@@ -456,7 +456,7 @@ export default function GeezeesPage() {
             </button>
           ))}
 
-          <div className="w-px h-4 bg-[#222] mx-1" />
+          <div className="w-px h-4 bg-[#ddd] mx-1" />
 
           {INTENT_OPTIONS.map(({ value, label }) => (
             <button
@@ -465,7 +465,7 @@ export default function GeezeesPage() {
               className={`text-xs px-3 py-1 rounded-full border transition-all ${
                 filterIntent === value
                   ? "bg-pink-600 border-pink-500 text-white"
-                  : "bg-transparent border-[#2a2a2a] text-[#777] hover:border-[#444]"
+                  : "bg-transparent border-[#d0d0d0] text-[#777] hover:border-[#aaa]"
               }`}
               data-testid={`filter-intent-${value}`}
             >
@@ -473,14 +473,14 @@ export default function GeezeesPage() {
             </button>
           ))}
 
-          <div className="w-px h-4 bg-[#222] mx-1" />
+          <div className="w-px h-4 bg-[#ddd] mx-1" />
 
           {TIER_OPTIONS.map(({ value, label, color, active }) => (
             <button
               key={value}
               onClick={() => setFilterTier(filterTier === value ? "" : value)}
               className={`text-xs px-3 py-1 rounded-full border transition-all ${
-                filterTier === value ? active : `bg-transparent ${color} hover:opacity-80`
+                filterTier === value ? active : `bg-transparent border-[#d0d0d0] text-[#777] hover:border-[#aaa]`
               }`}
               data-testid={`filter-tier-${value}`}
             >
@@ -491,7 +491,7 @@ export default function GeezeesPage() {
           {hasFilters && (
             <button
               onClick={() => { setFilterAge(""); setFilterGender(""); setFilterIntent(""); setFilterTier(""); }}
-              className="text-xs px-2 py-1 text-[#666] hover:text-white transition-colors flex items-center gap-1"
+              className="text-xs px-2 py-1 text-[#888] hover:text-[#333] transition-colors flex items-center gap-1"
               data-testid="btn-clear-filters"
             >
               <X className="h-3 w-3" /> Clear
@@ -503,19 +503,19 @@ export default function GeezeesPage() {
         {isLoading ? (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="w-[300px] shrink-0 h-[168px] rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] animate-pulse" />
+              <div key={i} className="w-[300px] shrink-0 h-[168px] rounded-xl bg-[#f0f0f0] border border-[#e8e8e8] animate-pulse" />
             ))}
           </div>
         ) : cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <CreditCard className="h-12 w-12 text-[#333] mb-4" />
-            <p className="text-[#555] text-base font-semibold">No GZCards yet</p>
-            <p className="text-[#444] text-sm mt-1">
+            <CreditCard className="h-12 w-12 text-[#bbb] mb-4" />
+            <p className="text-[#666] text-base font-semibold">No GZCards yet</p>
+            <p className="text-[#999] text-sm mt-1">
               {hasFilters ? "Try adjusting your filters." : "Be the first to create a card!"}
             </p>
             {isAuthed && (
               <Link href="/card-editor">
-                <Button size="sm" className="mt-5 bg-purple-700 hover:bg-purple-600 text-white text-xs" data-testid="btn-create-first-card">
+                <Button size="sm" className="mt-5 bg-red-700 hover:bg-red-600 text-white text-xs" data-testid="btn-create-first-card">
                   Create My Card
                 </Button>
               </Link>
@@ -524,7 +524,7 @@ export default function GeezeesPage() {
         ) : (
           <div
             className="flex gap-4 overflow-x-auto pb-6"
-            style={{ scrollbarWidth: "thin", scrollbarColor: "#2a2a2a transparent" }}
+            style={{ scrollbarWidth: "thin", scrollbarColor: "#ddd transparent" }}
           >
             {cards.map((card) => (
               <div key={card.id} className="w-[300px] shrink-0 h-[168px]">

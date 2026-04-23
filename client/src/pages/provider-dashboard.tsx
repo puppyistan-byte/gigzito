@@ -1089,10 +1089,10 @@ function ProviderDashboardInner() {
             <Button
               size="sm"
               onClick={() => navigate("/card-editor")}
-              className="h-8 px-3 text-xs font-bold gap-1 bg-[#111] hover:bg-[#1a1a1a] text-white rounded-xl border border-purple-700/60"
+              className="h-8 px-3 text-xs font-bold gap-1 bg-[#111] hover:bg-[#1a1a1a] text-white rounded-xl border border-red-700/60"
               data-testid="button-my-geezee-card"
             >
-              <CreditCard className="h-3.5 w-3.5 text-purple-400" />
+              <CreditCard className="h-3.5 w-3.5 text-red-400" />
               My GZCard
             </Button>
             <Button
@@ -1576,16 +1576,16 @@ function ProviderDashboardInner() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-purple-400" />
+              <Zap className="h-4 w-4 text-red-400" />
               <h2 className="text-sm font-semibold text-white">ZeeMotion Feed</h2>
               {zeeFeed.length > 0 && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#7c3aed22", color: "#a78bfa", border: "1px solid #7c3aed44" }}>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#dc262622", color: "#f87171", border: "1px solid #dc262644" }}>
                   {zeeFeed.length}
                 </span>
               )}
             </div>
             <Link href="/card-editor">
-              <button className="text-xs text-purple-400 hover:text-purple-300 transition-colors" data-testid="btn-go-card-editor">
+              <button className="text-xs text-red-400 hover:text-red-300 transition-colors" data-testid="btn-go-card-editor">
                 + Post ZeeMotion
               </button>
             </Link>
@@ -1834,7 +1834,7 @@ function ProviderDashboardInner() {
               <div className="space-y-1.5 max-h-60 overflow-y-auto" style={{ scrollbarWidth: "thin", scrollbarColor: "#2a2a2a transparent" }}>
                 {presenterContacts.slice(0, 50).map((c) => (
                   <div key={c.id} className="flex items-center gap-2.5 py-1.5 border-b border-[#111] last:border-0" data-testid={`row-presenter-contact-${c.id}`}>
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500/30 to-purple-500/30 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500/30 to-red-500/30 flex items-center justify-center shrink-0">
                       <span className="text-[9px] font-bold text-pink-300">{(c.displayName ?? c.username ?? c.email)[0]?.toUpperCase()}</span>
                     </div>
                     <div className="flex-1 min-w-0">

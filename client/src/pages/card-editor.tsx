@@ -22,7 +22,7 @@ import type { GignessCard, ZeeMotion } from "@shared/schema";
 const TIER_META: Record<string, { label: string; color: string; desc: string }> = {
   GZLurker:     { label: "GZ Lurker",     color: "text-zinc-400",   desc: "Create a card — browsing only, can't engage others yet." },
   GZMarketer:   { label: "GZMarketer",    color: "text-blue-400",   desc: "Engage cards, send messages & publish unlimited content." },
-  GZMarketerPro:{ label: "GZMarketerPro", color: "text-purple-400", desc: "Priority Rolodex placement + advanced targeting." },
+  GZMarketerPro:{ label: "GZMarketerPro", color: "text-red-400", desc: "Priority Rolodex placement + advanced targeting." },
   GZBusiness:   { label: "GZBusiness",    color: "text-amber-400",  desc: "Featured VIP row, geo-push, audience aggregator & analytics." },
 };
 
@@ -138,7 +138,7 @@ function GalleryUploader({
                 className={`flex flex-col items-center justify-center w-full h-full rounded-lg border border-dashed bg-[#0d0d0d] cursor-pointer transition-all ${
                   uploading[i]
                     ? "border-[#444]"
-                    : "border-[#252525] hover:border-purple-800/60 hover:bg-[#0f0f18]"
+                    : "border-[#252525] hover:border-red-800/60 hover:bg-[#1a0a0a]"
                 }`}
                 data-testid={`btn-upload-gallery-${i}`}
               >
@@ -164,7 +164,7 @@ function GalleryUploader({
         onClick={() => setExpanded(!expanded)}
         className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg border transition-all ${
           expanded
-            ? "border-purple-700/60 text-purple-300 bg-purple-900/10"
+            ? "border-red-700/60 text-red-300 bg-red-900/10"
             : "border-[#222] text-[#555] hover:border-[#333] hover:text-[#888] bg-[#0a0a0a]"
         }`}
         data-testid="btn-toggle-gallery"
@@ -215,7 +215,7 @@ function CardPreview({
   const tierMeta = TIER_META[tier] ?? TIER_META.GZLurker;
   return (
     <div className="rounded-2xl bg-[#0d0d0d] border border-[#2a2a2a] overflow-hidden w-full">
-      <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+      <div className="h-0.5 w-full bg-gradient-to-r from-red-600/60 to-pink-500/40" />
       <div className="p-5 space-y-4">
         <div className="flex items-start gap-3">
           {profilePic ? (
@@ -290,7 +290,7 @@ function ZeeMotionItem({ m, onDelete }: { m: ZeeMotion; onDelete: (id: number) =
   };
   return (
     <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#0d0d0d] border border-[#1a1a1a]">
-      <Zap className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+      <Zap className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         {m.text && <p className="text-xs text-[#ccc] leading-relaxed whitespace-pre-wrap">{m.text}</p>}
         {m.mediaUrl && (
@@ -456,7 +456,7 @@ export default function CardEditorPage() {
       <div style={{ minHeight: "100vh", background: "#080808" }}>
         <Navbar />
         <div className="flex items-center justify-center py-32">
-          <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
         </div>
       </div>
     );
@@ -483,7 +483,7 @@ export default function CardEditorPage() {
 
         {/* ── THE CARD — looks like the production profile ── */}
         <div className="rounded-2xl bg-[#0d0d0d] border border-[#1e1e1e] overflow-hidden mb-4">
-          <div className="h-0.5 w-full bg-gradient-to-r from-purple-500/60 to-pink-500/40" />
+          <div className="h-0.5 w-full bg-gradient-to-r from-red-600/60 to-pink-500/40" />
           <div className="p-6 space-y-5">
 
             {/* Identity row */}
@@ -494,11 +494,11 @@ export default function CardEditorPage() {
                 <label className="cursor-pointer block" data-testid="btn-upload-profile-pic" title="Click to change photo">
                   {profilePic ? (
                     <img src={profilePic} alt="Profile"
-                      className="w-20 h-20 rounded-2xl object-cover border border-[#222] group-hover:border-purple-700/50 transition-all"
+                      className="w-20 h-20 rounded-2xl object-cover border border-[#222] group-hover:border-red-700/50 transition-all"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-[#1a1a1a] border border-dashed border-[#2a2a2a] group-hover:border-purple-700/50 flex flex-col items-center justify-center gap-1 transition-all">
+                    <div className="w-20 h-20 rounded-2xl bg-[#1a1a1a] border border-dashed border-[#2a2a2a] group-hover:border-red-700/50 flex flex-col items-center justify-center gap-1 transition-all">
                       <Camera className="h-5 w-5 text-[#333]" />
                       <span className="text-[9px] text-[#2a2a2a]">add photo</span>
                     </div>
@@ -583,7 +583,7 @@ export default function CardEditorPage() {
                       placeholder="Your one-line pitch to the Gigzito world…"
                       maxLength={120} rows={2} autoFocus={sloganEditing}
                       onBlur={() => { if (slogan.trim()) setSloganEditing(false); }}
-                      className="bg-transparent border-[#252525] text-white placeholder-[#282828] text-sm focus:border-purple-700/50 resize-none shadow-none"
+                      className="bg-transparent border-[#252525] text-white placeholder-[#282828] text-sm focus:border-red-700/50 resize-none shadow-none"
                       data-testid="input-slogan" />
                     <p className="text-[10px] text-[#333] mt-0.5 text-right">{slogan.length}/120</p>
                   </div>
@@ -596,7 +596,7 @@ export default function CardEditorPage() {
                       onClick={() => { setAgeBracket(ageBracket === age ? "" : age); markDirty(); }}
                       className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
                         ageBracket === age
-                          ? "bg-purple-600/20 border-purple-600/50 text-purple-300"
+                          ? "bg-red-600/20 border-red-600/50 text-red-300"
                           : "bg-transparent border-[#1a1a1a] text-[#2e2e2e] hover:border-[#282828] hover:text-[#555]"
                       }`}
                       data-testid={`btn-age-${age}`}>{age}</button>
@@ -621,11 +621,11 @@ export default function CardEditorPage() {
             {/* ZeeMotion composer — embedded in card like a feed input */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Zap className="h-3.5 w-3.5 text-purple-400" />
+                <Zap className="h-3.5 w-3.5 text-red-400" />
                 <p className="text-xs font-semibold text-[#777]">ZeeMotion</p>
                 <span className="text-[9px] text-[#333]">posts to your card feed</span>
               </div>
-              <div className="rounded-xl bg-[#111] border border-[#1a1a1a] focus-within:border-purple-700/30 transition-all">
+              <div className="rounded-xl bg-[#111] border border-[#1a1a1a] focus-within:border-red-700/30 transition-all">
                 <Textarea ref={zmTextRef} value={zmText}
                   onChange={(e) => setZmText(e.target.value.slice(0, 500))}
                   placeholder="What's moving with you…"
@@ -642,7 +642,7 @@ export default function CardEditorPage() {
                   <div className="flex items-center gap-0.5">
                     <div className="relative">
                       <button onClick={() => setZmPanel(zmPanel === "emoji" ? null : "emoji")}
-                        className={`p-1.5 rounded-lg transition-colors ${zmPanel === "emoji" ? "bg-purple-900/30 text-purple-300" : "text-[#383838] hover:text-[#666]"}`}
+                        className={`p-1.5 rounded-lg transition-colors ${zmPanel === "emoji" ? "bg-red-900/30 text-red-300" : "text-[#383838] hover:text-[#666]"}`}
                         data-testid="btn-zeemotion-emoji"><Smile className="h-3.5 w-3.5" /></button>
                       {zmPanel === "emoji" && (
                         <div className="absolute bottom-9 left-0 z-50 bg-[#111] border border-[#2a2a2a] rounded-xl p-2 w-52 grid grid-cols-6 gap-1 shadow-2xl">
@@ -692,7 +692,7 @@ export default function CardEditorPage() {
                   </div>
                   <button onClick={() => postMotionMutation.mutate()}
                     disabled={postMotionMutation.isPending || (!zmText.trim() && !zmMedia)}
-                    className="flex items-center gap-1 text-xs font-bold bg-purple-700 hover:bg-purple-600 disabled:bg-[#151515] disabled:text-[#2a2a2a] text-white px-3 py-1 rounded-lg transition-all"
+                    className="flex items-center gap-1 text-xs font-bold bg-red-700 hover:bg-red-600 disabled:bg-[#151515] disabled:text-[#2a2a2a] text-white px-3 py-1 rounded-lg transition-all"
                     data-testid="btn-post-zeemotion">
                     {postMotionMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                     Post
@@ -727,7 +727,7 @@ export default function CardEditorPage() {
         {/* Save + Broadcast */}
         <div className="flex gap-3 mb-5">
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}
-            className="flex-1 bg-purple-700 hover:bg-purple-600 text-white font-semibold h-11"
+            className="flex-1 bg-red-700 hover:bg-red-600 text-white font-semibold h-11"
             data-testid="btn-save-card">
             {saveMutation.isPending
               ? <span className="flex items-center gap-2"><span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</span>
@@ -782,13 +782,13 @@ export default function CardEditorPage() {
               <Switch checked={allowMessaging} onCheckedChange={(v) => { setAllowMessaging(v); markDirty(); }} data-testid="switch-allow-messaging" />
             </div>
             <div className={`flex items-center justify-between rounded-xl border p-3 transition-all ${
-              showSocialLinks ? "bg-[#0d0a1a] border-purple-500/20" : "bg-[#0a0a0a] border-[#181818]"
+              showSocialLinks ? "bg-[#1a0808] border-red-500/20" : "bg-[#0a0a0a] border-[#181818]"
             }`}>
               <div className="flex items-center gap-2.5">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                  showSocialLinks ? "bg-purple-500/15 border border-purple-500/25" : "bg-[#141414] border border-[#1e1e1e]"
+                  showSocialLinks ? "bg-red-500/15 border border-red-500/25" : "bg-[#141414] border border-[#1e1e1e]"
                 }`}>
-                  <Share2 className={`h-3.5 w-3.5 ${showSocialLinks ? "text-purple-400" : "text-[#383838]"}`} />
+                  <Share2 className={`h-3.5 w-3.5 ${showSocialLinks ? "text-red-400" : "text-[#383838]"}`} />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-white">Import Social Media Links</p>
