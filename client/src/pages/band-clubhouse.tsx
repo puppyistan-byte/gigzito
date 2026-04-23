@@ -1960,8 +1960,8 @@ export default function BandClubbousePage() {
       {/* Banner */}
       <div className="relative">
         <div
-          className="w-full h-28 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
-          style={band.bannerUrl ? { backgroundImage: `url(${band.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
+          className="w-full h-48 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
+          style={band.bannerUrl ? { backgroundImage: `url(${band.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center top" } : {}}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]/60" />
         <button onClick={() => setLocation("/gz-music?tab=bands")} className="absolute top-3 left-3 flex items-center gap-1.5 text-xs text-[#aaa] hover:text-white bg-black/50 rounded-lg px-2.5 py-1.5 backdrop-blur-sm" data-testid="back-to-bands">
