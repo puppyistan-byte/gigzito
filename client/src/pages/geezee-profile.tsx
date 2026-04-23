@@ -323,6 +323,7 @@ export default function GeeZeeProfilePage() {
   });
 
   const cardTier = TIER_META[(card as any)?.userTier ?? "GZLurker"] ?? TIER_META.GZLurker;
+  const [profileImgError, setProfileImgError] = useState(false);
 
   // Collect social links
   const socialLinks = card ? [
@@ -376,8 +377,13 @@ export default function GeeZeeProfilePage() {
 
               {/* Identity row */}
               <div className="flex items-start gap-4">
-                {(card.profilePic ?? card.avatarUrl) ? (
-                  <img src={(card.profilePic ?? card.avatarUrl)!} alt="Profile" className="w-20 h-20 rounded-2xl object-cover border border-[#222] shrink-0" />
+                {(card.profilePic ?? card.avatarUrl) && !profileImgError ? (
+                  <img
+                    src={(card.profilePic ?? card.avatarUrl)!}
+                    alt=""
+                    className="w-20 h-20 rounded-2xl object-cover border border-[#222] shrink-0"
+                    onError={() => setProfileImgError(true)}
+                  />
                 ) : (
                   <div className="w-20 h-20 rounded-2xl bg-[#1a1a1a] border border-[#222] flex items-center justify-center shrink-0">
                     <User className="h-8 w-8 text-[#444]" />
@@ -440,7 +446,10 @@ export default function GeeZeeProfilePage() {
                           src={url}
                           alt={`Photo ${i + 1}`}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          onError={(e) => {
+                            const box = (e.target as HTMLImageElement).closest(".aspect-square") as HTMLElement | null;
+                            if (box) box.style.display = "none";
+                          }}
                         />
                       </div>
                     ))}
