@@ -2280,6 +2280,7 @@ export default function BandClubbousePage() {
                   )}
                 </div>
                 <input ref={editBannerRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadEditImage(e.target.files[0], "banner")} data-testid="edit-band-banner" />
+                <p className="text-[10px] text-[#444] mt-1 leading-snug">Best: 1200 × 400 px · landscape · up to 15 MB</p>
               </div>
             </div>
             {/* Allow stranger wall posts toggle */}

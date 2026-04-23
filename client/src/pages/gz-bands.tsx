@@ -271,6 +271,7 @@ export default function GzBandsPage() {
                   )}
                 </div>
                 <input ref={bannerRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0], "banner")} data-testid="band-banner-input" />
+                <p className="text-[10px] text-[#444] mt-1 leading-snug">Best: 1200 × 400 px · landscape · up to 15 MB</p>
               </div>
               <p className="col-span-2 text-xs font-semibold text-[#555] uppercase tracking-widest">Social Links (optional)</p>
               <input className="bg-[#1a1a1a] rounded-lg px-3 py-2 text-sm text-white outline-none border border-[#222]" placeholder="Instagram URL" value={form.instagramUrl} onChange={e => setForm(f => ({ ...f, instagramUrl: e.target.value }))} data-testid="band-instagram" />
