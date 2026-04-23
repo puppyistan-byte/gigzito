@@ -190,7 +190,7 @@ export interface IStorage {
 
   // Profile Wall Posts
   getProfileWallPosts(profileId: number): Promise<import("@shared/schema").ProfileWallPost[]>;
-  createProfileWallPost(data: { profileId: number; authorUserId?: number | null; authorName: string; authorAvatar?: string | null; message: string }): Promise<import("@shared/schema").ProfileWallPost>;
+  createProfileWallPost(data: { profileId: number; authorUserId?: number | null; authorName: string; authorAvatar?: string | null; message: string; imageUrl?: string | null }): Promise<import("@shared/schema").ProfileWallPost>;
   deleteProfileWallPost(id: number): Promise<void>;
 
   // Comment Likes
@@ -242,7 +242,7 @@ export interface IStorage {
   getEndeavorComments(endeavorId: number): Promise<Array<{ id: number; endeavorId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null }>>;
   addEndeavorComment(endeavorId: number, userId: number, content: string): Promise<{ id: number; endeavorId: number; userId: number; content: string; createdAt: string }>;
   getGroupWallPosts(groupId: number): Promise<Array<GroupWallPost & { displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number }>>;
-  createGroupWallPost(groupId: number, userId: number, content: string): Promise<GroupWallPost>;
+  createGroupWallPost(groupId: number, userId: number, content: string, imageUrl?: string | null): Promise<GroupWallPost>;
   deleteGroupWallPost(id: number, userId: number, isAdmin: boolean): Promise<void>;
   getGroupWallComments(postId: number): Promise<Array<GroupWallComment & { displayName: string | null; avatarUrl: string | null; username: string | null }>>;
   createGroupWallComment(postId: number, userId: number, content: string): Promise<GroupWallComment>;
@@ -2396,13 +2396,14 @@ export class DatabaseStorage implements IStorage {
       .limit(100);
   }
 
-  async createProfileWallPost(data: { profileId: number; authorUserId?: number | null; authorName: string; authorAvatar?: string | null; message: string }): Promise<ProfileWallPost> {
+  async createProfileWallPost(data: { profileId: number; authorUserId?: number | null; authorName: string; authorAvatar?: string | null; message: string; imageUrl?: string | null }): Promise<ProfileWallPost> {
     const [row] = await db.insert(profileWallPosts).values({
       profileId: data.profileId,
       authorUserId: data.authorUserId ?? null,
       authorName: data.authorName,
       authorAvatar: data.authorAvatar ?? null,
       message: data.message,
+      imageUrl: data.imageUrl ?? null,
     }).returning();
     return row;
   }
@@ -3025,8 +3026,8 @@ export class DatabaseStorage implements IStorage {
     return rows.map((r) => ({ ...r.post, displayName: r.displayName, avatarUrl: r.avatarUrl, username: r.username, commentCount: r.commentCount }));
   }
 
-  async createGroupWallPost(groupId: number, userId: number, content: string) {
-    const [row] = await db.insert(groupWallPosts).values({ groupId, userId, content }).returning();
+  async createGroupWallPost(groupId: number, userId: number, content: string, imageUrl?: string | null) {
+    const [row] = await db.insert(groupWallPosts).values({ groupId, userId, content, imageUrl: imageUrl ?? null }).returning();
     return row;
   }
 

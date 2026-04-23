@@ -17,7 +17,8 @@ import {
   Send, ChevronLeft as PrevMonth, ChevronRight as NextMonth, UserPlus, X, Search,
   Copy, Settings, KanbanSquare, ArrowRight, ArrowLeft, CheckSquare, Clock, Camera, Mail,
   Wallet, ExternalLink, Link2, ShieldCheck, AlertCircle, BookOpen, TrendingUp,
-  ChevronDown, ChevronUp, Trophy, CircleDollarSign, Info, RefreshCw
+  ChevronDown, ChevronUp, Trophy, CircleDollarSign, Info, RefreshCw,
+  Paperclip, Loader2
 } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -33,7 +34,7 @@ type Group = {
   linkTelegram?: string | null; linkYoutube?: string | null; linkRumble?: string | null;
   linkReddit?: string | null; linkWebsite?: string | null;
 };
-type Post = { id: number; groupId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number };
+type Post = { id: number; groupId: number; userId: number; content: string; imageUrl?: string | null; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null; commentCount: number };
 type Comment = { id: number; postId: number; userId: number; content: string; createdAt: string; displayName: string | null; avatarUrl: string | null; username: string | null };
 type Endeavor = { id: number; groupId: number; title: string; description: string; goalProgress: number; linkX?: string | null; linkFb?: string | null; linkIg?: string | null; linkTelegram?: string | null; linkYoutube?: string | null; linkRumble?: string | null; linkReddit?: string | null; createdAt: string };
 type Event = { id: number; groupId: number; title: string; description: string; startAt: string; endAt: string | null; allDay: boolean; createdBy: number };
@@ -83,14 +84,17 @@ function WallTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: boo
   const qc = useQueryClient();
   const { toast } = useToast();
   const [postText, setPostText] = useState("");
+  const [postImage, setPostImage] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<number, string>>({});
 
   const { data: posts = [], isLoading } = useQuery<Post[]>({ queryKey: ["/api/groups", groupId, "wall"] });
 
   const postMut = useMutation({
-    mutationFn: (content: string) => apiRequest("POST", `/api/groups/${groupId}/wall`, { content }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "wall"] }); setPostText(""); },
+    mutationFn: ({ content, imageUrl }: { content: string; imageUrl?: string | null }) =>
+      apiRequest("POST", `/api/groups/${groupId}/wall`, { content, imageUrl }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/groups", groupId, "wall"] }); setPostText(""); setPostImage(null); },
     onError: () => toast({ title: "Failed to post", variant: "destructive" }),
   });
 
@@ -103,13 +107,44 @@ function WallTab({ groupId, isAdmin, myUserId }: { groupId: number; isAdmin: boo
     setExpandedComments((prev) => { const next = new Set(prev); if (next.has(postId)) next.delete(postId); else next.add(postId); return next; });
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      setPostImage(url);
+    } catch {
+      toast({ title: "Image upload failed", variant: "destructive" });
+    } finally {
+      setImageUploading(false);
+      e.target.value = "";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-card border rounded-xl p-4">
         <Textarea data-testid="input-wall-post" placeholder="Share an update with the group…" rows={3} value={postText} onChange={(e) => setPostText(e.target.value)} className="mb-3 resize-none" />
-        <Button data-testid="button-post-wall" className="bg-red-600 hover:bg-red-700 text-white" disabled={!postText.trim() || postMut.isPending} onClick={() => postMut.mutate(postText.trim())}>
-          <Send className="w-4 h-4 mr-2" /> {postMut.isPending ? "Posting…" : "Post"}
-        </Button>
+        {postImage && (
+          <div className="relative inline-block mb-3">
+            <img src={postImage} alt="attachment" className="max-h-40 rounded-lg object-cover" />
+            <button onClick={() => setPostImage(null)} className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-white hover:bg-black/80"><X className="w-3 h-3" /></button>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <input id="wall-img-upload" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+          <label htmlFor="wall-img-upload" className="cursor-pointer p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Attach image">
+            {imageUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+          </label>
+          <Button data-testid="button-post-wall" className="bg-red-600 hover:bg-red-700 text-white ml-auto" disabled={!postText.trim() || postMut.isPending || imageUploading} onClick={() => postMut.mutate({ content: postText.trim(), imageUrl: postImage })}>
+            <Send className="w-4 h-4 mr-2" /> {postMut.isPending ? "Posting…" : "Post"}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? <div className="h-40 bg-muted animate-pulse rounded-xl" /> : posts.length === 0 ? (
@@ -168,6 +203,7 @@ function PostCard({ post, groupId, isAdmin, myUserId, expanded, onToggleComments
             </div>
           </div>
           <p className="text-sm whitespace-pre-wrap">{post.content}</p>
+          {post.imageUrl && <img src={post.imageUrl} alt="" className="mt-2 rounded-lg max-h-64 w-full object-cover" />}
           <button data-testid={`button-toggle-comments-${post.id}`} onClick={onToggleComments} className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <MessageSquare className="w-3.5 h-3.5" />
             {post.commentCount > 0 ? `${post.commentCount} comment${post.commentCount !== 1 ? "s" : ""}` : "Comment"}

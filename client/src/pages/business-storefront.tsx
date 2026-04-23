@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import {
   MapPin, Phone, Globe, Store, Trash2, Clock, ChevronLeft,
   Send, Building2, Edit, ExternalLink, Mail, User, Zap, Video, Radio, Tag,
+  Paperclip, Loader2, X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -83,7 +84,28 @@ function WallComposer({ businessProfileId, onPosted }: { businessProfileId: numb
   const { toast } = useToast();
   const [message, setMessage] = useState("");
   const [guestName, setGuestName] = useState("");
+  const [postImage, setPostImage] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const [posting, setPosting] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      setPostImage(url);
+    } catch {
+      toast({ title: "Image upload failed", variant: "destructive" });
+    } finally {
+      setImageUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handlePost = async () => {
     if (!message.trim()) { toast({ title: "Write a message first", variant: "destructive" }); return; }
@@ -92,9 +114,11 @@ function WallComposer({ businessProfileId, onPosted }: { businessProfileId: numb
       await apiRequest("POST", `/api/business/${businessProfileId}/wall`, {
         message: message.trim(),
         guestName: guestName.trim() || undefined,
+        imageUrl: postImage,
       }).then((r) => r.json());
       setMessage("");
       setGuestName("");
+      setPostImage(null);
       onPosted();
       toast({ title: "Posted!" });
     } catch {
@@ -115,8 +139,20 @@ function WallComposer({ businessProfileId, onPosted }: { businessProfileId: numb
         placeholder="Write on the wall…" rows={3}
         className="bg-[#111] border-[#1e1e1e] text-sm resize-none"
         data-testid="input-biz-wall-message" />
-      <div className="flex justify-end">
-        <Button size="sm" onClick={handlePost} disabled={posting || !message.trim()}
+      {postImage && (
+        <div className="relative inline-block">
+          <img src={postImage} alt="attachment" className="max-h-40 rounded-lg object-cover" />
+          <button onClick={() => setPostImage(null)} className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-white hover:bg-black/80"><X className="w-3 h-3" /></button>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <input id="biz-wall-img-upload" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+          <label htmlFor="biz-wall-img-upload" className="cursor-pointer p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Attach image">
+            {imageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+          </label>
+        </div>
+        <Button size="sm" onClick={handlePost} disabled={posting || !message.trim() || imageUploading}
           className="gap-1.5" data-testid="button-biz-wall-post">
           <Send className="h-3.5 w-3.5" />
           {posting ? "Posting…" : "Post"}

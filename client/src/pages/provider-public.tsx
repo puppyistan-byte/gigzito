@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ProviderProfile, ListingWithProvider, GignessCard, GZMusicTrack } from "@shared/schema";
 
 type LoveStatus = { voteCount: number; hasVoted: boolean };
-type WallPost = { id: number; profileId: number; authorUserId: number | null; authorName: string; authorAvatar: string | null; message: string; createdAt: string };
+type WallPost = { id: number; profileId: number; authorUserId: number | null; authorName: string; authorAvatar: string | null; message: string; imageUrl?: string | null; createdAt: string };
 
 type Tab = "about" | "photos" | "store" | "wall" | "geezee" | "music";
 
@@ -828,6 +828,7 @@ export default function ProviderPublicPage() {
                               </p>
                             </div>
                             <p className="text-sm text-[#aaa] mt-1.5 leading-relaxed">{post.message}</p>
+                            {post.imageUrl && <img src={post.imageUrl} alt="" className="mt-2 rounded-lg max-h-48 w-full object-cover" />}
                           </div>
                           {(isAdmin || post.authorUserId === myUserId) && (
                             <button

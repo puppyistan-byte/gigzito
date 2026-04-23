@@ -968,6 +968,7 @@ export const profileWallPosts = pgTable("profile_wall_posts", {
   authorName: text("author_name").notNull().default("Anonymous"),
   authorAvatar: text("author_avatar"),
   message: text("message").notNull(),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -1102,6 +1103,7 @@ export const groupWallPosts = pgTable("group_wall_posts", {
   groupId: integer("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

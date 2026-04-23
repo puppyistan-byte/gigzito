@@ -39,6 +39,7 @@ import {
   Inbox, Zap, Clock, ChevronUp, ChevronLeft, ChevronRight, Calendar, CheckCircle2 as CheckCircle, XCircle, Pencil, ShieldCheck, Heart, LogOut, Users, Shield, AlertOctagon, Loader2, UserCircle,
   Send, Radio, MapPin, Globe, X as XIcon, Megaphone, CreditCard, Bell,
   Music, Headphones, Upload as UploadIcon, Flame, RefreshCw, Store, Building2, ChevronDown,
+  Paperclip,
 } from "lucide-react";
 import { GzFlashForm } from "@/components/gz-flash-form";
 import { InviteCard } from "@/components/invite-card";
@@ -603,6 +604,8 @@ function ProviderDashboardInner() {
 
   // ── My Wall ─────────────────────────────────────────────────────────────────
   const [wallUpdateText, setWallUpdateText] = useState("");
+  const [wallImage, setWallImage] = useState<string | null>(null);
+  const [wallImageUploading, setWallImageUploading] = useState(false);
   const profileId = (profile as ProviderProfile | undefined)?.id;
   const { data: myWallPostsRaw = [], isLoading: wallPostsLoading } = useQuery<ProfileWallPost[]>({
     queryKey: ["/api/profile", profileId, "wall"],
@@ -615,18 +618,37 @@ function ProviderDashboardInner() {
       const res = await fetch(`/api/profile/${profileId}/wall`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: wallUpdateText }),
+        body: JSON.stringify({ message: wallUpdateText, imageUrl: wallImage }),
       });
       if (!res.ok) throw new Error("Failed to post");
       return res.json();
     },
     onSuccess: () => {
       setWallUpdateText("");
+      setWallImage(null);
       queryClient.invalidateQueries({ queryKey: ["/api/profile", profileId, "wall"] });
       toast({ title: "Update posted!", description: "Your wall update is now live on your public profile." });
     },
     onError: () => toast({ title: "Failed to post", variant: "destructive" }),
   });
+  const handleWallImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setWallImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      setWallImage(url);
+    } catch {
+      toast({ title: "Image upload failed", variant: "destructive" });
+    } finally {
+      setWallImageUploading(false);
+      e.target.value = "";
+    }
+  };
   const deleteWallPostMutation = useMutation({
     mutationFn: async (postId: number) => {
       const res = await fetch(`/api/profile/wall/${postId}`, { method: "DELETE" });
@@ -2374,12 +2396,24 @@ function ProviderDashboardInner() {
               className="bg-[#111] border-[#2a2a2a] text-white placeholder:text-[#333] text-sm resize-none focus:border-[#ff2b2b]"
               data-testid="textarea-wall-update"
             />
+            {wallImage && (
+              <div className="relative inline-block">
+                <img src={wallImage} alt="attachment" className="max-h-40 rounded-lg object-cover" />
+                <button onClick={() => setWallImage(null)} className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-white hover:bg-black/80"><XIcon className="w-3 h-3" /></button>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[#333]">{wallUpdateText.length}/500</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[#333]">{wallUpdateText.length}/500</span>
+                <input id="wall-img-upload-provider" type="file" accept="image/*" className="sr-only" onChange={handleWallImageUpload} />
+                <label htmlFor="wall-img-upload-provider" className="cursor-pointer p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] transition-colors" title="Attach image">
+                  {wallImageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+                </label>
+              </div>
               <Button
                 size="sm"
                 onClick={() => postWallMutation.mutate()}
-                disabled={!wallUpdateText.trim() || postWallMutation.isPending}
+                disabled={!wallUpdateText.trim() || postWallMutation.isPending || wallImageUploading}
                 className="bg-[#ff2b2b]/20 hover:bg-[#ff2b2b]/35 text-white border border-[#ff2b2b]/60 hover:border-[#ff2b2b] rounded-xl h-8 px-4 text-xs font-bold transition-colors"
                 data-testid="button-post-wall-update"
               >
@@ -2414,6 +2448,7 @@ function ProviderDashboardInner() {
                       </span>
                     </div>
                     <p className="text-sm text-[#aaa] leading-relaxed">{post.message}</p>
+                    {(post as any).imageUrl && <img src={(post as any).imageUrl} alt="" className="mt-2 rounded-lg max-h-48 w-full object-cover" />}
                   </div>
                   <button
                     onClick={() => deleteWallPostMutation.mutate(post.id)}

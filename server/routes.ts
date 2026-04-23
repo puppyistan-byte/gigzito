@@ -3047,7 +3047,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       if (!p) return res.status(404).json({ message: "Profile not found" });
       profileId = p.id;
     }
-    const { message } = req.body;
+    const { message, imageUrl } = req.body;
     if (!message?.trim()) return res.status(400).json({ message: "Message is required" });
     if (message.trim().length > 500) return res.status(400).json({ message: "Message too long (max 500 chars)" });
     try {
@@ -3067,6 +3067,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         authorName,
         authorAvatar,
         message: message.trim(),
+        imageUrl: imageUrl ?? null,
       });
       return res.json(post);
     } catch (err) {
@@ -4900,11 +4901,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const userId = (req.session as any)?.userId as number | undefined;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const id = parseInt(req.params.id);
-    const { content } = req.body;
+    const { content, imageUrl } = req.body;
     if (!content?.trim()) return res.status(400).json({ message: "Content required" });
     const mem = await storage.getUserGroupRole(id, userId);
     if (!mem || mem.status !== "accepted") return res.status(403).json({ message: "Members only" });
-    try { return res.status(201).json(await storage.createGroupWallPost(id, userId, content.trim())); }
+    try { return res.status(201).json(await storage.createGroupWallPost(id, userId, content.trim(), imageUrl ?? null)); }
     catch (e) { return res.status(500).json({ message: "Server error" }); }
   });
 
@@ -5821,7 +5822,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.post("/api/business/:id/wall", async (req, res) => {
     const userId = (req.session as any)?.userId as number | undefined;
-    const { message, guestName } = req.body;
+    const { message, guestName, imageUrl } = req.body;
     if (!message?.trim()) return res.status(400).json({ message: "Message required" });
     const businessProfileId = parseInt(req.params.id);
     let authorName = "Anonymous";
@@ -5834,7 +5835,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } else if (guestName?.trim()) {
       authorName = guestName.trim();
     }
-    const post = await storage.createBusinessWallPost(businessProfileId, userId ?? null, message.trim(), authorName, authorAvatar);
+    const post = await storage.createBusinessWallPost(businessProfileId, userId ?? null, message.trim(), authorName, authorAvatar, imageUrl ?? undefined);
     return res.status(201).json(post);
   });
 

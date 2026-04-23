@@ -12,7 +12,7 @@ import {
   Music, Users, Calendar, Image, Tv2, Radio, Plus, Trash2, ExternalLink,
   Play, Pause, SkipBack, SkipForward, ChevronLeft, ChevronRight, Send, Globe,
   Settings, MapPin, Mic2, Video, Clock, Pencil, UserPlus, X, Check,
-  Heart, Bell, BellOff, Upload, Search,
+  Heart, Bell, BellOff, Upload, Search, Paperclip, Loader2,
 } from "lucide-react";
 import { SiTiktok, SiYoutube, SiInstagram } from "react-icons/si";
 import {
@@ -608,6 +608,8 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
   const [showComposer, setShowComposer] = useState(false);
   const [showClaimPanel, setShowClaimPanel] = useState(false);
   const [content, setContent] = useState("");
+  const [postImage, setPostImage] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [searchQuery, setSearchQuery] = useState(bandName);
@@ -661,15 +663,35 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
   const postMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/bands/${bandId}/wall`, {
       content,
+      imageUrl: postImage,
       ...(isGuest ? { guestName: guestName.trim(), guestEmail: guestEmail.trim() } : {}),
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/bands", bandId, "wall"] });
-      setContent(""); setShowComposer(false);
+      setContent(""); setShowComposer(false); setPostImage(null);
       if (isGuest) { setGuestName(""); setGuestEmail(""); }
     },
     onError: () => toast({ title: "Error", description: "Could not post", variant: "destructive" }),
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      setPostImage(url);
+    } catch {
+      toast({ title: "Image upload failed", variant: "destructive" });
+    } finally {
+      setImageUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const claimMutation = useMutation({
     mutationFn: (trackId: number) => apiRequest("POST", `/api/bands/${bandId}/claim-track/${trackId}`),
@@ -804,17 +826,31 @@ function WallTab({ bandId, isAdmin, currentUserId, allowGuestPosts, bandName }: 
             autoFocus
             data-testid="wall-post-input"
           />
-          <div className="flex justify-end gap-2">
-            <button onClick={() => { setShowComposer(false); setContent(""); }} className="px-3 py-1.5 rounded-lg text-sm text-[#555] hover:text-white">Cancel</button>
-            <button
-              onClick={() => { if (content.trim()) postMutation.mutate(); }}
-              disabled={postMutation.isPending || !content.trim()}
-              className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-all"
-              style={{ background: ORANGE }}
-              data-testid="wall-post-submit"
-            >
-              {postMutation.isPending ? "Posting..." : "Post"}
-            </button>
+          {postImage && (
+            <div className="relative inline-block">
+              <img src={postImage} alt="attachment" className="max-h-40 rounded-lg object-cover" />
+              <button onClick={() => setPostImage(null)} className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5 text-white hover:bg-black/80"><X className="w-3 h-3" /></button>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <input id="band-wall-img-upload" type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+              <label htmlFor="band-wall-img-upload" className="cursor-pointer p-1.5 rounded-lg text-[#555] hover:text-white hover:bg-[#1e1e1e] transition-colors" title="Attach image">
+                {imageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setShowComposer(false); setContent(""); setPostImage(null); }} className="px-3 py-1.5 rounded-lg text-sm text-[#555] hover:text-white">Cancel</button>
+              <button
+                onClick={() => { if (content.trim()) postMutation.mutate(); }}
+                disabled={postMutation.isPending || !content.trim() || imageUploading}
+                className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-all"
+                style={{ background: ORANGE }}
+                data-testid="wall-post-submit"
+              >
+                {postMutation.isPending ? "Posting..." : "Post"}
+              </button>
+            </div>
           </div>
         </div>
       )}
