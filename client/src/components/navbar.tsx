@@ -263,7 +263,7 @@ export function Navbar() {
             data-testid="menu-item-geezees"
           >
             <Sparkles className="h-4 w-4" />
-            GeeZees Rolodex
+            GZCards
           </DropdownMenuItem>
 
           <DropdownMenuItem

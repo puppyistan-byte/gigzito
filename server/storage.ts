@@ -796,6 +796,7 @@ export class DatabaseStorage implements IStorage {
         username: providerProfiles.username,
         displayName: providerProfiles.displayName,
         avatarUrl: providerProfiles.avatarUrl,
+        userAvatarUrl: users.avatarUrl,
         instagramUrl: providerProfiles.instagramUrl,
         tiktokUrl: providerProfiles.tiktokUrl,
         facebookUrl: providerProfiles.facebookUrl,
@@ -811,9 +812,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(sql`${gignessCards.engagementCount} DESC, ${gignessCards.createdAt} DESC`);
     return rows.map((r) => ({
       ...r.card,
-      // profilePic is the card-specific pic; avatarUrl is the provider profile fallback
+      // profilePic is the card-specific pic; avatarUrl is the provider profile fallback; userAvatarUrl is the base-user fallback
       // Use || (not ??) so empty strings are also treated as missing
-      profilePic:   r.card.profilePic || r.avatarUrl || null,
+      profilePic:   r.card.profilePic || r.avatarUrl || r.userAvatarUrl || null,
       avatarUrl:    r.avatarUrl    || null,
       username:     r.username     ?? null,
       displayName:  r.displayName  ?? null,

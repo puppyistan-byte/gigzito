@@ -47,6 +47,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
   const isPaidPresenter = PAID_TIERS.includes((card as any).userTier ?? "");
   const isOwnCard = myUserId === cardUserId;
   const [showConsent, setShowConsent] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const optInMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/presenter-contacts/opt-in/${cardUserId}`, {}),
@@ -120,11 +121,12 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
         <div className="flex-1 min-w-0">
           <Link href={`/geezee/${card.userId}`}>
             <div className="flex items-center gap-3 cursor-pointer group" data-testid={`link-geezee-profile-${card.id}`}>
-              {card.profilePic ? (
+              {card.profilePic && !imgError ? (
                 <img
                   src={card.profilePic}
-                  alt="Profile"
+                  alt=""
                   className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all"
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-purple-700/60 transition-all">
@@ -389,9 +391,9 @@ export default function GeezeesPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Sparkles className="h-5 w-5 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">GeeZees</h1>
+              <h1 className="text-2xl font-bold text-white">GZCards</h1>
             </div>
-            <p className="text-sm text-[#555]">Browse the Gigness Card Rolodex — connect with real people</p>
+            <p className="text-sm text-[#555]">Browse GZCard profiles — connect with real people</p>
           </div>
           <div className="flex items-center gap-2">
             {isAuthed ? (

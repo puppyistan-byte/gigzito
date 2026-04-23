@@ -135,7 +135,7 @@ export default function GzBusinessPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/geezees" className="inline-flex items-center gap-1.5 text-xs text-[#555] hover:text-blue-400 transition-colors mb-6" data-testid="link-back-geezees">
-          <ArrowLeft className="h-3.5 w-3.5" /> GeeZees Rolodex
+          <ArrowLeft className="h-3.5 w-3.5" /> GZCards
         </Link>
 
         <div className="flex items-center justify-between mb-2 flex-wrap gap-3">

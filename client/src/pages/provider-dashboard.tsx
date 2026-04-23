@@ -1998,7 +1998,7 @@ function ProviderDashboardInner() {
           {/* Tab bar */}
           <div className="flex gap-1 mb-3 p-1 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a]">
             {(["geezees", "comments", "inquiries"] as const).map((tab) => {
-              const labels: Record<typeof tab, string> = { geezees: "GeeZees", comments: "Video Comments", inquiries: "Inquiries" };
+              const labels: Record<typeof tab, string> = { geezees: "GZCards", comments: "Video Comments", inquiries: "Inquiries" };
               const unreadCounts = { geezees: unreadGeezees, comments: unreadComments, inquiries: unreadInquiries };
               const u = unreadCounts[tab];
               return (
