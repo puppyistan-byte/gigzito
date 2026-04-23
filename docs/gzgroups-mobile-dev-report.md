@@ -938,7 +938,7 @@ Response:
 ```
 
 - The file is scanned before being accepted.
-- Max file size follows the server's multer limit.
+- **Max file size: 15 MB.** The server returns HTTP 413 with `{ "message": "Image is too large. Maximum size is 15 MB." }` if exceeded.
 - Accepted types: any image (JPEG, PNG, WebP, GIF, etc.).
 - Show a loading/uploading indicator during this request.
 

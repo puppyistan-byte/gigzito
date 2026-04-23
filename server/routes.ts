@@ -58,7 +58,7 @@ function runInspector(
 
 const upload = multer({
   storage: quarantineStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
     else cb(new Error("Only image files are allowed"));
@@ -1175,7 +1175,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
-  app.post("/api/upload/image", upload.single("file"), async (req, res) => {
+  app.post("/api/upload/image", (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        const isTooBig = err.code === "LIMIT_FILE_SIZE";
+        return res.status(413).json({ message: isTooBig ? "Image is too large. Maximum size is 15 MB." : err.message });
+      }
+      next();
+    });
+  }, async (req, res) => {
     if (!requireAuth(req, res)) return;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     // Layer 1 — magic bytes + contraband signatures
@@ -5372,7 +5380,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // ── GZ BANDS ─────────────────────────────────────────────────────────────────
 
   // Generic image upload — used by band enrollment form for avatar / banner
-  app.post("/api/upload-image", upload.single("file"), async (req, res) => {
+  app.post("/api/upload-image", (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        const isTooBig = err.code === "LIMIT_FILE_SIZE";
+        return res.status(413).json({ message: isTooBig ? "Image is too large. Maximum size is 15 MB." : err.message });
+      }
+      next();
+    });
+  }, async (req, res) => {
     if (!requireAuth(req, res)) return;
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const layer1 = inspectFileSync(req.file.path, req.file.mimetype);
