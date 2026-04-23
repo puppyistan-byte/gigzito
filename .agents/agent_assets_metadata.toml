@@ -54,3 +54,9 @@ id = "n8Lcs0CtGwBIgjTOdumP5"
 uri = "file://docs/gzgroups-mobile-dev-report.md"
 type = "text"
 title = "GZGroups Mobile Dev Report — Section 5: Banner / Wallpaper"
+
+[[outputs]]
+id = "BZ2e8GyN7OJ89i-7QMzFa"
+uri = "file://docs/gigzito-webdev-summary.md"
+type = "text"
+title = "Gigzito Web Developer Summary"
