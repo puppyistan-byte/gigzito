@@ -17,10 +17,10 @@ import type { GignessCard } from "@shared/schema";
 const PAID_TIERS = ["GZMarketer", "GZMarketerPro", "GZBusiness", "GZEnterprise"];
 
 const TIER_META: Record<string, { label: string; color: string; border: string }> = {
-  GZLurker:     { label: "GZ Lurker",      color: "text-zinc-400",   border: "border-zinc-700" },
-  GZMarketer:   { label: "GZMarketer",     color: "text-blue-400",   border: "border-blue-700" },
-  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-red-400",    border: "border-red-700" },
-  GZBusiness:   { label: "GZBusiness",     color: "text-amber-400",  border: "border-amber-600" },
+  GZLurker:     { label: "GZ Lurker",      color: "text-zinc-500",   border: "border-zinc-300" },
+  GZMarketer:   { label: "GZMarketer",     color: "text-blue-600",   border: "border-blue-300" },
+  GZMarketerPro:{ label: "GZMarketerPro",  color: "text-red-600",    border: "border-red-300" },
+  GZBusiness:   { label: "GZBusiness",     color: "text-amber-600",  border: "border-amber-400" },
 };
 
 const AGE_OPTIONS  = ["18-25", "25-40", "40+"];
@@ -110,11 +110,11 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
 
   return (
     <div
-      className="rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#333] transition-all overflow-hidden flex flex-col h-full w-full"
+      className="rounded-xl bg-white border border-red-100 hover:border-red-300 hover:shadow-md transition-all overflow-hidden flex flex-col h-full w-full"
       data-testid={`card-geezee-${card.id}`}
     >
-      {/* Thin gradient stripe */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-red-600/70 to-rose-500/50" />
+      {/* Bold red top stripe */}
+      <div className="h-1 w-full bg-gradient-to-r from-red-600 to-rose-500" />
 
       {/* Card body — profile link + QR thumb side by side */}
       <div className="flex items-start gap-2 px-3 pt-3 pb-2 flex-1">
@@ -125,12 +125,12 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
                 <img
                   src={card.profilePic}
                   alt=""
-                  className="w-12 h-12 rounded-lg object-cover shrink-0 border border-[#222] group-hover:border-red-700/60 transition-all"
+                  className="w-12 h-12 rounded-lg object-cover shrink-0 border border-red-100 group-hover:border-red-400 transition-all"
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-[#1a1a1a] flex items-center justify-center shrink-0 border border-[#222] group-hover:border-red-700/60 transition-all">
-                  <User className="h-5 w-5 text-[#444]" />
+                <div className="w-12 h-12 rounded-lg bg-red-50 flex items-center justify-center shrink-0 border border-red-100 group-hover:border-red-300 transition-all">
+                  <User className="h-5 w-5 text-red-200" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -139,25 +139,25 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
                     {cardTier.label}
                   </span>
                   {card.intent && (
-                    <span className="text-[9px] text-red-300/80 bg-red-900/20 border border-red-700/30 rounded px-1.5 py-0.5 capitalize leading-none">
+                    <span className="text-[9px] text-red-600 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 capitalize leading-none">
                       {card.intent}
                     </span>
                   )}
                   {(card as any).username && (
-                    <span className="ml-auto text-[9px] font-mono text-red-400 truncate max-w-[80px]">
+                    <span className="ml-auto text-[9px] font-mono text-red-500 truncate max-w-[80px]">
                       @{(card as any).username}
                     </span>
                   )}
                 </div>
                 {card.slogan && (
-                  <p className="text-xs font-semibold text-white mt-1 leading-snug line-clamp-1 group-hover:text-red-200 transition-colors">
+                  <p className="text-xs font-semibold text-gray-900 mt-1 leading-snug line-clamp-1 group-hover:text-red-700 transition-colors">
                     {card.slogan}
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-0.5 text-[10px]">
-                  {card.ageBracket && <span className="text-red-400/80">{card.ageBracket}</span>}
-                  {card.gender && <span className="text-red-400/80">{card.gender}</span>}
-                  <span className="text-red-400 group-hover:text-red-300 transition-colors ml-auto font-medium">View →</span>
+                  {card.ageBracket && <span className="text-red-500">{card.ageBracket}</span>}
+                  {card.gender && <span className="text-red-500">{card.gender}</span>}
+                  <span className="text-red-600 group-hover:text-red-800 transition-colors ml-auto font-semibold">View →</span>
                 </div>
               </div>
             </div>
@@ -175,26 +175,26 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
             className="shrink-0 mt-0.5 opacity-60 hover:opacity-100 transition-opacity"
           >
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=ef4444&bgcolor=0d0d0d&data=${encodeURIComponent(window.location.origin + '/qr/' + card.qrUuid)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=dc2626&bgcolor=ffffff&data=${encodeURIComponent(window.location.origin + '/qr/' + card.qrUuid)}`}
               alt="QR"
-              className="w-10 h-10 rounded border border-red-900/40"
+              className="w-10 h-10 rounded border border-red-200"
               style={{ imageRendering: "pixelated" }}
             />
           </a>
         )}
       </div>
 
-      {/* Social icons strip — always all 5 platforms, dim placeholder if missing, for card symmetry */}
+      {/* Social icons strip — always all 5 platforms, dim placeholder if missing */}
       {(() => {
         const c = card as any;
         const gender = (card.gender ?? "").toLowerCase();
         const genderColor = gender === "female"
-          ? "#f472b6"   // pink-400
+          ? "#db2777"   // pink-600
           : gender === "male"
-          ? "#22d3ee"   // cyan-400 neon blue
+          ? "#0891b2"   // cyan-600
           : gender === "other"
-          ? "#f87171"   // red-400 for Other
-          : "#3f3f3f";  // dim gray for not-set / unknown
+          ? "#dc2626"   // red-600
+          : "#9ca3af";  // gray-400
 
         const PLATFORMS = [
           { key: "facebook",  url: c.facebookUrl,  Icon: SiFacebook,  label: "Facebook"  },
@@ -222,7 +222,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
                   <Icon size={11} />
                 </a>
               ) : (
-                <span key={key} title={label} className="text-[#252525]">
+                <span key={key} title={label} className="text-red-100">
                   <Icon size={11} />
                 </span>
               );
@@ -232,15 +232,15 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
       })()}
 
       {/* Action bar */}
-      <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-[#1e1e1e]">
+      <div className="flex items-center gap-1.5 px-3 pb-3 pt-1 border-t border-red-100">
         {/* Stats */}
-        <div className="flex items-center gap-2 text-red-400/60 text-[10px] mr-auto">
-          <span className="flex items-center gap-0.5 text-red-400/80">
+        <div className="flex items-center gap-2 text-red-400 text-[10px] mr-auto">
+          <span className="flex items-center gap-0.5 text-red-500 font-medium">
             <Heart className="h-3 w-3" />{card.engagementCount ?? 0}
           </span>
           <button
             onClick={() => navigate(`/geezee/${card.userId}`)}
-            className="flex items-center gap-0.5 hover:text-red-400 transition-colors"
+            className="flex items-center gap-0.5 hover:text-red-600 transition-colors"
             data-testid={`btn-comments-${card.id}`}
           >
             <MessageSquare className="h-3 w-3" />
@@ -249,7 +249,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
             href={`/qr/${card.qrUuid}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-red-400 transition-colors"
+            className="hover:text-red-600 transition-colors"
             title="QR Card"
             data-testid={`btn-qr-${card.id}`}
           >
@@ -265,8 +265,8 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
               variant="outline"
               className={`h-6 px-2 text-[10px] font-semibold transition-all ${
                 followStatus?.following
-                  ? "border-red-600/70 text-red-300 bg-red-900/20 hover:bg-red-900/40"
-                  : "border-red-700/40 text-red-400 hover:bg-red-900/20 hover:text-red-300 hover:border-red-600/60"
+                  ? "border-red-500 text-white bg-red-600 hover:bg-red-700"
+                  : "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
               }`}
               onClick={() => followMutation.mutate()}
               disabled={followMutation.isPending}
@@ -281,8 +281,8 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
               variant="outline"
               className={`h-6 px-2 text-[10px] font-semibold transition-all ${
                 isPaidPresenter && !isOwnCard && optInStatus?.optedIn
-                  ? "border-pink-600/70 text-pink-300 bg-pink-900/20 hover:bg-pink-900/40"
-                  : "border-pink-700/40 text-pink-400 hover:bg-pink-900/20 hover:text-pink-300 hover:border-pink-600/60"
+                  ? "border-pink-500 text-white bg-pink-600 hover:bg-pink-700"
+                  : "border-pink-200 text-pink-600 hover:bg-pink-50 hover:border-pink-300"
               }`}
               onClick={handleEngageClick}
               disabled={engageMutation.isPending || optInMutation.isPending}
@@ -297,7 +297,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
           </>
         ) : (
           <Link href={`/geezee/${card.userId}`}>
-            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] font-semibold border-red-700/50 text-red-300 hover:bg-red-900/25 transition-all" data-testid={`btn-view-card-${card.id}`}>
+            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] font-semibold border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all" data-testid={`btn-view-card-${card.id}`}>
               View Card
             </Button>
           </Link>
@@ -306,14 +306,14 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
 
       {/* Consent Dialog */}
       <Dialog open={showConsent} onOpenChange={setShowConsent}>
-        <DialogContent className="bg-[#0d0d0d] border border-[#2a2a2a] text-white max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Bell className="h-4 w-4 text-pink-400" />
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-pink-500" />
               Allow Contact from this Presenter?
             </DialogTitle>
-            <DialogDescription className="text-[#888] text-sm leading-relaxed pt-1">
-              By engaging with <span className="text-red-300 font-semibold">{(card as any).displayName ?? "this presenter"}</span>, you agree to allow them to contact you via email and app notifications.
+            <DialogDescription className="text-sm leading-relaxed pt-1">
+              By engaging with <span className="text-red-600 font-semibold">{(card as any).displayName ?? "this presenter"}</span>, you agree to allow them to contact you via email and app notifications.
               <br /><br />
               You can remove yourself from their contact list at any time from your profile settings.
             </DialogDescription>
@@ -323,7 +323,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
               variant="outline"
               size="sm"
               onClick={() => setShowConsent(false)}
-              className="flex-1 border-[#333] text-[#777] hover:text-white hover:border-[#555] bg-transparent"
+              className="flex-1"
               data-testid="btn-consent-cancel"
             >
               Cancel
@@ -331,7 +331,7 @@ function GeeZeeCard({ card, myTier, isAuthed, myUserId }: { card: GignessCard; m
             <Button
               size="sm"
               onClick={handleConsentAccept}
-              className="flex-1 bg-pink-700 hover:bg-pink-600 text-white font-semibold"
+              className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-semibold"
               data-testid="btn-consent-accept"
             >
               <Heart className="h-3.5 w-3.5 mr-1.5" />

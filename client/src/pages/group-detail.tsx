@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { UserAvatar } from "@/components/user-avatar";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -1337,13 +1337,19 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
 
         {/* Active members */}
         {accepted.map((m) => (
-          <div key={m.id} data-testid={`member-card-${m.userId}`} className="flex items-center gap-2 group">
-            <Avatar src={m.avatarUrl} name={m.displayName} size={7} />
+          <div key={m.id} data-testid={`member-card-${m.userId}`} className="flex items-center gap-2">
+            <Link href={`/geezee/${m.userId}`}>
+              <Avatar src={m.avatarUrl} name={m.displayName} size={7} className="cursor-pointer hover:opacity-80 transition-opacity" />
+            </Link>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium leading-none truncate">{m.displayName ?? m.username ?? "User"}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{m.role === "admin" ? "Admin" : "Member"}</p>
+              <Link href={`/geezee/${m.userId}`}>
+                <p className="text-xs font-medium leading-none truncate hover:text-red-600 transition-colors cursor-pointer">{m.displayName ?? m.username ?? "User"}</p>
+              </Link>
+              {m.role === "admin" && (
+                <p className="text-[10px] text-red-500 font-semibold truncate">Admin</p>
+              )}
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1">
               <button
                 data-testid={`button-message-${m.userId}`}
                 onClick={() => { setMsgTarget(m); setMsgText(""); }}
@@ -1352,6 +1358,15 @@ function MembersSidebar({ groupId, isAdmin, inviteCode }: { groupId: number; isA
               >
                 <Mail className="w-3.5 h-3.5" />
               </button>
+              <Link href={`/geezee/${m.userId}`}>
+                <button
+                  data-testid={`button-view-profile-${m.userId}`}
+                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-500 transition-colors"
+                  title="View GZCard profile"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </Link>
               {isAdmin && m.role !== "admin" && (
                 <button data-testid={`button-remove-member-${m.userId}`} onClick={() => removeMut.mutate(m.userId)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-500 transition-colors">
                   <Trash2 className="w-3.5 h-3.5" />
