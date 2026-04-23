@@ -1,5 +1,5 @@
 # GZGroups Module — Mobile Developer Reference
-**Gigzito Platform · Updated April 21, 2026 (Kitty v2 + Admin Approve + Goals → Server)**
+**Gigzito Platform · Updated April 23, 2026 (Kitty v2 + Admin Approve + Goals → Server + Image Uploads on All Walls)**
 
 ---
 
@@ -55,6 +55,7 @@ Unique constraint: `(group_id, user_id)`.
 | `group_id` | integer FK → groups | |
 | `user_id` | integer FK → users | author |
 | `content` | text | post body |
+| `image_url` | text | nullable — path to attached image e.g. `/uploads/…` *(added April 23, 2026)* |
 | `created_at` | timestamp | |
 
 ### 2.4 `group_wall_comments` table
@@ -230,8 +231,8 @@ linkX, linkFb, linkIg, linkTelegram, linkYoutube, linkRumble, linkReddit, linkWe
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| GET | `/api/groups/:id/wall` | member | Returns posts with `commentCount`, `displayName`, `avatarUrl`, `username` |
-| POST | `/api/groups/:id/wall` | member | Body: `{ content }` — create post |
+| GET | `/api/groups/:id/wall` | member | Returns posts with `commentCount`, `displayName`, `avatarUrl`, `username`, `imageUrl` |
+| POST | `/api/groups/:id/wall` | member | Body: `{ content, imageUrl? }` — create post; `imageUrl` is optional |
 | DELETE | `/api/groups/:id/wall/:postId` | admin or author | Delete a post |
 | GET | `/api/groups/:id/wall/:postId/comments` | member | Returns comments for a post |
 | POST | `/api/groups/:id/wall/:postId/comments` | member | Body: `{ content }` — add comment |
@@ -427,7 +428,8 @@ The desktop banner sits inside the main content column (left of the right rail).
 
 **API calls:**
 - Load posts: `GET /api/groups/:id/wall`
-- Create post: `POST /api/groups/:id/wall` `{ content }`
+- Create post (text only): `POST /api/groups/:id/wall` `{ content }`
+- Create post (with image): `POST /api/groups/:id/wall` `{ content, imageUrl: "/uploads/..." }` — see Section 20 for the full two-step upload flow
 - Delete post: `DELETE /api/groups/:id/wall/:postId`
 - Load comments: `GET /api/groups/:id/wall/:postId/comments` (triggered on expand)
 - Post comment: `POST /api/groups/:id/wall/:postId/comments` `{ content }`
@@ -440,6 +442,7 @@ The desktop banner sits inside the main content column (left of the right rail).
   "groupId": 5,
   "userId": 7,
   "content": "Hello everyone",
+  "imageUrl": "/uploads/1776726745011-bcaf99a50c0c182a.png",
   "createdAt": "2026-04-20T10:00:00Z",
   "displayName": "Brandon",
   "avatarUrl": "https://...",
@@ -447,6 +450,7 @@ The desktop banner sits inside the main content column (left of the right rail).
   "commentCount": 3
 }
 ```
+> `imageUrl` is `null` when no image was attached. Always render it if present.
 
 **Comment object:**
 ```json
@@ -906,6 +910,131 @@ The following data is still stored in the browser's `localStorage` and is **not 
 - **Background:** Dark theme — `bg-card`, `bg-muted`, zinc-based neutrals
 - **Typography:** All labels use `text-xs` or `text-sm`; section headers use `text-[10px] uppercase tracking-wider text-muted-foreground`
 - **Brand name:** "GZGroups" (not "GeeZee Groups")
+
+---
+
+## 20. Image Uploads on Wall Posts (All Surfaces)
+
+> **Added April 23, 2026.** All four wall-enabled surfaces — GZGroups, GZCards (provider profile), GZMusic Bands, and GZBusiness — now support attaching a single image to a wall post. The mechanism is identical on every surface: a two-step process (upload first, post second).
+
+---
+
+### 20.1 The Two-Step Pattern
+
+The same pattern is used for banner/wallpaper images and now also for wall post images.
+
+**Step 1 — Upload the file**
+
+```
+POST /api/upload/image
+Content-Type: multipart/form-data
+
+file: <binary>
+```
+
+Response:
+```json
+{ "url": "/uploads/1776726745011-bcaf99a50c0c182a.png" }
+```
+
+- The file is scanned before being accepted.
+- Max file size follows the server's multer limit.
+- Accepted types: any image (JPEG, PNG, WebP, GIF, etc.).
+- Show a loading/uploading indicator during this request.
+
+**Step 2 — Send the post with the URL**
+
+Send the URL returned in step 1 as `imageUrl` in the wall post body (see per-surface details below).
+
+---
+
+### 20.2 GZGroups Wall
+
+| | |
+|---|---|
+| **DB table** | `group_wall_posts` |
+| **Column** | `image_url text` (nullable) |
+| **POST endpoint** | `POST /api/groups/:id/wall` |
+| **Request body** | `{ "content": "...", "imageUrl": "/uploads/..." }` |
+| **Response field** | `imageUrl` (string or `null`) |
+| **Who can post** | Any group member |
+| **Who can delete** | Group admin OR post author |
+
+---
+
+### 20.3 GZCards — Provider Profile Wall
+
+| | |
+|---|---|
+| **DB table** | `profile_wall_posts` |
+| **Column** | `image_url text` (nullable) |
+| **POST endpoint** | `POST /api/profile/:id/wall` |
+| **Request body** | `{ "content": "...", "imageUrl": "/uploads/..." }` |
+| **Response field** | `imageUrl` (string or `null`) |
+| **Who can post** | Any authenticated user |
+| **Who can delete** | Profile owner OR post author |
+
+> The GZCard public profile page (`/provider/:id`) and the private dashboard both show the same wall. The public page is read-only for visitors; authenticated users can post.
+
+---
+
+### 20.4 GZMusic Bands — Band Clubhouse Wall
+
+| | |
+|---|---|
+| **DB table** | `band_wall_posts` |
+| **Column** | `image_url text` (nullable) — existed before April 23 |
+| **POST endpoint** | `POST /api/bands/:id/wall` |
+| **Request body** | `{ "content": "...", "imageUrl": "/uploads/..." }` |
+| **Response field** | `imageUrl` (string or `null`) |
+| **Who can post** | Any authenticated user |
+| **Who can delete** | Band admin OR post author |
+
+---
+
+### 20.5 GZBusiness — Business Storefront Wall
+
+| | |
+|---|---|
+| **DB table** | `business_wall_posts` |
+| **Column** | `image_url text` (nullable) — existed before April 23 |
+| **POST endpoint** | `POST /api/business/:id/wall` |
+| **Request body** | `{ "content": "...", "imageUrl": "/uploads/..." }` |
+| **Response field** | `imageUrl` (string or `null`) |
+| **Who can post** | Any authenticated user |
+| **Who can delete** | Business owner OR post author |
+
+---
+
+### 20.6 Sample Post Object (all surfaces follow this shape)
+
+```json
+{
+  "id": 42,
+  "content": "Check out this photo from last night!",
+  "imageUrl": "/uploads/1776726745011-bcaf99a50c0c182a.png",
+  "createdAt": "2026-04-23T01:00:00Z",
+  "displayName": "Josh K",
+  "avatarUrl": "/uploads/avatar-abc123.png",
+  "username": "joshk"
+}
+```
+
+- `imageUrl` is `null` (not absent) when no image is attached. Always handle `null` — do not assume the field is present.
+- Render the image below the post text. Recommended style: rounded corners, `max-height: 200–300 dp`, `width: 100%`, `object-fit: cover`.
+
+---
+
+### 20.7 Mobile Implementation Checklist
+
+1. **Composer UI** — add an attachment button (paperclip icon) beside the Post button.
+2. **File picker** — launch the native image picker on tap. Limit selection to one image at a time.
+3. **Preview** — show a small thumbnail above the Post button once an image is selected, with an ✕ to remove it.
+4. **Upload** — on tap of Post (if an image is attached), first `POST /api/upload/image` with the file as `multipart/form-data`. Show a spinner.
+5. **Post** — once the upload returns `{ url }`, include `imageUrl: url` in the wall post body. If no image, omit `imageUrl` entirely (or pass `null`).
+6. **Display** — in the post list, render `imageUrl` below the post text whenever it is non-null.
+7. **Error handling** — if the upload fails, surface an error toast/snackbar and do NOT submit the post.
+8. **Loading state** — disable the Post button during both the upload step and the post step.
 
 ---
 
