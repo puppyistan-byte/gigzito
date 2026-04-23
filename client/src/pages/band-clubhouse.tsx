@@ -1958,11 +1958,14 @@ export default function BandClubbousePage() {
       <Navbar />
 
       {/* Banner */}
-      <div className="relative">
-        <div
-          className="w-full h-48 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]"
-          style={band.bannerUrl ? { backgroundImage: `url(${band.bannerUrl})`, backgroundSize: "cover", backgroundPosition: "center top" } : {}}
-        />
+      <div className="relative w-full h-56 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] overflow-hidden">
+        {band.bannerUrl && (
+          <img
+            src={band.bannerUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]/60" />
         <button onClick={() => setLocation("/gz-music?tab=bands")} className="absolute top-3 left-3 flex items-center gap-1.5 text-xs text-[#aaa] hover:text-white bg-black/50 rounded-lg px-2.5 py-1.5 backdrop-blur-sm" data-testid="back-to-bands">
           <ChevronLeft className="h-3 w-3" /> All Bands
@@ -1979,7 +1982,7 @@ export default function BandClubbousePage() {
       <div className="max-w-5xl mx-auto px-4">
 
         {/* Band header — sits cleanly below the banner */}
-        <div className="flex items-center gap-4 pt-5 pb-4">
+        <div className="flex items-center gap-4 pt-8 pb-4">
           <div
             className={`w-20 h-20 rounded-2xl border-2 overflow-hidden shrink-0${band.avatarUrl ? " cursor-zoom-in" : ""}`}
             style={{ borderColor: ORANGE, background: "#1a1a1a" }}
