@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 const MARKETERS = [
   { initial: "A", name: "Ava Growth",  tag: "TikTok Ads • Funnels",      slug: "ava"   },
@@ -7,8 +8,11 @@ const MARKETERS = [
   { initial: "K", name: "Kira Brand",  tag: "Brand • Copy • Email",      slug: "kira"  },
 ];
 
+const ALLOWED_MARKETER_SLUGS = new Set(MARKETERS.map((m) => m.slug));
+
 export function MarketerDrawer() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -82,12 +86,12 @@ export function MarketerDrawer() {
               <div className="mk-actions">
                 <button
                   className="mk-btn"
-                  onClick={() => window.location.href = `/marketers/${m.slug}`}
+                  onClick={() => ALLOWED_MARKETER_SLUGS.has(m.slug) && navigate(`/marketers/${m.slug}`)}
                   data-testid={`button-mk-view-${m.slug}`}
                 >View</button>
                 <button
                   className="mk-btn ghost"
-                  onClick={() => window.location.href = `/marketers/${m.slug}/book`}
+                  onClick={() => ALLOWED_MARKETER_SLUGS.has(m.slug) && navigate(`/marketers/${m.slug}/book`)}
                   data-testid={`button-mk-book-${m.slug}`}
                 >Book</button>
               </div>

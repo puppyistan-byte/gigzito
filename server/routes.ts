@@ -473,7 +473,15 @@ async function runOrphanScan(applyFix: boolean): Promise<OrphanReport> {
     ["sponsor_ads",    "id", "image_url",    "null"],
   ];
 
+  // Allowlist — values are hardcoded but validated for defense-in-depth
+  const ALLOWED_TABLES = new Set(["video_listings", "gz_flash_ads", "gz_music_tracks", "gig_jacks", "sponsor_ads"]);
+  const ALLOWED_COLS   = new Set(["id", "video_url", "artwork_url", "audio_url", "cover_url", "image_url"]);
+
   for (const [table, idCol, fileCol, action] of targets) {
+    if (!ALLOWED_TABLES.has(table) || !ALLOWED_COLS.has(idCol) || !ALLOWED_COLS.has(fileCol)) {
+      errors.push(`${table}.${fileCol}: rejected — identifier not in allowlist`);
+      continue;
+    }
     let rows: { id: number; path: string }[] = [];
     try {
       const result = await pool.query(

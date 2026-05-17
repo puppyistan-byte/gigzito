@@ -218,8 +218,13 @@ or
 
 // ── Utilities ──────────────────────────────────────────────────────────────────
 export function moveToFinalDest(quarantinePath: string, finalDir: string, filename: string): string {
-  const finalPath = path.join(finalDir, filename);
-  fs.mkdirSync(finalDir, { recursive: true });
+  const safeFilename = path.basename(filename);
+  const resolvedDir  = path.resolve(finalDir);
+  const finalPath    = path.join(resolvedDir, safeFilename);
+  if (!finalPath.startsWith(resolvedDir + path.sep) && finalPath !== resolvedDir) {
+    throw new Error(`[Inspector] Path traversal blocked: ${filename}`);
+  }
+  fs.mkdirSync(resolvedDir, { recursive: true });
   fs.renameSync(quarantinePath, finalPath);
   return finalPath;
 }

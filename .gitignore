@@ -1,5 +1,7 @@
 node_modules
 dist
+gen_gz_api.js
+GZMusic_API_Reference.pdf
 .DS_Store
 server/public
 vite.config.ts.*

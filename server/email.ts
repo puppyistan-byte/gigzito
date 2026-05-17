@@ -1,5 +1,14 @@
 import nodemailer from "nodemailer";
 
+function escapeHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT ?? "587");
 const SMTP_USER = process.env.SMTP_USER;
@@ -40,20 +49,23 @@ export async function sendTriageNotification(
   listingTitle: string,
   reason: string,
 ): Promise<{ devMode: boolean }> {
+  const eName = escapeHtml(providerName);
+  const eTitle = escapeHtml(listingTitle);
+  const eReason = escapeHtml(reason);
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
       <h2 style="color:#f59e0b;font-size:20px;margin:0 0 8px;">Listing Pulled from Rotation</h2>
-      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${providerName},</p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${eName},</p>
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
         Your listing has been moved out of the Gigzito video feed by our moderation team and placed in the 
         <strong style="color:#fff;">GigCard Directory</strong> for static ads.
       </p>
       <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Listing</p>
-        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${listingTitle}</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${eTitle}</p>
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Reason</p>
-        <p style="color:#f59e0b;font-size:13px;margin:0;">${reason}</p>
+        <p style="color:#f59e0b;font-size:13px;margin:0;">${eReason}</p>
       </div>
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
         Gigzito's video feed is designed for short-form video content only. If your listing contains a 
@@ -95,19 +107,22 @@ export async function sendContentDisabledNotification(
   listingTitle: string,
   reason: string,
 ): Promise<{ devMode: boolean }> {
+  const eName = escapeHtml(providerName);
+  const eTitle = escapeHtml(listingTitle);
+  const eReason = escapeHtml(reason);
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
       <h2 style="color:#f59e0b;font-size:20px;margin:0 0 8px;">Your Video Has Been Disabled</h2>
-      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${providerName},</p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${eName},</p>
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
         Our moderation team has temporarily disabled the following video from the Gigzito feed.
       </p>
       <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Listing</p>
-        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${listingTitle}</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${eTitle}</p>
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Reason</p>
-        <p style="color:#f59e0b;font-size:13px;margin:0;">${reason}</p>
+        <p style="color:#f59e0b;font-size:13px;margin:0;">${eReason}</p>
       </div>
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
         If you believe this was made in error, please reach out to our support team. You may re-submit content that complies with our community guidelines via your provider dashboard.
@@ -143,19 +158,22 @@ export async function sendContentDeletedNotification(
   listingTitle: string,
   reason: string,
 ): Promise<{ devMode: boolean }> {
+  const eName = escapeHtml(providerName);
+  const eTitle = escapeHtml(listingTitle);
+  const eReason = escapeHtml(reason);
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
       <h2 style="color:#ef4444;font-size:20px;margin:0 0 8px;">Your Video Has Been Removed</h2>
-      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${providerName},</p>
+      <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Hi ${eName},</p>
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
         Our moderation team has permanently removed the following listing from Gigzito.
       </p>
       <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Listing</p>
-        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${listingTitle}</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 12px;">${eTitle}</p>
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Reason</p>
-        <p style="color:#ef4444;font-size:13px;margin:0;">${reason}</p>
+        <p style="color:#ef4444;font-size:13px;margin:0;">${eReason}</p>
       </div>
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">
         This action is permanent. If you believe this was made in error, please contact our support team. You may submit new content that complies with our community guidelines.
@@ -238,6 +256,12 @@ export async function sendAdInquiryNotification(opts: {
   adTitle: string;
 }): Promise<{ devMode: boolean }> {
   const geoLine = [opts.viewerCity, opts.viewerState, opts.viewerCountry].filter(Boolean).join(", ");
+  const eAdTitle     = escapeHtml(opts.adTitle);
+  const eViewerName  = escapeHtml(opts.viewerName);
+  const eViewerUser  = opts.viewerUsername ? escapeHtml(opts.viewerUsername) : null;
+  const eViewerEmail = opts.viewerEmail    ? escapeHtml(opts.viewerEmail)    : null;
+  const eMessage     = escapeHtml(opts.viewerMessage);
+  const eGeoLine     = escapeHtml(geoLine);
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
@@ -245,17 +269,17 @@ export async function sendAdInquiryNotification(opts: {
       <p style="color:#aaa;font-size:14px;margin:0 0 20px;">Someone responded to your sponsor ad on Gigzito.</p>
       <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Ad</p>
-        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 14px;">${opts.adTitle}</p>
+        <p style="color:#fff;font-size:15px;font-weight:600;margin:0 0 14px;">${eAdTitle}</p>
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">From</p>
-        <p style="color:#fff;font-size:14px;margin:0 0 2px;">${opts.viewerName}${opts.viewerUsername ? ` (@${opts.viewerUsername})` : ""}</p>
-        ${opts.viewerEmail ? `<p style="color:#888;font-size:13px;margin:0 0 14px;">${opts.viewerEmail}</p>` : "<br/>"}
-        ${geoLine ? `<p style="color:#888;font-size:12px;margin:0 0 14px;">📍 ${geoLine}</p>` : ""}
+        <p style="color:#fff;font-size:14px;margin:0 0 2px;">${eViewerName}${eViewerUser ? ` (@${eViewerUser})` : ""}</p>
+        ${eViewerEmail ? `<p style="color:#888;font-size:13px;margin:0 0 14px;">${eViewerEmail}</p>` : "<br/>"}
+        ${eGeoLine ? `<p style="color:#888;font-size:12px;margin:0 0 14px;">📍 ${eGeoLine}</p>` : ""}
         <p style="color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px;">Message</p>
-        <p style="color:#fff;font-size:14px;margin:0;">${opts.viewerMessage}</p>
+        <p style="color:#fff;font-size:14px;margin:0;">${eMessage}</p>
       </div>
       <a href="https://gigzito.com/provider/me" style="display:inline-block;background:#ff2b2b;color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px;text-decoration:none;margin-bottom:24px;">View in Dashboard</a>
       <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
-      <p style="color:#555;font-size:12px;margin:0;">Reply directly to ${opts.viewerEmail ?? "the inquirer"} or check your Inquiries inbox at gigzito.com/provider/me.</p>
+      <p style="color:#555;font-size:12px;margin:0;">Reply directly to ${eViewerEmail ?? "the inquirer"} or check your Inquiries inbox at gigzito.com/provider/me.</p>
     </div>
   `;
 
@@ -286,12 +310,15 @@ export async function sendAudienceBroadcast(opts: {
   subject: string;
   body: string;
 }): Promise<{ devMode: boolean }> {
+  const eSender  = escapeHtml(opts.senderName);
+  const eSubject = escapeHtml(opts.subject);
+  const eBody    = escapeHtml(opts.body);
   const html = `
     <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:32px;margin-bottom:24px;" />
-      <p style="color:#888;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;">Message from ${opts.senderName}</p>
-      <h2 style="color:#fff;font-size:20px;margin:0 0 20px;">${opts.subject}</h2>
-      <div style="background:#111;border:1px solid #222;border-radius:10px;padding:20px;margin-bottom:24px;color:#ccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${opts.body}</div>
+      <p style="color:#888;font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;">Message from ${eSender}</p>
+      <h2 style="color:#fff;font-size:20px;margin:0 0 20px;">${eSubject}</h2>
+      <div style="background:#111;border:1px solid #222;border-radius:10px;padding:20px;margin-bottom:24px;color:#ccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${eBody}</div>
       <hr style="border:none;border-top:1px solid #222;margin:24px 0;" />
       <p style="color:#444;font-size:11px;margin:0;">You received this because you opted in via a Gigzito provider listing. To unsubscribe, reply with "unsubscribe".</p>
     </div>
@@ -330,28 +357,32 @@ export async function sendGZMusicAnnouncement(opts: {
   downloadEnabled?: boolean;
   listenUrl?: string;
 }): Promise<{ devMode: boolean }> {
-  const listenUrl = opts.listenUrl ?? "https://gigzito.com/gz-music";
+  const listenUrl    = opts.listenUrl ?? "https://gigzito.com/gz-music";
+  const eTrackTitle  = escapeHtml(opts.trackTitle);
+  const eTrackArtist = escapeHtml(opts.trackArtist);
+  const eTrackGenre  = opts.trackGenre ? escapeHtml(opts.trackGenre) : "";
+  const eSenderName  = escapeHtml(opts.senderName);
   const coverBlock = opts.coverUrl
-    ? `<img src="${opts.coverUrl}" alt="Cover Art" style="width:100%;max-width:220px;border-radius:10px;margin:0 auto 20px;display:block;border:1px solid #222;" />`
+    ? `<img src="${escapeHtml(opts.coverUrl)}" alt="Cover Art" style="width:100%;max-width:220px;border-radius:10px;margin:0 auto 20px;display:block;border:1px solid #222;" />`
     : `<div style="width:100%;max-width:220px;height:100px;background:#111;border-radius:10px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;color:#ff7a00;font-size:28px;border:1px solid #2a2a2a;">🎵</div>`;
   const downloadLine = opts.downloadEnabled && opts.fileUrl
-    ? `<a href="https://gigzito.com${opts.fileUrl}" style="display:inline-block;margin-top:8px;padding:8px 16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#aaa;font-size:12px;text-decoration:none;">⬇ Download Track</a>`
+    ? `<a href="https://gigzito.com${escapeHtml(opts.fileUrl)}" style="display:inline-block;margin-top:8px;padding:8px 16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;color:#aaa;font-size:12px;text-decoration:none;">⬇ Download Track</a>`
     : "";
   const msgBlock = opts.message
-    ? `<div style="background:#111;border:1px solid #222;border-radius:10px;padding:16px;margin:16px 0;color:#ccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${opts.message}</div>`
+    ? `<div style="background:#111;border:1px solid #222;border-radius:10px;padding:16px;margin:16px 0;color:#ccc;font-size:14px;line-height:1.7;white-space:pre-wrap;">${escapeHtml(opts.message)}</div>`
     : "";
   const html = `
     <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:12px;border:1px solid #222;">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" style="height:30px;margin-bottom:24px;" />
       <p style="color:#ff7a00;font-size:11px;font-weight:700;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em;">🎵 New Track on GZMusic</p>
-      <h2 style="color:#fff;font-size:22px;margin:0 0 4px;">${opts.trackTitle}</h2>
-      <p style="color:#888;font-size:14px;margin:0 0 24px;">by ${opts.trackArtist}${opts.trackGenre ? ` · ${opts.trackGenre}` : ""}</p>
+      <h2 style="color:#fff;font-size:22px;margin:0 0 4px;">${eTrackTitle}</h2>
+      <p style="color:#888;font-size:14px;margin:0 0 24px;">by ${eTrackArtist}${eTrackGenre ? ` · ${eTrackGenre}` : ""}</p>
       ${coverBlock}
       ${msgBlock}
       <a href="${listenUrl}" style="display:block;text-align:center;padding:14px 24px;background:linear-gradient(135deg,#ff7a00,#cc5200);color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;margin-top:4px;">🎧 Listen on GZ100</a>
       ${downloadLine}
       <hr style="border:none;border-top:1px solid #1e1e1e;margin:28px 0;" />
-      <p style="color:#333;font-size:11px;margin:0;">Announced by ${opts.senderName} via Gigzito GZMusic. To unsubscribe, reply "unsubscribe".</p>
+      <p style="color:#333;font-size:11px;margin:0;">Announced by ${eSenderName} via Gigzito GZMusic. To unsubscribe, reply "unsubscribe".</p>
     </div>
   `;
   if (DEV_MODE) {
@@ -419,8 +450,8 @@ export async function sendMassNotification(opts: {
 
   <!-- SUBJECT -->
   <tr><td style="background:#0d0d0d;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a;padding:4px 40px 24px;">
-    <h1 style="font-size:26px;font-weight:900;color:#fff;margin:0 0 8px;line-height:1.25;">${opts.subject}</h1>
-    ${opts.toName ? `<p style="color:#555;font-size:13px;margin:0;">Hi ${opts.toName},</p>` : ""}
+    <h1 style="font-size:26px;font-weight:900;color:#fff;margin:0 0 8px;line-height:1.25;">${escapeHtml(opts.subject)}</h1>
+    ${opts.toName ? `<p style="color:#555;font-size:13px;margin:0;">Hi ${escapeHtml(opts.toName)},</p>` : ""}
   </td></tr>
 
   <!-- MESSAGE BODY -->
@@ -472,6 +503,9 @@ export async function sendInvitationEmail(opts: {
   targetEmail: string;
   landingUrl: string;
 }): Promise<{ devMode: boolean }> {
+  const eSenderName  = escapeHtml(opts.senderName);
+  const eSenderEmail = escapeHtml(opts.senderEmail);
+  const eTargetName  = escapeHtml(opts.targetName);
   const html = `
 <!DOCTYPE html>
 <html>
@@ -492,15 +526,15 @@ export async function sendInvitationEmail(opts: {
     <div style="background:#ff2b2b18;border:1px solid #ff2b2b30;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
       <div style="font-size:11px;color:#ff2b2b;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Personal Invitation</div>
       <div style="font-size:16px;color:#fff;font-weight:600;">
-        ${opts.senderName} <span style="color:#666;font-weight:400;">( ${opts.senderEmail} )</span> invited you to Gigzito.
+        ${eSenderName} <span style="color:#666;font-weight:400;">( ${eSenderEmail} )</span> invited you to Gigzito.
       </div>
     </div>
     <h1 style="font-size:32px;font-weight:900;color:#fff;margin:0 0 12px;line-height:1.2;">
-      Hi ${opts.targetName},<br>
+      Hi ${eTargetName},<br>
       <span style="color:#ff2b2b;">You're in.</span>
     </h1>
     <p style="color:#aaa;font-size:16px;line-height:1.7;margin:0 0 24px;">
-      ${opts.senderName} thinks you belong in an ecosystem where creators, consumers, and businesses grow together in one place. They're probably right.
+      ${eSenderName} thinks you belong in an ecosystem where creators, consumers, and businesses grow together in one place. They're probably right.
     </p>
     <p style="color:#777;font-size:14px;line-height:1.7;margin:0;">
       Gigzito is the first platform that combines TikTok-style video discovery, live broadcasting, digital identity cards, geo-triggered promotions, flash deals, and real engagement analytics — all in one connected system designed so that <strong style="color:#fff;">every participant's success feeds someone else's growth.</strong>
@@ -561,7 +595,7 @@ export async function sendInvitationEmail(opts: {
       Claim Your Invitation →
     </a>
     <p style="color:#444;font-size:11px;margin:28px 0 0;">
-      Invited by ${opts.senderName} · Sent by Gigzito Marketing · <a href="https://gigzito.com" style="color:#555;text-decoration:none;">gigzito.com</a>
+      Invited by ${eSenderName} · Sent by Gigzito Marketing · <a href="https://gigzito.com" style="color:#555;text-decoration:none;">gigzito.com</a>
     </p>
   </td></tr>
 
@@ -633,6 +667,8 @@ export async function sendGroupInviteEmail(opts: {
   isNewUser: boolean;
 }): Promise<{ devMode: boolean }> {
   const { toEmail, groupName, inviterName, joinUrl, isNewUser } = opts;
+  const eGroup   = escapeHtml(groupName);
+  const eInviter = escapeHtml(inviterName);
   const html = `
 <!DOCTYPE html><html><head><meta charset="utf-8"><style>
 body{margin:0;padding:0;background:#0a0a0a;font-family:Arial,sans-serif;color:#e0e0e0}
@@ -649,15 +685,15 @@ p{margin:12px 0;font-size:14px;line-height:1.6;color:#aaa}
   <div class="logo">Gigzito</div>
   <div class="sub">Getcho Gig On</div>
   <div class="card">
-    <h2>You've been invited to join <span style="color:#ff3333">${groupName}</span></h2>
-    <p><strong style="color:#fff">${inviterName}</strong> invited you to join their private group on Gigzito.</p>
+    <h2>You've been invited to join <span style="color:#ff3333">${eGroup}</span></h2>
+    <p><strong style="color:#fff">${eInviter}</strong> invited you to join their private group on Gigzito.</p>
     ${isNewUser ? `<p>You'll need to create a free Gigzito account first — it only takes a minute. Once you sign up, you'll be taken straight into the group.</p>` : `<p>Click below to accept your invitation and join the group.</p>`}
-    <a href="${joinUrl}" class="btn">${isNewUser ? "Create Account & Join Group" : "Accept Invitation"}</a>
+    <a href="${joinUrl}" class="btn">${isNewUser ? "Create Account &amp; Join Group" : "Accept Invitation"}</a>
   </div>
   <div class="footer">This invite expires in 7 days. If you didn't expect this email, you can ignore it.</div>
 </div>
 </body></html>`;
-  return sendEmail({ toEmail, subject: `${inviterName} invited you to ${groupName} on Gigzito`, html });
+  return sendEmail({ toEmail, subject: `${eInviter} invited you to ${eGroup} on Gigzito`, html });
 }
 
 export async function sendGZFlashCoupon(opts: {
@@ -670,7 +706,10 @@ export async function sendGZFlashCoupon(opts: {
   discountPercent: number;
   couponExpiresAt: Date;
 }): Promise<{ devMode: boolean }> {
-  const expiryStr = opts.couponExpiresAt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const expiryStr   = opts.couponExpiresAt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const eAdTitle    = escapeHtml(opts.adTitle);
+  const eProvider   = escapeHtml(opts.providerName);
+  const eCouponCode = escapeHtml(opts.couponCode);
   const html = `
 <!DOCTYPE html>
 <html>
@@ -707,13 +746,13 @@ export async function sendGZFlashCoupon(opts: {
     <div class="header">
       <img src="https://gigzito.com/gigzito-logo-v3.png" alt="Gigzito" class="logo" />
       <div class="badge">⚡ GZFlash Offer</div>
-      <p class="title">${opts.adTitle}</p>
-      <p class="sub">From ${opts.providerName}</p>
+      <p class="title">${eAdTitle}</p>
+      <p class="sub">From ${eProvider}</p>
     </div>
     <div class="body">
       <div class="coupon-box">
         <div class="coupon-label">Your Coupon Code</div>
-        <div class="coupon-code">${opts.couponCode}</div>
+        <div class="coupon-code">${eCouponCode}</div>
         <div class="prices">
           <span class="sale-price">$${opts.salePrice}</span>
           <span class="orig-price">$${opts.originalPrice}</span>
@@ -728,11 +767,11 @@ export async function sendGZFlashCoupon(opts: {
         </div>
       </div>
       <div class="disclaimer">
-        <p><strong style="color:#6b7280">Important Disclosure:</strong> This offer is exclusively between you and ${opts.providerName}, an independent business operating on the Gigzito platform. Gigzito is a technology platform that facilitates connections between buyers and independent service providers. Gigzito bears no liability whatsoever with respect to this transaction, the quality of goods or services, fulfillment, pricing, or any dispute arising from this offer. By redeeming this coupon, you agree that any claims, disputes, or warranty issues are solely between you and the provider.</p>
+        <p><strong style="color:#6b7280">Important Disclosure:</strong> This offer is exclusively between you and ${eProvider}, an independent business operating on the Gigzito platform. Gigzito is a technology platform that facilitates connections between buyers and independent service providers. Gigzito bears no liability whatsoever with respect to this transaction, the quality of goods or services, fulfillment, pricing, or any dispute arising from this offer. By redeeming this coupon, you agree that any claims, disputes, or warranty issues are solely between you and the provider.</p>
       </div>
     </div>
     <div class="footer">
-      You received this because you claimed an offer on Gigzito. You've also been added to ${opts.providerName}'s subscriber list — reply "unsubscribe" to opt out of their messages.
+      You received this because you claimed an offer on Gigzito. You've also been added to ${eProvider}'s subscriber list — reply "unsubscribe" to opt out of their messages.
     </div>
   </div>
 </div>
@@ -763,7 +802,8 @@ export async function sendPasswordResetEmail(opts: {
   displayName?: string;
 }): Promise<{ devMode: boolean }> {
   const { toEmail, resetUrl, displayName } = opts;
-  const name = displayName || "there";
+  const name  = displayName || "there";
+  const eName = escapeHtml(name);
   const html = `
 <!DOCTYPE html><html><head><meta charset="utf-8"><style>
 body{margin:0;padding:0;background:#0a0a0a;font-family:Arial,sans-serif;color:#e0e0e0}
@@ -781,7 +821,7 @@ p{margin:12px 0;font-size:14px;line-height:1.6;color:#aaa}
   <div class="sub">Getcho Gig On</div>
   <div class="card">
     <h2>Reset your password</h2>
-    <p>Hey ${name} — we got a request to reset your Gigzito password.</p>
+    <p>Hey ${eName} — we got a request to reset your Gigzito password.</p>
     <p>Click the button below to choose a new password. This link expires in <strong style="color:#fff">1 hour</strong>.</p>
     <a href="${resetUrl}" class="btn">Reset My Password</a>
     <p style="margin-top:24px;font-size:12px;color:#555">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
