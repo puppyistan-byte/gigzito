@@ -2,14 +2,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BottomNav } from "@/components/bottom-nav";
 import { VideoCard } from "@/components/video-card";
-import { MiniLivePlayer } from "@/components/mini-live-player";
-import { AllEyesBanner } from "@/components/all-eyes-banner";
 import { RightRailHeroAd } from "@/components/right-rail-hero-ad";
 import { SideRail } from "@/components/side-rail";
 import { Navbar } from "@/components/navbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ListingWithProvider } from "@shared/schema";
-import { ChevronUp, ChevronDown, Zap, Menu, X, Eye, Layers, Flame, CreditCard, Music, Trophy, Users, Smartphone, Shield, Copy, Check, ExternalLink, Download } from "lucide-react";
+import { ChevronUp, ChevronDown, Zap, Menu, X, Layers, CreditCard, Smartphone, Shield, Copy, Check, ExternalLink, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import gzLogo from "@assets/gz_logo_1774147866824.png";
@@ -88,10 +86,6 @@ export default function HomePage() {
     globalMutedRef.current = muted;
     setGlobalMuted(muted);
     persistMuted(muted);
-    // When the feed unmutes, tell ZitoTV pop-out to mute itself
-    if (!muted) {
-      window.dispatchEvent(new CustomEvent("feed-unmuted"));
-    }
   }, []);
 
   // User-controlled pause/play via the GZ logo button
@@ -99,35 +93,6 @@ export default function HomePage() {
   // Reset user-pause when they scroll to a new video
   useEffect(() => { setUserPaused(false); }, [currentIndex]);
 
-  // Pauses + mutes the main feed when ZitoTV live audio turns on
-  const [feedPaused, setFeedPaused] = useState(false);
-  const feedPausedRef = useRef(false);
-  useEffect(() => {
-    const handleUnmuted = () => {
-      feedPausedRef.current = true;
-      setFeedPaused(true);
-      // Also mute the feed so both sources can't play audio simultaneously
-      handleMuteChange(true);
-    };
-    const handleFocused = () => {
-      // ZitoTV popped out — pause the feed video (audio unchanged, ZitoTV starts muted)
-      feedPausedRef.current = true;
-      setFeedPaused(true);
-    };
-    const handleClosed = () => {
-      // ZitoTV returned to normal — resume the feed
-      feedPausedRef.current = false;
-      setFeedPaused(false);
-    };
-    window.addEventListener("zitotv-unmuted", handleUnmuted);
-    window.addEventListener("zitotv-focused", handleFocused);
-    window.addEventListener("zitotv-closed", handleClosed);
-    return () => {
-      window.removeEventListener("zitotv-unmuted", handleUnmuted);
-      window.removeEventListener("zitotv-focused", handleFocused);
-      window.removeEventListener("zitotv-closed", handleClosed);
-    };
-  }, [handleMuteChange]);
 
   const feedRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -194,12 +159,6 @@ export default function HomePage() {
     } else {
       container.scrollTo({ top: clamped * h, behavior: "smooth" });
       setTimeout(() => { isScrollingRef.current = false; }, 600);
-    }
-    // When user explicitly navigates to a new card, resume the feed
-    if (feedPausedRef.current) {
-      feedPausedRef.current = false;
-      setFeedPaused(false);
-      handleMuteChange(false);
     }
   }, []);
 
@@ -448,7 +407,6 @@ export default function HomePage() {
         <img src={logoImg} alt="Gigzito" className="gigzito-logo-img" />
       </div>
 
-      <MiniLivePlayer />
 
       {/* ── Hamburger menu ── */}
       <div ref={menuRef} style={{ position: "fixed", top: 10, left: 12, zIndex: 9998 }}>
@@ -478,7 +436,7 @@ export default function HomePage() {
 
           <button
             onClick={() => navigate("/pricing")}
-            data-testid="button-topbar-pricing"
+            data-testid="button-topbar-boost"
             style={{
               display: "flex", alignItems: "center", gap: 5,
               background: "linear-gradient(135deg, #ff2b2b, #cc0000)",
@@ -494,30 +452,8 @@ export default function HomePage() {
               boxShadow: "0 2px 10px rgba(255,43,43,0.45)",
             }}
           >
-            <Layers style={{ width: 12, height: 12, color: "#fff" }} />
-            Tiers
-          </button>
-
-          <button
-            onClick={() => navigate("/keeping-it-geezee")}
-            data-testid="button-topbar-geezee"
-            style={{
-              display: "flex", alignItems: "center", gap: 5,
-              background: "linear-gradient(135deg, #ff2b2b, #cc0000)",
-              border: "none",
-              borderRadius: "999px",
-              padding: "7px 13px",
-              cursor: "pointer",
-              color: "#fff",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.03em",
-              whiteSpace: "nowrap",
-              boxShadow: "0 2px 10px rgba(255,43,43,0.45)",
-            }}
-          >
-            <Flame style={{ width: 12, height: 12, color: "#fff" }} />
-            Keeping it GZ
+            <Zap style={{ width: 12, height: 12, color: "#fff" }} />
+            Boost
           </button>
 
         </div>
@@ -569,47 +505,17 @@ export default function HomePage() {
 
           {/* ── Nav links ── */}
           <button
-            onClick={() => { setMenuOpen(false); navigate("/all-eyes-on-me"); }}
-            data-testid="button-all-eyes-on-me"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Eye style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#ff2b2b", letterSpacing: "0.01em" }}>All Eyes On Me</span>
-          </button>
-
-          <button
             onClick={() => { setMenuOpen(false); navigate("/pricing"); }}
-            data-testid="button-menu-pricing"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            data-testid="button-menu-boost"
+            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "rgba(255,43,43,0.06)", border: "none", cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.14)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.06)"; }}
           >
-            <Layers style={{ width: 13, height: 13, color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: "0.01em" }}>Membership Tiers</span>
-          </button>
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/keeping-it-geezee"); }}
-            data-testid="button-menu-keeping-it-geezee"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Flame style={{ width: 13, height: 13, color: "#f59e0b", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 600, color: "#f59e0b", letterSpacing: "0.01em" }}>Keeping it GZ</span>
-          </button>
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/gz-music"); }}
-            data-testid="button-menu-gz-music"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,122,0,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Music style={{ width: 13, height: 13, color: "#ff7a00", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff7a00", letterSpacing: "0.01em" }}>GZMusic · GZ100</span>
+            <Zap style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff2b2b", letterSpacing: "0.01em" }}>Boost</span>
+              <span style={{ fontSize: "9px", color: "rgba(255,43,43,0.55)" }}>Weekly top placement</span>
+            </div>
           </button>
 
           <button
@@ -624,36 +530,14 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => { setMenuOpen(false); navigate("/offer-center"); }}
-            data-testid="button-menu-gzflash"
+            onClick={() => { setMenuOpen(false); navigate("/pricing"); }}
+            data-testid="button-menu-pricing"
             style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(29,78,216,0.08)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
-            <Zap style={{ width: 13, height: 13, color: "#1d4ed8", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#60a5fa", letterSpacing: "0.01em" }}>GZFlash Sales</span>
-          </button>
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/groups"); }}
-            data-testid="button-menu-gzgroups"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(96,165,250,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Users style={{ width: 13, height: 13, color: "#60a5fa", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#60a5fa", letterSpacing: "0.01em" }}>GZGroups</span>
-          </button>
-
-          <button
-            onClick={() => { setMenuOpen(false); navigate("/most-loved"); }}
-            data-testid="button-menu-most-loved"
-            style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", padding: "9px 16px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left" }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,43,43,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <Trophy style={{ width: 13, height: 13, color: "#ff2b2b", flexShrink: 0 }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#ff2b2b", letterSpacing: "0.01em" }}>Most Loved</span>
+            <Layers style={{ width: 13, height: 13, color: "rgba(255,255,255,0.5)", flexShrink: 0 }} />
+            <span style={{ fontSize: "13px", fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: "0.01em" }}>Membership Tiers</span>
           </button>
 
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
@@ -712,7 +596,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      <AllEyesBanner />
 
       {/* Feed — no onScroll handler; index is driven by wheel/touch/button, not scroll position */}
       <div
@@ -764,7 +647,7 @@ export default function HomePage() {
               <VideoCard
                 listing={listing}
                 className="w-full h-full"
-                isActive={idx === currentIndex && !feedPaused && !userPaused}
+                isActive={idx === currentIndex && !userPaused}
                 isMuted={globalMuted}
                 onMuteChange={handleMuteChange}
                 initialIsLiked={batchFetched ? (batchLikes[listing.id] ?? false) : undefined}
@@ -775,7 +658,7 @@ export default function HomePage() {
               />
 
               {/* GZ Logo — transparent pause/play button, only on the active card */}
-              {idx === currentIndex && !feedPaused && (
+              {idx === currentIndex && (
                 <button
                   onClick={() => setUserPaused((p) => !p)}
                   data-testid="button-feed-pause-play"
@@ -837,29 +720,6 @@ export default function HomePage() {
                 </button>
               )}
 
-              {feedPaused && idx === currentIndex && (
-                <div
-                  className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 pointer-events-none"
-                  style={{ background: "rgba(0,0,0,0.55)" }}
-                  data-testid="feed-paused-overlay"
-                >
-                  <div
-                    className="flex items-center justify-center rounded-full"
-                    style={{ width: 64, height: 64, background: "rgba(255,255,255,0.18)", border: "2px solid rgba(255,255,255,0.45)" }}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                      <rect x="5" y="4" width="4" height="16" rx="1" />
-                      <rect x="15" y="4" width="4" height="16" rx="1" />
-                    </svg>
-                  </div>
-                  <p className="text-white text-sm font-semibold text-center px-6" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
-                    Live audio is on
-                  </p>
-                  <p className="text-white/70 text-xs text-center px-8" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
-                    Scroll to the next video to resume
-                  </p>
-                </div>
-              )}
             </div>
           ))
         )}

@@ -41,42 +41,23 @@ import ProviderDashboard from "@/pages/provider-dashboard";
 import ProviderProfilePage from "@/pages/provider-profile";
 import NewListingPage from "@/pages/new-listing";
 import AdminPage from "@/pages/admin";
-import GigJackNewPage from "@/pages/gigjack-new";
 import ProviderPublicPage from "@/pages/provider-public";
-import LiveNowPage from "@/pages/live-now";
-import GoLivePage from "@/pages/go-live";
-import LiveViewPage from "@/pages/live-view";
-import AllEyesOnMePage from "@/pages/all-eyes-on-me";
-import ZitoTVPage from "@/pages/zito-tv";
 import GigCardDirectoryPage from "@/pages/gigcard-directory";
-import LeaderboardPage from "@/pages/leaderboard";
 import VerifyEmailPage from "@/pages/verify-email";
 import LogoutPage from "@/pages/logout";
 import ResetPasswordPage from "@/pages/reset-password";
-import AdvertisePage from "@/pages/advertise";
 import GeezeesPage from "@/pages/geezees";
 import CardEditorPage from "@/pages/card-editor";
 import PricingPage from "@/pages/pricing";
-import KeepingItGeezeePage from "@/pages/keeping-it-geezee";
-import WhatIsGigJackPage from "@/pages/what-is-gigjack";
-import PreemptiveMarketingPage from "@/pages/preemptive-marketing";
 import GeeZeeProfilePage from "@/pages/geezee-profile";
 import QrRedirectPage from "@/pages/qr-redirect";
 import GzBusinessPage from "@/pages/gz-business";
 import OfferCenterPage from "@/pages/offer-center";
 import InviteLandingPage from "@/pages/invite-landing";
 import ActivityPage from "@/pages/activity";
-import GZMusicPage from "@/pages/gz-music";
-import GZMusicUploadPage from "@/pages/gz-music-upload";
-import GzBandsPage from "@/pages/gz-bands";
-import BandClubbousePage from "@/pages/band-clubhouse";
-import MostLovedPage from "@/pages/most-loved";
-import GroupsPage from "@/pages/groups";
-import GroupDetailPage from "@/pages/group-detail";
-import JoinGroupPage from "@/pages/join-group";
+import GzBusinessDirectoryPage from "@/pages/gz-business-directory";
 import BusinessStorefrontPage from "@/pages/business-storefront";
 import BusinessProfileSetupPage from "@/pages/business-profile-setup";
-import GzBusinessDirectoryPage from "@/pages/gz-business-directory";
 
 function Router() {
   return (
@@ -88,26 +69,14 @@ function Router() {
       <Route path="/provider/profile" component={ProviderProfilePage} />
       <Route path="/provider/new" component={NewListingPage} />
       <Route path="/provider/:id" component={ProviderPublicPage} />
-      <Route path="/live" component={LiveNowPage} />
-      <Route path="/live/go" component={GoLivePage} />
-      <Route path="/live/:id" component={LiveViewPage} />
-      <Route path="/buy-live" component={AllEyesOnMePage} />
-      <Route path="/all-eyes-on-me" component={AllEyesOnMePage} />
-      <Route path="/zito-tv" component={ZitoTVPage} />
-      <Route path="/gigjack/new" component={GigJackNewPage} />
       <Route path="/gigcard-directory" component={GigCardDirectoryPage} />
-      <Route path="/leaderboard" component={LeaderboardPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/logout" component={LogoutPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/admin" component={AdminPage} />
-      <Route path="/advertise" component={AdvertisePage} />
       <Route path="/geezees" component={GeezeesPage} />
       <Route path="/card-editor" component={CardEditorPage} />
       <Route path="/pricing" component={PricingPage} />
-      <Route path="/keeping-it-geezee" component={KeepingItGeezeePage} />
-      <Route path="/what-is-gigjack" component={WhatIsGigJackPage} />
-      <Route path="/preemptive-marketing" component={PreemptiveMarketingPage} />
       <Route path="/geezee/:userId" component={GeeZeeProfilePage} />
       <Route path="/gz-business" component={GzBusinessDirectoryPage} />
       <Route path="/gz-business/manage" component={GzBusinessPage} />
@@ -115,14 +84,6 @@ function Router() {
       <Route path="/offer-center" component={OfferCenterPage} />
       <Route path="/gz-invite" component={InviteLandingPage} />
       <Route path="/activity" component={ActivityPage} />
-      <Route path="/gz-music" component={GZMusicPage} />
-      <Route path="/gz-music/upload" component={GZMusicUploadPage} />
-      <Route path="/gz-music/bands" component={GzBandsPage} />
-      <Route path="/gz-music/bands/:id" component={BandClubbousePage} />
-      <Route path="/most-loved" component={MostLovedPage} />
-      <Route path="/groups" component={GroupsPage} />
-      <Route path="/groups/:id" component={GroupDetailPage} />
-      <Route path="/join-group/:token" component={JoinGroupPage} />
       <Route path="/qr/:uuid" component={QrRedirectPage} />
       <Route path="/business-profile/setup" component={BusinessProfileSetupPage} />
       <Route path="/business-profile/settings" component={BusinessProfileSetupPage} />
